@@ -1,0 +1,6 @@
+.stack-work/
+hcheckers.cabal
+*~
+*.o
+*.hi
+*.swp
