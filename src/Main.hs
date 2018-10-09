@@ -50,6 +50,26 @@ main = do
   print $ kingSimpleMoves First board8'' (resolve "b2" board8'')
 
   putStrLn "7."
-  print $ kingCaptures (Piece King First) board8'' (resolve "b2" board8'')
-  -- print $ possibleMoves Russian First board8''
+  print $ possibleMoves Russian First board8''
+
+  putStrLn "8."
+  let board = board8''
+  let moves = possibleMoves Russian Second board
+  forM_ moves $ \move -> do
+    print move
+    let (board', addr', _) = applyMove Second move board
+        moves' = possibleMoves Russian Second board'
+    let score1 = evalBoard Russian First board'
+        score2 = evalBoard Russian Second board'
+    putStrLn $ show score1 ++ " vs " ++ show score2
+
+  putStrLn "9."
+  let board = movePiece' "e3" "f4" board8
+  let moves = possibleMoves Russian Second board
+  forM_ moves $ \move -> do
+    let (board', addr', _) = applyMove Second move board
+        moves' = possibleMoves Russian Second board'
+    let score1 = evalBoard Russian First board'
+        score2 = evalBoard Russian Second board'
+    putStrLn $ show move ++ " => " ++ show score1 ++ " vs " ++ show score2
 

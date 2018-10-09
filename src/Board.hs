@@ -28,6 +28,16 @@ showAddress2 a =
           (maybe "X" showAddress $ aDownLeft a)
           (maybe "X" showAddress $ aDownRight a)
 
+opposite :: Side -> Side
+opposite First = Second
+opposite Second = First
+
+isMan :: Piece -> Bool
+isMan (Piece kind _) = kind == Man
+
+isKing :: Piece -> Bool
+isKing (Piece kind _) = kind == King
+
 myDirection :: Side -> PlayerDirection -> BoardDirection
 myDirection First ForwardLeft = UpLeft
 myDirection First ForwardRight = UpRight
@@ -36,7 +46,7 @@ myDirection First BackwardRight = DownRight
 myDirection Second ForwardLeft = DownRight
 myDirection Second ForwardRight = DownLeft
 myDirection Second BackwardLeft = UpRight
-myDirection Second BackwardRight = DownLeft
+myDirection Second BackwardRight = UpLeft
 
 neighbour :: BoardDirection -> Address -> Maybe Address
 neighbour UpLeft a = aUpLeft a
@@ -121,7 +131,8 @@ checkWellFormedStep (Piece kind side) board src step =
     Nothing -> Nothing
     Just dst ->
       if sCapture step
-        then case getPiece dst board of
+        then -- trace (printf "Dir: %s, Capture: %s, Dst: %s, piece: %s" (show $ myDirection side (sDirection step)) (show $ sCapture step) (show dst) (show $ getPiece dst board)) $
+             case getPiece dst board of
                Nothing -> Nothing
                Just piece -> if isMyPiece side piece
                                then Nothing
@@ -153,6 +164,13 @@ isCapture move = any sCapture (moveSteps move)
 capturesCount :: Move -> Int
 capturesCount move = length $ filter sCapture (moveSteps move)
 
+capturesCounts :: Move -> Board -> (Int, Int)
+capturesCounts move board =
+  -- trace (printf "CC: %s" (show move)) $
+  let captures = getCaptured move board
+      (men, kings) = partition isMan $ map snd captures
+  in  (length men, length kings)
+
 applyStep :: Piece -> Address -> Step -> Board -> (Board, Address, Piece)
 applyStep piece@(Piece _ side) src step board =
   case checkWellFormedStep piece board src step of
@@ -172,7 +190,21 @@ applyMove side move board = go board piece (moveBegin move) (moveSteps move)
       let (b', dst, p') = applyStep p src step b
       in  go b' p' dst steps
 
-    piece = fromJust (getPiece (moveBegin move) board)
+    piece = getPiece_ "applyMove" (moveBegin move) board
+
+getCaptured :: Move -> Board -> [(Address, Piece)]
+getCaptured move board = go (moveBegin move) (moveSteps move)
+  where
+    me = getPiece_ "getCaptured: me" (moveBegin move) board
+
+    go _ [] = []
+    go addr (step : steps) =
+      if sCapture step
+        then let victim = getPiece_ "getCaptured" addr' board
+                 (_, addr', _) = applyStep me addr step board
+             in (addr, victim) : go addr' steps
+        else let (_, addr', _) = applyStep me addr step board
+             in go addr' steps
 
 moveEnd :: Side -> Board -> Move -> Address
 moveEnd side board move = last $ allPassedAddresses side board move
@@ -281,6 +313,12 @@ resolve label board = fromMaybe (error $ "resolve: unknown field: " ++ label) $ 
 
 getPiece :: Address -> Board -> Maybe Piece
 getPiece a b = M.lookup a (bPieces b)
+
+getPiece_ :: String -> Address -> Board -> Piece
+getPiece_ name addr board =
+  case getPiece addr board of
+    Nothing -> error $ name ++ ": no piece at " ++ show addr
+    Just piece -> piece
 
 getPiece' :: String -> Board -> Maybe Piece
 getPiece' l b = M.lookup a (bPieces b)

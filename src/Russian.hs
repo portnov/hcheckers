@@ -16,51 +16,6 @@ import Debug.Trace
 data Russian = Russian
   deriving (Show)
 
--- data MoveState = MoveState {
---     msBoard :: Board,
---     msSide :: Side,
---     msSource :: Address,
---     msCurrent :: Address,
---     msSteps :: [Step]
---   }
--- 
--- data MoveM a =
---     Bind (MoveState -> [(a, MoveState)])
---   | Error
--- 
--- instance Functor MoveM where
---   fmap f (Bind m) = Bind $ \st -> [(f a, st') | (a, st') <- m st]
---   fmap _ Error = Error
--- 
--- instance Applicative MoveM where
--- 
---   pure a = Bind $ \s -> [(a, s)]
--- 
---   _ <*> Error = Error
---   Error <*> _ = Error
---   (Bind mf) <*> (Bind m) =
---     Bind $ \st -> [(f a, st'') | (a, st') <- m st, (f, st'') <- mf st']
--- 
--- instance Monad MoveM where
---   Error >>= fn = Error
--- 
---   (Bind m) >>= fn =
---     Bind $ \st -> concat [fn' a st' | (a, st') <- m st]
---       where
---         fn' a st = case fn a of
---                     Error -> []
---                     Bind bind -> bind st
---       
--- 
--- mkMoveState :: Side -> Board -> Address -> MoveState
--- mkMoveState side board src = MoveState board side src src []
-
--- step :: PlayerDirection -> MoveM ()
--- step dir = do
---   st <- get
---   case neighbour (myDirection (msSide st)) (msCurrent st) of
-    
-
 instance GameRules Russian where
   possibleMoves Russian side board =
     let all = concatMap (possibleMoves1 side board) (allMyAddresses side board)
@@ -88,7 +43,7 @@ manMoves side board src =
 manSimpleMoves :: Side -> Board -> Address -> [Move]
 manSimpleMoves side board src = check ForwardLeft ++ check ForwardRight
   where
-    piece = fromJust (getPiece src board)
+    piece = getPiece_ "manSimpleMoves" src board
 
     check dir =
       let move = simpleMove side src dir
@@ -116,7 +71,7 @@ manCaptures piece@(Piece _ side) board src =
 manCaptures1 :: Piece -> Board -> Address -> [Move]
 manCaptures1 (Piece _ side) board src = concatMap (check src) [ForwardLeft, ForwardRight, BackwardLeft, BackwardRight]
   where
-    piece = fromJust (getPiece src board)
+    piece = getPiece_ "manCaptures1" src board
 
     check a dir =
       let move = simpleCapture side a dir
@@ -129,7 +84,7 @@ kingCaptures piece@(Piece _ side) board src =
   let moves = captures1 piece board src
       nextMoves m = captures1 p b a
                       where (b, a, p) = applyMove side m board
-  in concat $ flip map moves $ \move1 ->
+  in nub $ concat $ flip map moves $ \move1 ->
        let moves2 = nextMoves move1
        in  if null moves2
              then [move1]
@@ -145,11 +100,11 @@ kingCaptures1 piece@(Piece _ side) board src = concatMap check [ForwardLeft, For
         Just steps ->
           let maxFree = freeFieldsCount dir (length steps) 1
               freeSteps = tail $ inits $ replicate maxFree (Step dir False False)
-          in trace (show steps) $  [Move src (steps ++ free) | free <- freeSteps]
+          in {- trace (show steps) $ -} [Move src (steps ++ free) | free <- freeSteps]
 
     search dir a =
-      trace (printf "A: %s, dir: %s" (show a) (show dir)) $
-      trace (printf "%s: %s" (show a) (show $ getPiece a board)) $
+      -- trace (printf "A: %s, dir: %s" (show a) (show dir)) $
+      -- trace (printf "%s: %s" (show a) (show $ getPiece a board)) $
       case neighbour (myDirection side dir) a of
         Nothing -> Nothing
         Just a' -> case getPiece a' board of
@@ -173,19 +128,44 @@ kingCaptures1 piece@(Piece _ side) board src = concatMap check [ForwardLeft, For
 --                          Just steps -> trace "+" $ Just $ (Step dir False False) : steps
 
     freeFieldsCount dir n k =
-      trace (printf "Src: %s, dir: %s, n: %d, k: %d, piece: %s"
-                      (show src) (show dir) n k (show $ getPieceInDirection (myDirection side dir) src board (n+k))) $
+      -- trace (printf "Src: %s, dir: %s, n: %d, k: %d, piece: %s"
+      --                 (show src) (show dir) n k (show $ getPieceInDirection (myDirection side dir) src board (n+k))) $
       if isFreeInDirection (myDirection side dir) src board (n+k)
         then freeFieldsCount dir n (k+1)
-        else trace (printf "K: %s" (show k)) $ k-1
+        else {- trace (printf "K: %s" (show k)) $ -} k-1
 
 kingSimpleMoves :: Side -> Board -> Address -> [Move]
 kingSimpleMoves side board src = concatMap check [ForwardLeft, ForwardRight, BackwardLeft, BackwardRight]
   where
     check dir = takeWhile (isWellFormedMove piece board) $ map (kingMove side src dir) [1 ..]
-    piece = fromJust (getPiece src board)
+    piece = getPiece_ "kingSimpleMoves" src board
 
 kingMoves :: Side -> Board -> Address -> [Move]
 kingMoves side board src =
   kingCaptures (Piece King side) board src ++ kingSimpleMoves side board src
+
+win :: Integer
+win = 1000000
+
+captureManCoef :: Int
+captureManCoef = 10
+
+captureKingCoef :: Int
+captureKingCoef = 50
+
+instance Evaluator Russian where
+  evalBoard rules side board =
+    let moves = possibleMoves rules side board
+        opponentMoves = possibleMoves rules (opposite side) board
+    in  if null moves
+          then win
+          else if null opponentMoves
+                 then - win
+                 else let movesScore ms = if all isCapture ms
+                                           then let (men, kings) = unzip [capturesCounts move board | move <- ms]
+                                                in  fromIntegral $ captureManCoef * sum men + captureKingCoef * sum kings
+                                           else fromIntegral $ length ms
+                          myMovesScore = movesScore moves
+                          opponentMovesScore = movesScore opponentMoves
+                      in  myMovesScore - opponentMovesScore
 

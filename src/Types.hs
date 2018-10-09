@@ -2,6 +2,7 @@ module Types where
 
 import Control.Monad
 import Data.Maybe
+import Data.List
 import qualified Data.Map as M
 import Text.Printf
 
@@ -94,7 +95,7 @@ data Move = Move {
   deriving (Eq)
 
 instance Show Move where
-  show move = "[" ++ show (moveBegin move) ++ "] " ++ concatMap show (moveSteps move)
+  show move = "[" ++ show (moveBegin move) ++ "] " ++ (intercalate "." $ map show (moveSteps move))
 
 class GameRules g where
   possibleMoves :: g -> Side -> Board -> [Move]
