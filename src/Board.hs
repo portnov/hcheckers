@@ -47,6 +47,21 @@ neighbour DownRight a = aDownRight a
 isValidDirection :: BoardDirection -> Address -> Bool
 isValidDirection dir a = isJust (neighbour dir a)
 
+getNeighbourPiece :: BoardDirection -> Address -> Board -> Maybe Piece
+getNeighbourPiece dir addr board = do
+  addr' <- neighbour dir addr
+  getPiece addr' board
+
+inDirection :: BoardDirection -> Address -> Int -> Maybe Address
+inDirection _ src 0 = Just src
+inDirection dir src 1 = neighbour dir src
+inDirection dir src n = neighbour dir =<< inDirection dir src (n-1)
+
+getPieceInDirection :: BoardDirection -> Address -> Board -> Int -> Maybe Piece
+getPieceInDirection dir src board n = do
+  dst <- inDirection dir src n
+  getPiece dst board
+
 isLastHorizontal :: Side -> Address -> Bool
 isLastHorizontal side a =
   not (isValidDirection (myDirection side ForwardLeft) a) && not (isValidDirection (myDirection side ForwardRight) a)
@@ -72,21 +87,36 @@ allPassedAddresses side board move = go [] (moveBegin move) (moveSteps move)
 isMyPiece :: Side -> Piece -> Bool
 isMyPiece side (Piece _ s) = side == s
 
+isOpponentPiece :: Side -> Piece -> Bool
+isOpponentPiece side (Piece _ s) = side /= s
+
 isMyPieceAt :: Side -> Address -> Board -> Bool
 isMyPieceAt side addr board =
   case getPiece addr board of
     Nothing -> False
     Just piece -> isMyPiece side piece
 
+isOpponentAt :: Side -> Address -> Board -> Bool
+isOpponentAt side addr board =
+  case getPiece addr board of
+    Nothing -> False
+    Just piece -> isOpponentPiece side piece
+
 isFree :: Address -> Board -> Bool
 isFree addr board = isNothing (getPiece addr board)
+
+isFreeInDirection :: BoardDirection -> Address -> Board -> Int -> Bool
+isFreeInDirection dir src board n =
+  case inDirection dir src n of
+    Nothing -> False
+    Just dst -> isNothing (getPiece dst board)
 
 allMyAddresses :: Side -> Board -> [Address]
 allMyAddresses side board =
   M.keys $ M.filter (isMyPiece side) (bPieces board)
 
-checkWellFormedStep :: Side -> Board -> Address -> Step -> Maybe Address
-checkWellFormedStep side board src step =
+checkWellFormedStep :: Piece -> Board -> Address -> Step -> Maybe Address
+checkWellFormedStep (Piece kind side) board src step =
   case neighbour (myDirection side (sDirection step)) src of
     Nothing -> Nothing
     Just dst ->
@@ -98,20 +128,24 @@ checkWellFormedStep side board src step =
                                else Just dst
         else if isJust (getPiece dst board)
                then Nothing
-               else if sPromote step /= isLastHorizontal side dst
+               else if (kind == Man) && (sPromote step /= isLastHorizontal side dst)
                        then Nothing
                        else Just dst
 
-isWellFormedMove :: Side -> Board -> Move -> Bool
-isWellFormedMove side board move =
-    isMyPieceAt side (moveBegin move) board &&
+isWellFormedMove :: Piece -> Board -> Move -> Bool
+isWellFormedMove piece board move =
+    -- isMyPieceAt side (moveBegin move) board &&
     go (moveBegin move) (moveSteps move)
   where
     go _ [] = True
     go src (step : steps) =
-      case checkWellFormedStep side board src step of
+      case checkWellFormedStep piece board src step of
         Nothing -> False
         Just dst -> go dst steps
+
+catMoves :: Move -> Move -> Move
+catMoves m1 m2 =
+  Move (moveBegin m1) (moveSteps m1 ++ moveSteps m2)
 
 isCapture :: Move -> Bool
 isCapture move = any sCapture (moveSteps move)
@@ -119,22 +153,24 @@ isCapture move = any sCapture (moveSteps move)
 capturesCount :: Move -> Int
 capturesCount move = length $ filter sCapture (moveSteps move)
 
-applyStep :: Piece -> Address -> Step -> Board -> (Board, Address)
+applyStep :: Piece -> Address -> Step -> Board -> (Board, Address, Piece)
 applyStep piece@(Piece _ side) src step board =
-  case checkWellFormedStep side board src step of
-    Nothing -> error $ "Step is not well-formed: " ++ show step
+  case checkWellFormedStep piece board src step of
+    Nothing -> error $ printf "Step is not well-formed: [%s]: %s" (show src) (show step)
     Just dst ->
-        if sPromote step
-          then (setPiece dst (Piece King side) board, dst)
-          else (setPiece dst piece board, dst)
+        let piece' = if sPromote step
+                       then Piece King side
+                       else piece
+            board' = setPiece dst piece' $ removePiece src board
+        in (board', dst, piece')
 
-applyMove :: Side -> Move -> Board -> Board
-applyMove side move board = go board (moveBegin move) (moveSteps move)
+applyMove :: Side -> Move -> Board -> (Board, Address, Piece)
+applyMove side move board = go board piece (moveBegin move) (moveSteps move)
   where
-    go b _ [] = b
-    go b src (step : steps) =
-      let (b', dst) = applyStep piece src step b
-      in  go b' dst steps
+    go b p src [] = (b, src, p)
+    go b p src (step : steps) =
+      let (b', dst, p') = applyStep p src step b
+      in  go b' p' dst steps
 
     piece = fromJust (getPiece (moveBegin move) board)
 
@@ -146,8 +182,7 @@ simpleMove side src dir = Move src [Step dir False promote]
   where
     promote = case neighbour (myDirection side dir) src of
                 Nothing -> False
-                Just dst -> let last = isLastHorizontal side dst
-                            in trace (show dst ++ " is last: " ++ show last) last
+                Just dst -> isLastHorizontal side dst
 
 simpleCapture :: Side -> Address -> PlayerDirection -> Move
 simpleCapture side src dir = Move src [Step dir True False, Step dir False promote]
@@ -156,32 +191,35 @@ simpleCapture side src dir = Move src [Step dir True False, Step dir False promo
                 Nothing -> False
                 Just dst -> isLastHorizontal side dst
 
+kingMove :: Side -> Address -> PlayerDirection -> Int -> Move
+kingMove side src dir n = Move src $ replicate n (Step dir False False)
+
 makeLine :: [String] -> [Address]
 makeLine labels = map (\l -> Address l Nothing Nothing Nothing Nothing) labels
 
-line1 :: [Address]
-line1 = makeLine ["a1", "c1", "e1", "g1"]
+line1labels :: [String]
+line1labels = ["a1", "c1", "e1", "g1"]
 
-line2 :: [Address]
-line2 = makeLine ["b2", "d2", "f2", "h2"]
+line2labels :: [String]
+line2labels = ["b2", "d2", "f2", "h2"]
 
-line3 :: [Address]
-line3 = makeLine ["a3", "c3", "e3", "g3"]
+line3labels :: [String]
+line3labels = ["a3", "c3", "e3", "g3"]
 
-line4 :: [Address]
-line4 = makeLine ["b4", "d4", "f4", "h4"]
+line4labels :: [String]
+line4labels = ["b4", "d4", "f4", "h4"]
 
-line5 :: [Address]
-line5 = makeLine ["a5", "c5", "e5", "g5"]
+line5labels :: [String]
+line5labels = ["a5", "c5", "e5", "g5"]
 
-line6 :: [Address]
-line6 = makeLine ["b6", "d6", "f6", "h6"]
+line6labels :: [String]
+line6labels = ["b6", "d6", "f6", "h6"]
 
-line7 :: [Address]
-line7 = makeLine ["a7", "c7", "e7", "g7"]
+line7labels :: [String]
+line7labels = ["a7", "c7", "e7", "g7"]
 
-line8 :: [Address]
-line8 = makeLine ["b8", "d8", "f8", "h8"]
+line8labels :: [String]
+line8labels = ["b8", "d8", "f8", "h8"]
 
 --   2
 --  / 
@@ -206,90 +244,37 @@ linkA :: Bool -> Address -> Address -> (Address, Address)
 linkA True = linkPrimary
 linkA False = linkSecondary
 
---   2   2   2
---  / \ / \ /
--- 1   1   1
-linkLines1 :: [Address] -> [Address] -> ([Address], [Address])
-linkLines1 l1 l2 = unzip $ unstitch $ stitch True $ mix l1 l2
-  where
+buildBoard :: Int -> Board
+buildBoard size =
+  let mkAddress p = Address (label p) (upLeft p) (upRight p) (downLeft p) (downRight p)
+      letters = ['a' .. 'z']
+      label (r,c) = (letters !! (c-1)) : show r
 
-    mix [] [] = []
-    mix (a:as) (b:bs) = a : b : mix as bs
+      upLeft (r,c)
+        | r+1 > size || c-1 < 1 = Nothing
+        | otherwise = M.lookup (r+1, c-1) addresses
 
-    stitch flag [a, b] =
-      let (a', b') = linkA flag a b
-      in [a', b']
-    stitch flag (a1 : as) =
-      let (a2 : as') = stitch (not flag) as
-          (a1', a2') = linkA flag a1 a2
-      in  a1' : a2' : as'
+      upRight (r,c)
+        | r+1 > size || c+1 > 8 = Nothing
+        | otherwise = M.lookup (r+1, c+1) addresses
 
-    unstitch [] = []
-    unstitch (a1 : a2 : as) = (a1, a2) : unstitch as
+      downLeft (r,c)
+        | r-1 < 1 || c-1 < 1 = Nothing
+        | otherwise = M.lookup (r-1, c-1) addresses
 
--- 2   2   2
---  \ / \ / \
---   1   1   1
-linkLines2 :: [Address] -> [Address] -> ([Address], [Address])
-linkLines2 l1 l2 = unzip $ unstitch $ stitch False $ mix l1 l2
-  where
+      downRight (r,c)
+        | r-1 < 1 || c+1 > 8 = Nothing
+        | otherwise = M.lookup (r-1, c+1) addresses
 
-    mix [] [] = []
-    mix (a:as) (b:bs) = b : a : mix as bs
+      addresses = M.fromList [(p, mkAddress p) | p <- coordinates]
 
-    stitch flag [b, a] =
-      let (b', a') = linkA flag b a
-      in [b', a']
-    stitch flag (a1 : as) =
-      let (a2 : as') = stitch (not flag) as
-          (a1', a2') = linkA flag a1 a2
-      in  a1' : a2' : as'
+      odds = [1, 3 .. size]
+      evens = [2, 4 .. size]
+      coordinates = [(r, c) | r <- odds, c <- odds] ++ [(r, c) | r <- evens, c <- evens]
 
-    unstitch [] = []
-    unstitch (a1 : a2 : as) = (a2, a1) : unstitch as
+      addressByLabel = M.mapKeys label addresses
 
--- linkLines2 l1 l2 = unstitch $ stitch False l1 l2
---   where
---     stitch flag [a] [b] =
---       let (a', b') = linkA flag a b
---       in [(a', True), (b', False)]
---     stitch True (a:as) (b:bs) =
---       let (a', b') = linkPrimary a b
---       in (a', True) : stitch False as (b':bs)
---     stitch False (a:as) (b:bs) =
---       let (a', b') = linkSecondary a b
---       in (b', False) : stitch True (a':as) bs
--- 
---     unstitch pairs =
---       let (as, bs) = partition snd pairs
---       in  (map fst as, map fst bs)
-
--- linkLines2 l1 l2 =
---   let (l1', l2') = unzip $ zipWith linkSecondary l1 l2
---       (l1'', l2'') = unzip $ zipWith linkPrimary (init l1') (tail l2')
---   in  (l1'' ++ [last l1'], head l2' : l2'')
-
-linkLines :: Bool -> [Address] -> [Address] -> ([Address], [Address])
-linkLines True = linkLines1
-linkLines False = linkLines2
-
-linkBoard :: [[Address]] -> [[Address]]
-linkBoard lines = go True lines
-  where
-    go _ [] = []
-    go flag [l1, l2] =
-      let (l1', l2') = linkLines flag l1 l2
-      in  [l1', l2']
-    go flag (l1 : ls) =
-      let (l2 : ls') = go (not flag) ls
-          (l1', l2') = linkLines flag l1 l2
-      in  l1' : l2' : ls'
-
-buildBoard :: [[Address]] -> Board
-buildBoard lines =
-  let lines' = linkBoard lines
-      addresses = M.fromList [(aLabel a, a) | a <- concat lines']
-  in  Board M.empty addresses
+  in  Board M.empty addressByLabel
 
 resolve :: String -> Board -> Address
 resolve label board = fromMaybe (error $ "resolve: unknown field: " ++ label) $ M.lookup label (bAddresses board)
@@ -308,11 +293,18 @@ setPiece a p b = b {bPieces = M.insert a p (bPieces b)}
 removePiece :: Address -> Board -> Board
 removePiece a b = b {bPieces = M.delete a (bPieces b)}
 
+removePiece' :: String -> Board -> Board
+removePiece' l b = removePiece (resolve l b) b
+
 movePiece :: Address -> Address -> Board -> Board
 movePiece src dst board =
   case getPiece src board of
     Nothing -> error $ "movePiece: no piece at " ++ show src
     Just piece -> setPiece dst piece $ removePiece src board
+
+movePiece' :: String -> String -> Board -> Board
+movePiece' src dst board =
+  movePiece (resolve src board) (resolve dst board) board
 
 setPiece' :: String -> Piece -> Board -> Board
 setPiece' l p b = b {bPieces = M.insert a p (bPieces b)}
@@ -322,10 +314,13 @@ setPiece' l p b = b {bPieces = M.insert a p (bPieces b)}
 setManyPieces :: [Address] -> Piece -> Board -> Board
 setManyPieces addresses piece board = foldr (\a b -> setPiece a piece b) board addresses
 
+setManyPieces' :: [String] -> Piece -> Board -> Board
+setManyPieces' labels piece board = foldr (\l b -> setPiece' l piece b) board labels
+
 board8 :: Board
 board8 =
-  let board = buildBoard [line1, line2, line3, line4, line5, line6, line7, line8]
-      labels1 = line1 ++ line2 ++ line3
-      labels2 = line8 ++ line7 ++ line6
-  in  setManyPieces labels1 (Piece Man First) $ setManyPieces labels2 (Piece Man Second) board
+  let board = buildBoard 8
+      labels1 = line1labels ++ line2labels ++ line3labels
+      labels2 = line8labels ++ line7labels ++ line6labels
+  in  setManyPieces' labels1 (Piece Man First) $ setManyPieces' labels2 (Piece Man Second) board
 

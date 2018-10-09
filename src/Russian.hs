@@ -1,6 +1,7 @@
 module Russian where
 
 import Control.Monad
+import Control.Monad.State
 import Data.Maybe
 import qualified Data.Map as M
 import Data.Ord
@@ -10,8 +11,55 @@ import Text.Printf
 import Types
 import Board
 
+import Debug.Trace
+
 data Russian = Russian
   deriving (Show)
+
+-- data MoveState = MoveState {
+--     msBoard :: Board,
+--     msSide :: Side,
+--     msSource :: Address,
+--     msCurrent :: Address,
+--     msSteps :: [Step]
+--   }
+-- 
+-- data MoveM a =
+--     Bind (MoveState -> [(a, MoveState)])
+--   | Error
+-- 
+-- instance Functor MoveM where
+--   fmap f (Bind m) = Bind $ \st -> [(f a, st') | (a, st') <- m st]
+--   fmap _ Error = Error
+-- 
+-- instance Applicative MoveM where
+-- 
+--   pure a = Bind $ \s -> [(a, s)]
+-- 
+--   _ <*> Error = Error
+--   Error <*> _ = Error
+--   (Bind mf) <*> (Bind m) =
+--     Bind $ \st -> [(f a, st'') | (a, st') <- m st, (f, st'') <- mf st']
+-- 
+-- instance Monad MoveM where
+--   Error >>= fn = Error
+-- 
+--   (Bind m) >>= fn =
+--     Bind $ \st -> concat [fn' a st' | (a, st') <- m st]
+--       where
+--         fn' a st = case fn a of
+--                     Error -> []
+--                     Bind bind -> bind st
+--       
+-- 
+-- mkMoveState :: Side -> Board -> Address -> MoveState
+-- mkMoveState side board src = MoveState board side src src []
+
+-- step :: PlayerDirection -> MoveM ()
+-- step dir = do
+--   st <- get
+--   case neighbour (myDirection (msSide st)) (msCurrent st) of
+    
 
 instance GameRules Russian where
   possibleMoves Russian side board =
@@ -33,22 +81,111 @@ possibleMoves1 side board src =
 
 manMoves :: Side -> Board -> Address -> [Move]
 manMoves side board src =
-  let captures = manCaptures side board src
+  let captures = manCaptures (Piece Man side) board src
       moves = manSimpleMoves side board src
   in  captures ++ moves
 
 manSimpleMoves :: Side -> Board -> Address -> [Move]
 manSimpleMoves side board src = check ForwardLeft ++ check ForwardRight
   where
+    piece = fromJust (getPiece src board)
+
     check dir =
       let move = simpleMove side src dir
-      in  if isWellFormedMove side board move
+      in  if isWellFormedMove piece board move
             then [move]
             else []
 
-manCaptures :: Side -> Board -> Address -> [Move]
-manCaptures side board src = []
+captures1 :: Piece -> Board -> Address -> [Move]
+captures1 piece board src =
+  case piece of
+    (Piece Man _) -> manCaptures1 piece board src
+    (Piece King _) -> kingCaptures1 piece board src
+
+manCaptures :: Piece -> Board -> Address -> [Move]
+manCaptures piece@(Piece _ side) board src =
+  let moves = captures1 piece board src
+      nextMoves m = captures1 p b a
+                      where (b, a, p) = applyMove side m board
+  in concat $ flip map moves $ \move1 ->
+       let moves2 = nextMoves move1
+       in  if null moves2
+             then [move1]
+             else [catMoves move1 move2 | move2 <- moves2]
+
+manCaptures1 :: Piece -> Board -> Address -> [Move]
+manCaptures1 (Piece _ side) board src = concatMap (check src) [ForwardLeft, ForwardRight, BackwardLeft, BackwardRight]
+  where
+    piece = fromJust (getPiece src board)
+
+    check a dir =
+      let move = simpleCapture side a dir
+      in  if isWellFormedMove piece board move
+            then [move]
+            else []
+
+kingCaptures :: Piece -> Board -> Address -> [Move]
+kingCaptures piece@(Piece _ side) board src =
+  let moves = captures1 piece board src
+      nextMoves m = captures1 p b a
+                      where (b, a, p) = applyMove side m board
+  in concat $ flip map moves $ \move1 ->
+       let moves2 = nextMoves move1
+       in  if null moves2
+             then [move1]
+             else [catMoves move1 move2 | move2 <- moves2]
+
+kingCaptures1 :: Piece -> Board -> Address -> [Move]
+kingCaptures1 piece@(Piece _ side) board src = concatMap check [ForwardLeft, ForwardRight, BackwardLeft, BackwardRight]
+  where
+    
+    check dir =
+      case search dir src of
+        Nothing -> []
+        Just steps ->
+          let maxFree = freeFieldsCount dir (length steps) 1
+              freeSteps = tail $ inits $ replicate maxFree (Step dir False False)
+          in trace (show steps) $  [Move src (steps ++ free) | free <- freeSteps]
+
+    search dir a =
+      trace (printf "A: %s, dir: %s" (show a) (show dir)) $
+      trace (printf "%s: %s" (show a) (show $ getPiece a board)) $
+      case neighbour (myDirection side dir) a of
+        Nothing -> Nothing
+        Just a' -> case getPiece a' board of
+                     Nothing -> case search dir a' of
+                                  Nothing -> Nothing
+                                  Just steps -> Just $ Step dir False False : steps
+                     Just p -> if isOpponentPiece side p
+                                 then Just [Step dir True False]
+                                 else Nothing
+
+--       if isOpponentAt side a board
+--         then
+--           if isJust (getNeighbourPiece (myDirection side dir) a board)
+--             then trace "stop" Nothing
+--             else trace "X" $ Just [Step dir True False]
+--         else
+--           case neighbour (myDirection side dir) a of
+--             Nothing -> Nothing
+--             Just a' -> case search dir a' of
+--                          Nothing -> Nothing
+--                          Just steps -> trace "+" $ Just $ (Step dir False False) : steps
+
+    freeFieldsCount dir n k =
+      trace (printf "Src: %s, dir: %s, n: %d, k: %d, piece: %s"
+                      (show src) (show dir) n k (show $ getPieceInDirection (myDirection side dir) src board (n+k))) $
+      if isFreeInDirection (myDirection side dir) src board (n+k)
+        then freeFieldsCount dir n (k+1)
+        else trace (printf "K: %s" (show k)) $ k-1
+
+kingSimpleMoves :: Side -> Board -> Address -> [Move]
+kingSimpleMoves side board src = concatMap check [ForwardLeft, ForwardRight, BackwardLeft, BackwardRight]
+  where
+    check dir = takeWhile (isWellFormedMove piece board) $ map (kingMove side src dir) [1 ..]
+    piece = fromJust (getPiece src board)
 
 kingMoves :: Side -> Board -> Address -> [Move]
-kingMoves side board src = []
+kingMoves side board src =
+  kingCaptures (Piece King side) board src ++ kingSimpleMoves side board src
 

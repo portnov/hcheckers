@@ -50,25 +50,51 @@ data Board = Board {
 data BoardDirection =
     UpLeft | UpRight 
   | DownLeft | DownRight
-  deriving (Eq, Show)
+  deriving (Eq)
+
+instance Show BoardDirection where
+  show UpLeft = "UL"
+  show UpRight = "UR"
+  show DownLeft = "DL"
+  show DownRight = "DR"
 
 data PlayerDirection =
     ForwardLeft | ForwardRight
   | BackwardLeft | BackwardRight
-  deriving (Eq, Show)
+  deriving (Eq)
+
+instance Show PlayerDirection where
+  show ForwardLeft = "FL"
+  show ForwardRight = "FR"
+  show BackwardLeft = "BL"
+  show BackwardRight = "BR"
 
 data Step = Step {
     sDirection :: PlayerDirection,
     sCapture :: Bool,
     sPromote :: Bool
   }
-  deriving (Eq, Show)
+  deriving (Eq)
+
+instance Show Step where
+  show step = show (sDirection step) ++ capture ++ promote
+    where
+      capture
+        | sCapture step = "[X]"
+        | otherwise = ""
+
+      promote
+        | sPromote step = "[K]"
+        | otherwise = ""
 
 data Move = Move {
     moveBegin :: Address,
     moveSteps :: [Step]
   }
-  deriving (Eq, Show)
+  deriving (Eq)
+
+instance Show Move where
+  show move = "[" ++ show (moveBegin move) ++ "] " ++ concatMap show (moveSteps move)
 
 class GameRules g where
   possibleMoves :: g -> Side -> Board -> [Move]
