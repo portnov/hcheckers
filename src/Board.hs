@@ -362,3 +362,19 @@ board8 =
       labels2 = line8labels ++ line7labels ++ line6labels
   in  setManyPieces' labels1 (Piece Man First) $ setManyPieces' labels2 (Piece Man Second) board
 
+parseMoveRep :: GameRules rules => rules -> Side -> Board -> MoveRep -> Maybe Move
+parseMoveRep rules side board (ShortMoveRep from to) =
+  let moves = possibleMoves rules side board
+      suits m = aLabel (moveBegin m) == from &&
+                aLabel (moveEnd side board m) == to
+  in  case filter suits moves of
+        [m] -> Just m
+        _ -> Nothing
+parseMoveRep rules side board (FullMoveRep from steps) =
+  case M.lookup from (bAddresses board) of
+    Nothing -> Nothing
+    Just src -> Just $ Move src steps
+
+boardRep :: Board -> BoardRep
+boardRep board = BoardRep [(aLabel addr, piece) | (addr, piece) <- M.assocs $ bPieces board]
+

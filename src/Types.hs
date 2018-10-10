@@ -1,3 +1,4 @@
+{-# LANGUAGE DeriveGeneric #-}
 module Types where
 
 import Control.Monad
@@ -5,18 +6,19 @@ import Data.Maybe
 import Data.List
 import qualified Data.Map as M
 import Text.Printf
+import GHC.Generics
 
 type Label = String
 
 data PieceKind = Man | King
-  deriving (Eq)
+  deriving (Eq, Generic)
 
 instance Show PieceKind where
   show Man = "M"
   show King = "K"
 
 data Side = First | Second
-  deriving (Eq)
+  deriving (Eq, Generic)
 
 instance Show Side where
   show First = "1"
@@ -53,7 +55,7 @@ data Board = Board {
 data BoardDirection =
     UpLeft | UpRight 
   | DownLeft | DownRight
-  deriving (Eq)
+  deriving (Eq, Generic)
 
 instance Show BoardDirection where
   show UpLeft = "UL"
@@ -64,7 +66,7 @@ instance Show BoardDirection where
 data PlayerDirection =
     ForwardLeft | ForwardRight
   | BackwardLeft | BackwardRight
-  deriving (Eq)
+  deriving (Eq, Generic)
 
 instance Show PlayerDirection where
   show ForwardLeft = "FL"
@@ -98,6 +100,18 @@ data Move = Move {
 
 instance Show Move where
   show move = "[" ++ show (moveBegin move) ++ "] " ++ (intercalate "." $ map show (moveSteps move))
+
+data MoveRep =
+    ShortMoveRep Label Label
+  | FullMoveRep Label [Step]
+  deriving (Eq)
+
+instance Show MoveRep where
+  show (ShortMoveRep from to) = from ++ " > " ++ to
+  show (FullMoveRep from steps) = "[" ++ from ++ "] " ++ (intercalate "." $ map show steps)
+
+data BoardRep = BoardRep [(Label, Piece)]
+  deriving (Eq)
 
 class GameRules g where
   initBoard :: g -> Board

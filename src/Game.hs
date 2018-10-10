@@ -25,6 +25,7 @@ data Game = Game {
 data GameRq =
     Exit
   | DoMoveRq Side Move
+  | DoMoveRepRq Side MoveRep
   | PossibleMovesRq Side
   | BoardRq
 
@@ -32,10 +33,10 @@ data GameRs =
     Ok
   | DoMoveRs Board [PushMsg]
   | PossibleMovesRs [Move]
-  | BoardRs Board
+  | BoardRs BoardRep
   | Error String
 
-data PushMsg = PushMsg Side Move Board
+data PushMsg = PushMsg Side Move BoardRep
 
 spawnGame :: GameRules rules => rules -> IO Game
 spawnGame rules = do
@@ -61,10 +62,19 @@ spawnGame rules = do
           loop input output board side
 
         BoardRq -> do
-          writeChan output (BoardRs board)
+          writeChan output (BoardRs $ boardRep board)
           loop input output board side
 
-        DoMoveRq s move -> do
+        DoMoveRq s move -> processMove s move input output board side
+
+        DoMoveRepRq s moveRep ->
+          case parseMoveRep rules s board moveRep of
+            Nothing -> do
+                       writeChan output (Error "Cannot parse move request")
+                       loop input output board side
+            Just move -> processMove s move input output board side
+
+    processMove s move input output board side =
           if s /= side
             then do
                  writeChan output (Error "Not your turn")
@@ -76,7 +86,7 @@ spawnGame rules = do
                         loop input output board side
                    else do
                         let (board', _, _) = applyMove side move board
-                            push = PushMsg (opposite side) move board'
+                            push = PushMsg (opposite side) move (boardRep board')
                         writeChan output $ DoMoveRs board' [push]
                         loop input output board' (opposite side)
 
