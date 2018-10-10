@@ -104,3 +104,6 @@ class GameRules g where
 class Evaluator e where
   evalBoard :: e -> Side -> Board -> Integer
 
+class GameAi ai where
+  chooseMove :: ai -> Side -> Board -> IO Move
+

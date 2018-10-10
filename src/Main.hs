@@ -8,6 +8,7 @@ import Text.Printf
 import Types
 import Board
 import Russian
+import AI
 
 main :: IO ()
 main = do
@@ -72,4 +73,18 @@ main = do
     let score1 = evalBoard Russian First board'
         score2 = evalBoard Russian Second board'
     putStrLn $ show move ++ " => " ++ show score1 ++ " vs " ++ show score2
+
+  putStrLn "10."
+  let board = setManyPieces' ["c3", "e3"] (Piece Man First) $ 
+              setManyPieces' ["e5", "f6"] (Piece Man Second) $ buildBoard 8
+  let ai = AlphaBeta 2 Russian Russian
+  print =<< chooseMove ai Second board
+
+
+  putStrLn "11."
+  let board = setManyPieces' ["c3", "e3"] (Piece Man First) $ 
+              setManyPieces' ["e5", "f6"] (Piece Man Second) $ buildBoard 8
+  let ai = AlphaBeta 2 Russian Russian
+  print =<< chooseMove ai First board
+
 
