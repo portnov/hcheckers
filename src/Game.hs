@@ -68,14 +68,17 @@ spawnGame rules = do
           if s /= side
             then do
                  writeChan output (Error "Not your turn")
+                 loop input output board side
             else do
                  if move `notElem` possibleMoves rules side board
-                   then writeChan output (Error "Not allowed move")
+                   then do
+                        writeChan output (Error "Not allowed move")
+                        loop input output board side
                    else do
                         let (board', _, _) = applyMove side move board
                             push = PushMsg (opposite side) move board'
-                        writeChan output $ MoveRs board' [push]
-          loop input output board' (opposite side)
+                        writeChan output $ DoMoveRs board' [push]
+                        loop input output board' (opposite side)
 
       
 

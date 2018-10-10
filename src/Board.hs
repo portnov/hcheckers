@@ -226,31 +226,31 @@ simpleCapture side src dir = Move src [Step dir True False, Step dir False promo
 kingMove :: Side -> Address -> PlayerDirection -> Int -> Move
 kingMove side src dir n = Move src $ replicate n (Step dir False False)
 
-makeLine :: [String] -> [Address]
+makeLine :: [Label] -> [Address]
 makeLine labels = map (\l -> Address l Nothing Nothing Nothing Nothing) labels
 
-line1labels :: [String]
+line1labels :: [Label]
 line1labels = ["a1", "c1", "e1", "g1"]
 
-line2labels :: [String]
+line2labels :: [Label]
 line2labels = ["b2", "d2", "f2", "h2"]
 
-line3labels :: [String]
+line3labels :: [Label]
 line3labels = ["a3", "c3", "e3", "g3"]
 
-line4labels :: [String]
+line4labels :: [Label]
 line4labels = ["b4", "d4", "f4", "h4"]
 
-line5labels :: [String]
+line5labels :: [Label]
 line5labels = ["a5", "c5", "e5", "g5"]
 
-line6labels :: [String]
+line6labels :: [Label]
 line6labels = ["b6", "d6", "f6", "h6"]
 
-line7labels :: [String]
+line7labels :: [Label]
 line7labels = ["a7", "c7", "e7", "g7"]
 
-line8labels :: [String]
+line8labels :: [Label]
 line8labels = ["b8", "d8", "f8", "h8"]
 
 --   2
@@ -308,7 +308,7 @@ buildBoard size =
 
   in  Board M.empty addressByLabel
 
-resolve :: String -> Board -> Address
+resolve :: Label -> Board -> Address
 resolve label board = fromMaybe (error $ "resolve: unknown field: " ++ label) $ M.lookup label (bAddresses board)
 
 getPiece :: Address -> Board -> Maybe Piece
@@ -320,7 +320,7 @@ getPiece_ name addr board =
     Nothing -> error $ name ++ ": no piece at " ++ show addr
     Just piece -> piece
 
-getPiece' :: String -> Board -> Maybe Piece
+getPiece' :: Label -> Board -> Maybe Piece
 getPiece' l b = M.lookup a (bPieces b)
   where
     a = fromMaybe (error $ "getPiece': unknown field: " ++ l) $ M.lookup l (bAddresses b)
@@ -331,7 +331,7 @@ setPiece a p b = b {bPieces = M.insert a p (bPieces b)}
 removePiece :: Address -> Board -> Board
 removePiece a b = b {bPieces = M.delete a (bPieces b)}
 
-removePiece' :: String -> Board -> Board
+removePiece' :: Label -> Board -> Board
 removePiece' l b = removePiece (resolve l b) b
 
 movePiece :: Address -> Address -> Board -> Board
@@ -340,11 +340,11 @@ movePiece src dst board =
     Nothing -> error $ "movePiece: no piece at " ++ show src
     Just piece -> setPiece dst piece $ removePiece src board
 
-movePiece' :: String -> String -> Board -> Board
+movePiece' :: Label -> Label -> Board -> Board
 movePiece' src dst board =
   movePiece (resolve src board) (resolve dst board) board
 
-setPiece' :: String -> Piece -> Board -> Board
+setPiece' :: Label -> Piece -> Board -> Board
 setPiece' l p b = b {bPieces = M.insert a p (bPieces b)}
   where
     a = fromMaybe (error $ "setPiece': unknown field: " ++ l) $ M.lookup l (bAddresses b)
@@ -352,7 +352,7 @@ setPiece' l p b = b {bPieces = M.insert a p (bPieces b)}
 setManyPieces :: [Address] -> Piece -> Board -> Board
 setManyPieces addresses piece board = foldr (\a b -> setPiece a piece b) board addresses
 
-setManyPieces' :: [String] -> Piece -> Board -> Board
+setManyPieces' :: [Label] -> Piece -> Board -> Board
 setManyPieces' labels piece board = foldr (\l b -> setPiece' l piece b) board labels
 
 board8 :: Board

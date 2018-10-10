@@ -6,6 +6,8 @@ import Data.List
 import qualified Data.Map as M
 import Text.Printf
 
+type Label = String
+
 data PieceKind = Man | King
   deriving (Eq)
 
@@ -27,7 +29,7 @@ instance Show Piece where
   show (Piece k s) = show k ++ show s
 
 data Address = Address {
-    aLabel :: String,
+    aLabel :: Label,
     aUpLeft :: Maybe Address,
     aUpRight :: Maybe Address,
     aDownLeft :: Maybe Address,
@@ -45,7 +47,7 @@ instance Ord Address where
 
 data Board = Board {
     bPieces :: M.Map Address Piece,
-    bAddresses :: M.Map String Address
+    bAddresses :: M.Map Label Address
   }
 
 data BoardDirection =
