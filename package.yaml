@@ -26,6 +26,7 @@ dependencies:
 - aeson
 - stm
 - text
+- scotty
 
 executables:
   hcheckers-exe:

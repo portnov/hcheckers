@@ -59,9 +59,9 @@ instance ToJSON ThreadId where
 --   parseJSON (String text) = return $ read $ T.unpack text
 --   parseJSON invalid = typeMismatch "ThreadId" invalid
 
-instance ToJSON Player
+-- instance ToJSON Player
 
-instance FromJSON Player
+-- instance FromJSON Player
 
 instance FromJSON SupervisorRq
 

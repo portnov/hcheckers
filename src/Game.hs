@@ -26,6 +26,9 @@ data GameHandle = GameHandle {
   , gOutput :: Chan GameRs
   }
 
+getGameId :: GameHandle -> GameId
+getGameId h = show (gThread h)
+
 data GameState = GameState {
     gsInput :: Chan GameRq
   , gsOutput :: Chan GameRs
@@ -51,7 +54,7 @@ data GameRs =
     Ok
   | DoMoveRs Board [Notify]
   | GPossibleMovesRs [Move]
-  | GStateRs Side BoardRep
+  | GStateRs Side Board
   | Error String
 
 data Notify = Notify Side MoveRep BoardRep
@@ -81,7 +84,7 @@ spawnGame rules = do
           loop st
 
         GStateRq -> do
-          writeChan (gsOutput st) $ GStateRs (gsSide st) $ boardRep $ gsCurrentBoard st
+          writeChan (gsOutput st) $ GStateRs (gsSide st) $ gsCurrentBoard st
           loop st
 
         DoMoveRq s move -> processMove s move st
