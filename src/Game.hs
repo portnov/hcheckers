@@ -1,3 +1,4 @@
+{-# LANGUAGE DeriveGeneric #-}
 
 module Game where
 
@@ -9,6 +10,7 @@ import Data.Ord
 import Data.List
 import Text.Printf
 import Data.IORef
+import GHC.Generics
 
 import Types
 import Board
@@ -16,79 +18,103 @@ import Board
 
 import Debug.Trace
 
-data Game = Game {
+type GameId = String
+
+data GameHandle = GameHandle {
     gThread :: ThreadId
   , gInput :: Chan GameRq
   , gOutput :: Chan GameRs
+  }
+
+data GameState = GameState {
+    gsInput :: Chan GameRq
+  , gsOutput :: Chan GameRs
+  , gsSide :: Side
+  , gsCurrentBoard :: Board
+  , gsHistory :: [HistoryRecord]
+  }
+
+data HistoryRecord = HistoryRecord {
+    hrSide :: Side
+  , hrMove :: Move
+  , hrPrevBoard :: Board
   }
 
 data GameRq =
     Exit
   | DoMoveRq Side Move
   | DoMoveRepRq Side MoveRep
-  | PossibleMovesRq Side
-  | BoardRq
+  | GPossibleMovesRq Side
+  | GStateRq
 
 data GameRs =
     Ok
-  | DoMoveRs Board [PushMsg]
-  | PossibleMovesRs [Move]
-  | BoardRs BoardRep
+  | DoMoveRs Board [Notify]
+  | GPossibleMovesRs [Move]
+  | GStateRs Side BoardRep
   | Error String
 
-data PushMsg = PushMsg Side Move BoardRep
+data Notify = Notify Side MoveRep BoardRep
+  deriving (Eq, Show, Generic)
 
-spawnGame :: GameRules rules => rules -> IO Game
+spawnGame :: GameRules rules => rules -> IO GameHandle
 spawnGame rules = do
     input <- newChan
     output <- newChan
     thread <- forkIO (setup input output)
-    return $ Game thread input output
+    return $ GameHandle thread input output
 
   where
     setup input output = do
       let board = initBoard rules
       let side = First
-      loop input output board side
+      loop $ GameState input output side board []
 
-    loop input output board side = do
-      rq <- readChan input
+    loop st = do
+      rq <- readChan (gsInput st)
       case rq of
-        Exit -> writeChan output Ok
+        Exit -> writeChan (gsOutput st) Ok
 
-        PossibleMovesRq s -> do
-          let moves = possibleMoves rules s board
-          writeChan output (PossibleMovesRs moves)
-          loop input output board side
+        GPossibleMovesRq s -> do
+          let moves = possibleMoves rules s (gsCurrentBoard st)
+          writeChan (gsOutput st) (GPossibleMovesRs moves)
+          loop st
 
-        BoardRq -> do
-          writeChan output (BoardRs $ boardRep board)
-          loop input output board side
+        GStateRq -> do
+          writeChan (gsOutput st) $ GStateRs (gsSide st) $ boardRep $ gsCurrentBoard st
+          loop st
 
-        DoMoveRq s move -> processMove s move input output board side
+        DoMoveRq s move -> processMove s move st
 
         DoMoveRepRq s moveRep ->
-          case parseMoveRep rules s board moveRep of
+          case parseMoveRep rules s (gsCurrentBoard st) moveRep of
             Nothing -> do
-                       writeChan output (Error "Cannot parse move request")
-                       loop input output board side
-            Just move -> processMove s move input output board side
+                       writeChan (gsOutput st) (Error "Cannot parse move request")
+                       loop st
+            Just move -> processMove s move st
 
-    processMove s move input output board side =
-          if s /= side
+    pushMove move board st =
+      st {
+        gsSide = opposite (gsSide st),
+        gsCurrentBoard = board,
+        gsHistory = HistoryRecord (gsSide st) move (gsCurrentBoard st) : gsHistory st
+      }
+
+    processMove s move st =
+          if s /= gsSide st
             then do
-                 writeChan output (Error "Not your turn")
-                 loop input output board side
+                 writeChan (gsOutput st) (Error "Not your turn")
+                 loop st
             else do
-                 if move `notElem` possibleMoves rules side board
+                 if move `notElem` possibleMoves rules (gsSide st) (gsCurrentBoard st)
                    then do
-                        writeChan output (Error "Not allowed move")
-                        loop input output board side
+                        writeChan (gsOutput st) (Error "Not allowed move")
+                        loop st
                    else do
-                        let (board', _, _) = applyMove side move board
-                            push = PushMsg (opposite side) move (boardRep board')
-                        writeChan output $ DoMoveRs board' [push]
-                        loop input output board' (opposite side)
+                        let (board', _, _) = applyMove (gsSide st) move (gsCurrentBoard st)
+                            push = Notify (opposite $ gsSide st) (moveRep move) (boardRep board')
+                        writeChan (gsOutput st) $ DoMoveRs board' [push]
+                        loop $ pushMove move board' st
 
       
 

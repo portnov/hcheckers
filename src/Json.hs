@@ -2,14 +2,18 @@
 module Json where
 
 import Control.Monad
+import Control.Concurrent
 import Data.Maybe
 import Data.List
 import qualified Data.Map as M
 import Data.Aeson
 import Data.Aeson.Types
 import Text.Printf
+import qualified Data.Text as T
 
 import Types
+import Game
+import Supervisor
 
 instance ToJSON PlayerDirection where
 
@@ -47,4 +51,23 @@ instance FromJSON Piece where
 
 instance ToJSON BoardRep where
   toJSON (BoardRep list) = toJSON list
+
+instance ToJSON ThreadId where
+  toJSON id = toJSON (show id)
+
+-- instance FromJSON ThreadId where
+--   parseJSON (String text) = return $ read $ T.unpack text
+--   parseJSON invalid = typeMismatch "ThreadId" invalid
+
+instance ToJSON Player
+
+instance FromJSON Player
+
+instance FromJSON SupervisorRq
+
+instance ToJSON Notify
+
+instance ToJSON RsPayload
+
+instance ToJSON SupervisorRs
 

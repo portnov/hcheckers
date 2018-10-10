@@ -362,6 +362,9 @@ board8 =
       labels2 = line8labels ++ line7labels ++ line6labels
   in  setManyPieces' labels1 (Piece Man First) $ setManyPieces' labels2 (Piece Man Second) board
 
+moveRep :: Move -> MoveRep
+moveRep move = FullMoveRep (aLabel $ moveBegin move) (moveSteps move)
+
 parseMoveRep :: GameRules rules => rules -> Side -> Board -> MoveRep -> Maybe Move
 parseMoveRep rules side board (ShortMoveRep from to) =
   let moves = possibleMoves rules side board

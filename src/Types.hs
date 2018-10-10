@@ -111,7 +111,7 @@ instance Show MoveRep where
   show (FullMoveRep from steps) = "[" ++ from ++ "] " ++ (intercalate "." $ map show steps)
 
 data BoardRep = BoardRep [(Label, Piece)]
-  deriving (Eq)
+  deriving (Eq, Show)
 
 class GameRules g where
   initBoard :: g -> Board
