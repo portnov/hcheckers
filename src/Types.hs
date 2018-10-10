@@ -98,6 +98,7 @@ instance Show Move where
   show move = "[" ++ show (moveBegin move) ++ "] " ++ (intercalate "." $ map show (moveSteps move))
 
 class GameRules g where
+  initBoard :: g -> Board
   possibleMoves :: g -> Side -> Board -> [Move]
   -- applyMove :: g -> Side -> Move -> Board -> Board
 

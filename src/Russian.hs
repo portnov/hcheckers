@@ -17,6 +17,8 @@ data Russian = Russian
   deriving (Show)
 
 instance GameRules Russian where
+  initBoard Russian = board8
+
   possibleMoves Russian side board =
     let all = concatMap (possibleMoves1 side board) (allMyAddresses side board)
         (captures, moves) = partition isCapture all
