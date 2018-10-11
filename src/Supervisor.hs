@@ -141,8 +141,16 @@ getRules var gameId = do
     Nothing -> return Nothing
     Just game -> return $ Just $ gRules game
 
+getGameByUser :: SupervisorHandle -> String -> IO (Maybe Game)
+getGameByUser var name = do
+  st <- atomically $ readTVar var
+  case filter (\g -> isJust (sideByUser g name)) (M.elems $ ssGames st) of
+    [game] -> return (Just game)
+    _ -> return Nothing
+
 getMessages :: SupervisorHandle -> String -> IO [Notify]
-getMessages var name = atomically $ do
+getMessages var name = do
+  atomically $ do
     st <- readTVar var
     let messages = concatMap getM (M.elems $ ssGames st)
     let st' = st {ssGames = M.map updateGame (ssGames st)}
@@ -173,9 +181,9 @@ doMove var gameId name moveRq = do
   DoMoveRs board' messages <- readChan output
   queueNotifications var gameId messages
 
-  board'' <- letAiMove var game (opposite side) (Just board')
+  letAiMove var game (opposite side) (Just board')
 
-  return $ boardRep board''
+  return $ boardRep board'
 
 letAiMove :: SupervisorHandle -> Game -> Side -> Maybe Board -> IO Board
 letAiMove var game side mbBoard = do
@@ -232,7 +240,7 @@ queueNotifications var gameId messages = atomically $ modifyTVar var go
 
     route st msg = st {ssGames = M.update (Just . insert msg) gameId (ssGames st)}
 
-    insert msg@(Notify side _ _) game
-      | side == First = game {gMsgbox1 = msg : gMsgbox1 game}
-      | otherwise     = game {gMsgbox1 = msg : gMsgbox2 game}
+    insert msg game
+      | nDestination msg == First = game {gMsgbox1 = msg : gMsgbox1 game}
+      | otherwise                 = game {gMsgbox2 = msg : gMsgbox2 game}
 

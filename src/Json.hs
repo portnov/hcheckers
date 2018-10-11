@@ -73,7 +73,9 @@ instance FromJSON AttachAiRq where
     <$> v .: "ai"
     <*> v .:? "params" .!= Null
 
-instance ToJSON Notify
+instance ToJSON Notify where
+  toJSON (Notify to from move board) =
+    object ["to_side" .= to, "from_side" .= from, "move" .= move, "board" .= board]
 
 instance ToJSON RsPayload where
   toJSON (NewGameRs id) = object ["id" .= id]

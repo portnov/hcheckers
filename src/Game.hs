@@ -57,7 +57,12 @@ data GameRs =
   | GStateRs Side Board
   | Error String
 
-data Notify = Notify Side MoveRep BoardRep
+data Notify = Notify {
+    nDestination :: Side
+  , nSource :: Side
+  , nMove :: MoveRep
+  , nBoard :: BoardRep
+  }
   deriving (Eq, Show, Generic)
 
 spawnGame :: GameRules rules => rules -> IO GameHandle
@@ -115,7 +120,7 @@ spawnGame rules = do
                         loop st
                    else do
                         let (board', _, _) = applyMove (gsSide st) move (gsCurrentBoard st)
-                            push = Notify (opposite $ gsSide st) (moveRep move) (boardRep board')
+                            push = Notify (opposite $ gsSide st) (gsSide st) (moveRep move) (boardRep board')
                         writeChan (gsOutput st) $ DoMoveRs board' [push]
                         loop $ pushMove move board' st
 
