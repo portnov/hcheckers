@@ -1,5 +1,6 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE ExistentialQuantification #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 module Supervisor where
 
@@ -12,6 +13,7 @@ import Data.Ord
 import Data.List
 import Text.Printf
 import Data.IORef
+import Data.Aeson
 import GHC.Generics
 
 import Types
@@ -30,6 +32,7 @@ data GameStatus = New | Running
 data Game = Game {
     gHandle :: GameHandle
   , gStatus :: GameStatus
+  , gRules :: SomeRules
   , gPlayer1 :: Maybe Player
   , gPlayer2 :: Maybe Player
   , gMsgbox1 :: [Notify]
@@ -42,15 +45,13 @@ data SupervisorState = SupervisorState {
 
 type SupervisorHandle = TVar SupervisorState
 
-data SupervisorRq =
-    NewGameRq
-  | RegisterUserRq GameId Side String
-  | AttachAiRq GameId Side
-  | RunGameRq GameId
-  | PollRq String
-  | StateRq GameId
-  | PossibleMovesRq GameId Side
-  | MoveRq GameId String MoveRep
+data NewGameRq = NewGameRq String Value
+  deriving (Eq, Show, Generic)
+
+-- data RegisterUserRq = RegisterUserRq String
+--   deriving (Eq, Show, Generic)
+
+data AttachAiRq = AttachAiRq String Value
   deriving (Eq, Show, Generic)
 
 data SupervisorRs = SupervisorRs RsPayload [Notify]
@@ -70,11 +71,35 @@ data RsPayload =
 mkSupervisor :: IO SupervisorHandle
 mkSupervisor = atomically $ newTVar $ SupervisorState M.empty
 
-newGame :: SupervisorHandle -> IO GameId
-newGame var = do
-  handle <- spawnGame Russian
+supportedRules :: [(String, SomeRules)]
+supportedRules = [("russian", SomeRules Russian)]
+
+selectRules :: NewGameRq -> Maybe SomeRules
+selectRules (NewGameRq name params) = go supportedRules
+  where
+    go :: [(String, SomeRules)] -> Maybe SomeRules
+    go [] = Nothing
+    go ((key, (SomeRules rules)) : other)
+      | key == name = Just $ SomeRules $ updateRules rules params
+      | otherwise = go other
+
+supportedAis :: [(String, SomeRules -> SomeAi)]
+supportedAis = [("default", \(SomeRules rules) -> SomeAi (AlphaBeta 2 rules Russian))]
+
+selectAi :: AttachAiRq -> SomeRules -> Maybe SomeAi
+selectAi (AttachAiRq name params) rules = go supportedAis
+  where
+    go :: [(String, SomeRules -> SomeAi)] -> Maybe SomeAi
+    go [] = Nothing
+    go ((key, fn) : other)
+      | key == name = Just $ updateSomeAi (fn rules) params
+      | otherwise = go other
+
+newGame :: SupervisorHandle -> SomeRules -> IO GameId
+newGame var r@(SomeRules rules) = do
+  handle <- spawnGame rules
   let gameId = show (gThread handle)
-  let game = Game handle New Nothing Nothing [] []
+  let game = Game handle New r Nothing Nothing [] []
   atomically $ modifyTVar var $ \st -> st {ssGames = M.insert gameId game (ssGames st)}
   return gameId
 
@@ -86,12 +111,10 @@ registerUser var gameId side name =
       | side == First = game {gPlayer1 = Just (User name)}
       | otherwise     = game {gPlayer2 = Just (User name)}
 
-attachAi :: SupervisorHandle -> GameId -> Side -> IO ()
-attachAi var gameId side = do
+attachAi :: SupervisorHandle -> GameId -> Side -> SomeAi -> IO ()
+attachAi var gameId side (SomeAi ai) = do
     atomically $ modifyTVar var $ \st -> st {ssGames = M.update (Just . update) gameId (ssGames st)}
   where
-    ai = AlphaBeta 2 Russian Russian
-
     update game
       | side == First = game {gPlayer1 = Just $ AI ai}
       | otherwise     = game {gPlayer2 = Just $ AI ai}
@@ -110,6 +133,13 @@ getGame :: SupervisorHandle -> GameId -> IO (Maybe Game)
 getGame var gameId = do
   st <- atomically $ readTVar var
   return $ M.lookup gameId (ssGames st)
+
+getRules :: SupervisorHandle -> GameId -> IO (Maybe SomeRules)
+getRules var gameId = do
+  mbGame <- getGame var gameId
+  case mbGame of
+    Nothing -> return Nothing
+    Just game -> return $ Just $ gRules game
 
 getMessages :: SupervisorHandle -> String -> IO [Notify]
 getMessages var name = atomically $ do

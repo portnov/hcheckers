@@ -12,9 +12,10 @@ import qualified Data.Text as T
 import Data.Ord
 import Data.List
 import Text.Printf
-import Data.IORef
+import Data.Aeson hiding (json)
 import GHC.Generics
 import Web.Scotty
+import Network.HTTP.Types.Status
 
 import Types
 import Board
@@ -24,6 +25,11 @@ import AI
 import Supervisor
 import Json
 
+error400 :: T.Text -> ActionM ()
+error400 message = do
+  json $ object ["error" .= message]
+  status status400
+
 instance Parsable Side where
   parseParam "1" = Right First
   parseParam "2" = Right Second
@@ -32,14 +38,26 @@ instance Parsable Side where
 restServer :: SupervisorHandle -> ScottyM ()
 restServer supervisor = do
   post "/game/new" $ do
-    gameId <- liftIO $ newGame supervisor
-    json $ SupervisorRs (NewGameRs gameId) []
+    rq <- jsonData
+    case selectRules rq of
+      Nothing -> error400 "invalid game rules"
+      Just rules -> do
+        gameId <- liftIO $ newGame supervisor rules
+        json $ SupervisorRs (NewGameRs gameId) []
 
   post "/game/:id/attach/ai/:side" $ do
     gameId <- param "id"
     side <- param "side"
-    liftIO $ attachAi supervisor gameId side
-    json $ SupervisorRs AttachAiRs []
+    mbRules <- liftIO $ getRules supervisor gameId
+    case mbRules of
+      Nothing -> error400 "no such game"
+      Just rules -> do
+          rq <- jsonData
+          case selectAi rq rules of
+            Nothing -> error400 "invalid ai settings"
+            Just ai -> do
+              liftIO $ attachAi supervisor gameId side ai
+              json $ SupervisorRs AttachAiRs []
 
   post "/game/:id/attach/:name/:side" $ do
     gameId <- param "id"

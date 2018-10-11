@@ -1,10 +1,12 @@
 {-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE ExistentialQuantification #-}
 module Types where
 
 import Control.Monad
 import Data.Maybe
 import Data.List
 import qualified Data.Map as M
+import Data.Aeson (Value)
 import Text.Printf
 import GHC.Generics
 
@@ -116,11 +118,19 @@ data BoardRep = BoardRep [(Label, Piece)]
 class GameRules g where
   initBoard :: g -> Board
   possibleMoves :: g -> Side -> Board -> [Move]
-  -- applyMove :: g -> Side -> Move -> Board -> Board
+  updateRules :: g -> Value -> g
+
+data SomeRules = forall g. GameRules g => SomeRules g
 
 class Evaluator e where
   evalBoard :: e -> Side -> Board -> Integer
 
 class GameAi ai where
   chooseMove :: ai -> Side -> Board -> IO Move
+  updateAi :: ai -> Value -> ai
+
+data SomeAi = forall ai. GameAi ai => SomeAi ai
+
+updateSomeAi :: SomeAi -> Value -> SomeAi
+updateSomeAi (SomeAi ai) params = SomeAi (updateAi ai params)
 

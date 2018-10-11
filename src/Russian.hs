@@ -28,6 +28,8 @@ instance GameRules Russian where
                    n = capturesCount (head captures')
                in  filter (\c -> capturesCount c == n) captures'
 
+  updateRules Russian _ = Russian
+
 
 possibleMoves1 :: Side -> Board -> Address -> [Move]
 possibleMoves1 side board src =

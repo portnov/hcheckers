@@ -1,4 +1,5 @@
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE OverloadedStrings #-}
 module AI where
 
 import Control.Monad
@@ -7,6 +8,7 @@ import Data.Maybe
 import qualified Data.Map as M
 import Data.Ord
 import Data.List
+import Data.Aeson
 import Text.Printf
 
 import Types
@@ -14,6 +16,13 @@ import Board
 -- import Russian
 
 import Debug.Trace
+
+data AlphaBetaParams = AlphaBetaParams Int
+  deriving (Show)
+
+instance FromJSON AlphaBetaParams where
+  parseJSON = withObject "AlphaBetaParams" $ \v -> AlphaBetaParams
+      <$> v .: "depth"
 
 data AlphaBeta rules eval = AlphaBeta Int rules eval
   deriving (Show)
@@ -31,6 +40,11 @@ instance (GameRules rules, Evaluator eval) => GameAi (AlphaBeta rules eval) wher
         maxScore = select $ map snd scores
         goodMoves = [move | (move, score) <- scores, score == maxScore]
     return $ head goodMoves
+
+  updateAi ai@(AlphaBeta depth rules eval) json =
+    case fromJSON json of
+      Error _ -> ai
+      Success (AlphaBetaParams depth') -> AlphaBeta depth' rules eval
 
 max_value :: Integer
 max_value = 1000000

@@ -63,11 +63,28 @@ instance ToJSON ThreadId where
 
 -- instance FromJSON Player
 
-instance FromJSON SupervisorRq
+instance FromJSON NewGameRq where
+  parseJSON = withObject "NewGame" $ \v -> NewGameRq
+    <$> v .: "rules"
+    <*> v .:? "params" .!= Null
+
+instance FromJSON AttachAiRq where
+  parseJSON = withObject "AttachAi" $ \v -> AttachAiRq
+    <$> v .: "ai"
+    <*> v .:? "params" .!= Null
 
 instance ToJSON Notify
 
-instance ToJSON RsPayload
+instance ToJSON RsPayload where
+  toJSON (NewGameRs id) = object ["id" .= id]
+  toJSON RegisterUserRs = object ["register_user" .= ("ok" :: T.Text)]
+  toJSON AttachAiRs = object ["attach_ai" .= ("ok" :: T.Text)]
+  toJSON RunGameRs = object ["run_game" .= ("ok" :: T.Text)]
+  toJSON (PollRs messages) = toJSON messages
+  toJSON (StateRs board side) = object ["board" .= board, "side" .= side]
+  toJSON (PossibleMovesRs moves) = toJSON moves
+  toJSON (MoveRs board) = toJSON board
 
-instance ToJSON SupervisorRs
+instance ToJSON SupervisorRs where
+  toJSON (SupervisorRs payload messages) = object ["response" .= payload, "messages" .= messages]
 

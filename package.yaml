@@ -27,6 +27,7 @@ dependencies:
 - stm
 - text
 - scotty
+- http-types
 
 executables:
   hcheckers-exe:
