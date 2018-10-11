@@ -24,9 +24,10 @@ instance GameRules Russian where
         (captures, moves) = partition isCapture all
     in  if null captures
           then moves
-          else let captures' = sortOn (negate . capturesCount) captures
-                   n = capturesCount (head captures')
-               in  filter (\c -> capturesCount c == n) captures'
+          else captures
+--                let captures' = sortOn (negate . capturesCount) captures
+--                    n = capturesCount (head captures')
+--                in  filter (\c -> capturesCount c == n) captures'
 
   updateRules Russian _ = Russian
 
