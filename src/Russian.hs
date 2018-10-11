@@ -159,21 +159,24 @@ captureKingCoef :: Int
 captureKingCoef = 50
 
 instance Evaluator Russian where
-  evalBoard rules side board =
-    let moves = possibleMoves rules side board
-        opponentMoves = possibleMoves rules (opposite side) board
-    in  if null moves
-          then {-trace (printf "Side %s loses" (show side))-} (-win)
+  evalBoard rules whoAsks whoMoves board =
+    let myMoves = filter (checkCapture whoAsks) $ possibleMoves rules whoAsks board
+        opponentMoves = filter (checkCapture (opposite whoAsks)) $ possibleMoves rules (opposite whoAsks) board
+
+        checkCapture side move = not (isCapture move && side /= whoMoves)
+
+    in  if null myMoves
+          then {-trace (printf "Side %s loses" (show whoAsks))-} (-win)
           else if null opponentMoves
-                 then {-trace (printf "Side %s wins" (show side))-} win
+                 then {-trace (printf "Side %s wins" (show whoAsks))-} win
                  else let movesScore s ms = if all isCapture ms
                                                then let (men, kings) = unzip [capturesCounts move board | move <- ms]
                                                     in  fromIntegral $
                                                         -- trace (printf "Side %s possible captures: %s men, %s kings" (show s) (show men) (show kings)) $
                                                         captureManCoef * sum men + captureKingCoef * sum kings
                                                else fromIntegral $ length ms
-                          myMovesScore = movesScore side moves
-                          opponentMovesScore = movesScore (opposite side) opponentMoves
-                      in  -- trace (printf "Side %s moves score %d, opponent moves score %d, total score = %d" (show side) myMovesScore opponentMovesScore (myMovesScore - opponentMovesScore)) $
+                          myMovesScore = movesScore whoAsks myMoves
+                          opponentMovesScore = movesScore (opposite whoAsks) opponentMoves
+                      in  -- trace (printf "Side %s moves score %d, opponent moves score %d, total score = %d" (show whoAsks) myMovesScore opponentMovesScore (myMovesScore - opponentMovesScore)) $
                           myMovesScore - opponentMovesScore
 

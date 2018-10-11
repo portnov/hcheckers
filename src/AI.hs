@@ -53,7 +53,7 @@ doScore :: (GameRules rules, Evaluator eval) => rules -> eval -> Side -> Int -> 
 doScore rules eval side depth board = fixSign $ evalState (scoreAB side side depth (-max_value) max_value) initState
   where
     initState = ScoreState rules eval [StackItem Nothing board score0 (-max_value)]
-    score0 = evalBoard eval First board
+    score0 = evalBoard eval First (opposite side) board
 
     fixSign s
       | side == First = s
@@ -140,7 +140,7 @@ scoreAB initSide side depth alpha beta = do
       board <- getBoard
       evaluator <- gets ssEvaluator
       let (board', _, _) = applyMove side move board
-      let score0 = evalBoard evaluator First board'
+      let score0 = evalBoard evaluator First side board'
       best <- getBest
       push move board' score0
       printStack

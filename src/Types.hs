@@ -147,7 +147,7 @@ class GameRules g where
 data SomeRules = forall g. GameRules g => SomeRules g
 
 class Evaluator e where
-  evalBoard :: e -> Side -> Board -> Integer
+  evalBoard :: e -> Side -> Side -> Board -> Integer
 
 class GameAi ai where
   chooseMove :: ai -> Side -> Board -> IO Move
