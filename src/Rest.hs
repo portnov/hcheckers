@@ -84,6 +84,17 @@ restServer supervisor = do
     messages <- liftIO $ getMessages supervisor name
     json $ SupervisorRs (MoveRs board) messages
 
+  get "/game/:id/moves/:name" $ do
+    gameId <- param "id"
+    name <- param "name"
+    mbSide <- liftIO $ getSideByUser supervisor gameId name
+    case mbSide of
+      Nothing -> error400 "no such user in this game"
+      Just side -> do
+        moves <- liftIO $ getPossibleMoves supervisor gameId side
+        messages <- liftIO $ getMessages supervisor name
+        json $ SupervisorRs (PossibleMovesRs moves) messages
+
   get "/poll/:name" $ do
     name <- param "name"
     messages <- liftIO $ getMessages supervisor name

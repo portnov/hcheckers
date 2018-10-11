@@ -9,11 +9,12 @@ import Control.Concurrent
 import Control.Concurrent.STM
 import Data.Maybe
 import qualified Data.Map as M
+import qualified Data.Text as T
 import Data.Ord
 import Data.List
 import Text.Printf
 import Data.IORef
-import Data.Aeson
+import Data.Aeson hiding (Error)
 import GHC.Generics
 
 import Types
@@ -169,6 +170,13 @@ getMessages var name = do
         Just First -> gMsgbox1 game
         Just Second -> gMsgbox2 game
     
+getPossibleMoves :: SupervisorHandle -> GameId -> Side -> IO [MoveRep]
+getPossibleMoves var gameId side = do
+  mbGame <- getGame var gameId
+  let game = fromJust mbGame
+  writeChan (gInput $ gHandle game) $ GPossibleMovesRq side
+  GPossibleMovesRs moves <- readChan (gOutput $ gHandle game)
+  return $ map (moveRep side) moves
 
 doMove :: SupervisorHandle -> GameId -> String -> MoveRep -> IO BoardRep
 doMove var gameId name moveRq = do
@@ -178,12 +186,13 @@ doMove var gameId name moveRq = do
   let output = gOutput $ gHandle game
   let side = fromJust $ sideByUser game name
   writeChan input $ DoMoveRepRq side moveRq
-  DoMoveRs board' messages <- readChan output
-  queueNotifications var gameId messages
-
-  letAiMove var game (opposite side) (Just board')
-
-  return $ boardRep board'
+  result <- readChan output
+  case result of
+    Error message -> fail $ "Cannot parse move: " ++ show moveRq ++ ": " ++ message
+    DoMoveRs board' messages -> do
+      queueNotifications var gameId messages
+      letAiMove var game (opposite side) (Just board')
+      return $ boardRep board'
 
 letAiMove :: SupervisorHandle -> Game -> Side -> Maybe Board -> IO Board
 letAiMove var game side mbBoard = do
@@ -232,6 +241,13 @@ sideByUser game name =
     (Just (User name1), _) | name1 == name -> Just First
     (_, Just (User name2)) | name2 == name -> Just Second
     _ -> Nothing
+
+getSideByUser :: SupervisorHandle -> GameId -> String -> IO (Maybe Side)
+getSideByUser var gameId name = do
+  mbGame <- getGame var gameId
+  case mbGame of
+    Nothing -> return Nothing
+    Just game -> return $ sideByUser game name
 
 queueNotifications :: SupervisorHandle -> GameId -> [Notify] -> IO ()
 queueNotifications var gameId messages = atomically $ modifyTVar var go

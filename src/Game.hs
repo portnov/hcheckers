@@ -96,10 +96,13 @@ spawnGame rules = do
 
         DoMoveRepRq s moveRep ->
           case parseMoveRep rules s (gsCurrentBoard st) moveRep of
-            Nothing -> do
-                       writeChan (gsOutput st) (Error "Cannot parse move request")
+            NoSuchMove -> do
+                       writeChan (gsOutput st) (Error "No such move")
                        loop st
-            Just move -> processMove s move st
+            AmbigousMove moves -> do
+                       writeChan (gsOutput st) (Error $ "Move specification is ambigous. Possible moves: " ++ show moves)
+                       loop st
+            Parsed move -> processMove s move st
 
     pushMove move board st =
       st {
@@ -119,8 +122,9 @@ spawnGame rules = do
                         writeChan (gsOutput st) (Error "Not allowed move")
                         loop st
                    else do
-                        let (board', _, _) = applyMove (gsSide st) move (gsCurrentBoard st)
-                            push = Notify (opposite $ gsSide st) (gsSide st) (moveRep move) (boardRep board')
+                        let side = gsSide st
+                            (board', _, _) = applyMove side move (gsCurrentBoard st)
+                            push = Notify (opposite side) side (moveRep side move) (boardRep board')
                         writeChan (gsOutput st) $ DoMoveRs board' [push]
                         loop $ pushMove move board' st
 

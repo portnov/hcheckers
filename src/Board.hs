@@ -48,11 +48,33 @@ myDirection Second ForwardRight = DownLeft
 myDirection Second BackwardLeft = UpRight
 myDirection Second BackwardRight = UpLeft
 
+playerDirection :: Side -> BoardDirection -> PlayerDirection
+playerDirection First UpLeft = ForwardLeft
+playerDirection First UpRight = ForwardRight
+playerDirection First DownLeft = BackwardLeft
+playerDirection First DownRight = BackwardRight
+playerDirection Second UpLeft = BackwardRight
+playerDirection Second UpRight = BackwardLeft
+playerDirection Second DownLeft = ForwardRight
+playerDirection Second DownRight = ForwardLeft
+
 neighbour :: BoardDirection -> Address -> Maybe Address
 neighbour UpLeft a = aUpLeft a
 neighbour UpRight a = aUpRight a
 neighbour DownLeft a = aDownLeft a
 neighbour DownRight a = aDownRight a
+
+getNeighbourDirection :: Address -> Address -> Maybe BoardDirection
+getNeighbourDirection src dst
+  | aUpLeft src == Just dst = Just UpLeft
+  | aUpRight src == Just dst = Just UpRight
+  | aDownLeft src == Just dst = Just DownLeft
+  | aDownRight src == Just dst = Just DownRight
+  | otherwise = Nothing
+
+getNeighbourDirection' :: Board -> Address -> Label -> Maybe BoardDirection
+getNeighbourDirection' board src dst =
+  getNeighbourDirection src (resolve dst board)
 
 isValidDirection :: BoardDirection -> Address -> Bool
 isValidDirection dir a = isJust (neighbour dir a)
@@ -86,7 +108,7 @@ isWithinBoard side board move = go (moveBegin move) (moveSteps move)
         Nothing -> False
 
 allPassedAddresses :: Side -> Board -> Move -> [Address]
-allPassedAddresses side board move = go [] (moveBegin move) (moveSteps move)
+allPassedAddresses side board move = reverse $ go [] (moveBegin move) (moveSteps move)
   where
     go acc _ [] = acc
     go acc addr (step : steps) =
@@ -362,21 +384,35 @@ board8 =
       labels2 = line8labels ++ line7labels ++ line6labels
   in  setManyPieces' labels1 (Piece Man First) $ setManyPieces' labels2 (Piece Man Second) board
 
-moveRep :: Move -> MoveRep
-moveRep move = FullMoveRep (aLabel $ moveBegin move) (moveSteps move)
+moveRep :: Side -> Move -> MoveRep
+moveRep side move = FullMoveRep (aLabel $ moveBegin move) $ rep (moveBegin move) (moveSteps move)
+  where
 
-parseMoveRep :: GameRules rules => rules -> Side -> Board -> MoveRep -> Maybe Move
+    rep _ [] = []
+    rep prev (step@(Step dir capture promote) : steps) =
+      case neighbour (myDirection side dir) prev of
+        Nothing -> error $ "moveRep: invalid step: " ++ show step
+        Just addr -> (StepRep (aLabel addr) capture promote) : rep addr steps
+
+parseMoveRep :: GameRules rules => rules -> Side -> Board -> MoveRep -> MoveParseResult
 parseMoveRep rules side board (ShortMoveRep from to) =
   let moves = possibleMoves rules side board
       suits m = aLabel (moveBegin m) == from &&
                 aLabel (moveEnd side board m) == to
   in  case filter suits moves of
-        [m] -> Just m
-        _ -> Nothing
+        [m] -> Parsed m
+        [] -> NoSuchMove
+        ms -> AmbigousMove ms
 parseMoveRep rules side board (FullMoveRep from steps) =
-  case M.lookup from (bAddresses board) of
-    Nothing -> Nothing
-    Just src -> Just $ Move src steps
+    case M.lookup from (bAddresses board) of
+      Nothing -> NoSuchMove
+      Just src -> Parsed $ Move src $ parse src steps
+  where
+    parse _ [] = []
+    parse prev (step@(StepRep dst capture promote) : steps) =
+      case getNeighbourDirection' board prev dst of
+        Nothing -> error $ "parseMoveRep: invalid step: " ++ show step
+        Just dir -> Step (playerDirection side dir) capture promote : parse (resolve dst board) steps
 
 boardRep :: Board -> BoardRep
 boardRep board = BoardRep [(aLabel addr, piece) | (addr, piece) <- M.assocs $ bPieces board]

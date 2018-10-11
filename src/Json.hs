@@ -29,6 +29,10 @@ instance ToJSON Step where
   toJSON (Step direction capture promote) =
     object ["direction" .= direction, "capture" .= capture, "promote" .= promote]
 
+instance ToJSON StepRep where
+  toJSON (StepRep field capture promote) =
+    object ["field" .= field, "capture" .= capture, "promote" .= promote]
+
 instance ToJSON MoveRep where
   toJSON (ShortMoveRep from to) = object ["from" .= from, "to" .= to]
   toJSON (FullMoveRep from steps) =

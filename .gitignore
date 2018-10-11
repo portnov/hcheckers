@@ -4,3 +4,4 @@ hcheckers.cabal
 *.o
 *.hi
 *.swp
+*.pyc

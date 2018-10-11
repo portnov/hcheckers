@@ -103,14 +103,38 @@ data Move = Move {
 instance Show Move where
   show move = "[" ++ show (moveBegin move) ++ "] " ++ (intercalate "." $ map show (moveSteps move))
 
+data StepRep = StepRep {
+    srField :: Label,
+    srCapture :: Bool,
+    srPromote :: Bool
+  }
+  deriving (Eq)
+
+instance Show StepRep where
+  show step = srField step ++ capture ++ promote
+    where
+      capture
+        | srCapture step = "[X]"
+        | otherwise = ""
+
+      promote
+        | srPromote step = "[K]"
+        | otherwise = ""
+
 data MoveRep =
     ShortMoveRep Label Label
-  | FullMoveRep Label [Step]
+  | FullMoveRep Label [StepRep]
   deriving (Eq)
 
 instance Show MoveRep where
   show (ShortMoveRep from to) = from ++ " > " ++ to
   show (FullMoveRep from steps) = "[" ++ from ++ "] " ++ (intercalate "." $ map show steps)
+
+data MoveParseResult =
+    Parsed Move
+  | NoSuchMove
+  | AmbigousMove [Move]
+  deriving (Eq, Show)
 
 data BoardRep = BoardRep [(Label, Piece)]
   deriving (Eq, Show)
