@@ -12,7 +12,7 @@ def clicked(row, col):
 
 theme = Theme("themes/default", None)
 game = Game()
-game.start_new_game("portnov")
+game.start_new_game("portnov", ai_depth=4)
 
 app = QApplication(sys.argv)
 

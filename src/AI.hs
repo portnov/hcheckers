@@ -119,7 +119,7 @@ scoreAB initSide side depth alpha beta = do
       stack <- gets (reverse . ssStack)
       trace (printf "%s| side %s: %s" indent (show side) (showStack stack)) $ return ()
 
-    indent = replicate (2*(2-depth)) ' '
+    indent = replicate (2*(4-depth)) ' '
 
     getBest =
       gets (siScoreBest . head . ssStack)
