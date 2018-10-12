@@ -4,7 +4,7 @@ from PyQt5.QtCore import QRect, QSize, Qt, pyqtSignal
 from PyQt5.QtWidgets import QApplication, QWidget
 
 from field import Field
-from game import Game
+from game import Game, RequestError
 
 class Board(QWidget):
     def __init__(self, theme, game, parent=None):
@@ -82,19 +82,22 @@ class Board(QWidget):
         self._pixmap = None
 
     def fields_setup(self, board=None):
-        if board is None:
-            board = self.game.get_board()
+        try:
+            if board is None:
+                board = self.game.get_board()
 
-        self._board = board
+            self._board = board
 
-        for label in self.field_by_label:
-            field = self.field_by_label[label]
-            if label in board:
-                field.piece = board[label]
-            else:
-                field.piece = None
+            for label in self.field_by_label:
+                field = self.field_by_label[label]
+                if label in board:
+                    field.piece = board[label]
+                else:
+                    field.piece = None
 
-        self.invalidate()
+            self.invalidate()
+        except RequestError as e:
+            print(e)
 
     def draw_field(self, painter, field, row, col):
         width = self.size().width()
@@ -153,31 +156,34 @@ class Board(QWidget):
     def process_click(self, row, col):
         self.field_clicked.emit(row, col)
 
-        field = self.fields[(row, col)]
-        piece = self._board.get(field.label)
-        if piece is not None and piece.side == self.game.user_side:
-            moves = self.game.get_possible_moves(field.label)
-            print(moves)
-            if not moves:
-                print("Piece at {} does not have moves".format(field.label))
+        try:
+            field = self.fields[(row, col)]
+            piece = self._board.get(field.label)
+            if piece is not None and piece.side == self.game.user_side:
+                moves = self.game.get_possible_moves(field.label)
+                print(moves)
+                if not moves:
+                    print("Piece at {} does not have moves".format(field.label))
+                else:
+                    self._valid_target_fields = [move["steps"][-1]["field"] for move in moves]
+                    print("Valid target fields: {}".format(self._valid_target_fields))
+                    self.selected_field = (row, col)
+            elif piece is None and self.selected_field is not None and self._valid_target_fields is not None:
+                if field.label in self._valid_target_fields:
+                    src_field = self.fields[self.selected_field].label
+                    dst_field = field.label
+                    board, messages = self.game.move(src_field, dst_field)
+                    for message in messages:
+                        print("Other side move: {}".format(message["move"]))
+                        self._board = Game.parse_board(message["board"])
+                    self.selected_field = None
+                    self._valid_target_fields = None
+                    self.fields_setup(self._board)
+                    self.repaint()
             else:
-                self._valid_target_fields = [move["steps"][-1]["field"] for move in moves]
-                print("Valid target fields: {}".format(self._valid_target_fields))
-                self.selected_field = (row, col)
-        elif piece is None and self.selected_field is not None and self._valid_target_fields is not None:
-            if field.label in self._valid_target_fields:
-                src_field = self.fields[self.selected_field].label
-                dst_field = field.label
-                board, messages = self.game.move(src_field, dst_field)
-                for message in messages:
-                    print("Other side move: {}".format(message["move"]))
-                    self._board = Game.parse_board(message["board"])
-                self.selected_field = None
-                self._valid_target_fields = None
-                self.fields_setup(self._board)
-                self.repaint()
-        else:
-            print("Field {} is not yours".format(field.label))
+                print("Field {} is not yours".format(field.label))
+        except RequestError as e:
+            print(e)
 
 
     def mousePressEvent(self, me):

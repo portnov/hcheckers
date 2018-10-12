@@ -52,9 +52,9 @@ manSimpleMoves side board src = check ForwardLeft ++ check ForwardRight
 
     check dir =
       let move = simpleMove side src dir
-      in  if isWellFormedMove piece board move
-            then [move]
-            else []
+      in  case isWellFormedMove piece board move of
+            ValidMove -> [move]
+            _ -> []
 
 captures1 :: Piece -> Board -> Address -> [Move]
 captures1 piece board src =
@@ -62,10 +62,16 @@ captures1 piece board src =
     (Piece Man _) -> manCaptures1 piece board src
     (Piece King _) -> kingCaptures1 piece board src
 
+pieceCaptures :: Piece -> Board -> Address -> [Move]
+pieceCaptures piece board src =
+  case piece of
+    (Piece Man _) -> manCaptures piece board src
+    (Piece King _) -> kingCaptures piece board src
+
 manCaptures :: Piece -> Board -> Address -> [Move]
 manCaptures piece@(Piece _ side) board src =
   let moves = captures1 piece board src
-      nextMoves m = captures1 p b a
+      nextMoves m = pieceCaptures p b a
                       where (b, a, p) = applyMove side m board
   in concat $ flip map moves $ \move1 ->
        let moves2 = nextMoves move1
@@ -80,14 +86,14 @@ manCaptures1 (Piece _ side) board src = concatMap (check src) [ForwardLeft, Forw
 
     check a dir =
       let move = simpleCapture side a dir
-      in  if isWellFormedMove piece board move
-            then [move]
-            else []
+      in  case isWellFormedMove piece board move of
+            ValidMove -> [move]
+            e -> {- trace (printf "%s: %s: cant catpure to %s: %s" (show side) (show src) (show dir) (show e)) $-} []
 
 kingCaptures :: Piece -> Board -> Address -> [Move]
 kingCaptures piece@(Piece _ side) board src =
   let moves = captures1 piece board src
-      nextMoves m = captures1 p b a
+      nextMoves m = pieceCaptures p b a
                       where (b, a, p) = applyMove side m board
   in nub $ concat $ flip map moves $ \move1 ->
        let moves2 = nextMoves move1
@@ -105,7 +111,9 @@ kingCaptures1 piece@(Piece _ side) board src = concatMap check [ForwardLeft, For
         Just steps ->
           let maxFree = freeFieldsCount dir (length steps) 1
               freeSteps = tail $ inits $ replicate maxFree (Step dir False False)
-          in {- trace (show steps) $ -} [Move src (steps ++ free) | free <- freeSteps]
+          in  if maxFree == 0
+                then []
+                else {- trace (show steps) $ -} [Move src (steps ++ free) | free <- freeSteps]
 
     search dir a =
       -- trace (printf "A: %s, dir: %s" (show a) (show dir)) $
@@ -142,8 +150,8 @@ kingCaptures1 piece@(Piece _ side) board src = concatMap check [ForwardLeft, For
 kingSimpleMoves :: Side -> Board -> Address -> [Move]
 kingSimpleMoves side board src = concatMap check [ForwardLeft, ForwardRight, BackwardLeft, BackwardRight]
   where
-    check dir = takeWhile (isWellFormedMove piece board) $ map (kingMove side src dir) [1 ..]
-    piece = getPiece_ "kingSimpleMoves" src board
+    check dir = takeWhile (\m -> isWellFormedMove piece board m == ValidMove) $ map (kingMove side src dir) [1 ..]
+    piece = Piece King side
 
 kingMoves :: Side -> Board -> Address -> [Move]
 kingMoves side board src =

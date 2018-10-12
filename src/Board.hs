@@ -147,34 +147,34 @@ allMyAddresses :: Side -> Board -> [Address]
 allMyAddresses side board =
   M.keys $ M.filter (isMyPiece side) (bPieces board)
 
-checkWellFormedStep :: Piece -> Board -> Address -> Step -> Maybe Address
+checkWellFormedStep :: Piece -> Board -> Address -> Step -> StepCheckResult
 checkWellFormedStep (Piece kind side) board src step =
   case neighbour (myDirection side (sDirection step)) src of
-    Nothing -> Nothing
+    Nothing -> NoSuchNeighbour
     Just dst ->
       if sCapture step
         then -- trace (printf "Dir: %s, Capture: %s, Dst: %s, piece: %s" (show $ myDirection side (sDirection step)) (show $ sCapture step) (show dst) (show $ getPiece dst board)) $
              case getPiece dst board of
-               Nothing -> Nothing
+               Nothing -> NoPieceToCapture
                Just piece -> if isMyPiece side piece
-                               then Nothing
-                               else Just dst
+                               then CapturingOwnPiece
+                               else ValidStep dst
         else if isJust (getPiece dst board)
-               then Nothing
+               then OccupatedField
                else if (kind == Man) && (sPromote step /= isLastHorizontal side dst)
-                       then Nothing
-                       else Just dst
+                       then InvalidPromotion (sPromote step) (isLastHorizontal side dst)
+                       else ValidStep dst
 
-isWellFormedMove :: Piece -> Board -> Move -> Bool
+isWellFormedMove :: Piece -> Board -> Move -> MoveCheckResult
 isWellFormedMove piece board move =
     -- isMyPieceAt side (moveBegin move) board &&
     go (moveBegin move) (moveSteps move)
   where
-    go _ [] = True
+    go _ [] = ValidMove
     go src (step : steps) =
       case checkWellFormedStep piece board src step of
-        Nothing -> False
-        Just dst -> go dst steps
+        ValidStep dst -> go dst steps
+        err -> InvalidStep step err
 
 catMoves :: Move -> Move -> Move
 catMoves m1 m2 =
@@ -188,7 +188,7 @@ capturesCount move = length $ filter sCapture (moveSteps move)
 
 capturesCounts :: Move -> Board -> (Int, Int)
 capturesCounts move board =
-  -- trace (printf "CC: %s" (show move)) $
+--   trace (printf "CC: %s" (show move)) $
   let captures = getCaptured move board
       (men, kings) = partition isMan $ map snd captures
   in  (length men, length kings)
@@ -196,13 +196,13 @@ capturesCounts move board =
 applyStep :: Piece -> Address -> Step -> Board -> (Board, Address, Piece)
 applyStep piece@(Piece _ side) src step board =
   case checkWellFormedStep piece board src step of
-    Nothing -> error $ printf "Step is not well-formed: [%s]: %s" (show src) (show step)
-    Just dst ->
+    ValidStep dst ->
         let piece' = if sPromote step
                        then Piece King side
                        else piece
             board' = setPiece dst piece' $ removePiece src board
         in (board', dst, piece')
+    err -> error $ printf "applyStep: Step is not well-formed: [%s at %s]: %s: %s" (show piece) (show src) (show step) (show err)
 
 applyMove :: Side -> Move -> Board -> (Board, Address, Piece)
 applyMove side move board = go board piece (moveBegin move) (moveSteps move)
@@ -215,18 +215,18 @@ applyMove side move board = go board piece (moveBegin move) (moveSteps move)
     piece = getPiece_ "applyMove" (moveBegin move) board
 
 getCaptured :: Move -> Board -> [(Address, Piece)]
-getCaptured move board = go (moveBegin move) (moveSteps move)
+getCaptured move board = go board (moveBegin move) (moveSteps move)
   where
     me = getPiece_ "getCaptured: me" (moveBegin move) board
 
-    go _ [] = []
-    go addr (step : steps) =
+    go _ _ [] = []
+    go board addr (step : steps) =
       if sCapture step
         then let victim = getPiece_ "getCaptured" addr' board
-                 (_, addr', _) = applyStep me addr step board
-             in (addr, victim) : go addr' steps
-        else let (_, addr', _) = applyStep me addr step board
-             in go addr' steps
+                 (board', addr', _) = applyStep me addr step board
+             in (addr, victim) : go board' addr' steps
+        else let (board', addr', _) = applyStep me addr step board
+             in go board' addr' steps
 
 moveEnd :: Side -> Board -> Move -> Address
 moveEnd side board move = last $ allPassedAddresses side board move
@@ -241,7 +241,7 @@ simpleMove side src dir = Move src [Step dir False promote]
 simpleCapture :: Side -> Address -> PlayerDirection -> Move
 simpleCapture side src dir = Move src [Step dir True False, Step dir False promote]
   where
-    promote = case neighbour (myDirection side dir) src of
+    promote = case neighbour (myDirection side dir) =<< neighbour (myDirection side dir) src of
                 Nothing -> False
                 Just dst -> isLastHorizontal side dst
 
@@ -416,4 +416,9 @@ parseMoveRep rules side board (FullMoveRep from steps) =
 
 boardRep :: Board -> BoardRep
 boardRep board = BoardRep [(aLabel addr, piece) | (addr, piece) <- M.assocs $ bPieces board]
+
+parseBoardRep :: Int -> BoardRep -> Board
+parseBoardRep n (BoardRep list) = foldr set (buildBoard n) list
+  where
+    set (label, piece) board = setPiece' label piece board
 

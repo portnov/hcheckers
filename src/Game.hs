@@ -65,8 +65,8 @@ data Notify = Notify {
   }
   deriving (Eq, Show, Generic)
 
-spawnGame :: GameRules rules => rules -> IO GameHandle
-spawnGame rules = do
+spawnGame :: GameRules rules => rules -> Maybe BoardRep -> IO GameHandle
+spawnGame rules mbBoardRep = do
     input <- newChan
     output <- newChan
     thread <- forkIO (setup input output)
@@ -74,7 +74,9 @@ spawnGame rules = do
 
   where
     setup input output = do
-      let board = initBoard rules
+      let board = case mbBoardRep of
+                    Nothing -> initBoard rules
+                    Just rep -> parseBoardRep 8 rep
       let side = First
       loop $ GameState input output side board []
 

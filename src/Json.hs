@@ -56,6 +56,9 @@ instance FromJSON Piece where
 instance ToJSON BoardRep where
   toJSON (BoardRep list) = toJSON list
 
+instance FromJSON BoardRep where
+  parseJSON v = BoardRep <$> parseJSON v
+
 instance ToJSON ThreadId where
   toJSON id = toJSON (show id)
 
@@ -71,6 +74,7 @@ instance FromJSON NewGameRq where
   parseJSON = withObject "NewGame" $ \v -> NewGameRq
     <$> v .: "rules"
     <*> v .:? "params" .!= Null
+    <*> v .:? "board"
 
 instance FromJSON AttachAiRq where
   parseJSON = withObject "AttachAi" $ \v -> AttachAiRq

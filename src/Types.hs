@@ -136,6 +136,20 @@ data MoveParseResult =
   | AmbigousMove [Move]
   deriving (Eq, Show)
 
+data StepCheckResult =
+    ValidStep Address
+  | NoSuchNeighbour
+  | NoPieceToCapture
+  | CapturingOwnPiece
+  | OccupatedField
+  | InvalidPromotion Bool Bool
+  deriving (Eq, Show)
+
+data MoveCheckResult =
+    ValidMove
+  | InvalidStep Step StepCheckResult
+  deriving (Eq, Show)
+
 data BoardRep = BoardRep [(Label, Piece)]
   deriving (Eq, Show)
 
@@ -150,7 +164,7 @@ class Evaluator e where
   evalBoard :: e -> Side -> Side -> Board -> Integer
 
 class GameAi ai where
-  chooseMove :: ai -> Side -> Board -> IO Move
+  chooseMove :: ai -> Side -> Board -> IO (Maybe Move)
   updateAi :: ai -> Value -> ai
 
 data SomeAi = forall ai. GameAi ai => SomeAi ai

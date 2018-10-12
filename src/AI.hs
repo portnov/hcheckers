@@ -30,16 +30,19 @@ data AlphaBeta rules eval = AlphaBeta Int rules eval
 instance (GameRules rules, Evaluator eval) => GameAi (AlphaBeta rules eval) where
   chooseMove (AlphaBeta depth rules eval) side board = do
     let moves = possibleMoves rules side board
-    scores <- forM moves $ \move -> do
-                 printf "Check: %s\n" (show move)
-                 let (board', _, _) = applyMove side move board
-                     score = doScore rules eval (opposite side) depth board'
-                 printf " => %d\n" score
-                 return (move, score)
-    let select = if side == First then maximum else minimum
-        maxScore = select $ map snd scores
-        goodMoves = [move | (move, score) <- scores, score == maxScore]
-    return $ head goodMoves
+    if null moves
+      then return Nothing
+      else do
+          scores <- forM moves $ \move -> do
+                       printf "Check: %s\n" (show move)
+                       let (board', _, _) = applyMove side move board
+                           score = doScore rules eval (opposite side) depth board'
+                       printf " => %d\n" score
+                       return (move, score)
+          let select = maximum -- if side == First then maximum else minimum
+              maxScore = select $ map snd scores
+              goodMoves = [move | (move, score) <- scores, score == maxScore]
+          return $ Just $ head goodMoves
 
   updateAi ai@(AlphaBeta depth rules eval) json =
     case fromJSON json of

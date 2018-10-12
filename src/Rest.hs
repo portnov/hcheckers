@@ -38,11 +38,11 @@ instance Parsable Side where
 restServer :: SupervisorHandle -> ScottyM ()
 restServer supervisor = do
   post "/game/new" $ do
-    rq <- jsonData
+    rq@(NewGameRq _ _ mbBoard) <- jsonData
     case selectRules rq of
       Nothing -> error400 "invalid game rules"
       Just rules -> do
-        gameId <- liftIO $ newGame supervisor rules
+        gameId <- liftIO $ newGame supervisor rules mbBoard
         json $ SupervisorRs (NewGameRs gameId) []
 
   post "/game/:id/attach/ai/:side" $ do

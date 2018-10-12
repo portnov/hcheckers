@@ -46,7 +46,7 @@ data SupervisorState = SupervisorState {
 
 type SupervisorHandle = TVar SupervisorState
 
-data NewGameRq = NewGameRq String Value
+data NewGameRq = NewGameRq String Value (Maybe BoardRep)
   deriving (Eq, Show, Generic)
 
 -- data RegisterUserRq = RegisterUserRq String
@@ -76,7 +76,7 @@ supportedRules :: [(String, SomeRules)]
 supportedRules = [("russian", SomeRules Russian)]
 
 selectRules :: NewGameRq -> Maybe SomeRules
-selectRules (NewGameRq name params) = go supportedRules
+selectRules (NewGameRq name params _) = go supportedRules
   where
     go :: [(String, SomeRules)] -> Maybe SomeRules
     go [] = Nothing
@@ -96,9 +96,9 @@ selectAi (AttachAiRq name params) rules = go supportedAis
       | key == name = Just $ updateSomeAi (fn rules) params
       | otherwise = go other
 
-newGame :: SupervisorHandle -> SomeRules -> IO GameId
-newGame var r@(SomeRules rules) = do
-  handle <- spawnGame rules
+newGame :: SupervisorHandle -> SomeRules -> Maybe BoardRep -> IO GameId
+newGame var r@(SomeRules rules) mbBoardRep = do
+  handle <- spawnGame rules mbBoardRep
   let gameId = show (gThread handle)
   let game = Game handle New r Nothing Nothing [] []
   atomically $ modifyTVar var $ \st -> st {ssGames = M.insert gameId game (ssGames st)}
@@ -205,13 +205,18 @@ letAiMove var game side mbBoard = do
 
   case getPlayer game side of
     AI ai -> do
-      aiMove <- chooseMove ai side board
-      putStrLn $ "AI move: " ++ show aiMove
-      writeChan (gInput $ gHandle game) $ DoMoveRq side aiMove
-      DoMoveRs board' messages <- readChan (gOutput $ gHandle game)
-      putStrLn $ "Messages: " ++ show messages
-      queueNotifications var (getGameId $ gHandle game) messages
-      return board'
+      mbAiMove <- chooseMove ai side board
+      case mbAiMove of
+        Nothing -> do
+          putStrLn "AI failed to move."
+          return board
+        Just aiMove -> do
+          putStrLn $ "AI move: " ++ show aiMove
+          writeChan (gInput $ gHandle game) $ DoMoveRq side aiMove
+          DoMoveRs board' messages <- readChan (gOutput $ gHandle game)
+          putStrLn $ "Messages: " ++ show messages
+          queueNotifications var (getGameId $ gHandle game) messages
+          return board'
 
     _ -> return board
 

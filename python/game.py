@@ -6,6 +6,9 @@ import requests
 
 from common import *
 
+class RequestError(Exception):
+    pass
+
 class Game(object):
     def __init__(self, url=None):
         if url is None:
@@ -16,10 +19,18 @@ class Game(object):
         self.user_side = None
         self.ai_side = None
 
-    def new_game(self, rules):
+    def process_response(self, rs):
+        if rs.status_code != requests.codes.ok:
+            print(rs)
+            raise RequestError(str(rs))
+
+    def new_game(self, rules, board=None):
         url = join(self.base_url, "game", "new")
         rq = {"rules": rules}
+        if board is not None:
+            rq["board"] = board
         rs = requests.post(url, json=rq)
+        self.process_response(rs)
         result = rs.json()
         self.game_id = result["response"]["id"]
         return self.game_id
@@ -29,6 +40,7 @@ class Game(object):
         self.user_side = side
         url = join(self.base_url, "game", self.game_id, "attach", name, str(side))
         rs = requests.post(url)
+        self.process_response(rs)
         result = rs.json()
 
     def attach_ai(self, side, depth=2):
@@ -36,15 +48,17 @@ class Game(object):
         url = join(self.base_url, "game", self.game_id, "attach", "ai", str(side))
         rq = {"ai": "default", "params": {"depth": depth}}
         rs = requests.post(url, json=rq)
+        self.process_response(rs)
         result = rs.json()
 
     def run_game(self):
         url = join(self.base_url, "game", self.game_id, "run")
         rs = requests.post(url)
+        self.process_response(rs)
         result = rs.json()
 
-    def start_new_game(self, user_name, rules="russian", user_turn_first=True, ai_depth=2):
-        self.new_game(rules)
+    def start_new_game(self, user_name, rules="russian", board=None, user_turn_first=True, ai_depth=2):
+        self.new_game(rules, board)
         if user_turn_first:
             self.register_user(user_name, 1)
             self.attach_ai(2, ai_depth)
@@ -56,6 +70,7 @@ class Game(object):
     def get_state(self):
         url = join(self.base_url, "game", self.game_id, "state")
         rs = requests.get(url)
+        self.process_response(rs)
         result = rs.json()
         return result["response"]
 
@@ -68,12 +83,14 @@ class Game(object):
 
     def get_board(self):
         state = self.get_state()
-        board = Game.parse_board(state["board"])
-        return board
+        if state is not None:
+            board = Game.parse_board(state["board"])
+            return board
     
     def get_possible_moves(self, field=None):
         url = join(self.base_url, "game", self.game_id, "moves", self.user_name)
         rs = requests.get(url)
+        self.process_response(rs)
         result = rs.json()
         if field is None:
             return result["response"]
@@ -85,6 +102,7 @@ class Game(object):
         url = join(self.base_url, "game", self.game_id, "move", self.user_name)
         rq = {"from": src, "to": dst}
         rs = requests.post(url, json=rq)
+        self.process_response(rs)
         result = rs.json()
         print(result)
         return Game.parse_board(result["response"]), result["messages"]

@@ -10,9 +10,13 @@ from theme import Theme
 def clicked(row, col):
     print("Clicked: {} {}".format(row, col))
 
+board = [['h6', {'kind': 'Man', 'side': 'First'}],
+         ['g7', {'kind': 'Man', 'side': 'Second'}]
+        ]
+
 theme = Theme("themes/default", None)
 game = Game()
-game.start_new_game("portnov", ai_depth=4)
+game.start_new_game("portnov", ai_depth=4, board=None)
 
 app = QApplication(sys.argv)
 
