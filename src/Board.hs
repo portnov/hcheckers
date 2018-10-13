@@ -154,7 +154,7 @@ isFreeInDirection dir src board n =
 
 allMyAddresses :: Side -> Board -> [Address]
 allMyAddresses side board =
-  M.keys $ M.filter (isMyPiece side) (bPieces board)
+  map (\l -> resolve l board) $ findLabels (isMyPiece side) (bPieces board)
 
 myCounts :: Side -> Board -> (Int, Int)
 myCounts side board =
@@ -314,7 +314,7 @@ linkA :: Bool -> Address -> Address -> (Address, Address)
 linkA True = linkPrimary
 linkA False = linkSecondary
 
-buildBoard :: Int -> Board
+buildBoard :: Line -> Board
 buildBoard size =
   let mkAddress p = Address (label p) (upLeft p) (upRight p) (downLeft p) (downRight p)
       label (r,c) = Label (c-1) (r-1)
@@ -341,9 +341,9 @@ buildBoard size =
       evens = [2, 4 .. size]
       coordinates = [(r, c) | r <- odds, c <- odds] ++ [(r, c) | r <- evens, c <- evens]
 
-      addressByLabel = M.mapKeys label addresses
+      addressByLabel = buildLabelMap size [(label p, address) | (p, address) <- M.assocs addresses]
 
-      board = Board M.empty addressByLabel counts key
+      board = Board (emptyAddressMap size) addressByLabel counts key
 
       counts = calcBoardCounts board
       key = calcBoardKey board
@@ -351,10 +351,10 @@ buildBoard size =
   in  board
 
 resolve :: Label -> Board -> Address
-resolve label board = fromMaybe (error $ "resolve: unknown field: " ++ show label) $ M.lookup label (bAddresses board)
+resolve label board = fromMaybe (error $ "resolve: unknown field: " ++ show label) $ lookupLabel label (bAddresses board)
 
 getPiece :: Address -> Board -> Maybe Piece
-getPiece a b = M.lookup a (bPieces b)
+getPiece a b = lookupAddress a (bPieces b)
 
 getPiece_ :: String -> Address -> Board -> Piece
 getPiece_ name addr board =
@@ -363,15 +363,15 @@ getPiece_ name addr board =
     Just piece -> piece
 
 getPiece' :: Label -> Board -> Maybe Piece
-getPiece' l b = M.lookup a (bPieces b)
+getPiece' l b = getPiece a b
   where
-    a = fromMaybe (error $ "getPiece': unknown field: " ++ show l) $ M.lookup l (bAddresses b)
+    a = fromMaybe (error $ "getPiece': unknown field: " ++ show l) $ lookupLabel l (bAddresses b)
 
 setPiece :: Address -> Piece -> Board -> Board
 setPiece a p b = board
   where
-    board = b {bPieces = M.insert a p (bPieces b), boardCounts = counts, boardKey = key}
-    counts = case M.lookup a (bPieces b) of
+    board = b {bPieces = setAddress a p (bPieces b), boardCounts = counts, boardKey = key}
+    counts = case lookupAddress a (bPieces b) of
                Nothing -> insertBoardCounts p (boardCounts b)
                Just old -> insertBoardCounts p $ removeBoardCounts old (boardCounts b)
     key = calcBoardKey board
@@ -380,9 +380,9 @@ removePiece :: Address -> Board -> Board
 removePiece a b = board
   where
     updateMap addr piece = Nothing
-    board = case M.updateLookupWithKey updateMap a (bPieces b) of
-              (Nothing, _) -> b
-              (Just piece, pieces) -> b {bPieces = pieces, boardCounts = removeBoardCounts piece (boardCounts b)}
+    board = case lookupAddress a (bPieces b) of
+              Nothing -> b
+              Just piece -> b {bPieces = removeAddress a (bPieces b), boardCounts = removeBoardCounts piece (boardCounts b)}
     key = calcBoardKey board
 
 removePiece' :: Label -> Board -> Board
@@ -401,7 +401,7 @@ movePiece' src dst board =
 setPiece' :: Label -> Piece -> Board -> Board
 setPiece' l p b = setPiece a p b
   where
-    a = fromMaybe (error $ "setPiece': unknown field: " ++ show l) $ M.lookup l (bAddresses b)
+    a = fromMaybe (error $ "setPiece': unknown field: " ++ show l) $ lookupLabel l (bAddresses b)
 
 setManyPieces :: [Address] -> Piece -> Board -> Board
 setManyPieces addresses piece board = foldr (\a b -> setPiece a piece b) board addresses
@@ -436,7 +436,7 @@ parseMoveRep rules side board (ShortMoveRep from to) =
         [] -> NoSuchMove
         ms -> AmbigousMove ms
 parseMoveRep rules side board (FullMoveRep from steps) =
-    case M.lookup from (bAddresses board) of
+    case lookupLabel from (bAddresses board) of
       Nothing -> NoSuchMove
       Just src -> Parsed $ Move src $ parse src steps
   where
@@ -447,10 +447,10 @@ parseMoveRep rules side board (FullMoveRep from steps) =
         Just dir -> Step (playerDirection side dir) capture promote : parse (resolve dst board) steps
 
 boardRep :: Board -> BoardRep
-boardRep board = BoardRep [(aLabel addr, piece) | (addr, piece) <- M.assocs $ bPieces board]
+boardRep board = BoardRep $ occupiedLabels $ bPieces board
 
 parseBoardRep :: Int -> BoardRep -> Board
-parseBoardRep n (BoardRep list) = foldr set (buildBoard n) list
+parseBoardRep n (BoardRep list) = foldr set (buildBoard $ fromIntegral n) list
   where
     set (label, piece) board = setPiece' label piece board
 

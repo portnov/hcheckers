@@ -11,12 +11,14 @@ import Data.Array
 import Data.String
 import Data.Char (isDigit, ord)
 import Data.Aeson (Value)
+import Data.Int
+import Data.Word
 import Text.Printf
 import GHC.Generics
 
 data Label = Label {
-    labelColumn :: ! Int,
-    labelRow :: ! Int
+    labelColumn :: ! Line,
+    labelRow :: ! Line
   }
   deriving (Eq, Ord)
 
@@ -26,14 +28,14 @@ letters = "abcdefgh"
 instance Show Label where
   show l = letter : show (labelRow l + 1)
     where
-      letter = letters !! labelColumn l
+      letter = letters !! fromIntegral (labelColumn l)
 
 instance IsString Label where
   fromString [l,d]
     | isDigit d = case elemIndex l letters of
                     Nothing -> error $ "Label.fromString: unknown letter: " ++ [l]
                     Just col -> let row = ord d - ord '1'
-                                in  Label col row
+                                in  Label (fromIntegral col) (fromIntegral row)
   fromString e = error $ "Label.fromString: cant parse: " ++ e
     
 data PieceKind = Man | King
@@ -73,13 +75,17 @@ instance Show Address where
 instance Ord Address where  
   compare a1 a2 = compare (aLabel a1) (aLabel a2)
 
-type AddressMap a = Array (Int, Int) a
+type Line = Int
 
-type LabelMap a = Array (Int, Int) a
+type FieldIndex = (Line, Line)
+
+type AddressMap a = Array FieldIndex (Maybe a)
+
+type LabelMap a = Array FieldIndex a
 
 data Board = Board {
-    bPieces :: M.Map Address Piece,
-    bAddresses :: M.Map Label Address,
+    bPieces :: AddressMap Piece,
+    bAddresses :: LabelMap Address,
     boardCounts :: BoardCounts,
     boardKey :: BoardKey
   }
