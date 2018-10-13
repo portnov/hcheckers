@@ -1,10 +1,97 @@
 
+import math
 from PyQt5.QtGui import QPainter, QPixmap
-from PyQt5.QtCore import QRect, QSize, Qt, pyqtSignal
+from PyQt5.QtCore import QRect, QSize, Qt, QObject, QTimer, pyqtSignal
 from PyQt5.QtWidgets import QApplication, QWidget
 
 from field import Field
 from game import Game, RequestError
+
+class MoveAnimation(QObject):
+    def __init__(self, parent):
+        QObject.__init__(self, parent)
+        self.board = parent
+        self.move = None
+        self.timer = parent.startTimer(50)
+        self.steps = 10
+        self.step = 0
+        self.piece_position = None
+        self.piece = None
+        self.start_field = None
+        self.end_field = None
+        self.process_result = False
+
+    finished = pyqtSignal(bool)
+
+    def start(self, start_field, end_field, move, start_position, piece, process_result = True):
+        if piece is None:
+            raise Exception("piece is None")
+        self.piece = piece
+        self.piece_position = start_position
+        self.step = 0
+        self.steps = 10 * len(move["steps"])
+        self.move = move
+        self.start_field = start_field
+        self.end_field = end_field
+        self.process_result = process_result
+
+    def get_animated_step(self, progress):
+        n = len(self.move["steps"])
+        idx = int(math.floor(progress * n))
+        if idx >= n:
+            return None
+        elif idx == 0:
+            field_from = self.move["from"]
+            field_to = self.move["steps"][0]["field"]
+            return field_from, field_to
+        else:
+            field_from = self.move["steps"][idx-1]["field"]
+            field_to   = self.move["steps"][idx]["field"]
+            return field_from, field_to
+
+    def interpolate(self, progress, p1, p2):
+        x1,y1 = p1
+        x2,y2 = p2
+        x = (1-progress)*x1 + progress*x2
+        y = (1-progress)*y1 + progress*y2
+        #print("{} - {} @ {} = {}".format(p1, p2, progress, (x,y)))
+        return (x,y)
+
+    def update(self, time):
+        step = self.get_animated_step(time)
+        if step is not None:
+            label_from, label_to = step
+            idx_from, idx_to = self.board.index_by_label[label_from], self.board.index_by_label[label_to]
+            center_from, center_to = self.board.get_field_center(idx_from), self.board.get_field_center(idx_to)
+            self.piece_position = self.interpolate(time, center_from, center_to)
+        else:
+            self.piece_position = self.board.get_field_center(self.end_field)
+
+    def stop(self):
+        self.move = None
+        self.step = 0
+        self.piece_position = None
+        self.piece = None
+        self.finished.emit(self.process_result)
+        self.process_result = False
+
+    def is_active(self):
+        return self.move is not None
+
+    def progress(self):
+        return float(self.step) / float(self.steps)
+
+    def tick(self, e):
+        if e.timerId() != self.timer:
+            return False
+        if not self.is_active():
+            return False
+        if self.step > self.steps:
+            self.stop()
+            return False
+        self.step = self.step + 1
+        self.update(self.progress())
+        return True
 
 class Board(QWidget):
     def __init__(self, theme, game, parent=None):
@@ -12,11 +99,13 @@ class Board(QWidget):
 
         self.game = game
         self._theme = theme
+        self.n_fields = 8
 
         self.fields = {}
         self.field_by_label = {}
-        for row in range(8):
-            for col in range(8):
+        self.index_by_label = {}
+        for row in range(self.n_fields):
+            for col in range(self.n_fields):
                 letter = "abcdefgh"[col]
                 digit = row + 1
                 field = Field()
@@ -24,12 +113,16 @@ class Board(QWidget):
                 field.label = letter + str(digit)
                 self.fields[(row, col)] = field
                 self.field_by_label[field.label] = field
+                self.index_by_label[field.label] = (row, col)
 
         self._pixmap = None
 
         self._selected_field = None
         self._valid_target_fields = None
         self._board = dict()
+
+        self.move_animation = MoveAnimation(self)
+        self.move_animation.finished.connect(self.on_animation_finished)
 
         self.setup_patterns()
 
@@ -39,8 +132,8 @@ class Board(QWidget):
         return self._theme
 
     def setup_patterns(self):
-        for row in range(8):
-            for col in range(8):
+        for row in range(self.n_fields):
+            for col in range(self.n_fields):
                 if (row % 2) == (col % 2):
                     self.fields[(row,col)].pattern_id = 2
                 else:
@@ -99,15 +192,21 @@ class Board(QWidget):
         except RequestError as e:
             print(e)
 
-    def draw_field(self, painter, field, row, col):
+    def draw_field(self, painter, field, row, col, hide=False):
         width = self.size().width()
         height = self.size().height()
 
-        row_height = height / 8
-        col_width = width / 8
+        row_height = height / self.n_fields
+        col_width = width / self.n_fields
         size = min(row_height, col_width)
 
-        field.draw(painter, QRect(col * size, (7-row) * size, size, size))
+        prev_piece = field.piece
+        if hide:
+            field.piece = None
+
+        field.draw(painter, QRect(col * size, (self.n_fields-1-row) * size, size, size))
+        if hide:
+            field.piece = prev_piece
 
     def draw(self):
         if self._pixmap is not None:
@@ -119,19 +218,35 @@ class Board(QWidget):
 
         for (row, col) in self.fields:
             field = self.fields[(row, col)]
-            self.draw_field(painter, field, row, col)
+            hide = False
+            if self.move_animation.is_active():
+                hide = ((row, col) == self.move_animation.start_field) or ((row, col) == self.move_animation.end_field)
+            self.draw_field(painter, field, row, col, hide=hide)
+
+        if self.move_animation.is_active():
+            piece = self.theme.get_piece(self.move_animation.piece)
+            if piece is not None:
+                w, h = piece.size().width(), piece.size().height()
+                x0,y0 = self.move_animation.piece_position
+                x = x0 - w*0.5
+                y = y0 - h*0.5
+                painter.drawPixmap(x, y, piece)
 
         painter.end()
 
         self._pixmap = pixmap
         self.update()
 
+    def get_size(self):
+        size = self.size()
+        return min(size.width(), size.height())
+
     def get_target_field_size(self, size):
         w_max = size.width()
         h_max = size.height()
         max_size = min(w_max, h_max)
 
-        return (max_size) / 8
+        return max_size / self.n_fields
     
     def paintEvent(self, e):
         self.draw()
@@ -153,6 +268,23 @@ class Board(QWidget):
             self._theme.set_target_size(size)
             self.fields_setup()
 
+    def get_field_center(self, idx):
+        row, col = idx
+        size = self.get_size()
+        x = (col + 0.5) / self.n_fields
+        y = (self.n_fields - 1 - row + 0.5) / self.n_fields
+        #print("{} => {}".format(idx, (x,y)))
+        return (x*size, y*size)
+
+    def get_move_end_field(self, move):
+        label = move["steps"][-1]["field"]
+        return self.index_by_label[label]
+    
+    def timerEvent(self, e):
+        if self.move_animation.tick(e):
+            self._pixmap = None
+            self.repaint()
+
     def process_click(self, row, col):
         self.field_clicked.emit(row, col)
 
@@ -165,29 +297,48 @@ class Board(QWidget):
                 if not moves:
                     print("Piece at {} does not have moves".format(field.label))
                 else:
-                    self._valid_target_fields = [move["steps"][-1]["field"] for move in moves]
-                    print("Valid target fields: {}".format(self._valid_target_fields))
+                    self._valid_target_fields = dict((move["steps"][-1]["field"], move) for move in moves)
+                    print("Valid target fields: {}".format(self._valid_target_fields.keys()))
                     self.selected_field = (row, col)
             elif piece is None and self.selected_field is not None and self._valid_target_fields is not None:
                 if field.label in self._valid_target_fields:
                     src_field = self.fields[self.selected_field].label
                     dst_field = field.label
-                    board, messages = self.game.move(src_field, dst_field)
-                    for message in messages:
-                        print("Other side move: {}".format(message["move"]))
-                        self._board = Game.parse_board(message["board"])
-                    self.selected_field = None
+                    self.game.begin_move(src_field, dst_field)
+
+                    move = self._valid_target_fields[field.label]
+                    start_position = self.get_field_center(self.index_by_label[src_field])
+                    piece = self.fields[self.selected_field].piece
+                    self.move_animation.start(self.selected_field, (row, col), move, start_position, piece, process_result=True)
                     self._valid_target_fields = None
-                    self.fields_setup(self._board)
                     self.repaint()
+
             else:
                 print("Field {} is not yours".format(field.label))
         except RequestError as e:
             print(e)
 
+    def on_animation_finished(self, process_result):
+        if process_result:
+            board, messages = self.game.get_move_result()
+            for message in messages:
+                move = message["move"]
+                print("Other side move: {}".format(move))
+                self._board = Game.parse_board(message["board"])
+                src_field = self.index_by_label[move["from"]]
+                dst_field = self.get_move_end_field(move)
+                start_position = self.get_field_center(src_field)
+                piece = self.fields[src_field].piece
+                self.move_animation.start(src_field, dst_field, move, start_position, piece, process_result = False)
+            self.selected_field = None
+        self.fields_setup(self._board)
+        self.repaint()
 
     def mousePressEvent(self, me):
         if me.button() != Qt.LeftButton:
+            return
+        
+        if self.move_animation.is_active():
             return
         
         for (row, col) in self.fields:
@@ -197,7 +348,4 @@ class Board(QWidget):
                 self.update()
                 self.process_click(row, col)
                 return
-
-
-
 

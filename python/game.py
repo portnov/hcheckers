@@ -3,11 +3,31 @@
 
 from os.path import join
 import requests
+from threading import Thread, Lock
 
 from common import *
 
 class RequestError(Exception):
     pass
+
+class MoveRequest(Thread):
+    def __init__(self, owner, url, rq):
+        Thread.__init__(self)
+        self.owner = owner
+        self.url = url
+        self.rq = rq
+
+    def run(self):
+        try:
+            self.owner.move_lock.acquire()
+            rs = requests.post(self.url, json=self.rq)
+            self.owner.process_response(rs)
+            result = rs.json()
+            print(result)
+            self.owner.last_move_result = Game.parse_board(result["response"]), result["messages"]
+        finally:
+            self.owner.move_lock.release()
+
 
 class Game(object):
     def __init__(self, url=None):
@@ -18,6 +38,9 @@ class Game(object):
         self.user_name = None
         self.user_side = None
         self.ai_side = None
+        self.last_move_result = None
+        self.move_thread = None
+        self.move_lock = Lock()
 
     def process_response(self, rs):
         if rs.status_code != requests.codes.ok:
@@ -98,13 +121,25 @@ class Game(object):
             moves = result["response"]
             return [move for move in moves if move["from"] == field]
     
-    def move(self, src, dst):
+    def begin_move(self, src, dst):
+        if self.move_thread is not None:
+            raise Exception("it seems get_move_result() was not called after previous begin_move()")
         url = join(self.base_url, "game", self.game_id, "move", self.user_name)
         rq = {"from": src, "to": dst}
-        rs = requests.post(url, json=rq)
-        self.process_response(rs)
-        result = rs.json()
-        print(result)
-        return Game.parse_board(result["response"]), result["messages"]
+        self.last_move_result = None
+        self.move_thread = MoveRequest(self, url, rq)
+        self.move_thread.start()
+        print("Thread was started")
 
+    def get_move_result(self):
+        if self.move_thread is None:
+            raise Exception("get_move_result() must be called after begin_move()")
+        try:
+            self.move_lock.acquire()
+            result = self.last_move_result
+            self.last_move_result = None
+            self.move_thread = None
+            return result
+        finally:
+            self.move_lock.release()
 

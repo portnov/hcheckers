@@ -26,7 +26,7 @@ class CachedPixmap(object):
                 renderer = QSvgRenderer(self.path)
                 if size is None:
                     self.size = size = renderer.defaultSize().width()
-                print("Rendering SVG {}: {}".format(self.path, size))
+                #print("Rendering SVG {}: {}".format(self.path, size))
                 self._pixmap = QPixmap(size, size)
                 self._pixmap.fill(Qt.transparent)
                 painter = QPainter(self._pixmap)
