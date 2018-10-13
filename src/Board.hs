@@ -1,28 +1,31 @@
+{-# LANGUAGE OverloadedStrings #-}
 module Board where
 
 import Control.Monad
 import Data.Maybe
 import Data.List
 import qualified Data.Map as M
+import qualified Data.Text as T
 import Text.Printf
 
 import Debug.Trace
 
 import Types
+import BoardMap
 
 showAddress :: Address -> String
 showAddress a =
   printf "%s {UL: %s, UR: %s, DL: %s, DR: %s}"
-          (aLabel a)
-          (maybe "X" aLabel $ aUpLeft a)
-          (maybe "X" aLabel $ aUpRight a)
-          (maybe "X" aLabel $ aDownLeft a)
-          (maybe "X" aLabel $ aDownRight a)
+          (show $ aLabel a)
+          (maybe "X" (show . aLabel) $ aUpLeft a)
+          (maybe "X" (show . aLabel) $ aUpRight a)
+          (maybe "X" (show . aLabel) $ aDownLeft a)
+          (maybe "X" (show . aLabel) $ aDownRight a)
 
 showAddress2 :: Address -> String
 showAddress2 a =
   printf "%s {UL: (%s), UR: (%s), DL: (%s), DR: (%s)}"
-          (aLabel a)
+          (show $ aLabel a)
           (maybe "X" showAddress $ aUpLeft a)
           (maybe "X" showAddress $ aUpRight a)
           (maybe "X" showAddress $ aDownLeft a)
@@ -155,9 +158,10 @@ allMyAddresses side board =
 
 myCounts :: Side -> Board -> (Int, Int)
 myCounts side board =
-  let pieces = M.elems $ M.filter (isMyPiece side) (bPieces board)
-      (men, kings) = partition isMan pieces
-  in  (length men, length kings)
+  let counts = boardCounts board
+  in  case side of
+        First -> (bcFirstMen counts, bcFirstKings counts)
+        Second -> (bcSecondMen counts, bcSecondKings counts)
 
 checkWellFormedStep :: Piece -> Board -> Address -> Step -> StepCheckResult
 checkWellFormedStep (Piece kind side) board src step =
@@ -313,8 +317,7 @@ linkA False = linkSecondary
 buildBoard :: Int -> Board
 buildBoard size =
   let mkAddress p = Address (label p) (upLeft p) (upRight p) (downLeft p) (downRight p)
-      letters = ['a' .. 'z']
-      label (r,c) = (letters !! (c-1)) : show r
+      label (r,c) = Label (c-1) (r-1)
 
       upLeft (r,c)
         | r+1 > size || c-1 < 1 = Nothing
@@ -340,10 +343,15 @@ buildBoard size =
 
       addressByLabel = M.mapKeys label addresses
 
-  in  Board M.empty addressByLabel
+      board = Board M.empty addressByLabel counts key
+
+      counts = calcBoardCounts board
+      key = calcBoardKey board
+
+  in  board
 
 resolve :: Label -> Board -> Address
-resolve label board = fromMaybe (error $ "resolve: unknown field: " ++ label) $ M.lookup label (bAddresses board)
+resolve label board = fromMaybe (error $ "resolve: unknown field: " ++ show label) $ M.lookup label (bAddresses board)
 
 getPiece :: Address -> Board -> Maybe Piece
 getPiece a b = M.lookup a (bPieces b)
@@ -357,13 +365,25 @@ getPiece_ name addr board =
 getPiece' :: Label -> Board -> Maybe Piece
 getPiece' l b = M.lookup a (bPieces b)
   where
-    a = fromMaybe (error $ "getPiece': unknown field: " ++ l) $ M.lookup l (bAddresses b)
+    a = fromMaybe (error $ "getPiece': unknown field: " ++ show l) $ M.lookup l (bAddresses b)
 
 setPiece :: Address -> Piece -> Board -> Board
-setPiece a p b = b {bPieces = M.insert a p (bPieces b)}
+setPiece a p b = board
+  where
+    board = b {bPieces = M.insert a p (bPieces b), boardCounts = counts, boardKey = key}
+    counts = case M.lookup a (bPieces b) of
+               Nothing -> insertBoardCounts p (boardCounts b)
+               Just old -> insertBoardCounts p $ removeBoardCounts old (boardCounts b)
+    key = calcBoardKey board
 
 removePiece :: Address -> Board -> Board
-removePiece a b = b {bPieces = M.delete a (bPieces b)}
+removePiece a b = board
+  where
+    updateMap addr piece = Nothing
+    board = case M.updateLookupWithKey updateMap a (bPieces b) of
+              (Nothing, _) -> b
+              (Just piece, pieces) -> b {bPieces = pieces, boardCounts = removeBoardCounts piece (boardCounts b)}
+    key = calcBoardKey board
 
 removePiece' :: Label -> Board -> Board
 removePiece' l b = removePiece (resolve l b) b
@@ -379,9 +399,9 @@ movePiece' src dst board =
   movePiece (resolve src board) (resolve dst board) board
 
 setPiece' :: Label -> Piece -> Board -> Board
-setPiece' l p b = b {bPieces = M.insert a p (bPieces b)}
+setPiece' l p b = setPiece a p b
   where
-    a = fromMaybe (error $ "setPiece': unknown field: " ++ l) $ M.lookup l (bAddresses b)
+    a = fromMaybe (error $ "setPiece': unknown field: " ++ show l) $ M.lookup l (bAddresses b)
 
 setManyPieces :: [Address] -> Piece -> Board -> Board
 setManyPieces addresses piece board = foldr (\a b -> setPiece a piece b) board addresses

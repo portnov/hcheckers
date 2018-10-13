@@ -6,34 +6,58 @@ import Control.Monad
 import Data.Maybe
 import Data.List
 import qualified Data.Map as M
+import qualified Data.Text as T
+import Data.Array
+import Data.String
+import Data.Char (isDigit, ord)
 import Data.Aeson (Value)
 import Text.Printf
 import GHC.Generics
 
-type Label = String
+data Label = Label {
+    labelColumn :: ! Int,
+    labelRow :: ! Int
+  }
+  deriving (Eq, Ord)
 
+letters :: [Char]
+letters = "abcdefgh" 
+
+instance Show Label where
+  show l = letter : show (labelRow l + 1)
+    where
+      letter = letters !! labelColumn l
+
+instance IsString Label where
+  fromString [l,d]
+    | isDigit d = case elemIndex l letters of
+                    Nothing -> error $ "Label.fromString: unknown letter: " ++ [l]
+                    Just col -> let row = ord d - ord '1'
+                                in  Label col row
+  fromString e = error $ "Label.fromString: cant parse: " ++ e
+    
 data PieceKind = Man | King
-  deriving (Eq, Generic)
+  deriving (Eq, Ord, Generic)
 
 instance Show PieceKind where
   show Man = "M"
   show King = "K"
 
 data Side = First | Second
-  deriving (Eq, Generic)
+  deriving (Eq, Ord, Generic)
 
 instance Show Side where
   show First = "1"
   show Second = "2"
 
 data Piece = Piece PieceKind Side
-  deriving (Eq)
+  deriving (Eq, Ord)
 
 instance Show Piece where
   show (Piece k s) = show k ++ show s
 
 data Address = Address {
-    aLabel :: Label,
+    aLabel :: ! Label,
     aUpLeft :: Maybe Address,
     aUpRight :: Maybe Address,
     aDownLeft :: Maybe Address,
@@ -44,15 +68,39 @@ instance Eq Address where
   f1 == f2 = aLabel f1 == aLabel f2
 
 instance Show Address where
-  show f = aLabel f
+  show f = show (aLabel f)
 
 instance Ord Address where  
   compare a1 a2 = compare (aLabel a1) (aLabel a2)
 
+type AddressMap a = Array (Int, Int) a
+
+type LabelMap a = Array (Int, Int) a
+
 data Board = Board {
     bPieces :: M.Map Address Piece,
-    bAddresses :: M.Map Label Address
+    bAddresses :: M.Map Label Address,
+    boardCounts :: BoardCounts,
+    boardKey :: BoardKey
   }
+
+data BoardCounts = BoardCounts {
+    bcFirstMen :: ! Int
+  , bcSecondMen :: ! Int
+  , bcFirstKings :: ! Int
+  , bcSecondKings :: ! Int
+  }
+  deriving (Eq, Ord, Show)
+
+data BoardKey = BoardKey {
+    bkFirstMen :: [Label]
+  , bkSecondMen :: [Label]
+  , bkFirstKings :: [Label]
+  , bkSecondKings :: [Label]
+  }
+  deriving (Eq, Ord, Show)
+
+type BoardMap a = M.Map BoardCounts (M.Map BoardKey a)
 
 data BoardDirection =
     UpLeft | UpRight 
@@ -77,9 +125,9 @@ instance Show PlayerDirection where
   show BackwardRight = "BR"
 
 data Step = Step {
-    sDirection :: PlayerDirection,
-    sCapture :: Bool,
-    sPromote :: Bool
+    sDirection :: ! PlayerDirection,
+    sCapture :: ! Bool,
+    sPromote :: ! Bool
   }
   deriving (Eq)
 
@@ -95,8 +143,8 @@ instance Show Step where
         | otherwise = ""
 
 data Move = Move {
-    moveBegin :: Address,
-    moveSteps :: [Step]
+    moveBegin :: ! Address,
+    moveSteps :: ! [Step]
   }
   deriving (Eq)
 
@@ -111,7 +159,7 @@ data StepRep = StepRep {
   deriving (Eq)
 
 instance Show StepRep where
-  show step = srField step ++ capture ++ promote
+  show step = show (srField step) ++ capture ++ promote
     where
       capture
         | srCapture step = "[X]"
@@ -127,8 +175,8 @@ data MoveRep =
   deriving (Eq)
 
 instance Show MoveRep where
-  show (ShortMoveRep from to) = from ++ " > " ++ to
-  show (FullMoveRep from steps) = "[" ++ from ++ "] " ++ (intercalate "." $ map show steps)
+  show (ShortMoveRep from to) = show from ++ " > " ++ show to
+  show (FullMoveRep from steps) = "[" ++ show from ++ "] " ++ (intercalate "." $ map show steps)
 
 data MoveParseResult =
     Parsed Move
@@ -151,7 +199,9 @@ data MoveCheckResult =
   deriving (Eq, Show)
 
 data BoardRep = BoardRep [(Label, Piece)]
-  deriving (Eq, Show)
+  deriving (Eq, Ord, Show)
+
+
 
 class GameRules g where
   initBoard :: g -> Board
@@ -160,8 +210,10 @@ class GameRules g where
 
 data SomeRules = forall g. GameRules g => SomeRules g
 
+type Score = Int
+
 class Evaluator e where
-  evalBoard :: e -> Side -> Side -> Board -> Integer
+  evalBoard :: e -> Side -> Side -> Board -> Score
 
 class GameAi ai where
   chooseMove :: ai -> Side -> Board -> IO (Maybe Move)

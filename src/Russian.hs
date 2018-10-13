@@ -170,7 +170,7 @@ kingMoves :: Side -> Board -> Address -> [Move]
 kingMoves side board src =
   kingCaptures Nothing (Piece King side) board src ++ kingSimpleMoves side board src
 
-win :: Integer
+win :: Score
 win = 1000000
 
 captureManCoef :: Int

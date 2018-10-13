@@ -28,6 +28,8 @@ dependencies:
 - text
 - scotty
 - http-types
+- clock
+- array
 
 executables:
   hcheckers-exe:

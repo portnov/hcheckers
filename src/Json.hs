@@ -6,6 +6,7 @@ import Control.Concurrent
 import Data.Maybe
 import Data.List
 import qualified Data.Map as M
+import Data.String
 import Data.Aeson
 import Data.Aeson.Types
 import Text.Printf
@@ -24,6 +25,12 @@ instance FromJSON PieceKind
 instance ToJSON Side
 
 instance FromJSON Side
+
+instance ToJSON Label where
+  toJSON label = toJSON (show label)
+
+instance FromJSON Label where
+  parseJSON v = fromString <$> parseJSON v
 
 instance ToJSON Step where
   toJSON (Step direction capture promote) =
