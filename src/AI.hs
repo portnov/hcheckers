@@ -15,7 +15,10 @@ import Types
 import Board
 -- import Russian
 
-import Debug.Trace
+-- import Debug.Trace
+
+trace :: String -> x -> x
+trace _ x = x
 
 data AlphaBetaParams = AlphaBetaParams Int
   deriving (Show)
@@ -39,10 +42,12 @@ instance (GameRules rules, Evaluator eval) => GameAi (AlphaBeta rules eval) wher
                            score = doScore rules eval (opposite side) depth board'
                        printf " => %d\n" score
                        return (move, score)
-          let select = maximum -- if side == First then maximum else minimum
+          let select = if side == First then maximum else minimum
               maxScore = select $ map snd scores
               goodMoves = [move | (move, score) <- scores, score == maxScore]
-          return $ Just $ head goodMoves
+          let move = head goodMoves
+          printf "AI move for side %s: %s, score is %d\n" (show side) (show move) maxScore
+          return $ Just move
 
   updateAi ai@(AlphaBeta depth rules eval) json =
     case fromJSON json of
@@ -58,9 +63,9 @@ doScore rules eval side depth board = fixSign $ evalState (scoreAB side side dep
     initState = ScoreState rules eval [StackItem Nothing board score0 (-max_value)]
     score0 = evalBoard eval First (opposite side) board
 
-    fixSign s
-      | side == First = s
-      | otherwise = negate s
+    fixSign s = s
+--       | side == First = s
+--       | otherwise = negate s
 
 data ScoreState rules eval = ScoreState {
     ssRules :: rules
@@ -86,12 +91,12 @@ type Score rules eval a = State (ScoreState rules eval) a
 scoreAB :: forall rules eval. (GameRules rules, Evaluator eval) => Side -> Side -> Int -> Integer -> Integer -> Score rules eval Integer
 scoreAB _ side 0 alpha beta = do
     score0 <- gets (siScore0 . head . ssStack)
-    let score0' = if side == First then score0 else -score0
-    trace (printf "    X Side: %s, A = %d, B = %d, score0 = %d" (show side) alpha beta score0') $ return ()
-    return score0'
+    -- let score0' = if side == First then score0 else -score0
+    trace (printf "    X Side: %s, A = %d, B = %d, score0 = %d" (show side) alpha beta score0) $ return ()
+    return score0
 scoreAB initSide side depth alpha beta = do
     rules <- gets ssRules
-    setBest alpha
+    setBest $ if maximize then alpha else beta -- we assume alpha <= beta
     trace (printf "%sV Side: %s, A = %d, B = %d" indent (show side) alpha beta) $ return ()
     board <- getBoard
     let moves = possibleMoves rules side board
@@ -101,6 +106,14 @@ scoreAB initSide side depth alpha beta = do
     iterateMoves moves
 
   where
+
+    maximize = side == First
+    minimize = not maximize
+
+    bestStr :: String
+    bestStr = if maximize
+                then "Maximum"
+                else "Minimum"
     
     push :: Move -> Board -> Integer -> Score rules eval ()
     push move board score =
@@ -129,7 +142,8 @@ scoreAB initSide side depth alpha beta = do
 
     setBest :: Integer -> Score rules eval ()
     setBest best = do
-      trace (printf "%s| Best for depth %d := %d" indent depth best) $ return ()
+      oldBest <- getBest
+      trace (printf "%s| %s for depth %d : %d => %d" indent bestStr depth oldBest best) $ return ()
       modify $ \st -> st {ssStack = update (head $ ssStack st) : tail (ssStack st)}
         where
           update item = item {siScoreBest = best}
@@ -143,23 +157,29 @@ scoreAB initSide side depth alpha beta = do
       board <- getBoard
       evaluator <- gets ssEvaluator
       let (board', _, _) = applyMove side move board
-      let score0 = evalBoard evaluator First side board'
+      let score0 = evalBoard evaluator First (opposite side) board' -- next move will be done by another side
       best <- getBest
       push move board' score0
       printStack
-      score <- negate <$> scoreAB initSide (opposite side) (depth - 1) (negate beta) (negate best)
+      let alpha' = if maximize
+                     then max alpha best
+                     else alpha
+          beta'  = if maximize
+                     then beta
+                     else min beta best
+      score <- scoreAB initSide (opposite side) (depth - 1) alpha' beta'
       trace (printf "%s| score for side %s: %d" indent (show side) score) $ return ()
       pop
       best <- getBest
 
-      trace (printf "%s| Score for depth %d = %d, prev.best = %d" indent depth score best) $ return ()
-      if score > best
+      -- trace (printf "%s| Score for depth %d = %d, prev.best = %d" indent depth score best) $ return ()
+      if (maximize && score > best) || (minimize && score < best)
         then do
              setBest score
              if score >= beta
                then do
                     best <- getBest
-                    trace (printf "%s| Return best for depth %d = %d" indent depth best) $ return ()
+                    trace (printf "%s| Return %s for depth %d = %d" indent bestStr depth best) $ return ()
                     return best
                     
                else iterateMoves moves

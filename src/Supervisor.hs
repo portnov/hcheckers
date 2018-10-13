@@ -211,7 +211,7 @@ letAiMove var game side mbBoard = do
           putStrLn "AI failed to move."
           return board
         Just aiMove -> do
-          putStrLn $ "AI move: " ++ show aiMove
+          -- putStrLn $ "AI move: " ++ show aiMove
           writeChan (gInput $ gHandle game) $ DoMoveRq side aiMove
           DoMoveRs board' messages <- readChan (gOutput $ gHandle game)
           putStrLn $ "Messages: " ++ show messages

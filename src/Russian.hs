@@ -41,7 +41,7 @@ possibleMoves1 side board src =
 
 manMoves :: Side -> Board -> Address -> [Move]
 manMoves side board src =
-  let captures = manCaptures (Piece Man side) board src
+  let captures = manCaptures Nothing (Piece Man side) board src
       moves = manSimpleMoves side board src
   in  captures ++ moves
 
@@ -56,22 +56,22 @@ manSimpleMoves side board src = check ForwardLeft ++ check ForwardRight
             ValidMove -> [move]
             _ -> []
 
-captures1 :: Piece -> Board -> Address -> [Move]
-captures1 piece board src =
+captures1 :: Maybe PlayerDirection -> Piece -> Board -> Address -> [Move]
+captures1 mbPrevDir piece board src =
   case piece of
-    (Piece Man _) -> manCaptures1 piece board src
-    (Piece King _) -> kingCaptures1 piece board src
+    (Piece Man _) -> manCaptures1 mbPrevDir piece board src
+    (Piece King _) -> kingCaptures1 mbPrevDir piece board src
 
-pieceCaptures :: Piece -> Board -> Address -> [Move]
-pieceCaptures piece board src =
+pieceCaptures :: Maybe PlayerDirection -> Piece -> Board -> Address -> [Move]
+pieceCaptures mbPrevDir piece board src =
   case piece of
-    (Piece Man _) -> manCaptures piece board src
-    (Piece King _) -> kingCaptures piece board src
+    (Piece Man _) -> manCaptures mbPrevDir piece board src
+    (Piece King _) -> kingCaptures mbPrevDir piece board src
 
-manCaptures :: Piece -> Board -> Address -> [Move]
-manCaptures piece@(Piece _ side) board src =
-  let moves = captures1 piece board src
-      nextMoves m = pieceCaptures p b a
+manCaptures :: Maybe PlayerDirection -> Piece -> Board -> Address -> [Move]
+manCaptures mbPrevDir piece@(Piece _ side) board src =
+  let moves = captures1 mbPrevDir piece board src
+      nextMoves m = pieceCaptures (Just $ captureDirection m) p b a
                       where (b, a, p) = applyMove side m board
   in concat $ flip map moves $ \move1 ->
        let moves2 = nextMoves move1
@@ -79,10 +79,18 @@ manCaptures piece@(Piece _ side) board src =
              then [move1]
              else [catMoves move1 move2 | move2 <- moves2]
 
-manCaptures1 :: Piece -> Board -> Address -> [Move]
-manCaptures1 (Piece _ side) board src = concatMap (check src) [ForwardLeft, ForwardRight, BackwardLeft, BackwardRight]
+captureDirection :: Move -> PlayerDirection
+captureDirection move = sDirection $ head $ moveSteps move
+
+manCaptures1 :: Maybe PlayerDirection -> Piece -> Board -> Address -> [Move]
+manCaptures1 mbPrevDir (Piece _ side) board src = concatMap (check src) $ filter allowedDir [ForwardLeft, ForwardRight, BackwardLeft, BackwardRight]
   where
     piece = getPiece_ "manCaptures1" src board
+
+    allowedDir dir =
+      case mbPrevDir of
+        Nothing -> True
+        Just prevDir -> oppositeDirection prevDir /= dir
 
     check a dir =
       let move = simpleCapture side a dir
@@ -90,10 +98,10 @@ manCaptures1 (Piece _ side) board src = concatMap (check src) [ForwardLeft, Forw
             ValidMove -> [move]
             e -> {- trace (printf "%s: %s: cant catpure to %s: %s" (show side) (show src) (show dir) (show e)) $-} []
 
-kingCaptures :: Piece -> Board -> Address -> [Move]
-kingCaptures piece@(Piece _ side) board src =
-  let moves = captures1 piece board src
-      nextMoves m = pieceCaptures p b a
+kingCaptures :: Maybe PlayerDirection -> Piece -> Board -> Address -> [Move]
+kingCaptures mbPrevDir piece@(Piece _ side) board src =
+  let moves = captures1 mbPrevDir piece board src
+      nextMoves m = pieceCaptures (Just $ captureDirection m) p b a
                       where (b, a, p) = applyMove side m board
   in nub $ concat $ flip map moves $ \move1 ->
        let moves2 = nextMoves move1
@@ -101,10 +109,15 @@ kingCaptures piece@(Piece _ side) board src =
              then [move1]
              else [catMoves move1 move2 | move2 <- moves2]
 
-kingCaptures1 :: Piece -> Board -> Address -> [Move]
-kingCaptures1 piece@(Piece _ side) board src = concatMap check [ForwardLeft, ForwardRight, BackwardLeft, BackwardRight]
+kingCaptures1 :: Maybe PlayerDirection -> Piece -> Board -> Address -> [Move]
+kingCaptures1 mbPrevDir piece@(Piece _ side) board src = concatMap check $ filter allowedDir [ForwardLeft, ForwardRight, BackwardLeft, BackwardRight]
   where
     
+    allowedDir dir =
+      case mbPrevDir of
+        Nothing -> True
+        Just prevDir -> oppositeDirection prevDir /= dir
+
     check dir =
       case search dir src of
         Nothing -> []
@@ -155,7 +168,7 @@ kingSimpleMoves side board src = concatMap check [ForwardLeft, ForwardRight, Bac
 
 kingMoves :: Side -> Board -> Address -> [Move]
 kingMoves side board src =
-  kingCaptures (Piece King side) board src ++ kingSimpleMoves side board src
+  kingCaptures Nothing (Piece King side) board src ++ kingSimpleMoves side board src
 
 win :: Integer
 win = 1000000
@@ -167,24 +180,40 @@ captureKingCoef :: Int
 captureKingCoef = 50
 
 instance Evaluator Russian where
-  evalBoard rules whoAsks whoMoves board =
-    let myMoves = filter (checkCapture whoAsks) $ possibleMoves rules whoAsks board
-        opponentMoves = filter (checkCapture (opposite whoAsks)) $ possibleMoves rules (opposite whoAsks) board
-
-        checkCapture side move = not (isCapture move && side /= whoMoves)
-
-    in  if null myMoves
-          then {-trace (printf "Side %s loses" (show whoAsks))-} (-win)
-          else if null opponentMoves
-                 then {-trace (printf "Side %s wins" (show whoAsks))-} win
-                 else let movesScore s ms = if all isCapture ms
-                                               then let (men, kings) = unzip [capturesCounts move board | move <- ms]
-                                                    in  fromIntegral $
-                                                        -- trace (printf "Side %s possible captures: %s men, %s kings" (show s) (show men) (show kings)) $
-                                                        captureManCoef * sum men + captureKingCoef * sum kings
-                                               else fromIntegral $ length ms
-                          myMovesScore = movesScore whoAsks myMoves
-                          opponentMovesScore = movesScore (opposite whoAsks) opponentMoves
-                      in  -- trace (printf "Side %s moves score %d, opponent moves score %d, total score = %d" (show whoAsks) myMovesScore opponentMovesScore (myMovesScore - opponentMovesScore)) $
-                          myMovesScore - opponentMovesScore
-
+  evalBoard rules whoAsks whoMovesNext board =
+    let (myMen, myKings) = myCounts whoAsks board
+        (opponentMen, opponentKings) = myCounts (opposite whoAsks) board
+        myScore = 5 * myKings + myMen
+        opponentScore = 5 * opponentKings + opponentMen
+    in  if myMen == 0 && myKings == 0
+          then -win
+          else if opponentMen == 0 && opponentKings == 0
+                 then win
+                 else fromIntegral $ myScore - opponentScore
+--     let allMyMoves = possibleMoves rules whoAsks board
+--         allOpponentMoves = possibleMoves rules (opposite whoAsks) board
+-- 
+--         myMoves = if whoAsks == whoMovesNext
+--                     then allMyMoves
+--                     else filter (not . isCapture) allMyMoves
+--         opponentMoves = if whoAsks == whoMovesNext
+--                           then filter (not . isCapture) allOpponentMoves
+--                           else allOpponentMoves
+-- 
+--     in  if null allMyMoves
+--           then {- trace (printf "Side %s loses" (show whoAsks)) -} (-win)
+--           else if null allOpponentMoves
+--                  then {-  trace (printf "Side %s wins" (show whoAsks)) -} win
+--                  else let movesScore s ms = if all isCapture ms
+--                                                then let (men, kings) = unzip [capturesCounts move board | move <- ms]
+--                                                         maxMen = if null men then 0 else maximum men
+--                                                         maxKings = if null kings then 0 else maximum kings
+--                                                     in  fromIntegral $
+-- --                                                         trace (printf "Side %s possible captures: %s men, %s kings" (show s) (show men) (show kings)) $
+--                                                         captureManCoef * maxMen + captureKingCoef * maxKings
+--                                                else fromIntegral $ length ms
+--                           myMovesScore = movesScore whoAsks myMoves
+--                           opponentMovesScore = movesScore (opposite whoAsks) opponentMoves
+--                       in --  trace (printf "Side %s moves score %d, opponent moves score %d, total score = %d" (show whoAsks) myMovesScore opponentMovesScore (myMovesScore - opponentMovesScore)) $
+--                           myMovesScore - opponentMovesScore
+-- 

@@ -21,7 +21,7 @@ class Game(object):
 
     def process_response(self, rs):
         if rs.status_code != requests.codes.ok:
-            print(rs)
+            print(rs.text)
             raise RequestError(str(rs))
 
     def new_game(self, rules, board=None):

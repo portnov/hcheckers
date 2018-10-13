@@ -10,13 +10,19 @@ from theme import Theme
 def clicked(row, col):
     print("Clicked: {} {}".format(row, col))
 
-board = [['h6', {'kind': 'Man', 'side': 'First'}],
-         ['g7', {'kind': 'Man', 'side': 'Second'}]
+checker = {}
+checker["m1"] = {'kind': 'Man', 'side': 'First'}
+checker["m2"] = {'kind': 'Man', 'side': 'Second'}
+
+board = [['c3', checker["m1"]],
+         ['e3', checker["m1"]],
+         ['e5', checker["m2"]],
+         ['f6', checker["m2"]]
         ]
 
 theme = Theme("themes/default", None)
 game = Game()
-game.start_new_game("portnov", ai_depth=4, board=None)
+game.start_new_game("portnov", ai_depth=6, board=None, user_turn_first=True)
 
 app = QApplication(sys.argv)
 

@@ -58,6 +58,12 @@ playerDirection Second UpRight = BackwardLeft
 playerDirection Second DownLeft = ForwardRight
 playerDirection Second DownRight = ForwardLeft
 
+oppositeDirection :: PlayerDirection -> PlayerDirection
+oppositeDirection ForwardLeft = BackwardRight
+oppositeDirection ForwardRight = BackwardLeft
+oppositeDirection BackwardLeft = ForwardRight
+oppositeDirection BackwardRight = ForwardLeft
+
 neighbour :: BoardDirection -> Address -> Maybe Address
 neighbour UpLeft a = aUpLeft a
 neighbour UpRight a = aUpRight a
@@ -146,6 +152,12 @@ isFreeInDirection dir src board n =
 allMyAddresses :: Side -> Board -> [Address]
 allMyAddresses side board =
   M.keys $ M.filter (isMyPiece side) (bPieces board)
+
+myCounts :: Side -> Board -> (Int, Int)
+myCounts side board =
+  let pieces = M.elems $ M.filter (isMyPiece side) (bPieces board)
+      (men, kings) = partition isMan pieces
+  in  (length men, length kings)
 
 checkWellFormedStep :: Piece -> Board -> Address -> Step -> StepCheckResult
 checkWellFormedStep (Piece kind side) board src step =
