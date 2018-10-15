@@ -1,9 +1,11 @@
+{-# LANGUAGE DeriveDataTypeable #-}
 module Russian where
 
 import Control.Monad
 import Control.Monad.State
 import Data.Maybe
 import qualified Data.Map as M
+import Data.Typeable
 import Data.Ord
 import Data.List
 import Text.Printf
@@ -14,10 +16,12 @@ import Board
 import Debug.Trace
 
 data Russian = Russian
-  deriving (Show)
+  deriving (Show, Typeable)
 
 instance GameRules Russian where
   initBoard Russian = board8
+
+  rulesName Russian = "russian"
 
   possibleMoves Russian side board =
     let all = concatMap (possibleMoves1 side board) (allMyAddresses side board)
@@ -170,50 +174,3 @@ kingMoves :: Side -> Board -> Address -> [Move]
 kingMoves side board src =
   kingCaptures Nothing (Piece King side) board src ++ kingSimpleMoves side board src
 
-win :: Score
-win = 1000000
-
-captureManCoef :: Int
-captureManCoef = 10
-
-captureKingCoef :: Int
-captureKingCoef = 50
-
-instance Evaluator Russian where
-  evalBoard rules whoAsks whoMovesNext board =
-    let (myMen, myKings) = myCounts whoAsks board
-        (opponentMen, opponentKings) = myCounts (opposite whoAsks) board
-        myScore = 5 * myKings + myMen
-        opponentScore = 5 * opponentKings + opponentMen
-    in  if myMen == 0 && myKings == 0
-          then -win
-          else if opponentMen == 0 && opponentKings == 0
-                 then win
-                 else fromIntegral $ myScore - opponentScore
---     let allMyMoves = possibleMoves rules whoAsks board
---         allOpponentMoves = possibleMoves rules (opposite whoAsks) board
--- 
---         myMoves = if whoAsks == whoMovesNext
---                     then allMyMoves
---                     else filter (not . isCapture) allMyMoves
---         opponentMoves = if whoAsks == whoMovesNext
---                           then filter (not . isCapture) allOpponentMoves
---                           else allOpponentMoves
--- 
---     in  if null allMyMoves
---           then {- trace (printf "Side %s loses" (show whoAsks)) -} (-win)
---           else if null allOpponentMoves
---                  then {-  trace (printf "Side %s wins" (show whoAsks)) -} win
---                  else let movesScore s ms = if all isCapture ms
---                                                then let (men, kings) = unzip [capturesCounts move board | move <- ms]
---                                                         maxMen = if null men then 0 else maximum men
---                                                         maxKings = if null kings then 0 else maximum kings
---                                                     in  fromIntegral $
--- --                                                         trace (printf "Side %s possible captures: %s men, %s kings" (show s) (show men) (show kings)) $
---                                                         captureManCoef * maxMen + captureKingCoef * maxKings
---                                                else fromIntegral $ length ms
---                           myMovesScore = movesScore whoAsks myMoves
---                           opponentMovesScore = movesScore (opposite whoAsks) opponentMoves
---                       in --  trace (printf "Side %s moves score %d, opponent moves score %d, total score = %d" (show whoAsks) myMovesScore opponentMovesScore (myMovesScore - opponentMovesScore)) $
---                           myMovesScore - opponentMovesScore
--- 

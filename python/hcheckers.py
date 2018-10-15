@@ -22,7 +22,7 @@ board = [['c3', checker["m1"]],
 
 theme = Theme("themes/default", None)
 game = Game()
-game.start_new_game("portnov", ai_depth=8, board=None, user_turn_first=True)
+game.start_new_game("portnov", ai_depth=8, board=None, user_turn_first=False, store=True)
 
 app = QApplication(sys.argv)
 

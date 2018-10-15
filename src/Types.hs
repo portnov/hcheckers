@@ -1,5 +1,8 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE ExistentialQuantification #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE FlexibleContexts #-}
 module Types where
 
 import Control.Monad
@@ -11,8 +14,10 @@ import Data.Array
 import Data.String
 import Data.Char (isDigit, ord)
 import Data.Aeson (Value)
+import Data.Typeable
 import Data.Int
 import Data.Word
+import Data.Binary
 import Text.Printf
 import GHC.Generics
 
@@ -20,7 +25,9 @@ data Label = Label {
     labelColumn :: ! Line,
     labelRow :: ! Line
   }
-  deriving (Eq, Ord)
+  deriving (Eq, Ord, Typeable, Generic)
+
+instance Binary Label where
 
 letters :: [Char]
 letters = "abcdefgh" 
@@ -39,21 +46,21 @@ instance IsString Label where
   fromString e = error $ "Label.fromString: cant parse: " ++ e
     
 data PieceKind = Man | King
-  deriving (Eq, Ord, Generic)
+  deriving (Eq, Ord, Generic, Typeable)
 
 instance Show PieceKind where
   show Man = "M"
   show King = "K"
 
 data Side = First | Second
-  deriving (Eq, Ord, Generic)
+  deriving (Eq, Ord, Generic, Typeable)
 
 instance Show Side where
   show First = "1"
   show Second = "2"
 
 data Piece = Piece PieceKind Side
-  deriving (Eq, Ord)
+  deriving (Eq, Ord, Typeable)
 
 instance Show Piece where
   show (Piece k s) = show k ++ show s
@@ -65,6 +72,7 @@ data Address = Address {
     aDownLeft :: Maybe Address,
     aDownRight :: Maybe Address
   }
+  deriving (Typeable)
 
 instance Eq Address where
   f1 == f2 = aLabel f1 == aLabel f2
@@ -89,6 +97,7 @@ data Board = Board {
     boardCounts :: BoardCounts,
     boardKey :: BoardKey
   }
+  deriving (Typeable)
 
 data BoardCounts = BoardCounts {
     bcFirstMen :: ! Int
@@ -96,7 +105,9 @@ data BoardCounts = BoardCounts {
   , bcFirstKings :: ! Int
   , bcSecondKings :: ! Int
   }
-  deriving (Eq, Ord, Show)
+  deriving (Eq, Ord, Show, Typeable, Generic)
+
+instance Binary BoardCounts
 
 data BoardKey = BoardKey {
     bkFirstMen :: [Label]
@@ -104,14 +115,16 @@ data BoardKey = BoardKey {
   , bkFirstKings :: [Label]
   , bkSecondKings :: [Label]
   }
-  deriving (Eq, Ord, Show)
+  deriving (Eq, Ord, Show, Typeable, Generic)
+
+instance Binary BoardKey
 
 type BoardMap a = M.Map BoardCounts (M.Map BoardKey a)
 
 data BoardDirection =
     UpLeft | UpRight 
   | DownLeft | DownRight
-  deriving (Eq, Generic)
+  deriving (Eq, Generic, Typeable)
 
 instance Show BoardDirection where
   show UpLeft = "UL"
@@ -122,7 +135,7 @@ instance Show BoardDirection where
 data PlayerDirection =
     ForwardLeft | ForwardRight
   | BackwardLeft | BackwardRight
-  deriving (Eq, Generic)
+  deriving (Eq, Generic, Typeable)
 
 instance Show PlayerDirection where
   show ForwardLeft = "FL"
@@ -135,7 +148,7 @@ data Step = Step {
     sCapture :: ! Bool,
     sPromote :: ! Bool
   }
-  deriving (Eq)
+  deriving (Eq, Typeable)
 
 instance Show Step where
   show step = show (sDirection step) ++ capture ++ promote
@@ -152,7 +165,7 @@ data Move = Move {
     moveBegin :: ! Address,
     moveSteps :: ! [Step]
   }
-  deriving (Eq)
+  deriving (Eq, Typeable)
 
 instance Show Move where
   show move = "[" ++ show (moveBegin move) ++ "] " ++ (intercalate "." $ map show (moveSteps move))
@@ -162,7 +175,9 @@ data StepRep = StepRep {
     srCapture :: Bool,
     srPromote :: Bool
   }
-  deriving (Eq)
+  deriving (Eq, Typeable, Generic)
+
+instance Binary StepRep
 
 instance Show StepRep where
   show step = show (srField step) ++ capture ++ promote
@@ -178,7 +193,9 @@ instance Show StepRep where
 data MoveRep =
     ShortMoveRep Label Label
   | FullMoveRep Label [StepRep]
-  deriving (Eq)
+  deriving (Eq, Typeable, Generic)
+
+instance Binary MoveRep
 
 instance Show MoveRep where
   show (ShortMoveRep from to) = show from ++ " > " ++ show to
@@ -205,14 +222,13 @@ data MoveCheckResult =
   deriving (Eq, Show)
 
 data BoardRep = BoardRep [(Label, Piece)]
-  deriving (Eq, Ord, Show)
+  deriving (Eq, Ord, Show, Typeable)
 
-
-
-class GameRules g where
+class Typeable g => GameRules g where
   initBoard :: g -> Board
   possibleMoves :: g -> Side -> Board -> [Move]
   updateRules :: g -> Value -> g
+  rulesName :: g -> String
 
 data SomeRules = forall g. GameRules g => SomeRules g
 
@@ -220,10 +236,19 @@ type Score = Int
 
 class Evaluator e where
   evalBoard :: e -> Side -> Side -> Board -> Score
+  evaluatorName :: e -> String
 
-class GameAi ai where
-  chooseMove :: ai -> Side -> Board -> IO (Maybe Move)
+class (Typeable ai, Typeable (AiStorage ai)) => GameAi ai where
+  type AiStorage ai
+
+  createAiStorage :: ai -> IO (AiStorage ai)
+  saveAiStorage :: ai -> AiStorage ai -> IO ()
+
+  aiName :: ai -> String
+  
   updateAi :: ai -> Value -> ai
+
+  chooseMove :: ai -> AiStorage ai -> Side -> Board -> IO [Move]
 
 data SomeAi = forall ai. GameAi ai => SomeAi ai
 

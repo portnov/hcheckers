@@ -13,9 +13,11 @@ import qualified Data.Text as T
 import Data.Ord
 import Data.List
 import Text.Printf
-import Data.IORef
+import Data.Default
 import Data.Aeson hiding (Error)
+import Data.Dynamic
 import GHC.Generics
+import System.Random
 
 import Types
 import Board
@@ -42,6 +44,7 @@ data Game = Game {
 
 data SupervisorState = SupervisorState {
     ssGames :: M.Map GameId Game
+  , ssAiStorages :: M.Map (String,String) Dynamic
   }
 
 type SupervisorHandle = TVar SupervisorState
@@ -70,7 +73,9 @@ data RsPayload =
   deriving (Eq, Show, Generic)
 
 mkSupervisor :: IO SupervisorHandle
-mkSupervisor = atomically $ newTVar $ SupervisorState M.empty
+mkSupervisor = do
+  var <- atomically $ newTVar $ SupervisorState M.empty M.empty
+  return var
 
 supportedRules :: [(String, SomeRules)]
 supportedRules = [("russian", SomeRules Russian)]
@@ -85,7 +90,7 @@ selectRules (NewGameRq name params _) = go supportedRules
       | otherwise = go other
 
 supportedAis :: [(String, SomeRules -> SomeAi)]
-supportedAis = [("default", \(SomeRules rules) -> SomeAi (AlphaBeta 2 rules Russian))]
+supportedAis = [("default", \(SomeRules rules) -> SomeAi (AlphaBeta def rules))]
 
 selectAi :: AttachAiRq -> SomeRules -> Maybe SomeAi
 selectAi (AttachAiRq name params) rules = go supportedAis
@@ -95,6 +100,17 @@ selectAi (AttachAiRq name params) rules = go supportedAis
     go ((key, fn) : other)
       | key == name = Just $ updateSomeAi (fn rules) params
       | otherwise = go other
+
+initAiStorage :: SupervisorHandle -> SomeRules -> SomeAi -> IO ()
+initAiStorage var (SomeRules rules) (SomeAi ai) = do
+  st <- atomically $ readTVar var
+  let key = (rulesName rules, aiName ai)
+  case M.lookup key (ssAiStorages st) of
+    Nothing -> do
+      storage <- createAiStorage ai
+      atomically $ modifyTVar var $ \st ->
+          st {ssAiStorages = M.insert key (toDyn storage) (ssAiStorages st)}
+    Just _ -> return ()
 
 newGame :: SupervisorHandle -> SomeRules -> Maybe BoardRep -> IO GameId
 newGame var r@(SomeRules rules) mbBoardRep = do
@@ -194,6 +210,24 @@ doMove var gameId name moveRq = do
       letAiMove var game (opposite side) (Just board')
       return $ boardRep board'
 
+withAiStorage :: GameAi ai
+              => SupervisorHandle
+              -> SomeRules
+              -> ai
+              -> (AiStorage ai -> IO a)
+              -> IO a
+withAiStorage var (SomeRules rules) ai fn = do
+    st <- atomically $ readTVar var
+    let key = (rulesName rules, aiName ai)
+    case M.lookup key (ssAiStorages st) of
+      Nothing -> fail $ "AI storage was not initialized yet for key: " ++ show key
+      Just value ->
+          case fromDynamic value of
+            Nothing -> fail $ "AI storage has unexpected type"
+            Just storage -> do
+              result <- fn storage
+              return result
+
 letAiMove :: SupervisorHandle -> Game -> Side -> Maybe Board -> IO Board
 letAiMove var game side mbBoard = do
   board <- case mbBoard of
@@ -205,18 +239,22 @@ letAiMove var game side mbBoard = do
 
   case getPlayer game side of
     AI ai -> do
-      mbAiMove <- chooseMove ai side board
-      case mbAiMove of
-        Nothing -> do
-          putStrLn "AI failed to move."
-          return board
-        Just aiMove -> do
-          -- putStrLn $ "AI move: " ++ show aiMove
-          writeChan (gInput $ gHandle game) $ DoMoveRq side aiMove
-          DoMoveRs board' messages <- readChan (gOutput $ gHandle game)
-          putStrLn $ "Messages: " ++ show messages
-          queueNotifications var (getGameId $ gHandle game) messages
-          return board'
+
+      withAiStorage var (gRules game) ai $ \storage -> do
+            aiMoves <- chooseMove ai storage side board
+            if null aiMoves
+              then do
+                putStrLn "AI failed to move."
+                return board
+              else do
+                i <- randomRIO (0, length aiMoves - 1)
+                let aiMove = aiMoves !! i
+                printf "AI returned %d move(s), selected: %s\n" (length aiMoves) (show aiMove)
+                writeChan (gInput $ gHandle game) $ DoMoveRq side aiMove
+                DoMoveRs board' messages <- readChan (gOutput $ gHandle game)
+                putStrLn $ "Messages: " ++ show messages
+                queueNotifications var (getGameId $ gHandle game) messages
+                return board'
 
     _ -> return board
 

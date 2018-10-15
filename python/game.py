@@ -66,10 +66,10 @@ class Game(object):
         self.process_response(rs)
         result = rs.json()
 
-    def attach_ai(self, side, depth=2):
+    def attach_ai(self, side, depth=2, store=False):
         self.ai_side = side
         url = join(self.base_url, "game", self.game_id, "attach", "ai", str(side))
-        rq = {"ai": "default", "params": {"depth": depth}}
+        rq = {"ai": "default", "params": {"depth": depth, "store": store}}
         rs = requests.post(url, json=rq)
         self.process_response(rs)
         result = rs.json()
@@ -80,13 +80,13 @@ class Game(object):
         self.process_response(rs)
         result = rs.json()
 
-    def start_new_game(self, user_name, rules="russian", board=None, user_turn_first=True, ai_depth=2):
+    def start_new_game(self, user_name, rules="russian", board=None, user_turn_first=True, ai_depth=2, store=False):
         self.new_game(rules, board)
         if user_turn_first:
             self.register_user(user_name, 1)
-            self.attach_ai(2, ai_depth)
+            self.attach_ai(2, ai_depth, store)
         else:
-            self.attach_ai(1, ai_depth)
+            self.attach_ai(1, ai_depth, store)
             self.register_user(user_name, 2)
         self.run_game()
 

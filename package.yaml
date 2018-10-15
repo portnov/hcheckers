@@ -30,6 +30,12 @@ dependencies:
 - http-types
 - clock
 - array
+- random
+- binary
+- filepath
+- directory
+- postgresql-simple
+- data-default
 
 executables:
   hcheckers-exe:

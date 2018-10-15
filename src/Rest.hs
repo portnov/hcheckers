@@ -56,6 +56,7 @@ restServer supervisor = do
           case selectAi rq rules of
             Nothing -> error400 "invalid ai settings"
             Just ai -> do
+              liftIO $ initAiStorage supervisor rules ai
               liftIO $ attachAi supervisor gameId side ai
               json $ SupervisorRs AttachAiRs []
 

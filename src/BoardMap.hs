@@ -58,6 +58,12 @@ putBoardMap board x bmap =
   where
     init = M.singleton (boardCounts board) $ M.singleton (boardKey board) x
 
+putBoardMapWith :: (a -> a -> a) -> Board -> a -> BoardMap a -> BoardMap a
+putBoardMapWith plus board x bmap =
+    M.unionWith (M.unionWith plus) bmap init
+  where
+    init = M.singleton (boardCounts board) $ M.singleton (boardKey board) x
+
 lookupBoardMap :: Board -> BoardMap a -> Maybe a
 lookupBoardMap board bmap =
   M.lookup (boardKey board) =<< M.lookup (boardCounts board) bmap
