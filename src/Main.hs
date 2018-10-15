@@ -4,6 +4,7 @@ import Control.Monad
 import Data.Maybe
 import qualified Data.Map as M
 import Text.Printf
+import System.Environment
 
 import Types
 import Board
@@ -13,7 +14,7 @@ import Rest
 
 main :: IO ()
 main = do
-  runRestServer
+    runRestServer
 
 
 -- main :: IO ()

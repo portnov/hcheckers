@@ -13,9 +13,11 @@ import Control.Concurrent
 import Control.Concurrent.STM
 import Data.Maybe
 import qualified Data.Map as M
+import qualified Data.ByteString as B
 import Data.Ord
 import Data.List
 import Data.Binary
+import Data.Store
 import Data.Typeable
 import Data.Default
 import Text.Printf
@@ -23,11 +25,7 @@ import GHC.Generics
 import System.FilePath
 import System.Environment
 import System.Directory
--- import Database.PostgreSQL.Simple hiding (Binary)
--- import qualified Database.PostgreSQL.Simple as Sql (Binary (..), fromBinary)
--- import Database.PostgreSQL.Simple.FromRow
--- import Database.PostgreSQL.Simple.ToRow
--- import Database.PostgreSQL.Simple.ToField
+import System.Clock
 
 import Types
 import Board
@@ -67,6 +65,8 @@ data CacheItemSide = CacheItemSide {
 
 instance Binary CacheItemSide
 
+instance Store CacheItemSide
+
 data CacheItem = CacheItem {
     ciFirst :: Maybe CacheItemSide
   , ciSecond :: Maybe CacheItemSide
@@ -75,11 +75,15 @@ data CacheItem = CacheItem {
 
 instance Binary CacheItem
 
-data AIMap = AIMap Bool (BoardMap (M.Map Int CacheItem))
+instance Store CacheItem
 
-type AICache = TVar AIMap
+type AIData = BoardMap (M.Map Int CacheItem)
 
-loadAiCache :: GameRules rules => rules -> AlphaBetaParams -> IO AICache
+data AICache = AICache Bool AIData
+
+type AICacheHandle = TVar AICache
+
+loadAiCache :: GameRules rules => rules -> AlphaBetaParams -> IO AICacheHandle
 loadAiCache rules params = do
   var <- if abLoadCache params
             then do
@@ -90,45 +94,52 @@ loadAiCache rules params = do
               exist <- doesFileExist path
               if exist
                 then do
+                  time1 <- getTime Realtime
                   putStrLn $ "Loading: " ++ path
-                  cache <- decodeFile path
-                  atomically $ newTVar $ AIMap False cache
-                else atomically $ newTVar $ AIMap False M.empty
-            else atomically $ newTVar $ AIMap False M.empty
+                  cache <- Data.Store.decodeEx `fmap` B.readFile path
+                  time2 <- getTime Realtime
+                  let delta = time2-time1
+                  printf "Loaded %s in %ds + %dns\n" path (sec delta) (nsec delta)
+                  atomically $ newTVar $ AICache False cache
+                else atomically $ newTVar $ AICache False M.empty
+            else atomically $ newTVar $ AICache False M.empty
   forkIO $ cacheDumper rules params var
   return var
 
-cacheDumper :: GameRules rules => rules -> AlphaBetaParams -> AICache -> IO ()
+cacheDumper :: GameRules rules => rules -> AlphaBetaParams -> AICacheHandle -> IO ()
 cacheDumper rules params var = 
   when (abSaveCache params) $ forever $ do
     saved <- saveAiCache rules params var
     when (not saved) $ do
-      putStrLn "Waiting"
+      -- putStrLn "Waiting"
       threadDelay $ 1000 * 1000
 
-saveAiCache :: GameRules rules => rules -> AlphaBetaParams -> AICache -> IO Bool
+saveAiCache :: GameRules rules => rules -> AlphaBetaParams -> AICacheHandle -> IO Bool
 saveAiCache rules params var = do
-      AIMap dirty cache <- atomically $ readTVar var
+      AICache dirty cache <- atomically $ readTVar var
       if dirty
         then do
           home <- getEnv "HOME"
           let directory = home </> ".cache" </> "hcheckers" </> rulesName rules
           createDirectoryIfMissing True directory
           let path = directory </> "ai.cache"
+          time1 <- getTime Realtime
           putStrLn $ "Saving: " ++ path
-          encodeFile path cache
-          putStrLn $ "Saved: " ++ path
-          atomically $ modifyTVar var $ \(AIMap _ cache) -> AIMap False cache
+          B.writeFile path $ Data.Store.encode cache
+          time2 <- getTime Realtime
+          let delta = time2-time1
+          printf "Saved %s in %ds + %dns\n" path (sec delta) (nsec delta)
+          atomically $ modifyTVar var $ \(AICache _ cache) -> AICache False cache
           return True
         else return False
 
-lookupAiCache :: AlphaBetaParams -> Board -> Int -> Side -> AICache -> IO (Maybe CacheItemSide)
+lookupAiCache :: AlphaBetaParams -> Board -> Int -> Side -> AICacheHandle -> IO (Maybe CacheItemSide)
 lookupAiCache params board depth side var = do
   let c = boardCounts board
       total = bcFirstMen c + bcSecondMen c + bcFirstKings c + bcSecondKings c
   if total <= abUseCacheMaxPieces params && depth <= abUseCacheMaxPieces params
     then do
-        AIMap _ cache <- atomically $ readTVar var
+        AICache _ cache <- atomically $ readTVar var
         case lookupBoardMap board cache of
           Nothing -> return Nothing
           Just byDepth -> do
@@ -141,12 +152,12 @@ lookupAiCache params board depth side var = do
                              Second -> return $ ciSecond item
     else return Nothing
 
-putAiCache :: AlphaBetaParams -> Board -> Int -> Side -> Score -> [Move] -> AICache -> IO ()
+putAiCache :: AlphaBetaParams -> Board -> Int -> Side -> Score -> [Move] -> AICacheHandle -> IO ()
 putAiCache params board depth side score moves var = do
   let c = boardCounts board
       total = bcFirstMen c + bcSecondMen c + bcFirstKings c + bcSecondKings c
   when (total <= abUpdateCacheMaxPieces params && depth <= abUpdateCacheMaxDepth params) $ do
-      atomically $ modifyTVar var $ \(AIMap _ cache) ->
+      atomically $ modifyTVar var $ \(AICache _ cache) ->
           let updateItem item1 item2 =
                 case side of
                   First -> item1 {ciFirst = ciFirst item2 `mplus` ciFirst item1}
@@ -162,5 +173,5 @@ putAiCache params board depth side score moves var = do
 
               init = M.singleton depth item
 
-          in AIMap True $ putBoardMapWith updateDepthMap board init cache
+          in AICache True $ putBoardMapWith updateDepthMap board init cache
 

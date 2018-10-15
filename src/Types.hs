@@ -18,6 +18,7 @@ import Data.Typeable
 import Data.Int
 import Data.Word
 import Data.Binary
+import Data.Store
 import Text.Printf
 import GHC.Generics
 
@@ -28,6 +29,8 @@ data Label = Label {
   deriving (Eq, Ord, Typeable, Generic)
 
 instance Binary Label where
+
+instance Store Label
 
 letters :: [Char]
 letters = "abcdefgh" 
@@ -67,6 +70,7 @@ instance Show Piece where
 
 data Address = Address {
     aLabel :: ! Label,
+    aPromotionSide :: Maybe Side,
     aUpLeft :: Maybe Address,
     aUpRight :: Maybe Address,
     aDownLeft :: Maybe Address,
@@ -109,6 +113,8 @@ data BoardCounts = BoardCounts {
 
 instance Binary BoardCounts
 
+instance Store BoardCounts
+
 data BoardKey = BoardKey {
     bkFirstMen :: [Label]
   , bkSecondMen :: [Label]
@@ -118,6 +124,8 @@ data BoardKey = BoardKey {
   deriving (Eq, Ord, Show, Typeable, Generic)
 
 instance Binary BoardKey
+
+instance Store BoardKey
 
 type BoardMap a = M.Map BoardCounts (M.Map BoardKey a)
 
@@ -179,6 +187,8 @@ data StepRep = StepRep {
 
 instance Binary StepRep
 
+instance Store StepRep
+
 instance Show StepRep where
   show step = show (srField step) ++ capture ++ promote
     where
@@ -196,6 +206,8 @@ data MoveRep =
   deriving (Eq, Typeable, Generic)
 
 instance Binary MoveRep
+
+instance Store MoveRep
 
 instance Show MoveRep where
   show (ShortMoveRep from to) = show from ++ " > " ++ show to

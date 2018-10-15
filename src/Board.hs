@@ -105,7 +105,7 @@ getPieceInDirection dir src board n = do
 
 isLastHorizontal :: Side -> Address -> Bool
 isLastHorizontal side a =
-  not (isValidDirection (myDirection side ForwardLeft) a) && not (isValidDirection (myDirection side ForwardRight) a)
+  aPromotionSide a == Just side
 
 isWithinBoard :: Side -> Board -> Move -> Bool
 isWithinBoard side board move = go (moveBegin move) (moveSteps move)
@@ -265,7 +265,7 @@ kingMove :: Side -> Address -> PlayerDirection -> Int -> Move
 kingMove side src dir n = Move src $ replicate n (Step dir False False)
 
 makeLine :: [Label] -> [Address]
-makeLine labels = map (\l -> Address l Nothing Nothing Nothing Nothing) labels
+makeLine labels = map (\l -> Address l Nothing Nothing Nothing Nothing Nothing) labels
 
 line1labels :: [Label]
 line1labels = ["a1", "c1", "e1", "g1"]
@@ -316,15 +316,20 @@ linkA False = linkSecondary
 
 buildBoard :: Line -> Board
 buildBoard size =
-  let mkAddress p = Address (label p) (upLeft p) (upRight p) (downLeft p) (downRight p)
+  let mkAddress p = Address (label p) (promote p) (upLeft p) (upRight p) (downLeft p) (downRight p)
       label (r,c) = Label (c-1) (r-1)
+
+      promote (r,_)
+        | r == 1 = Just Second
+        | r == size = Just First
+        | otherwise = Nothing
 
       upLeft (r,c)
         | r+1 > size || c-1 < 1 = Nothing
         | otherwise = M.lookup (r+1, c-1) addresses
 
       upRight (r,c)
-        | r+1 > size || c+1 > 8 = Nothing
+        | r+1 > size || c+1 > size = Nothing
         | otherwise = M.lookup (r+1, c+1) addresses
 
       downLeft (r,c)
@@ -332,7 +337,7 @@ buildBoard size =
         | otherwise = M.lookup (r-1, c-1) addresses
 
       downRight (r,c)
-        | r-1 < 1 || c+1 > 8 = Nothing
+        | r-1 < 1 || c+1 > size = Nothing
         | otherwise = M.lookup (r-1, c+1) addresses
 
       addresses = M.fromList [(p, mkAddress p) | p <- coordinates]

@@ -55,10 +55,13 @@ manSimpleMoves side board src = check ForwardLeft ++ check ForwardRight
     piece = getPiece_ "manSimpleMoves" src board
 
     check dir =
-      let move = simpleMove side src dir
-      in  case isWellFormedMove piece board move of
-            ValidMove -> [move]
-            _ -> []
+      case neighbour (myDirection side dir) src of
+        Nothing -> []
+        Just dst -> if isFree dst board
+                      then [Move src [Step dir False (promote dst)]]
+                      else []
+
+    promote addr = isLastHorizontal side addr
 
 captures1 :: Maybe PlayerDirection -> Piece -> Board -> Address -> [Move]
 captures1 mbPrevDir piece board src =
@@ -97,10 +100,21 @@ manCaptures1 mbPrevDir (Piece _ side) board src = concatMap (check src) $ filter
         Just prevDir -> oppositeDirection prevDir /= dir
 
     check a dir =
-      let move = simpleCapture side a dir
-      in  case isWellFormedMove piece board move of
-            ValidMove -> [move]
-            e -> {- trace (printf "%s: %s: cant catpure to %s: %s" (show side) (show src) (show dir) (show e)) $-} []
+      case neighbour (myDirection side dir) a of
+        Nothing -> []
+        Just victimAddr ->
+          case getPiece victimAddr board of
+            Nothing -> []
+            Just victim ->
+              if isMyPiece side victim
+                then []
+                else case neighbour (myDirection side dir) victimAddr of
+                       Nothing -> []
+                       Just freeAddr -> if isFree freeAddr board
+                                          then [Move src [Step dir True False, Step dir False (promote freeAddr)]]
+                                          else []
+
+    promote addr = isLastHorizontal side addr
 
 kingCaptures :: Maybe PlayerDirection -> Piece -> Board -> Address -> [Move]
 kingCaptures mbPrevDir piece@(Piece _ side) board src =

@@ -35,14 +35,6 @@ resolver: lts-12.11
 #  - wai
 packages:
 - .
-- location:
-    git: https://github.com/IreneKnapp/direct-sqlite
-    commit: master
-  extra-dep: true
-- location:
-    git: https://github.com/nurpax/sqlite-simple
-    commit: master
-  extra-dep: true
 
 # Dependency packages to be pulled from upstream that are not in the resolver
 # using the same syntax as the packages field.

@@ -44,7 +44,7 @@ data AlphaBeta rules = AlphaBeta AlphaBetaParams rules
 
 instance (GameRules rules) => GameAi (AlphaBeta rules) where
 
-  type AiStorage (AlphaBeta rules) = AICache
+  type AiStorage (AlphaBeta rules) = AICacheHandle
 
   createAiStorage (AlphaBeta params rules) = do
     cache <- loadAiCache rules params
@@ -65,7 +65,7 @@ instance (GameRules rules) => GameAi (AlphaBeta rules) where
 
   aiName _ = "default"
 
-runAI :: GameRules rules => AlphaBeta rules -> AICache -> Side -> Board -> IO ([Move], Score)
+runAI :: GameRules rules => AlphaBeta rules -> AICacheHandle -> Side -> Board -> IO ([Move], Score)
 runAI ai@(AlphaBeta params rules) var side board = do
     let depth = abDepth params
     let moves = possibleMoves rules side board
@@ -125,7 +125,7 @@ putMoves side board moves memo =
 --   where
 --     init = M.singleton side $ M.singleton depth $ M.singleton alpha $ M.singleton beta score
 
-doScore :: (GameRules rules, Evaluator eval) => rules -> eval -> AICache -> AlphaBetaParams -> Side -> Int -> Board -> IO Score
+doScore :: (GameRules rules, Evaluator eval) => rules -> eval -> AICacheHandle -> AlphaBetaParams -> Side -> Int -> Board -> IO Score
 doScore rules eval var params side depth board =
     fixSign <$> evalStateT (cachedScoreAB var params side depth (-max_value) max_value) initState
   where
@@ -159,7 +159,7 @@ instance Show StackItem where
 type ScoreM rules eval a = StateT (ScoreState rules eval) IO a
 
 cachedScoreAB :: forall rules eval. (GameRules rules, Evaluator eval)
-              => AICache
+              => AICacheHandle
               -> AlphaBetaParams
               -> Side
               -> Int
@@ -184,7 +184,7 @@ cachedScoreAB var params side depth alpha beta = do
       return score
 
 scoreAB :: forall rules eval. (GameRules rules, Evaluator eval)
-        => AICache
+        => AICacheHandle
         -> AlphaBetaParams
         -> Side
         -> Int

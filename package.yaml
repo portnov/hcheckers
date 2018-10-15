@@ -25,6 +25,7 @@ dependencies:
 - containers
 - aeson
 - stm
+- bytestring
 - text
 - scotty
 - http-types
@@ -32,9 +33,9 @@ dependencies:
 - array
 - random
 - binary
+- store
 - filepath
 - directory
-- postgresql-simple
 - data-default
 
 executables:
