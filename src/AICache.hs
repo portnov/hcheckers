@@ -59,7 +59,6 @@ instance Default AlphaBetaParams where
 
 data CacheItemSide = CacheItemSide {
     cisScore :: ! Score
-  , cisMoves :: [MoveRep]
   }
   deriving (Eq, Show, Generic, Typeable)
 
@@ -165,7 +164,7 @@ putAiCache params board depth side score moves var = do
 
               updateDepthMap m1 m2 = M.unionWith updateItem m1 m2
 
-              sideItem = CacheItemSide {cisScore = score, cisMoves = map (moveRep side) moves}
+              sideItem = CacheItemSide {cisScore = score}
 
               item = case side of
                        First -> CacheItem {ciFirst = Just sideItem, ciSecond = Nothing}

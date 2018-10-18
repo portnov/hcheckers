@@ -28,6 +28,25 @@ class MoveRequest(Thread):
         finally:
             self.owner.move_lock.release()
 
+class AI(object):
+    def __init__(self, **kwargs):
+        self.depth = 2
+        self.load = True
+        self.store = False
+        self.update_cache_max_depth = 6
+        self.update_cache_max_pieces = 8
+
+        for key in kwargs:
+            setattr(self, key, kwargs[key])
+
+    def params(self):
+        return {
+            "depth": self.depth,
+            "load": self.load,
+            "store" : self.store,
+            "update_cache_max_depth": self.update_cache_max_depth,
+            "update_cache_max_pieces": self.update_cache_max_pieces
+        }
 
 class Game(object):
     def __init__(self, url=None):
@@ -66,10 +85,10 @@ class Game(object):
         self.process_response(rs)
         result = rs.json()
 
-    def attach_ai(self, side, depth=2, load=True, store=False):
+    def attach_ai(self, side, ai):
         self.ai_side = side
         url = join(self.base_url, "game", self.game_id, "attach", "ai", str(side))
-        rq = {"ai": "default", "params": {"depth": depth, "load": load, "store": store}}
+        rq = {"ai": "default", "params": ai.params()}
         rs = requests.post(url, json=rq)
         self.process_response(rs)
         result = rs.json()
@@ -80,13 +99,15 @@ class Game(object):
         self.process_response(rs)
         result = rs.json()
 
-    def start_new_game(self, user_name, rules="russian", board=None, user_turn_first=True, ai_depth=2, load=True, store=False):
+    def start_new_game(self, user_name, rules="russian", board=None, user_turn_first=True, ai=None):
+        if ai is None:
+            ai = AI()
         self.new_game(rules, board)
         if user_turn_first:
             self.register_user(user_name, 1)
-            self.attach_ai(2, ai_depth, load, store)
+            self.attach_ai(2, ai)
         else:
-            self.attach_ai(1, ai_depth, load, store)
+            self.attach_ai(1, ai)
             self.register_user(user_name, 2)
         self.run_game()
 

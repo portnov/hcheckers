@@ -37,6 +37,7 @@ dependencies:
 - filepath
 - directory
 - data-default
+- megaparsec
 
 executables:
   hcheckers-exe:

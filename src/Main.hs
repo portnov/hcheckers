@@ -4,6 +4,7 @@ import Control.Monad
 import Data.Maybe
 import qualified Data.Map as M
 import Text.Printf
+import Data.Default
 import System.Environment
 
 import Types
@@ -11,10 +12,21 @@ import Board
 import Russian
 import AI
 import Rest
+import Learn
 
 main :: IO ()
 main = do
-    runRestServer
+  args <- getArgs
+  case args of
+    ["learn", path] -> do
+      let rules = Russian
+          params = def
+          ai = AlphaBeta params rules
+          eval = ai
+          depth = 6
+      learnPdn rules eval params path depth
+    
+    _ -> runRestServer
 
 
 -- main :: IO ()

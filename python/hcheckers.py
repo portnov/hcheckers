@@ -4,7 +4,7 @@ import sys
 from PyQt5.QtWidgets import QApplication, QWidget
 
 from board import Board
-from game import Game
+from game import Game, AI
 from theme import Theme
 
 def clicked(row, col):
@@ -22,7 +22,8 @@ board = [['c3', checker["m1"]],
 
 theme = Theme("themes/default", None)
 game = Game()
-game.start_new_game("portnov", ai_depth=8, board=None, user_turn_first=True, load=True, store=True)
+ai = AI(depth=6, board=None, load=True, store=True, update_cache_max_depth=8, update_cache_max_pieces=16)
+game.start_new_game("portnov", user_turn_first=False,  ai=ai)
 
 app = QApplication(sys.argv)
 

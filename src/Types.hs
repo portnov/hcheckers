@@ -87,7 +87,7 @@ instance Show Address where
 instance Ord Address where  
   compare a1 a2 = compare (aLabel a1) (aLabel a2)
 
-type Line = Int
+type Line = Word8
 
 type FieldIndex = (Line, Line)
 
@@ -245,6 +245,13 @@ class Typeable g => GameRules g where
 data SomeRules = forall g. GameRules g => SomeRules g
 
 type Score = Int
+
+data GameResult =
+    FirstWin
+  | SecondWin
+  | Draw
+  | Ongoing
+  deriving (Eq, Show, Ord, Typeable)
 
 class Evaluator e where
   evalBoard :: e -> Side -> Side -> Board -> Score
