@@ -200,13 +200,19 @@ class Board(QWidget):
         col_width = width / self.n_fields
         size = min(row_height, col_width)
 
-        prev_piece = field.piece
+        prev_hide_piece = field.hide_piece
         if hide:
-            field.piece = None
+            field.hide_piece = hide
+
+        prev_possible_piece = field.possible_piece
+        label = self.fields[(row,col)].label
+        if self._selected_field is not None and self._valid_target_fields is not None and label in self._valid_target_fields:
+            field.possible_piece = self.fields[self._selected_field].piece
 
         field.draw(painter, QRect(col * size, (self.n_fields-1-row) * size, size, size))
         if hide:
-            field.piece = prev_piece
+            field.hide_piece = prev_hide_piece
+        field.possible_piece = prev_possible_piece
 
     def draw(self):
         if self._pixmap is not None:
@@ -300,6 +306,7 @@ class Board(QWidget):
                     self._valid_target_fields = dict((move["steps"][-1]["field"], move) for move in moves)
                     print("Valid target fields: {}".format(self._valid_target_fields.keys()))
                     self.selected_field = (row, col)
+                    self.repaint()
             elif piece is None and self.selected_field is not None and self._valid_target_fields is not None:
                 if field.label in self._valid_target_fields:
                     src_field = self.fields[self.selected_field].label

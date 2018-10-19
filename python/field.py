@@ -11,11 +11,13 @@ class Field(object):
         self._show_label = False
         self._pattern_id = None
         self._piece = None
+        self._possible_piece = None
         self._label = None
         self._notation_above = False
         self._pixmap = None
         self._rect = None
         self._theme = None
+        self._hide_piece = False
 
     def get_label(self):
         return self._label
@@ -71,6 +73,24 @@ class Field(object):
 
     piece = property(get_piece, set_piece)
 
+    def get_possible_piece(self):
+        return self._possible_piece
+
+    def set_possible_piece(self, piece):
+        self._possible_piece = piece
+        self.invalidate()
+
+    possible_piece = property(get_possible_piece, set_possible_piece)
+
+    def get_hide_piece(self):
+        return self._hide_piece
+    
+    def set_hide_piece(self, hide):
+        self._hide_piece = hide
+        self.invalidate()
+
+    hide_piece = property(get_hide_piece, set_hide_piece)
+
     def get_show_label(self):
         return self._show_label
 
@@ -85,6 +105,16 @@ class Field(object):
 
     def rect(self):
         return self._rect
+
+    def _draw_piece(self, painter):
+        piece = self._theme.get_piece(self.piece)
+        possible_piece = self._theme.get_piece(self.possible_piece)
+        if piece is not None and not self.hide_piece:
+            painter.drawPixmap(0, 0, piece)
+        elif possible_piece is not None:
+            painter.setOpacity(0.5)
+            painter.drawPixmap(0, 0, possible_piece)
+            painter.setOpacity(1.0)
 
     def _draw(self):
         if self._pixmap is not None:
@@ -102,18 +132,15 @@ class Field(object):
         # notation
         painter.setPen(Qt.white)
         notation_rect = painter.boundingRect(2, 2, 0, 0, Qt.AlignLeft, self.label)
-        piece = self._theme.get_piece(self.piece)
         if self.notation_above:
-            if piece is not None:
-                painter.drawPixmap(0, 0, piece)
+            self._draw_piece(painter)
             if self.show_label:
                 painter.fillRect(notation_rect, Qt.black)
                 painter.drawText(notation_rect, Qt.AlignTop | Qt.AlignLeft, self.label)
         else:
             if self.show_label:
                 painter.drawText(notation_rect, Qt.AlignTop | Qt.AlignLeft, self.label)
-            if piece is not None:
-                painter.drawPixmap(0, 0, piece)
+            self._draw_piece(painter)
 
         if self.show_frame:
             frame = self._theme.get_frame()

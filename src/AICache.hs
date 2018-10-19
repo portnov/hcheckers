@@ -109,9 +109,7 @@ cacheDumper :: GameRules rules => rules -> AlphaBetaParams -> AICacheHandle -> I
 cacheDumper rules params var = 
   when (abSaveCache params) $ forever $ do
     saved <- saveAiCache rules params var
-    when (not saved) $ do
-      -- putStrLn "Waiting"
-      threadDelay $ 1000 * 1000
+    threadDelay $ 30 * 1000 * 1000
 
 saveAiCache :: GameRules rules => rules -> AlphaBetaParams -> AICacheHandle -> IO Bool
 saveAiCache rules params var = do
