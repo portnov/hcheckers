@@ -5,6 +5,7 @@ import Control.Monad
 import Data.Maybe
 import Data.List
 import qualified Data.Map as M
+import qualified Data.HashMap.Strict as H
 import qualified Data.Text as T
 import Data.Array
 import Data.Int
@@ -54,23 +55,23 @@ calcBoardKey board = BoardKey {
 
 putBoardMap :: Board -> a -> BoardMap a -> BoardMap a
 putBoardMap board x bmap =
-    M.unionWith M.union bmap init
+    M.unionWith H.union bmap init
   where
-    init = M.singleton (boardCounts board) $ M.singleton (boardKey board) x
+    init = M.singleton (boardCounts board) $ H.singleton (boardKey board) x
 
 putBoardMapWith :: (a -> a -> a) -> Board -> a -> BoardMap a -> BoardMap a
 putBoardMapWith plus board x bmap =
-    M.unionWith (M.unionWith plus) bmap init
+    M.unionWith (H.unionWith plus) bmap init
   where
-    init = M.singleton (boardCounts board) $ M.singleton (boardKey board) x
+    init = M.singleton (boardCounts board) $ H.singleton (boardKey board) x
 
 lookupBoardMap :: Board -> BoardMap a -> Maybe a
 lookupBoardMap board bmap =
-  M.lookup (boardKey board) =<< M.lookup (boardCounts board) bmap
+  H.lookup (boardKey board) =<< M.lookup (boardCounts board) bmap
 
 singleBoardMap :: Board -> a -> BoardMap a
 singleBoardMap board x =
-  M.singleton (boardCounts board) $ M.singleton (boardKey board) x
+  M.singleton (boardCounts board) $ H.singleton (boardKey board) x
 
 ------------------
 

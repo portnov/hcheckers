@@ -22,7 +22,7 @@ import AI
 import AICache
 import Pdn
 
-doLearn :: (GameRules rules, Evaluator eval) => rules -> eval -> AICacheHandle -> AlphaBetaParams -> GameRecord -> Int -> IO ()
+doLearn :: (GameRules rules, Evaluator eval) => rules -> eval -> AICacheHandle rules -> AlphaBetaParams -> GameRecord -> Int -> IO ()
 doLearn rules eval var params gameRec depth = do
     let board = initBoard rules
     go board $ grMoves gameRec
@@ -51,19 +51,19 @@ parseMoveRec rules side board rec =
     [] -> error $ "no such move: " ++ show rec
     ms -> error $ "ambigous move: " ++ show ms
 
-processMove :: (GameRules rules, Evaluator eval) => rules -> eval -> AICacheHandle -> AlphaBetaParams -> Side -> Int -> Move -> Board -> IO ()
+processMove :: (GameRules rules, Evaluator eval) => rules -> eval -> AICacheHandle rules -> AlphaBetaParams -> Side -> Int -> Move -> Board -> IO ()
 processMove rules eval var params side depth move board = do
   let ai = AlphaBeta params rules
   (moves, score) <- runAI ai var side board
   printf "Processed: side %s, move: %s, depth: %d => score %d; we think next best moves are: %s\n" (show side) (show move) depth score (show moves)
   return ()
 
-learnPdn :: (GameRules rules, Evaluator eval) => rules -> eval -> AlphaBetaParams -> FilePath -> Int -> IO ()
-learnPdn rules eval params path depth = do
-  cache <- loadAiCache rules params
+learnPdn :: (GameRules rules) => AlphaBeta rules -> FilePath -> Int -> IO ()
+learnPdn ai@(AlphaBeta params rules) path depth = do
+  cache <- loadAiCache scoreMove ai
   pdn <- parsePdn path
   forM_ pdn $ \gameRec -> do
-    doLearn rules eval cache params gameRec depth
+    doLearn rules ai cache params gameRec depth
     saveAiCache rules params cache
     return ()
 

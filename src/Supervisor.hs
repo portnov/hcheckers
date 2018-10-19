@@ -18,12 +18,14 @@ import Data.Aeson hiding (Error)
 import Data.Dynamic
 import GHC.Generics
 import System.Random
+import System.Clock
 
 import Types
 import Board
 import Game
 import Russian
 import AI
+import AICache
 
 data Player =
     User String
@@ -241,6 +243,7 @@ letAiMove var game side mbBoard = do
     AI ai -> do
 
       withAiStorage var (gRules game) ai $ \storage -> do
+            time1 <- getTime Realtime
             aiMoves <- chooseMove ai storage side board
             if null aiMoves
               then do
@@ -249,7 +252,9 @@ letAiMove var game side mbBoard = do
               else do
                 i <- randomRIO (0, length aiMoves - 1)
                 let aiMove = aiMoves !! i
-                printf "AI returned %d move(s), selected: %s\n" (length aiMoves) (show aiMove)
+                time2 <- getTime Realtime
+                let delta = time2-time1
+                printf "AI returned %d move(s), selected: %s (in %ds + %dns)\n" (length aiMoves) (show aiMove) (sec delta) (nsec delta)
                 writeChan (gInput $ gHandle game) $ DoMoveRq side aiMove
                 DoMoveRs board' messages <- readChan (gOutput $ gHandle game)
                 putStrLn $ "Messages: " ++ show messages

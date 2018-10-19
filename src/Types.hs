@@ -10,6 +10,7 @@ import Data.Maybe
 import Data.List
 import qualified Data.Map as M
 import qualified Data.Text as T
+import qualified Data.HashMap.Strict as H
 import Data.Array
 import Data.String
 import Data.Char (isDigit, ord)
@@ -19,6 +20,7 @@ import Data.Int
 import Data.Word
 import Data.Binary
 import Data.Store
+import Data.Hashable
 import Text.Printf
 import GHC.Generics
 
@@ -31,6 +33,10 @@ data Label = Label {
 instance Binary Label where
 
 instance Store Label
+
+instance Hashable Label where
+  hashWithSalt salt (Label col row) =
+    salt `hashWithSalt` col `hashWithSalt` row
 
 letters :: [Char]
 letters = "abcdefgh" 
@@ -127,7 +133,11 @@ instance Binary BoardKey
 
 instance Store BoardKey
 
-type BoardMap a = M.Map BoardCounts (M.Map BoardKey a)
+instance Hashable BoardKey where
+  hashWithSalt salt bk =
+    salt `hashWithSalt` bkFirstMen bk `hashWithSalt` bkSecondMen bk `hashWithSalt` bkFirstKings bk `hashWithSalt` bkSecondKings bk
+
+type BoardMap a = M.Map BoardCounts (H.HashMap BoardKey a)
 
 data BoardDirection =
     UpLeft | UpRight 
@@ -143,7 +153,7 @@ instance Show BoardDirection where
 data PlayerDirection =
     ForwardLeft | ForwardRight
   | BackwardLeft | BackwardRight
-  deriving (Eq, Generic, Typeable)
+  deriving (Eq, Ord, Generic, Typeable)
 
 instance Show PlayerDirection where
   show ForwardLeft = "FL"
@@ -156,7 +166,7 @@ data Step = Step {
     sCapture :: ! Bool,
     sPromote :: ! Bool
   }
-  deriving (Eq, Typeable)
+  deriving (Eq, Ord, Typeable)
 
 instance Show Step where
   show step = show (sDirection step) ++ capture ++ promote
@@ -173,7 +183,7 @@ data Move = Move {
     moveBegin :: ! Address,
     moveSteps :: ! [Step]
   }
-  deriving (Eq, Typeable)
+  deriving (Eq, Ord, Typeable)
 
 instance Show Move where
   show move = "[" ++ show (moveBegin move) ++ "] " ++ (intercalate "." $ map show (moveSteps move))
@@ -236,7 +246,7 @@ data MoveCheckResult =
 data BoardRep = BoardRep [(Label, Piece)]
   deriving (Eq, Ord, Show, Typeable)
 
-class Typeable g => GameRules g where
+class (Ord g, Typeable g) => GameRules g where
   initBoard :: g -> Board
   possibleMoves :: g -> Side -> Board -> [Move]
   updateRules :: g -> Value -> g

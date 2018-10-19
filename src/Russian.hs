@@ -16,7 +16,7 @@ import Board
 import Debug.Trace
 
 data Russian = Russian
-  deriving (Show, Typeable)
+  deriving (Show, Eq, Ord, Typeable)
 
 instance GameRules Russian where
   initBoard Russian = board8

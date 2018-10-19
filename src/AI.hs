@@ -21,6 +21,7 @@ import Types
 import Board
 import BoardMap
 import AICache
+import Parallel
 
 -- import Debug.Trace
 
@@ -39,15 +40,12 @@ instance FromJSON AlphaBetaParams where
       <*> v .:? "update_cache_max_depth" .!= 6
       <*> v .:? "update_cache_max_pieces" .!= 8
 
-data AlphaBeta rules = AlphaBeta AlphaBetaParams rules
-  deriving (Show, Typeable)
-
 instance (GameRules rules) => GameAi (AlphaBeta rules) where
 
-  type AiStorage (AlphaBeta rules) = AICacheHandle
+  type AiStorage (AlphaBeta rules) = AICacheHandle rules
 
-  createAiStorage (AlphaBeta params rules) = do
-    cache <- loadAiCache rules params
+  createAiStorage ai = do
+    cache <- loadAiCache scoreMove ai
     return cache
 
   saveAiStorage (AlphaBeta params rules) cache = do
@@ -65,22 +63,27 @@ instance (GameRules rules) => GameAi (AlphaBeta rules) where
 
   aiName _ = "default"
 
-runAI :: GameRules rules => AlphaBeta rules -> AICacheHandle -> Side -> Board -> IO ([Move], Score)
+scoreMove :: (GameRules rules) => ScoreMoveInput rules -> IO (Move, Score)
+scoreMove (ai@(AlphaBeta params rules), var, side, depth, board, move) = do
+     time1 <- getTime Realtime
+     let (board', _, _) = applyMove side move board
+     score <- doScore rules ai var params (opposite side) depth board'
+     time2 <- getTime Realtime
+     let delta = time2-time1
+     printf "Check: %s => %d (in %ds + %dns)\n" (show move) score (sec delta) (nsec delta)
+     return (move, score)
+
+
+runAI :: GameRules rules => AlphaBeta rules -> AICacheHandle rules -> Side -> Board -> IO ([Move], Score)
 runAI ai@(AlphaBeta params rules) var side board = do
     let depth = abDepth params
     let moves = possibleMoves rules side board
     if null moves
       then return ([], -max_value)
       else do
-          scores <- forM moves $ \move -> do
-                       printf "Check: %s\n" (show move)
-                       time1 <- getTime Realtime
-                       let (board', _, _) = applyMove side move board
-                       score <- doScore rules ai var params (opposite side) depth board'
-                       time2 <- getTime Realtime
-                       let delta = time2-time1
-                       printf " => %d (in %ds + %dns)\n" score (sec delta) (nsec delta)
-                       return (move, score)
+          AICache _ processor _ <- atomically $ readTVar var
+          let inputs = [(ai, var, side, depth, board, move) | move <- moves]
+          scores <- process processor inputs
           let select = if side == First then maximum else minimum
               maxScore = select $ map snd scores
               goodMoves = [move | (move, score) <- scores, score == maxScore]
@@ -103,29 +106,7 @@ putMoves side board moves memo =
   where
     init = M.singleton side $ singleBoardMap board moves
 
--- type MovesMemo = M.Map Side (M.Map BoardRep [Move])
--- 
--- lookupMoves :: Side -> Board -> MovesMemo -> Maybe [Move]
--- lookupMoves side board memo =
---   M.lookup (boardRep board) =<< M.lookup side memo
--- 
--- putMoves :: Side -> Board -> [Move] -> MovesMemo -> MovesMemo
--- putMoves side board moves memo =
---     M.unionWith M.union init memo
---   where
---     init = M.singleton side $ M.singleton (boardRep board) moves
-
--- lookupMemo :: Side -> Int -> Score -> Score -> ScoreMemo -> Maybe Score
--- lookupMemo side depth alpha beta memo =
---   M.lookup beta =<< M.lookup alpha =<< M.lookup depth =<< M.lookup side memo
--- 
--- putMemo :: Side -> Int -> Score -> Score -> Score -> ScoreMemo -> ScoreMemo
--- putMemo side depth alpha beta score memo =
---     M.unionWith (M.unionWith (M.unionWith (M.union))) init memo
---   where
---     init = M.singleton side $ M.singleton depth $ M.singleton alpha $ M.singleton beta score
-
-doScore :: (GameRules rules, Evaluator eval) => rules -> eval -> AICacheHandle -> AlphaBetaParams -> Side -> Int -> Board -> IO Score
+doScore :: (GameRules rules, Evaluator eval) => rules -> eval -> AICacheHandle rules -> AlphaBetaParams -> Side -> Int -> Board -> IO Score
 doScore rules eval var params side depth board =
     fixSign <$> evalStateT (cachedScoreAB var params side depth (-max_value) max_value) initState
   where
@@ -159,7 +140,7 @@ instance Show StackItem where
 type ScoreM rules eval a = StateT (ScoreState rules eval) IO a
 
 cachedScoreAB :: forall rules eval. (GameRules rules, Evaluator eval)
-              => AICacheHandle
+              => AICacheHandle rules
               -> AlphaBetaParams
               -> Side
               -> Int
@@ -184,7 +165,7 @@ cachedScoreAB var params side depth alpha beta = do
       return score
 
 scoreAB :: forall rules eval. (GameRules rules, Evaluator eval)
-        => AICacheHandle
+        => AICacheHandle rules
         -> AlphaBetaParams
         -> Side
         -> Int

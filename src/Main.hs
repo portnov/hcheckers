@@ -11,6 +11,7 @@ import Types
 import Board
 import Russian
 import AI
+import AICache
 import Rest
 import Learn
 
@@ -20,11 +21,11 @@ main = do
   case args of
     ["learn", path] -> do
       let rules = Russian
-          params = def
+          params = def :: AlphaBetaParams
           ai = AlphaBeta params rules
           eval = ai
           depth = 6
-      learnPdn rules eval params path depth
+      learnPdn ai path depth
     
     _ -> runRestServer
 
