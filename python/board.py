@@ -31,6 +31,7 @@ class MoveAnimation(QObject):
         self.step = 0
         self.steps = 10 * len(move["steps"])
         self.move = move
+        self.captured_fields = [step["field"] for step in move["steps"] if step["capture"] == True]
         self.start_field = start_field
         self.end_field = end_field
         self.process_result = process_result
@@ -120,6 +121,7 @@ class Board(QWidget):
         self._selected_field = None
         self._valid_target_fields = None
         self._board = dict()
+        self._new_board = None
 
         self.move_animation = MoveAnimation(self)
         self.move_animation.finished.connect(self.on_animation_finished)
@@ -209,10 +211,15 @@ class Board(QWidget):
         if self._selected_field is not None and self._valid_target_fields is not None and label in self._valid_target_fields:
             field.possible_piece = self.fields[self._selected_field].piece
 
+        prev_captured = field.captured
+        if self.move_animation.is_active() and label in self.move_animation.captured_fields:
+            field.captured = True
+
         field.draw(painter, QRect(col * size, (self.n_fields-1-row) * size, size, size))
         if hide:
             field.hide_piece = prev_hide_piece
         field.possible_piece = prev_possible_piece
+        field.captured = prev_captured
 
     def draw(self):
         if self._pixmap is not None:
@@ -331,13 +338,17 @@ class Board(QWidget):
             for message in messages:
                 move = message["move"]
                 print("Other side move: {}".format(move))
-                self._board = Game.parse_board(message["board"])
+                self._board = board
+                self._new_board = Game.parse_board(message["board"])
                 src_field = self.index_by_label[move["from"]]
                 dst_field = self.get_move_end_field(move)
                 start_position = self.get_field_center(src_field)
                 piece = self.fields[src_field].piece
                 self.move_animation.start(src_field, dst_field, move, start_position, piece, process_result = False)
             self.selected_field = None
+        elif self._new_board is not None:
+            self._board = self._new_board
+            self._new_board = None
         self.fields_setup(self._board)
         self.repaint()
 

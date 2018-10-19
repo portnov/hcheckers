@@ -18,6 +18,16 @@ class Field(object):
         self._rect = None
         self._theme = None
         self._hide_piece = False
+        self._captured = False
+
+    def get_captured(self):
+        return self._captured
+
+    def set_captured(self, value):
+        self._captured = value
+        self.invalidate()
+
+    captured = property(get_captured, set_captured)
 
     def get_label(self):
         return self._label
@@ -145,6 +155,10 @@ class Field(object):
         if self.show_frame:
             frame = self._theme.get_frame()
             painter.drawPixmap(0, 0, frame)
+
+        if self.captured:
+            captured = self._theme.get_captured()
+            painter.drawPixmap(0, 0, captured)
 
         painter.end()
 

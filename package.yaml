@@ -23,10 +23,12 @@ dependencies:
 - base >= 4.7 && < 5
 - mtl
 - containers
+- unordered-containers
 - aeson
 - stm
 - bytestring
 - text
+- hashable
 - scotty
 - http-types
 - clock
