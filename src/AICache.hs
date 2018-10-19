@@ -38,6 +38,7 @@ data AlphaBeta rules = AlphaBeta AlphaBetaParams rules
 
 data AlphaBetaParams = AlphaBetaParams {
     abDepth :: Int
+  , abStartDepth :: Maybe Int
   , abLoadCache :: Bool
   , abSaveCache :: Bool
   , abUseCacheMaxDepth :: Int
@@ -52,6 +53,7 @@ data AlphaBetaParams = AlphaBetaParams {
 instance Default AlphaBetaParams where
   def = AlphaBetaParams {
           abDepth = 2
+        , abStartDepth = Nothing
         , abLoadCache = True
         , abSaveCache = False
         , abUseCacheMaxDepth = 8

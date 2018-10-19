@@ -123,9 +123,8 @@ captureDirection :: Move -> PlayerDirection
 captureDirection move = sDirection $ head $ moveSteps move
 
 manCaptures1 :: Maybe PlayerDirection -> Piece -> Board -> Address -> [Capture]
-manCaptures1 mbPrevDir (Piece _ side) board src = concatMap (check src) $ filter allowedDir [ForwardLeft, ForwardRight, BackwardLeft, BackwardRight]
+manCaptures1 mbPrevDir piece@(Piece _ side) board src = concatMap (check src) $ filter allowedDir [ForwardLeft, ForwardRight, BackwardLeft, BackwardRight]
   where
-    piece = getPiece_ "manCaptures1" src board
 
     allowedDir dir =
       case mbPrevDir of

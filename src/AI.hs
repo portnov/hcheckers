@@ -31,6 +31,7 @@ trace _ x = x
 instance FromJSON AlphaBetaParams where
   parseJSON = withObject "AlphaBetaParams" $ \v -> AlphaBetaParams
       <$> v .: "depth"
+      <*> v .:? "start_depth"
       <*> v .:? "load" .!= True
       <*> v .:? "store" .!= False
       <*> v .:? "use_cache_max_depth" .!= 8
@@ -70,17 +71,29 @@ scoreMove (ai@(AlphaBeta params rules), var, side, depth, board, move) = do
      score <- doScore rules ai var params (opposite side) depth board'
      time2 <- getTime Realtime
      let delta = time2-time1
-     printf "Check: %s => %d (in %ds + %dns)\n" (show move) score (sec delta) (nsec delta)
+     printf "Check: %s (depth %d) => %d (in %ds + %dns)\n" (show move) depth score (sec delta) (nsec delta)
      return (move, score)
 
 
 runAI :: GameRules rules => AlphaBeta rules -> AICacheHandle rules -> Side -> Board -> IO ([Move], Score)
 runAI ai@(AlphaBeta params rules) var side board = do
     let depth = abDepth params
+        startDepth = fromMaybe depth (abStartDepth params)
     let moves = possibleMoves rules side board
     if null moves
       then return ([], -max_value)
-      else do
+      else go startDepth depth moves
+  where
+    go depth maxDepth moves = do
+      (goodMoves, maxScore) <- runAI' depth moves
+      if length goodMoves < 3
+        then return (goodMoves, maxScore)
+        else let depth' = depth + 2
+             in  if depth' <= maxDepth
+                   then go depth' maxDepth goodMoves
+                   else return (goodMoves, maxScore)
+
+    runAI' depth moves = do
           AICache _ processor _ <- atomically $ readTVar var
           let inputs = [(ai, var, side, depth, board, move) | move <- moves]
           scores <- process processor inputs
@@ -296,19 +309,23 @@ captureManCoef = 10
 captureKingCoef :: Int
 captureKingCoef = 50
 
+kingCoef :: Int
+kingCoef = 5
+
 instance GameRules rules => Evaluator (AlphaBeta rules) where
   evaluatorName _ = "russian"
 
-  evalBoard ai whoAsks whoMovesNext board =
+  evalBoard ai@(AlphaBeta _ rules) whoAsks whoMovesNext board =
     let (myMen, myKings) = myCounts whoAsks board
         (opponentMen, opponentKings) = myCounts (opposite whoAsks) board
-        myScore = 5 * myKings + myMen
-        opponentScore = 5 * opponentKings + opponentMen
+        myScore = kingCoef * myKings + myMen
+        opponentScore = kingCoef * opponentKings + opponentMen
     in  if myMen == 0 && myKings == 0
           then -win
           else if opponentMen == 0 && opponentKings == 0
                  then win
                  else fromIntegral $ myScore - opponentScore
+
 --     let allMyMoves = possibleMoves rules whoAsks board
 --         allOpponentMoves = possibleMoves rules (opposite whoAsks) board
 -- 
