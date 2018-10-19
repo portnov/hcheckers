@@ -12,17 +12,20 @@ def clicked(row, col):
 
 checker = {}
 checker["m1"] = {'kind': 'Man', 'side': 'First'}
+checker["k1"] = {'kind': 'King', 'side': 'First'}
 checker["m2"] = {'kind': 'Man', 'side': 'Second'}
+checker["k2"] = {'kind': 'King', 'side': 'Second'}
 
-board = [['c3', checker["m1"]],
-         ['e3', checker["m1"]],
-         ['e5', checker["m2"]],
-         ['f6', checker["m2"]]
+board = [['b2', checker["m2"]],
+         ['d4', checker["m2"]],
+         ['d6', checker["m2"]],
+         ['f4', checker["m2"]],
+         ['c3', checker["k1"]]
         ]
 
 theme = Theme("themes/default", None)
 game = Game()
-ai = AI(depth=6, board=None, load=True, store=True, update_cache_max_depth=8, update_cache_max_pieces=16)
+ai = AI(depth=8, board=None, load=True, store=True, update_cache_max_depth=8, update_cache_max_pieces=16)
 game.start_new_game("portnov", user_turn_first=False,  ai=ai)
 
 app = QApplication(sys.argv)

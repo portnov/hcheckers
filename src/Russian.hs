@@ -35,6 +35,26 @@ instance GameRules Russian where
 
   updateRules Russian _ = Russian
 
+data Capture = Capture {
+    cSrc :: Address,
+    cDirection :: PlayerDirection,
+    cInitSteps :: Int,
+    cFreeSteps :: Int,
+--     cDst :: Address,
+    cPromote :: Bool
+  }
+
+translateCapture :: Side -> Board -> Capture -> [Move]
+translateCapture side board capture =
+    [Move src (steps n) | n <- [1 .. cFreeSteps capture]]
+  where
+    src = cSrc capture
+    dir = cDirection capture
+    promote = cPromote capture
+    steps n = replicate (cInitSteps capture) (Step dir False False) ++
+              [Step dir True False] ++
+              replicate (n-1) (Step dir False False) ++
+              [Step dir False promote]
 
 possibleMoves1 :: Side -> Board -> Address -> [Move]
 possibleMoves1 side board src =
@@ -63,7 +83,7 @@ manSimpleMoves side board src = check ForwardLeft ++ check ForwardRight
 
     promote addr = isLastHorizontal side addr
 
-captures1 :: Maybe PlayerDirection -> Piece -> Board -> Address -> [Move]
+captures1 :: Maybe PlayerDirection -> Piece -> Board -> Address -> [Capture]
 captures1 mbPrevDir piece board src =
   case piece of
     (Piece Man _) -> manCaptures1 mbPrevDir piece board src
@@ -77,11 +97,12 @@ pieceCaptures mbPrevDir piece board src =
 
 manCaptures :: Maybe PlayerDirection -> Piece -> Board -> Address -> [Move]
 manCaptures mbPrevDir piece@(Piece _ side) board src =
-  let moves = captures1 mbPrevDir piece board src
+  let captures = captures1 mbPrevDir piece board src
       nextMoves m = pieceCaptures (Just $ captureDirection m) p b a
                       where (b, a, p) = applyMove side m board
-  in concat $ flip map moves $ \move1 ->
-       let moves2 = nextMoves move1
+  in concat $ flip map captures $ \capture ->
+       let [move1] = translateCapture side board capture
+           moves2 = nextMoves move1
        in  if null moves2
              then [move1]
              else [catMoves move1 move2 | move2 <- moves2]
@@ -89,7 +110,7 @@ manCaptures mbPrevDir piece@(Piece _ side) board src =
 captureDirection :: Move -> PlayerDirection
 captureDirection move = sDirection $ head $ moveSteps move
 
-manCaptures1 :: Maybe PlayerDirection -> Piece -> Board -> Address -> [Move]
+manCaptures1 :: Maybe PlayerDirection -> Piece -> Board -> Address -> [Capture]
 manCaptures1 mbPrevDir (Piece _ side) board src = concatMap (check src) $ filter allowedDir [ForwardLeft, ForwardRight, BackwardLeft, BackwardRight]
   where
     piece = getPiece_ "manCaptures1" src board
@@ -111,23 +132,30 @@ manCaptures1 mbPrevDir (Piece _ side) board src = concatMap (check src) $ filter
                 else case neighbour (myDirection side dir) victimAddr of
                        Nothing -> []
                        Just freeAddr -> if isFree freeAddr board
-                                          then [Move src [Step dir True False, Step dir False (promote freeAddr)]]
+                                          then [Capture {
+                                                  cSrc = a,
+                                                  cDirection = dir,
+                                                  cInitSteps = 0,
+                                                  cFreeSteps = 1,
+                                                  -- cDst = freeAddr,
+                                                  cPromote = isLastHorizontal side freeAddr
+                                                }]
                                           else []
-
-    promote addr = isLastHorizontal side addr
 
 kingCaptures :: Maybe PlayerDirection -> Piece -> Board -> Address -> [Move]
 kingCaptures mbPrevDir piece@(Piece _ side) board src =
-  let moves = captures1 mbPrevDir piece board src
+  let captures = captures1 mbPrevDir piece board src
       nextMoves m = pieceCaptures (Just $ captureDirection m) p b a
                       where (b, a, p) = applyMove side m board
-  in nub $ concat $ flip map moves $ \move1 ->
-       let moves2 = nextMoves move1
-       in  if null moves2
-             then [move1]
-             else [catMoves move1 move2 | move2 <- moves2]
+  in nub $ concat $ flip map captures $ \capture1 ->
+            let moves1 = translateCapture side board capture1
+                allNext = map nextMoves moves1
+                isLast = all null allNext
+            in  if isLast
+                  then moves1
+                  else [catMoves move1 move2 | move1 <- moves1, move2 <- nextMoves move1]
 
-kingCaptures1 :: Maybe PlayerDirection -> Piece -> Board -> Address -> [Move]
+kingCaptures1 :: Maybe PlayerDirection -> Piece -> Board -> Address -> [Capture]
 kingCaptures1 mbPrevDir piece@(Piece _ side) board src = concatMap check $ filter allowedDir [ForwardLeft, ForwardRight, BackwardLeft, BackwardRight]
   where
     
@@ -139,44 +167,41 @@ kingCaptures1 mbPrevDir piece@(Piece _ side) board src = concatMap check $ filte
     check dir =
       case search dir src of
         Nothing -> []
-        Just steps ->
-          let maxFree = freeFieldsCount dir (length steps) 1
-              freeSteps = tail $ inits $ replicate maxFree (Step dir False False)
-          in  if maxFree == 0
-                then []
-                else {- trace (show steps) $ -} [Move src (steps ++ free) | free <- freeSteps]
+        Just (victimAddr, initSteps) ->
+          case freeFields dir victimAddr of
+            [] -> []
+            fields -> 
+                [mkCapture dir initSteps freeSteps (fields !! (freeSteps-1)) | freeSteps <- [1 .. length fields]]
 
+    mkCapture dir init free dst =
+      Capture {
+        cSrc = src,
+        cDirection = dir,
+        cInitSteps = init,
+        cFreeSteps = free,
+        -- cDst = dst,
+        cPromote = False
+      }
+
+    search :: PlayerDirection -> Address -> Maybe (Address, Int)
     search dir a =
-      -- trace (printf "A: %s, dir: %s" (show a) (show dir)) $
-      -- trace (printf "%s: %s" (show a) (show $ getPiece a board)) $
       case neighbour (myDirection side dir) a of
         Nothing -> Nothing
         Just a' -> case getPiece a' board of
                      Nothing -> case search dir a' of
                                   Nothing -> Nothing
-                                  Just steps -> Just $ Step dir False False : steps
+                                  Just (victimAddr, steps) -> Just (victimAddr, steps + 1)
                      Just p -> if isOpponentPiece side p
-                                 then Just [Step dir True False]
+                                 then Just (a', 0)
                                  else Nothing
 
---       if isOpponentAt side a board
---         then
---           if isJust (getNeighbourPiece (myDirection side dir) a board)
---             then trace "stop" Nothing
---             else trace "X" $ Just [Step dir True False]
---         else
---           case neighbour (myDirection side dir) a of
---             Nothing -> Nothing
---             Just a' -> case search dir a' of
---                          Nothing -> Nothing
---                          Just steps -> trace "+" $ Just $ (Step dir False False) : steps
-
-    freeFieldsCount dir n k =
-      -- trace (printf "Src: %s, dir: %s, n: %d, k: %d, piece: %s"
-      --                 (show src) (show dir) n k (show $ getPieceInDirection (myDirection side dir) src board (n+k))) $
-      if isFreeInDirection (myDirection side dir) src board (n+k)
-        then freeFieldsCount dir n (k+1)
-        else {- trace (printf "K: %s" (show k)) $ -} k-1
+    freeFields :: PlayerDirection -> Address -> [Address]
+    freeFields dir addr =
+      case neighbour (myDirection side dir) addr of
+        Nothing -> []
+        Just a' -> if isFree a' board
+                     then a' : freeFields dir a'
+                     else []
 
 kingSimpleMoves :: Side -> Board -> Address -> [Move]
 kingSimpleMoves side board src = concatMap check [ForwardLeft, ForwardRight, BackwardLeft, BackwardRight]
