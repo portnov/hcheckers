@@ -73,6 +73,9 @@ singleBoardMap :: Board -> a -> BoardMap a
 singleBoardMap board x =
   M.singleton (boardCounts board) $ H.singleton (boardKey board) x
 
+emptyBoardMap :: BoardMap a
+emptyBoardMap = M.empty
+
 ------------------
 
 unpackIndex :: FieldIndex -> Label

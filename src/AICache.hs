@@ -114,8 +114,8 @@ loadAiCache scoreMove (AlphaBeta params rules) = do
                   let delta = time2-time1
                   printf "Loaded %s in %ds + %dns\n" path (sec delta) (nsec delta)
                   atomically $ newTVar $ AICache False processor cache
-                else atomically $ newTVar $ AICache False processor M.empty
-            else atomically $ newTVar $ AICache False processor M.empty
+                else atomically $ newTVar $ AICache False processor emptyBoardMap
+            else atomically $ newTVar $ AICache False processor emptyBoardMap
   forkIO $ cacheDumper rules params var
   return var
 

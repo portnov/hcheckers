@@ -94,23 +94,27 @@ max_value = 1000000
 
 -- type ScoreMemo = M.Map Side (M.Map Int (M.Map Score (M.Map Score Score)))
 
-type MovesMemo = M.Map Side (BoardMap [Move])
+data MovesMemo = MovesMemo {
+    mmFirst :: BoardMap [Move],
+    mmSecond :: BoardMap [Move]
+  }
 
 lookupMoves :: Side -> Board -> MovesMemo -> Maybe [Move]
-lookupMoves side board memo =
-  lookupBoardMap board =<< M.lookup side memo
+lookupMoves First board memo = lookupBoardMap board (mmFirst memo)
+lookupMoves Second board memo = lookupBoardMap board (mmSecond memo)
 
 putMoves :: Side -> Board -> [Move] -> MovesMemo -> MovesMemo
-putMoves side board moves memo =
-    M.unionWith M.union init memo
-  where
-    init = M.singleton side $ singleBoardMap board moves
+putMoves First board moves memo =
+  memo {mmFirst = putBoardMap board moves (mmFirst memo)}
+putMoves Second board moves memo =
+  memo {mmSecond = putBoardMap board moves (mmSecond memo)}
 
 doScore :: (GameRules rules, Evaluator eval) => rules -> eval -> AICacheHandle rules -> AlphaBetaParams -> Side -> Int -> Board -> IO Score
 doScore rules eval var params side depth board =
     fixSign <$> evalStateT (cachedScoreAB var params side depth (-max_value) max_value) initState
   where
-    initState = ScoreState rules eval [StackItem Nothing board score0 (-max_value)] M.empty
+    initState = ScoreState rules eval [StackItem Nothing board score0 (-max_value)] emptyMemo
+    emptyMemo = MovesMemo emptyBoardMap emptyBoardMap
     score0 = evalBoard eval First (opposite side) board
 
     fixSign s = s
