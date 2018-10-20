@@ -31,6 +31,7 @@ class MoveRequest(Thread):
 class AI(object):
     def __init__(self, **kwargs):
         self.depth = 2
+        self.start_depth = None
         self.load = True
         self.store = False
         self.update_cache_max_depth = 6
@@ -42,6 +43,7 @@ class AI(object):
     def params(self):
         return {
             "depth": self.depth,
+            "start_depth": self.start_depth,
             "load": self.load,
             "store" : self.store,
             "update_cache_max_depth": self.update_cache_max_depth,
@@ -141,6 +143,14 @@ class Game(object):
         else:
             moves = result["response"]
             return [move for move in moves if move["from"] == field]
+
+    def undo(self):
+        url = join(self.base_url, "game", self.game_id, "undo", self.user_name)
+        rs = requests.post(url)
+        self.process_response(rs)
+        result = rs.json()
+        board = Game.parse_board(result["response"])
+        return board
     
     def begin_move(self, src, dst):
         if self.move_thread is not None:

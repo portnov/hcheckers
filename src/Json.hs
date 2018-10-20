@@ -89,8 +89,10 @@ instance FromJSON AttachAiRq where
     <*> v .:? "params" .!= Null
 
 instance ToJSON Notify where
-  toJSON (Notify to from move board) =
+  toJSON (MoveNotify to from move board) =
     object ["to_side" .= to, "from_side" .= from, "move" .= move, "board" .= board]
+  toJSON (UndoNotify to from board) =
+    object ["to_side" .= to, "from_side" .= from, "undo" .= True, "board" .= board]
 
 instance ToJSON RsPayload where
   toJSON (NewGameRs id) = object ["id" .= id]
@@ -101,6 +103,7 @@ instance ToJSON RsPayload where
   toJSON (StateRs board side) = object ["board" .= board, "side" .= side]
   toJSON (PossibleMovesRs moves) = toJSON moves
   toJSON (MoveRs board) = toJSON board
+  toJSON (UndoRs board) = toJSON board
 
 instance ToJSON SupervisorRs where
   toJSON (SupervisorRs payload messages) = object ["response" .= payload, "messages" .= messages]

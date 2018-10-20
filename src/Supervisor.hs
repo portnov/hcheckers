@@ -72,6 +72,7 @@ data RsPayload =
   | StateRs BoardRep Side
   | PossibleMovesRs [MoveRep]
   | MoveRs BoardRep
+  | UndoRs BoardRep
   deriving (Eq, Show, Generic)
 
 mkSupervisor :: IO SupervisorHandle
@@ -212,6 +213,22 @@ doMove var gameId name moveRq = do
       letAiMove var game (opposite side) (Just board')
       return $ boardRep board'
 
+doUndo :: SupervisorHandle -> GameId -> String -> IO BoardRep
+doUndo var gameId name = do
+  mbGame <- getGame var gameId
+  let game = fromJust mbGame
+  let input = gInput $ gHandle game
+  let output = gOutput $ gHandle game
+  let side = fromJust $ sideByUser game name
+  writeChan input $ GUndoRq side
+  result <- readChan output
+  case result of
+    Error message -> fail $ "Invalid undo request: " ++ message
+    GUndoRs board' messages -> do
+      queueNotifications var gameId messages
+      letAiMove var game side (Just board')
+      return $ boardRep board'
+
 withAiStorage :: GameAi ai
               => SupervisorHandle
               -> SomeRules
@@ -256,10 +273,13 @@ letAiMove var game side mbBoard = do
                 let delta = time2-time1
                 printf "AI returned %d move(s), selected: %s (in %ds + %dns)\n" (length aiMoves) (show aiMove) (sec delta) (nsec delta)
                 writeChan (gInput $ gHandle game) $ DoMoveRq side aiMove
-                DoMoveRs board' messages <- readChan (gOutput $ gHandle game)
-                putStrLn $ "Messages: " ++ show messages
-                queueNotifications var (getGameId $ gHandle game) messages
-                return board'
+                rs <- readChan (gOutput $ gHandle game)
+                case rs of
+                  DoMoveRs board' messages -> do
+                    putStrLn $ "Messages: " ++ show messages
+                    queueNotifications var (getGameId $ gHandle game) messages
+                    return board'
+                  _ -> fail $ "Unexpected response for move: " ++ show rs
 
     _ -> return board
 

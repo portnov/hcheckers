@@ -109,6 +109,9 @@ data Board = Board {
   }
   deriving (Typeable)
 
+instance Show Board where
+  show board = show $ boardKey board
+
 data BoardCounts = BoardCounts {
     bcFirstMen :: ! Int
   , bcSecondMen :: ! Int

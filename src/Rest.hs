@@ -96,6 +96,13 @@ restServer supervisor = do
         messages <- liftIO $ getMessages supervisor name
         json $ SupervisorRs (PossibleMovesRs moves) messages
 
+  post "/game/:id/undo/:name" $ do
+    gameId <- param "id"
+    name <- param "name"
+    board <- liftIO $ doUndo supervisor gameId name
+    messages <- liftIO $ getMessages supervisor name
+    json $ SupervisorRs (UndoRs board) messages
+
   get "/poll/:name" $ do
     name <- param "name"
     messages <- liftIO $ getMessages supervisor name

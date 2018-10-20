@@ -48,6 +48,7 @@ data GameRq =
   | DoMoveRq Side Move
   | DoMoveRepRq Side MoveRep
   | GPossibleMovesRq Side
+  | GUndoRq Side
   | GStateRq
 
 data GameRs =
@@ -55,14 +56,22 @@ data GameRs =
   | DoMoveRs Board [Notify]
   | GPossibleMovesRs [Move]
   | GStateRs Side Board
+  | GUndoRs Board [Notify]
   | Error String
+  deriving (Show)
 
-data Notify = Notify {
-    nDestination :: Side
-  , nSource :: Side
-  , nMove :: MoveRep
-  , nBoard :: BoardRep
-  }
+data Notify =
+    MoveNotify {
+      nDestination :: Side
+    , nSource :: Side
+    , nMove :: MoveRep
+    , nBoard :: BoardRep
+    }
+  | UndoNotify {
+      nDestination :: Side
+    , nSource :: Side
+    , nBoard :: BoardRep
+    }
   deriving (Eq, Show, Generic)
 
 spawnGame :: GameRules rules => rules -> Maybe BoardRep -> IO GameHandle
@@ -106,6 +115,21 @@ spawnGame rules mbBoardRep = do
                        loop st
             Parsed move -> processMove s move st
 
+        GUndoRq side -> do
+          if side /= gsSide st
+            then do
+                 writeChan (gsOutput st) (Error "Not your turn")
+                 loop st
+            else do
+                 case popMove st of
+                   Nothing -> do
+                     writeChan (gsOutput st) (Error "Nothing to undo")
+                     loop st
+                   Just (prevBoard, prevSt) -> do
+                     let push = UndoNotify (opposite side) side (boardRep prevBoard)
+                     writeChan (gsOutput st) $ GUndoRs prevBoard [push]
+                     loop prevSt
+
     pushMove move board st =
       st {
         gsSide = opposite (gsSide st),
@@ -126,9 +150,17 @@ spawnGame rules mbBoardRep = do
                    else do
                         let side = gsSide st
                             (board', _, _) = applyMove side move (gsCurrentBoard st)
-                            push = Notify (opposite side) side (moveRep side move) (boardRep board')
+                            push = MoveNotify (opposite side) side (moveRep side move) (boardRep board')
                         writeChan (gsOutput st) $ DoMoveRs board' [push]
                         loop $ pushMove move board' st
+    
+    popMove st =
+      case gsHistory st of
+        (_ : prevRecord : prevHistory) ->
+          let board = hrPrevBoard prevRecord
+              st' = st {gsCurrentBoard = board, gsHistory = prevHistory}
+          in  Just (board, st')
+        _ -> Nothing
 
       
 
