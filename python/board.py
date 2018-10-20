@@ -4,6 +4,7 @@ from PyQt5.QtGui import QPainter, QPixmap
 from PyQt5.QtCore import QRect, QSize, Qt, QObject, QTimer, pyqtSignal
 from PyQt5.QtWidgets import QApplication, QWidget
 
+from common import *
 from field import Field
 from game import Game, RequestError
 
@@ -132,6 +133,8 @@ class Board(QWidget):
         self.setup_patterns()
 
     field_clicked = pyqtSignal(int, int)
+
+    message = pyqtSignal(str)
 
     def get_my_turn(self):
         return self._my_turn
@@ -333,7 +336,7 @@ class Board(QWidget):
             piece = self._board.get(field.label)
             if piece is not None and piece.side == self.game.user_side:
                 moves = self.game.get_possible_moves(field.label)
-                print(moves)
+                #print(moves)
                 if not moves:
                     print("Piece at {} does not have moves".format(field.label))
                 else:
@@ -359,16 +362,34 @@ class Board(QWidget):
                 print("Field {} is not yours".format(field.label))
         except RequestError as e:
             print(e)
+    
+    def show_move(self, move):
+        first = move["from"]
+        last = move["steps"][-1]["field"]
+        is_capture = any(step["capture"] == True for step in move["steps"])
+        if is_capture:
+            return "{}x{}".format(first, last)
+        else:
+            return "{}-{}".format(first, last)
 
     def process_message(self, message):
-        move = message["move"]
-        print("Other side move: {}".format(move))
-        self._new_board = Game.parse_board(message["board"])
-        src_field = self.index_by_label[move["from"]]
-        dst_field = self.get_move_end_field(move)
-        start_position = self.get_field_center(src_field)
-        piece = self.fields[src_field].piece
-        self.move_animation.start(src_field, dst_field, move, start_position, piece, process_result = False)
+        if "move" in message:
+            move = message["move"]
+            self.message.emit("Other side move: {}".format(self.show_move(move)))
+            self._new_board = Game.parse_board(message["board"])
+            src_field = self.index_by_label[move["from"]]
+            dst_field = self.get_move_end_field(move)
+            start_position = self.get_field_center(src_field)
+            piece = self.fields[src_field].piece
+            self.move_animation.start(src_field, dst_field, move, start_position, piece, process_result = False)
+            my_side = 'First' if self.game.user_side == FIRST else 'Second'
+            self.my_turn = message["to_side"] == my_side
+        elif "undo" in message:
+            self.message.emit("Other side requested undo")
+            self._board = Game.parse_board(message["board"])
+        elif "result" in message:
+            result = message["result"]
+            self.message.emit("Game result: " + result)
 
     def on_animation_finished(self, process_result):
         if process_result:
@@ -376,7 +397,6 @@ class Board(QWidget):
             self._board = board
             for message in messages:
                 self.process_message(message)
-                self.my_turn = message["to"] == str(self.game.user_side)
             self.selected_field = None
         elif self._new_board is not None:
             self._board = self._new_board

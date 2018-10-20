@@ -26,6 +26,8 @@ instance ToJSON Side
 
 instance FromJSON Side
 
+instance ToJSON GameResult
+
 instance ToJSON Label where
   toJSON label = toJSON (show label)
 
@@ -109,6 +111,8 @@ instance ToJSON Notify where
     object ["to_side" .= to, "from_side" .= from, "move" .= move, "board" .= board]
   toJSON (UndoNotify to from board) =
     object ["to_side" .= to, "from_side" .= from, "undo" .= True, "board" .= board]
+  toJSON (ResultNotify to from result) =
+    object ["to_side" .= to, "from_side" .= from, "result" .= result]
 
 instance ToJSON RsPayload where
   toJSON (NewGameRs id) = object ["id" .= id]

@@ -253,6 +253,8 @@ class (Ord g, Typeable g) => GameRules g where
   initBoard :: g -> Board
   possibleMoves :: g -> Side -> Board -> [Move]
   updateRules :: g -> Value -> g
+  getGameResult :: g -> Board -> GameResult
+  
   rulesName :: g -> String
 
 data SomeRules = forall g. GameRules g => SomeRules g
@@ -267,7 +269,7 @@ data GameResult =
   | SecondWin
   | Draw
   | Ongoing
-  deriving (Eq, Show, Ord, Typeable)
+  deriving (Eq, Show, Ord, Typeable, Generic)
 
 class Evaluator e where
   evalBoard :: e -> Side -> Side -> Board -> Score

@@ -78,6 +78,11 @@ data Notify =
     , nSource :: Side
     , nBoard :: BoardRep
     }
+  | ResultNotify {
+      nDestination :: Side
+    , nSource :: Side
+    , nResult :: GameResult
+  }
   deriving (Eq, Show, Generic)
 
 spawnGame :: GameRules rules => rules -> Maybe BoardRep -> IO GameHandle
@@ -156,8 +161,13 @@ spawnGame rules mbBoardRep = do
                    else do
                         let side = gsSide st
                             (board', _, _) = applyMove side move (gsCurrentBoard st)
-                            push = MoveNotify (opposite side) side (moveRep side move) (boardRep board')
-                        writeChan (gsOutput st) $ DoMoveRs board' [push]
+                            moveMsg = MoveNotify (opposite side) side (moveRep side move) (boardRep board')
+                            result = getGameResult rules board'
+                            resultMsg to = ResultNotify to side result
+                            messages = if result == Ongoing
+                                         then [moveMsg]
+                                         else [moveMsg, resultMsg First, resultMsg Second]
+                        writeChan (gsOutput st) $ DoMoveRs board' messages
                         loop $ pushMove move board' st
     
     popMove st =

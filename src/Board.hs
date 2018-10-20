@@ -459,3 +459,13 @@ parseBoardRep n (BoardRep list) = foldr set (buildBoard $ fromIntegral n) list
   where
     set (label, piece) board = setPiece' label piece board
 
+-- | Generic implementation of @getGameResult@, which suits most rules.
+-- This can not, however, recognize draws.
+genericGameResult :: GameRules rules => rules -> Board -> GameResult
+genericGameResult rules board =
+  if null (possibleMoves rules First board)
+    then SecondWin
+    else if null (possibleMoves rules Second board)
+           then FirstWin
+           else Ongoing
+

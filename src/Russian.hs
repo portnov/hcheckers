@@ -35,6 +35,8 @@ instance GameRules Russian where
 
   updateRules Russian _ = Russian
 
+  getGameResult = genericGameResult
+
 data Capture = Capture {
     cSrc :: Address,
     cDirection :: PlayerDirection,

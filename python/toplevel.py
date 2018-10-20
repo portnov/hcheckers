@@ -4,7 +4,7 @@ import os
 
 from PyQt5.QtGui import QPainter, QPixmap
 from PyQt5.QtCore import QRect, QSize, Qt, QObject, QTimer, pyqtSignal, QSettings
-from PyQt5.QtWidgets import QApplication, QWidget, QToolBar, QMainWindow, QDialog, QVBoxLayout, QAction, QActionGroup
+from PyQt5.QtWidgets import QApplication, QWidget, QToolBar, QMainWindow, QDialog, QVBoxLayout, QAction, QActionGroup, QLabel
 
 from field import Field
 from game import Game, AI, RequestError
@@ -47,10 +47,13 @@ class Checkers(QMainWindow):
         widget = QWidget(self)
         layout = QVBoxLayout()
         self.board = Board(self.theme, self.game)
+        self.board.message.connect(self._on_board_message)
         #self.board.show()
         self.toolbar = QToolBar(self)
+        self.message = QLabel(self)
         layout.addWidget(self.toolbar)
-        layout.addWidget(self.board)
+        layout.addWidget(self.message)
+        layout.addWidget(self.board, stretch=1)
         widget.setLayout(layout)
         self.setCentralWidget(widget)
     
@@ -135,6 +138,9 @@ class Checkers(QMainWindow):
         theme_name = action.data()
         theme = self.themes[theme_name]
         self.board.theme = theme
+
+    def _on_board_message(self, message):
+        self.message.setText(message)
 
     def timerEvent(self, e):
         if e.timerId() != self.poll_timer:
