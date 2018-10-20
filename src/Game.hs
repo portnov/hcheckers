@@ -1,8 +1,11 @@
 {-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE ExistentialQuantification #-}
 
 module Game where
 
 import Control.Monad
+import Control.Monad.State
+import Control.Monad.Except
 import Control.Concurrent
 import Data.Maybe
 import qualified Data.Map as M
@@ -20,25 +23,39 @@ import Debug.Trace
 
 type GameId = String
 
-data GameHandle = GameHandle {
-    gThread :: ThreadId
-  , gInput :: Chan GameRq
-  , gOutput :: Chan GameRs
+data Player =
+    User String
+  | forall ai. GameAi ai => AI ai
+
+instance Show Player where
+  show (User name) = name
+  show (AI ai) = aiName ai
+
+data GameStatus = New | Running
+  deriving (Eq, Show, Generic)
+
+data Game = Game {
+    getGameId :: GameId
+  , gState :: GameState
+  , gStatus :: GameStatus
+  , gRules :: SomeRules
+  , gPlayer1 :: Maybe Player
+  , gPlayer2 :: Maybe Player
+  , gMsgbox1 :: [Notify]
+  , gMsgbox2 :: [Notify]
   }
 
-instance Show GameHandle where
-  show gh = getGameId gh
+instance Show Game where
+  show g = printf "<Game: %s, 1: %s, 2: %s>"
+                  (show $ gRules g)
+                  (show $ gPlayer1 g)
+                  (show $ gPlayer2 g)
 
-instance Eq GameHandle where
-  gh1 == gh2 = gThread gh1 == gThread gh2
-
-getGameId :: GameHandle -> GameId
-getGameId h = show (gThread h)
+instance Eq Game where
+  g1 == g2 = getGameId g1 == getGameId g2
 
 data GameState = GameState {
-    gsInput :: Chan GameRq
-  , gsOutput :: Chan GameRs
-  , gsSide :: Side
+    gsSide :: Side
   , gsCurrentBoard :: Board
   , gsHistory :: [HistoryRecord]
   }
@@ -49,22 +66,7 @@ data HistoryRecord = HistoryRecord {
   , hrPrevBoard :: Board
   }
 
-data GameRq =
-    Exit
-  | DoMoveRq Side Move
-  | DoMoveRepRq Side MoveRep
-  | GPossibleMovesRq Side
-  | GUndoRq Side
-  | GStateRq
-
-data GameRs =
-    Ok
-  | DoMoveRs Board [Notify]
-  | GPossibleMovesRs [Move]
-  | GStateRs Side Board
-  | GUndoRs Board [Notify]
-  | Error String
-  deriving (Show)
+type GameM a = ExceptT String (State Game) a
 
 data Notify =
     MoveNotify {
@@ -85,98 +87,95 @@ data Notify =
   }
   deriving (Eq, Show, Generic)
 
-spawnGame :: GameRules rules => rules -> Maybe BoardRep -> IO GameHandle
-spawnGame rules mbBoardRep = do
-    input <- newChan
-    output <- newChan
-    thread <- forkIO (setup input output)
-    return $ GameHandle thread input output
+mkGame :: GameRules rules => rules -> Int -> Maybe BoardRep -> Game
+mkGame rules id mbBoardRep =
+    let board = case mbBoardRep of
+                  Nothing -> initBoard rules
+                  Just rep -> parseBoardRep 8 rep
+        st = GameState First board []
+    in  Game {
+          getGameId = show id,
+          gState = st,
+          gStatus = New,
+          gRules = SomeRules rules,
+          gPlayer1 = Nothing,
+          gPlayer2 = Nothing,
+          gMsgbox1 = [],
+          gMsgbox2 = []
+        }
 
-  where
-    setup input output = do
-      let board = case mbBoardRep of
-                    Nothing -> initBoard rules
-                    Just rep -> parseBoardRep 8 rep
-      let side = First
-      loop $ GameState input output side board []
+gamePossibleMoves :: GameM [Move]
+gamePossibleMoves = do
+  SomeRules rules <- gets gRules
+  board <- gets (gsCurrentBoard . gState)
+  currentSide <- gets (gsSide . gState)
+  return $ possibleMoves rules currentSide board
 
-    loop st = do
-      rq <- readChan (gsInput st)
-      case rq of
-        Exit -> writeChan (gsOutput st) Ok
+gameState :: GameM (Side, Board)
+gameState = do
+  st <- gets gState
+  return (gsSide st, gsCurrentBoard st)
 
-        GPossibleMovesRq s -> do
-          let moves = possibleMoves rules s (gsCurrentBoard st)
-          writeChan (gsOutput st) (GPossibleMovesRs moves)
-          loop st
+data GMoveRs = GMoveRs Board [Notify]
 
-        GStateRq -> do
-          writeChan (gsOutput st) $ GStateRs (gsSide st) $ gsCurrentBoard st
-          loop st
+doMoveRq :: Side -> Move -> GameM GMoveRs
+doMoveRq side move = do
+  currentSide <- gets (gsSide . gState)
+  SomeRules rules <- gets gRules
+  board <- gets (gsCurrentBoard . gState)
+  if side /= currentSide
+    then throwError "Not your turn"
+    else if move `notElem` possibleMoves rules side board
+           then throwError "Not allowed move"
+           else do
+                let (board', _, _) = applyMove side move board
+                    moveMsg = MoveNotify (opposite side) side (moveRep side move) (boardRep board')
+                    result = getGameResult rules board'
+                    resultMsg to = ResultNotify to side result
+                    messages = if result == Ongoing
+                                 then [moveMsg]
+                                 else [moveMsg, resultMsg First, resultMsg Second]
+                modify $ \game -> game {gState = pushMove move board' (gState game)}
+                return $ GMoveRs board' messages
 
-        DoMoveRq s move -> processMove s move st
+doMoveRepRq :: Side -> MoveRep -> GameM GMoveRs
+doMoveRepRq side moveRep = do
+  SomeRules rules <- gets gRules
+  board <- gets (gsCurrentBoard . gState)
+  case parseMoveRep rules side board moveRep of
+    NoSuchMove -> throwError "No such move"
+    AmbigousMove moves -> throwError $ "Move specification is ambigous. Possible moves: " ++ show moves
+    Parsed move -> doMoveRq side move
 
-        DoMoveRepRq s moveRep ->
-          case parseMoveRep rules s (gsCurrentBoard st) moveRep of
-            NoSuchMove -> do
-                       writeChan (gsOutput st) (Error "No such move")
-                       loop st
-            AmbigousMove moves -> do
-                       writeChan (gsOutput st) (Error $ "Move specification is ambigous. Possible moves: " ++ show moves)
-                       loop st
-            Parsed move -> processMove s move st
+data GUndoRs = GUndoRs Board [Notify]
 
-        GUndoRq side -> do
-          if side /= gsSide st
-            then do
-                 writeChan (gsOutput st) (Error "Not your turn")
-                 loop st
-            else do
-                 case popMove st of
-                   Nothing -> do
-                     writeChan (gsOutput st) (Error "Nothing to undo")
-                     loop st
-                   Just (prevBoard, prevSt) -> do
-                     let push = UndoNotify (opposite side) side (boardRep prevBoard)
-                     writeChan (gsOutput st) $ GUndoRs prevBoard [push]
-                     loop prevSt
+doUndoRq :: Side -> GameM GUndoRs
+doUndoRq side = do
+  currentSide <- gets (gsSide . gState)
+  st <- gets gState
+  if side /= currentSide
+    then throwError "Not your turn"
+    else case popMove st of
+           Nothing -> throwError "Nothing to undo"
+           Just (prevBoard, prevSt) -> do
+             let push = UndoNotify (opposite side) side (boardRep prevBoard)
+             modify $ \game -> game {gState = prevSt}
+             return $ GUndoRs prevBoard [push]
 
-    pushMove move board st =
-      st {
-        gsSide = opposite (gsSide st),
-        gsCurrentBoard = board,
-        gsHistory = HistoryRecord (gsSide st) move (gsCurrentBoard st) : gsHistory st
-      }
+pushMove :: Move -> Board -> GameState -> GameState
+pushMove move board st =
+  st {
+    gsSide = opposite (gsSide st),
+    gsCurrentBoard = board,
+    gsHistory = HistoryRecord (gsSide st) move (gsCurrentBoard st) : gsHistory st
+  }
 
-    processMove s move st =
-          if s /= gsSide st
-            then do
-                 writeChan (gsOutput st) (Error "Not your turn")
-                 loop st
-            else do
-                 if move `notElem` possibleMoves rules (gsSide st) (gsCurrentBoard st)
-                   then do
-                        writeChan (gsOutput st) (Error "Not allowed move")
-                        loop st
-                   else do
-                        let side = gsSide st
-                            (board', _, _) = applyMove side move (gsCurrentBoard st)
-                            moveMsg = MoveNotify (opposite side) side (moveRep side move) (boardRep board')
-                            result = getGameResult rules board'
-                            resultMsg to = ResultNotify to side result
-                            messages = if result == Ongoing
-                                         then [moveMsg]
-                                         else [moveMsg, resultMsg First, resultMsg Second]
-                        writeChan (gsOutput st) $ DoMoveRs board' messages
-                        loop $ pushMove move board' st
-    
-    popMove st =
-      case gsHistory st of
-        (_ : prevRecord : prevHistory) ->
-          let board = hrPrevBoard prevRecord
-              st' = st {gsCurrentBoard = board, gsHistory = prevHistory}
-          in  Just (board, st')
-        _ -> Nothing
-
-      
+popMove :: GameState -> Maybe (Board, GameState)
+popMove st =
+  case gsHistory st of
+    (_ : prevRecord : prevHistory) ->
+      let board = hrPrevBoard prevRecord
+          st' = st {gsCurrentBoard = board, gsHistory = prevHistory}
+      in  Just (board, st')
+    _ -> Nothing
 

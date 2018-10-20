@@ -5,6 +5,8 @@
 module Supervisor where
 
 import Control.Monad
+import Control.Monad.State
+import Control.Monad.Except
 import Control.Concurrent
 import Control.Concurrent.STM
 import Data.Maybe
@@ -27,39 +29,9 @@ import Russian
 import AI
 import AICache
 
-data Player =
-    User String
-  | forall ai. GameAi ai => AI ai
-
-instance Show Player where
-  show (User name) = name
-  show (AI ai) = aiName ai
-
-data GameStatus = New | Running
-  deriving (Eq, Show, Generic)
-
-data Game = Game {
-    gHandle :: GameHandle
-  , gStatus :: GameStatus
-  , gRules :: SomeRules
-  , gPlayer1 :: Maybe Player
-  , gPlayer2 :: Maybe Player
-  , gMsgbox1 :: [Notify]
-  , gMsgbox2 :: [Notify]
-  }
-
-instance Show Game where
-  show g = printf "<Game %s: %s, 1: %s, 2: %s>"
-                  (show $ gHandle g)
-                  (show $ gRules g)
-                  (show $ gPlayer1 g)
-                  (show $ gPlayer2 g)
-
-instance Eq Game where
-  g1 == g2 = gHandle g1 == gHandle g2
-
 data SupervisorState = SupervisorState {
     ssGames :: M.Map GameId Game
+  , ssLastGameId :: Int
   , ssAiStorages :: M.Map (String,String) Dynamic
   }
 
@@ -92,7 +64,7 @@ data RsPayload =
 
 mkSupervisor :: IO SupervisorHandle
 mkSupervisor = do
-  var <- atomically $ newTVar $ SupervisorState M.empty M.empty
+  var <- atomically $ newTVar $ SupervisorState M.empty 0 M.empty
   return var
 
 supportedRules :: [(String, SomeRules)]
@@ -131,12 +103,14 @@ initAiStorage var (SomeRules rules) (SomeAi ai) = do
     Just _ -> return ()
 
 newGame :: SupervisorHandle -> SomeRules -> Maybe BoardRep -> IO GameId
-newGame var r@(SomeRules rules) mbBoardRep = do
-  handle <- spawnGame rules mbBoardRep
-  let gameId = show (gThread handle)
-  let game = Game handle New r Nothing Nothing [] []
-  atomically $ modifyTVar var $ \st -> st {ssGames = M.insert gameId game (ssGames st)}
-  return gameId
+newGame var r@(SomeRules rules) mbBoardRep =
+  atomically $ do
+    st <- readTVar var
+    let gameId = ssLastGameId st + 1
+    writeTVar var $ st {ssLastGameId = gameId}
+    let game = mkGame rules gameId mbBoardRep
+    modifyTVar var $ \st -> st {ssGames = M.insert (show gameId) game (ssGames st)}
+    return $ show gameId
 
 registerUser :: SupervisorHandle -> GameId -> Side -> String -> IO ()
 registerUser var gameId side name =
@@ -159,10 +133,24 @@ runGame var gameId = do
     atomically $ modifyTVar var $ \st -> st {ssGames = M.update (Just . update) gameId (ssGames st)}
     mbGame <- getGame var gameId
     let game = fromJust mbGame
-    letAiMove var game First Nothing
+    letAiMove var gameId First Nothing
     return ()
   where
     update game = game {gStatus = Running}
+
+withGame :: SupervisorHandle -> GameId -> GameM a -> IO a
+withGame var gameId action =
+    atomically $ do
+      st <- readTVar var
+      case M.lookup gameId (ssGames st) of
+        Nothing -> fail $ "No such game: " ++ gameId
+        Just game -> do
+          let (r, game') = runState (runExceptT action) game
+          case r of
+            Left err -> fail err
+            Right result -> do
+              writeTVar var $ st {ssGames = M.insert gameId game' (ssGames st)}
+              return result
 
 getGame :: SupervisorHandle -> GameId -> IO (Maybe Game)
 getGame var gameId = do
@@ -206,43 +194,28 @@ getMessages var name = do
     
 getPossibleMoves :: SupervisorHandle -> GameId -> Side -> IO [MoveRep]
 getPossibleMoves var gameId side = do
-  mbGame <- getGame var gameId
-  let game = fromJust mbGame
-  writeChan (gInput $ gHandle game) $ GPossibleMovesRq side
-  GPossibleMovesRs moves <- readChan (gOutput $ gHandle game)
+  moves <- withGame var gameId gamePossibleMoves 
   return $ map (moveRep side) moves
 
 doMove :: SupervisorHandle -> GameId -> String -> MoveRep -> IO BoardRep
 doMove var gameId name moveRq = do
   mbGame <- getGame var gameId
   let game = fromJust mbGame
-  let input = gInput $ gHandle game
-  let output = gOutput $ gHandle game
   let side = fromJust $ sideByUser game name
-  writeChan input $ DoMoveRepRq side moveRq
-  result <- readChan output
-  case result of
-    Error message -> fail $ "Cannot parse move: " ++ show moveRq ++ ": " ++ message
-    DoMoveRs board' messages -> do
-      queueNotifications var gameId messages
-      letAiMove var game (opposite side) (Just board')
-      return $ boardRep board'
+  GMoveRs board' messages <- withGame var gameId $ doMoveRepRq side moveRq
+  queueNotifications var gameId messages
+  letAiMove var gameId (opposite side) (Just board')
+  return $ boardRep board'
 
 doUndo :: SupervisorHandle -> GameId -> String -> IO BoardRep
 doUndo var gameId name = do
   mbGame <- getGame var gameId
   let game = fromJust mbGame
-  let input = gInput $ gHandle game
-  let output = gOutput $ gHandle game
   let side = fromJust $ sideByUser game name
-  writeChan input $ GUndoRq side
-  result <- readChan output
-  case result of
-    Error message -> fail $ "Invalid undo request: " ++ message
-    GUndoRs board' messages -> do
-      queueNotifications var gameId messages
-      letAiMove var game side (Just board')
-      return $ boardRep board'
+  GUndoRs board' messages <- withGame var gameId $ doUndoRq side
+  queueNotifications var gameId messages
+  letAiMove var gameId side (Just board')
+  return $ boardRep board'
 
 withAiStorage :: GameAi ai
               => SupervisorHandle
@@ -262,19 +235,21 @@ withAiStorage var (SomeRules rules) ai fn = do
               result <- fn storage
               return result
 
-letAiMove :: SupervisorHandle -> Game -> Side -> Maybe Board -> IO Board
-letAiMove var game side mbBoard = do
+letAiMove :: SupervisorHandle -> GameId -> Side -> Maybe Board -> IO Board
+letAiMove var gameId side mbBoard = do
   board <- case mbBoard of
              Just b -> return b
              Nothing -> do
-               writeChan (gInput $ gHandle game) GStateRq
-               GStateRs _ b <- readChan (gOutput $ gHandle game)
+               (_, b) <- withGame var gameId gameState
                return b
 
+  mbGame <- getGame var gameId
+  let game = fromJust mbGame
   case getPlayer game side of
     AI ai -> do
 
-      withAiStorage var (gRules game) ai $ \storage -> do
+      Just rules <- getRules var gameId
+      withAiStorage var rules ai $ \storage -> do
             time1 <- getTime Realtime
             aiMoves <- chooseMove ai storage side board
             if null aiMoves
@@ -287,23 +262,16 @@ letAiMove var game side mbBoard = do
                 time2 <- getTime Realtime
                 let delta = time2-time1
                 printf "AI returned %d move(s), selected: %s (in %ds + %dns)\n" (length aiMoves) (show aiMove) (sec delta) (nsec delta)
-                writeChan (gInput $ gHandle game) $ DoMoveRq side aiMove
-                rs <- readChan (gOutput $ gHandle game)
-                case rs of
-                  DoMoveRs board' messages -> do
-                    putStrLn $ "Messages: " ++ show messages
-                    queueNotifications var (getGameId $ gHandle game) messages
-                    return board'
-                  _ -> fail $ "Unexpected response for move: " ++ show rs
+                GMoveRs board' messages <- withGame var gameId $ doMoveRq side aiMove
+                putStrLn $ "Messages: " ++ show messages
+                queueNotifications var (getGameId game) messages
+                return board'
 
     _ -> return board
 
 getState :: SupervisorHandle -> GameId -> IO RsPayload
 getState var gameId = do
-  mbGame <- getGame var gameId
-  let game = fromJust mbGame
-  writeChan (gInput $ gHandle game) GStateRq
-  GStateRs side board <- readChan (gOutput $ gHandle game)
+  (side, board) <- withGame var gameId gameState
   return $ StateRs (boardRep board) side
 
 getGames :: SupervisorHandle -> Maybe String -> IO [Game]

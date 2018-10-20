@@ -86,7 +86,7 @@ instance ToJSON GameStatus
 
 instance ToJSON Game where
   toJSON g =
-    object ["id" .= getGameId (gHandle g),
+    object ["id" .= getGameId g,
             "rules" .= gRules g,
             "status" .= gStatus g,
             "first" .= gPlayer1 g,
