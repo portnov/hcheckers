@@ -118,6 +118,7 @@ class Board(QWidget):
 
         self._pixmap = None
 
+        self._show_notation = False
         self._selected_field = None
         self._valid_target_fields = None
         self._board = dict()
@@ -167,6 +168,18 @@ class Board(QWidget):
         self.repaint()
 
     selected_field = property(get_selected_field, set_selected_field)
+
+    def get_show_notation(self):
+        return self._show_notation
+    
+    def set_show_notation(self, value):
+        self._show_notation = value
+        for idx in self.fields:
+            self.fields[idx].show_label = value
+        self.invalidate()
+        self.repaint()
+
+    show_notation = property(get_show_notation, set_show_notation)
 
     def reset(self):
         self.fields_setup()

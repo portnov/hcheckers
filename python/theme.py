@@ -1,5 +1,7 @@
 
-from os.path import join, basename
+import os
+from os.path import join, basename, isdir
+
 from PyQt5.QtCore import Qt, QSettings
 from PyQt5.QtGui import QPixmap, QPainter
 from PyQt5.Qt import QSvgRenderer
@@ -106,5 +108,15 @@ class Theme(object):
 
     def get_field_size(self):
         return self.man_white.get(None).width()
+
+    @classmethod
+    def list_themes(cls, share_dir):
+        themes_dir = join(share_dir, "themes")
+        result = []
+        for name in os.listdir(themes_dir):
+            path = join(themes_dir, name)
+            if isdir(path):
+                result.append(Theme(path, None))
+        return result
 
 
