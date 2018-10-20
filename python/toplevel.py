@@ -141,6 +141,7 @@ class Checkers(QMainWindow):
 
     def _on_board_message(self, message):
         self.message.setText(message)
+        print(message)
 
     def timerEvent(self, e):
         if e.timerId() != self.poll_timer:
