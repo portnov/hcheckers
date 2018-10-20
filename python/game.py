@@ -50,6 +50,16 @@ class AI(object):
             "update_cache_max_pieces": self.update_cache_max_pieces
         }
 
+class GameSettings(object):
+    def __init__(self):
+        self.user_name = None
+        self.ai = None
+        self.rules = None
+        self.run_now = False
+        self.url = None
+        self.user_turn_first = True
+        self.action = None
+
 class Game(object):
     def __init__(self, url=None):
         if url is None:
@@ -67,6 +77,16 @@ class Game(object):
         if rs.status_code != requests.codes.ok:
             print(rs.text)
             raise RequestError(str(rs))
+
+    def get_games(self, rules=None):
+        if rules is not None:
+            url = join(self.base_url, "lobby", rules)
+        else:
+            url = join(self.base_url, "lobby")
+        rs = requests.get(url)
+        self.process_response(rs)
+        result = rs.json()["response"]
+        return result
 
     def new_game(self, rules, board=None):
         url = join(self.base_url, "game", "new")
@@ -106,11 +126,11 @@ class Game(object):
             ai = AI()
         self.new_game(rules, board)
         if user_turn_first:
-            self.register_user(user_name, 1)
-            self.attach_ai(2, ai)
+            self.register_user(user_name, FIRST)
+            self.attach_ai(SECOND, ai)
         else:
-            self.attach_ai(1, ai)
-            self.register_user(user_name, 2)
+            self.attach_ai(FIRST, ai)
+            self.register_user(user_name, SECOND)
         self.run_game()
 
     def get_state(self):
@@ -119,6 +139,15 @@ class Game(object):
         self.process_response(rs)
         result = rs.json()
         return result["response"]
+    
+    def poll(self):
+        url = join(self.base_url, "poll", self.user_name)
+        rs = requests.get(url)
+        self.process_response(rs)
+        result = rs.json()
+        messages = result["response"]
+        board = self.get_board()
+        return board, messages
 
     @classmethod
     def parse_board(cls, json):

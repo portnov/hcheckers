@@ -4,12 +4,13 @@ import os
 
 from PyQt5.QtGui import QPainter, QPixmap
 from PyQt5.QtCore import QRect, QSize, Qt, QObject, QTimer, pyqtSignal, QSettings
-from PyQt5.QtWidgets import QApplication, QWidget, QToolBar, QMainWindow, QVBoxLayout, QAction, QActionGroup
+from PyQt5.QtWidgets import QApplication, QWidget, QToolBar, QMainWindow, QDialog, QVBoxLayout, QAction, QActionGroup
 
 from field import Field
 from game import Game, AI, RequestError
 from board import Board
 from theme import Theme
+from newgamedlg import *
 
 def locate_share_dir():
     home = os.environ["HOME"]
@@ -39,6 +40,8 @@ class Checkers(QMainWindow):
         theme_name = self.settings.value("theme", "default")
         self.theme = Theme(join(self.share_dir, "themes", theme_name), None)
         self.game = Game()
+        self.poll_timer = self.startTimer(500)
+        self.do_poll = False
 
     def _gui_setup(self):
         widget = QWidget(self)
@@ -92,16 +95,33 @@ class Checkers(QMainWindow):
         themes.triggered.connect(self._on_set_theme)
 
     def _default_new_game(self):
-        ai = AI(depth=6, board=None, load=False, store=False, update_cache_max_depth=8, update_cache_max_pieces=16)
-        self.game.start_new_game("portnov", user_turn_first=True, ai=ai)
-        self.board.fields_setup()
-        self.board.repaint()
+        self._on_new_game()
 
     def _on_new_game(self):
-        ai = AI(depth=6, board=None, load=False, store=False, update_cache_max_depth=8, update_cache_max_pieces=16)
-        self.game.start_new_game("portnov", user_turn_first=True, ai=ai)
-        self.board.fields_setup()
-        self.board.repaint()
+        dialog = NewGameDialog(self)
+        result = dialog.exec_()
+        if result == QDialog.Accepted:
+            game = dialog.get_settings()
+            if game.action == START_AI_GAME:
+                self.game.start_new_game(game.user_name, user_turn_first=game.user_turn_first, ai=game.ai)
+            elif game.action == START_HUMAN_GAME:
+                game_id = self.game.new_game(game.rules)
+                print(game_id)
+                if game.user_turn_first:
+                    self.game.register_user(game.user_name, FIRST)
+                else:
+                    self.game.register_user(game.user_name, SECOND)
+                self.do_poll = True
+            elif game.action == JOIN_HUMAN_GAME:
+                self.game.game_id = dialog.lobby.get_game_id()
+                self.game.user_side = side = dialog.lobby.get_free_side()
+                self.game.register_user(game.user_name, side)
+                self.game.run_game()
+                self.do_poll = True
+                self.board.my_turn = side == FIRST
+
+            self.board.fields_setup()
+            self.board.repaint()
 
     def _on_undo(self):
         prev_board = self.game.undo()
@@ -115,4 +135,19 @@ class Checkers(QMainWindow):
         theme_name = action.data()
         theme = self.themes[theme_name]
         self.board.theme = theme
+
+    def timerEvent(self, e):
+        if e.timerId() != self.poll_timer:
+            return
+        if not self.do_poll:
+            return
+        if self.board.my_turn:
+            return
+
+        board, messages = self.game.poll()
+        for message in messages:
+            self.board.process_message(message)
+            self.board.my_turn = True
+
+        self.board.fields_setup(board)
 

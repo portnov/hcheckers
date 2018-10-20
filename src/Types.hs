@@ -257,6 +257,9 @@ class (Ord g, Typeable g) => GameRules g where
 
 data SomeRules = forall g. GameRules g => SomeRules g
 
+instance Show SomeRules where
+  show (SomeRules rules) = rulesName rules
+
 type Score = Int
 
 data GameResult =

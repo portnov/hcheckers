@@ -124,12 +124,26 @@ class Board(QWidget):
         self._board = dict()
         self._new_board = None
 
+        self._my_turn = True
+
         self.move_animation = MoveAnimation(self)
         self.move_animation.finished.connect(self.on_animation_finished)
 
         self.setup_patterns()
 
     field_clicked = pyqtSignal(int, int)
+
+    def get_my_turn(self):
+        return self._my_turn
+
+    def set_my_turn(self, value):
+        self._my_turn = value
+        if value:
+            self.setCursor(Qt.ArrowCursor)
+        else:
+            self.setCursor(Qt.WaitCursor)
+
+    my_turn = property(get_my_turn, set_my_turn)
 
     def get_theme(self):
         return self._theme
@@ -332,6 +346,7 @@ class Board(QWidget):
                     src_field = self.fields[self.selected_field].label
                     dst_field = field.label
                     self.game.begin_move(src_field, dst_field)
+                    self.my_turn = False
 
                     move = self._valid_target_fields[field.label]
                     start_position = self.get_field_center(self.index_by_label[src_field])
@@ -345,19 +360,23 @@ class Board(QWidget):
         except RequestError as e:
             print(e)
 
+    def process_message(self, message):
+        move = message["move"]
+        print("Other side move: {}".format(move))
+        self._new_board = Game.parse_board(message["board"])
+        src_field = self.index_by_label[move["from"]]
+        dst_field = self.get_move_end_field(move)
+        start_position = self.get_field_center(src_field)
+        piece = self.fields[src_field].piece
+        self.move_animation.start(src_field, dst_field, move, start_position, piece, process_result = False)
+
     def on_animation_finished(self, process_result):
         if process_result:
             board, messages = self.game.get_move_result()
+            self._board = board
             for message in messages:
-                move = message["move"]
-                print("Other side move: {}".format(move))
-                self._board = board
-                self._new_board = Game.parse_board(message["board"])
-                src_field = self.index_by_label[move["from"]]
-                dst_field = self.get_move_end_field(move)
-                start_position = self.get_field_center(src_field)
-                piece = self.fields[src_field].piece
-                self.move_animation.start(src_field, dst_field, move, start_position, piece, process_result = False)
+                self.process_message(message)
+                self.my_turn = message["to"] == str(self.game.user_side)
             self.selected_field = None
         elif self._new_board is not None:
             self._board = self._new_board
@@ -370,6 +389,9 @@ class Board(QWidget):
             return
         
         if self.move_animation.is_active():
+            return
+        
+        if not self.my_turn:
             return
         
         for (row, col) in self.fields:

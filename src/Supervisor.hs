@@ -31,6 +31,10 @@ data Player =
     User String
   | forall ai. GameAi ai => AI ai
 
+instance Show Player where
+  show (User name) = name
+  show (AI ai) = aiName ai
+
 data GameStatus = New | Running
   deriving (Eq, Show, Generic)
 
@@ -43,6 +47,16 @@ data Game = Game {
   , gMsgbox1 :: [Notify]
   , gMsgbox2 :: [Notify]
   }
+
+instance Show Game where
+  show g = printf "<Game %s: %s, 1: %s, 2: %s>"
+                  (show $ gHandle g)
+                  (show $ gRules g)
+                  (show $ gPlayer1 g)
+                  (show $ gPlayer2 g)
+
+instance Eq Game where
+  g1 == g2 = gHandle g1 == gHandle g2
 
 data SupervisorState = SupervisorState {
     ssGames :: M.Map GameId Game
@@ -69,6 +83,7 @@ data RsPayload =
   | AttachAiRs
   | RunGameRs
   | PollRs [Notify]
+  | LobbyRs [Game]
   | StateRs BoardRep Side
   | PossibleMovesRs [MoveRep]
   | MoveRs BoardRep
@@ -290,6 +305,16 @@ getState var gameId = do
   writeChan (gInput $ gHandle game) GStateRq
   GStateRs side board <- readChan (gOutput $ gHandle game)
   return $ StateRs (boardRep board) side
+
+getGames :: SupervisorHandle -> Maybe String -> IO [Game]
+getGames var mbRulesId = do
+  st <- atomically $ readTVar var
+  let games = M.elems (ssGames st)
+      good (SomeRules rules) =
+        case mbRulesId of
+          Nothing -> True
+          Just rulesId -> rulesName rules == rulesId
+  return [game | game <- games, good (gRules game)]
 
 getPlayer :: Game -> Side -> Player
 getPlayer game First = fromJust $ gPlayer1 game

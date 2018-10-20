@@ -107,6 +107,15 @@ restServer supervisor = do
     name <- param "name"
     messages <- liftIO $ getMessages supervisor name
     json $ SupervisorRs (PollRs messages) []
+
+  get "/lobby/:rules" $ do
+    rules <- param "rules"
+    games <- liftIO $ getGames supervisor (Just rules)
+    json $ SupervisorRs (LobbyRs games) []
+
+  get "/lobby" $ do
+    games <- liftIO $ getGames supervisor Nothing
+    json $ SupervisorRs (LobbyRs games) []
     
 runRestServer :: IO ()
 runRestServer = do

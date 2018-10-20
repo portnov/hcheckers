@@ -26,6 +26,12 @@ data GameHandle = GameHandle {
   , gOutput :: Chan GameRs
   }
 
+instance Show GameHandle where
+  show gh = getGameId gh
+
+instance Eq GameHandle where
+  gh1 == gh2 = gThread gh1 == gThread gh2
+
 getGameId :: GameHandle -> GameId
 getGameId h = show (gThread h)
 

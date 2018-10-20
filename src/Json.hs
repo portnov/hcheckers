@@ -73,7 +73,23 @@ instance ToJSON ThreadId where
 --   parseJSON (String text) = return $ read $ T.unpack text
 --   parseJSON invalid = typeMismatch "ThreadId" invalid
 
--- instance ToJSON Player
+instance ToJSON Player where
+  toJSON (User name) = toJSON name
+  toJSON (AI ai) = toJSON (aiName ai)
+
+instance ToJSON SomeRules where
+  toJSON (SomeRules rules) = toJSON (rulesName rules)
+
+instance ToJSON GameStatus
+
+instance ToJSON Game where
+  toJSON g =
+    object ["id" .= getGameId (gHandle g),
+            "rules" .= gRules g,
+            "status" .= gStatus g,
+            "first" .= gPlayer1 g,
+            "second" .= gPlayer2 g
+          ]
 
 -- instance FromJSON Player
 
@@ -104,6 +120,7 @@ instance ToJSON RsPayload where
   toJSON (PossibleMovesRs moves) = toJSON moves
   toJSON (MoveRs board) = toJSON board
   toJSON (UndoRs board) = toJSON board
+  toJSON (LobbyRs games) = toJSON games
 
 instance ToJSON SupervisorRs where
   toJSON (SupervisorRs payload messages) = object ["response" .= payload, "messages" .= messages]
