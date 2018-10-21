@@ -22,6 +22,7 @@ class NewGameDialog(QDialog):
 
         self.rules = QComboBox()
         self.rules.addItem("Russian", "russian")
+        self.rules.addItem("Spancirety", "spancirety")
         layout.addRow("Rules", self.rules)
 
         self.user_name = QLineEdit(self)

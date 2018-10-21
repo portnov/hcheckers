@@ -104,7 +104,7 @@ class Game(object):
         rs = requests.get(url)
         self.process_response(rs)
         result = rs.json()["response"]
-        return result
+        return result["size"], result["notation"]
 
     def register_user(self, name, side):
         self.user_name = name

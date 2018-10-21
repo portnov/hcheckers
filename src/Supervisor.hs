@@ -24,6 +24,7 @@ import Board
 import BoardMap
 import Game
 import Russian
+import Spancirety
 import AI ()
 import AICache
 
@@ -46,7 +47,7 @@ data RsPayload =
   | RunGameRs
   | PollRs [Notify]
   | LobbyRs [Game]
-  | NotationRs [(Label, Notation)]
+  | NotationRs BoardSize [(Label, Notation)]
   | StateRs BoardRep Side
   | PossibleMovesRs [MoveRep]
   | MoveRs BoardRep
@@ -59,7 +60,9 @@ mkSupervisor = do
   return var
 
 supportedRules :: [(String, SomeRules)]
-supportedRules = [("russian", SomeRules Russian)]
+supportedRules =
+  [("russian", SomeRules Russian),
+   ("spancirety", SomeRules Spancirety)]
 
 selectRules :: NewGameRq -> Maybe SomeRules
 selectRules (NewGameRq name params _) = go supportedRules
@@ -283,7 +286,7 @@ getGames mbRulesId = do
           Just rulesId -> rulesName rules == rulesId
   return [game | game <- games, good (gRules game)]
 
-getNotation :: String -> Checkers [(Label, Notation)]
+getNotation :: String -> Checkers (BoardSize, [(Label, Notation)])
 getNotation rname = do
     let Just someRules = select supportedRules
         result = process someRules
@@ -298,7 +301,9 @@ getNotation rname = do
     process (SomeRules rules) =
       let board = initBoard rules
           labels = labelMapKeys (bAddresses board)
-      in  [(label, boardNotation rules label) | label <- labels]
+          notation = [(label, boardNotation rules label) | label <- labels]
+          size = boardSize rules
+      in  (size, notation)
     
 
 getPlayer :: Game -> Side -> Player

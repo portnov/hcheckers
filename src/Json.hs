@@ -121,7 +121,7 @@ instance ToJSON RsPayload where
   toJSON (MoveRs board) = toJSON board
   toJSON (UndoRs board) = toJSON board
   toJSON (LobbyRs games) = toJSON games
-  toJSON (NotationRs list) = toJSON list
+  toJSON (NotationRs size list) = object ["size" .= size, "notation" .= list]
 
 instance ToJSON SupervisorRs where
   toJSON (SupervisorRs payload messages) = object ["response" .= payload, "messages" .= messages]

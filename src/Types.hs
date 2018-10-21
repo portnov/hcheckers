@@ -46,7 +46,7 @@ instance Hashable Label where
 type Notation = T.Text
 
 letters :: [Char]
-letters = "abcdefgh" 
+letters = ['a' .. 'z']
 
 instance Show Label where
   show l = letter : show (labelRow l + 1)

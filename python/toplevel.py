@@ -106,7 +106,7 @@ class Checkers(QMainWindow):
         if result == QDialog.Accepted:
             game = dialog.get_settings()
             if game.action == START_AI_GAME:
-                self.game.start_new_game(game.user_name, user_turn_first=game.user_turn_first, ai=game.ai)
+                self.game.start_new_game(game.user_name, rules=game.rules, user_turn_first=game.user_turn_first, ai=game.ai)
             elif game.action == START_HUMAN_GAME:
                 game_id = self.game.new_game(game.rules)
                 print(game_id)
@@ -123,10 +123,9 @@ class Checkers(QMainWindow):
                 self.do_poll = True
                 self.board.my_turn = side == FIRST
 
-            notation = self.game.get_notation(game.rules)
-            self.board.set_notation(notation)
+            size, notation = self.game.get_notation(game.rules)
+            self.board.set_notation(size, notation)
 
-            self.board.fields_setup()
             self.board.repaint()
 
     def _on_undo(self):

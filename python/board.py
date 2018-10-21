@@ -101,20 +101,8 @@ class Board(QWidget):
 
         self.game = game
         self._theme = theme
-        self.n_rows = 8
-        self.n_cols = 8
 
-        self.fields = {}
-        self.field_by_label = {}
-        self.index_by_label = {}
-        for row in range(self.n_rows):
-            for col in range(self.n_cols):
-                field = Field()
-                field.theme = self._theme
-                field.label = Label(col, row)
-                self.fields[(row, col)] = field
-                self.field_by_label[field.label] = field
-                self.index_by_label[field.label] = (row, col)
+        self._init_fields(8, 8)
 
         self._pixmap = None
 
@@ -134,6 +122,21 @@ class Board(QWidget):
     field_clicked = pyqtSignal(int, int)
 
     message = pyqtSignal(str)
+
+    def _init_fields(self, rows, cols):
+        self.n_rows = rows
+        self.n_cols = cols
+        self.fields = {}
+        self.field_by_label = {}
+        self.index_by_label = {}
+        for row in range(self.n_rows):
+            for col in range(self.n_cols):
+                field = Field()
+                field.theme = self._theme
+                field.label = Label(col, row)
+                self.fields[(row, col)] = field
+                self.field_by_label[field.label] = field
+                self.index_by_label[field.label] = (row, col)
 
     def get_my_turn(self):
         return self._my_turn
@@ -197,12 +200,14 @@ class Board(QWidget):
 
     show_notation = property(get_show_notation, set_show_notation)
 
-    def set_notation(self, pairs):
-        print pairs
+    def set_notation(self, size, pairs):
+        (rows, cols) = size
+        self._init_fields(rows, cols)
+        self.setup_patterns()
         for label, notation in pairs:
             idx = self.index_by_label[Label.fromJson(label)]
             self.fields[idx].notation = notation
-        self.invalidate()
+        self.fields_setup()
 
     def reset(self):
         self.fields_setup()
@@ -288,14 +293,14 @@ class Board(QWidget):
 
     def get_size(self):
         size = self.size()
-        return min(size.width(), size.height())
+        return (size.width(), size.height())
 
     def get_target_field_size(self, size):
         w_max = size.width()
         h_max = size.height()
         max_size = min(w_max, h_max)
 
-        return max_size / max(self.n_rows, self.n_cols)
+        return max_size / min(self.n_rows, self.n_cols)
     
     def paintEvent(self, e):
         self.draw()
@@ -319,11 +324,11 @@ class Board(QWidget):
 
     def get_field_center(self, idx):
         row, col = idx
-        size = self.get_size()
+        (width, height) = self.get_size()
         x = (col + 0.5) / self.n_cols
         y = (self.n_rows - 1 - row + 0.5) / self.n_rows
         #print("{} => {}".format(idx, (x,y)))
-        return (x*size, y*size)
+        return (x*width, y*height)
 
     def get_move_end_field(self, move):
         label = move.steps[-1].field

@@ -107,8 +107,8 @@ restServer = do
 
   get "/notation/:rules" $ do
     rules <- param "rules"
-    notation <- lift $ getNotation rules
-    json $ SupervisorRs (NotationRs notation) []
+    (size, notation) <- lift $ getNotation rules
+    json $ SupervisorRs (NotationRs size notation) []
     
 runRestServer :: Checkers ()
 runRestServer = do
