@@ -2,6 +2,8 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE FlexibleInstances #-}
 module AI where
 
 import Control.Monad
@@ -10,23 +12,21 @@ import Control.Exception (evaluate)
 import Control.Concurrent.STM
 import Data.Maybe
 import qualified Data.Map as M
+import Data.Text.Format.Heavy
 import Data.Typeable
 import Data.Ord
 import Data.List
 import Data.Aeson
 import Text.Printf
 import System.Clock
+import System.Log.Heavy
+import System.Log.Heavy.TH
 
 import Types
 import Board
 import BoardMap
 import AICache
 import Parallel
-
--- import Debug.Trace
-
-trace :: String -> x -> x
-trace _ x = x
 
 instance FromJSON AlphaBetaParams where
   parseJSON = withObject "AlphaBetaParams" $ \v -> AlphaBetaParams
@@ -64,18 +64,18 @@ instance (GameRules rules) => GameAi (AlphaBeta rules) where
 
   aiName _ = "default"
 
-scoreMove :: (GameRules rules) => ScoreMoveInput rules -> IO (Move, Score)
+scoreMove :: (GameRules rules) => ScoreMoveInput rules -> Checkers (Move, Score)
 scoreMove (ai@(AlphaBeta params rules), var, side, depth, board, move) = do
-     time1 <- getTime Realtime
-     let (board', _, _) = applyMove side move board
-     score <- doScore rules ai var params (opposite side) depth board'
-     time2 <- getTime Realtime
-     let delta = time2-time1
-     printf "Check: %s (depth %d) => %d (in %ds + %dns)\n" (show move) depth score (sec delta) (nsec delta)
+     score <- timed "Checking a move" $ do
+                let (board', _, _) = applyMove side move board
+                score <- doScore rules ai var params (opposite side) depth board'
+                $info "Check: {} (depth {}) => {}" (show move, depth, score)
+                return score
+     
      return (move, score)
 
 
-runAI :: GameRules rules => AlphaBeta rules -> AICacheHandle rules -> Side -> Board -> IO ([Move], Score)
+runAI :: GameRules rules => AlphaBeta rules -> AICacheHandle rules -> Side -> Board -> Checkers ([Move], Score)
 runAI ai@(AlphaBeta params rules) var side board = do
     let depth = abDepth params
         startDepth = fromMaybe depth (abStartDepth params)
@@ -94,7 +94,7 @@ runAI ai@(AlphaBeta params rules) var side board = do
                    else return (goodMoves, maxScore)
 
     runAI' depth moves = do
-          AICache _ processor _ <- atomically $ readTVar var
+          AICache _ processor _ <- liftIO $ atomically $ readTVar var
           let inputs = [(ai, var, side, depth, board, move) | move <- moves]
           scores <- process processor inputs
           let select = if side == First then maximum else minimum
@@ -122,7 +122,7 @@ putMoves First board moves memo =
 putMoves Second board moves memo =
   memo {mmSecond = putBoardMap board moves (mmSecond memo)}
 
-doScore :: (GameRules rules, Evaluator eval) => rules -> eval -> AICacheHandle rules -> AlphaBetaParams -> Side -> Int -> Board -> IO Score
+doScore :: (GameRules rules, Evaluator eval) => rules -> eval -> AICacheHandle rules -> AlphaBetaParams -> Side -> Int -> Board -> Checkers Score
 doScore rules eval var params side depth board =
     fixSign <$> evalStateT (cachedScoreAB var params side depth (-max_value) max_value) initState
   where
@@ -154,7 +154,25 @@ instance Show StackItem where
       showM Nothing = "Start"
       showM (Just move) = show move
 
-type ScoreM rules eval a = StateT (ScoreState rules eval) IO a
+type ScoreM rules eval a = StateT (ScoreState rules eval) Checkers a
+
+instance HasLogger (StateT (ScoreState rules eval) Checkers) where
+  getLogger = lift getLogger
+
+  localLogger logger actions = do
+    st <- get
+    (result, st') <- lift $ localLogger logger $ runStateT actions st
+    put st'
+    return result
+
+instance HasLogContext (StateT (ScoreState rules eval) Checkers) where
+  getLogContext = lift getLogContext
+
+  withLogContext frame actions = do
+    st <- get
+    (result, st') <- lift $ withLogContext frame $ runStateT actions st
+    put st'
+    return result
 
 cachedScoreAB :: forall rules eval. (GameRules rules, Evaluator eval)
               => AICacheHandle rules
@@ -192,17 +210,17 @@ scoreAB :: forall rules eval. (GameRules rules, Evaluator eval)
 scoreAB _ _ side 0 alpha beta = do
     score0 <- gets (siScore0 . head . ssStack)
     -- let score0' = if side == First then score0 else -score0
-    trace (printf "    X Side: %s, A = %d, B = %d, score0 = %d" (show side) alpha beta score0) $ return ()
+    $trace "    X Side: {}, A = {}, B = {}, score0 = {}" (show side, alpha, beta, score0)
     return (score0, [])
 scoreAB var params side depth alpha beta = do
     rules <- gets ssRules
     setBest $ if maximize then alpha else beta -- we assume alpha <= beta
-    trace (printf "%sV Side: %s, A = %d, B = %d" indent (show side) alpha beta) $ return ()
+    $trace "{}V Side: {}, A = {}, B = {}" (indent, show side, alpha, beta)
     board <- getBoard
     moves <- possibleMoves' board
 
     when (null moves) $
-      trace (printf "%s| No moves left." indent) $ return ()
+      $trace "{}| No moves left." (Single indent)
     iterateMoves moves
 
   where
@@ -246,7 +264,7 @@ scoreAB var params side depth alpha beta = do
 
     printStack = do
       stack <- gets (reverse . ssStack)
-      trace (printf "%s| side %s: %s" indent (show side) (showStack stack)) $ return ()
+      $trace "{}| side {}: {}" (indent, show side, showStack stack)
 
     indent = replicate (2*(4-depth)) ' '
 
@@ -256,17 +274,17 @@ scoreAB var params side depth alpha beta = do
     setBest :: Score -> ScoreM rules eval ()
     setBest best = do
       oldBest <- getBest
-      trace (printf "%s| %s for depth %d : %d => %d" indent bestStr depth oldBest best) $ return ()
+      $trace "{}| {} for depth {} : {} => {}" (indent, bestStr, depth, oldBest, best)
       modify $ \st -> st {ssStack = update (head $ ssStack st) : tail (ssStack st)}
         where
           update item = item {siScoreBest = best}
 
     iterateMoves [] = do
       best <- getBest
-      trace (printf "%s|—All moves considered at this level, return best = %d" indent best) $ return ()
+      $trace "{}|—All moves considered at this level, return best = {}" (indent, best)
       return (best, [])
     iterateMoves (move : moves) = do
-      trace (printf "%s|+Check move of side %s: %s" indent (show side) (show move)) $ return ()
+      $trace "{}|+Check move of side {}: {}" (indent, show side, show move)
       board <- getBoard
       evaluator <- gets ssEvaluator
       let (board', _, _) = applyMove side move board
@@ -281,7 +299,7 @@ scoreAB var params side depth alpha beta = do
                      then beta
                      else min beta best
       score <- cachedScoreAB var params (opposite side) (depth - 1) alpha' beta'
-      trace (printf "%s| score for side %s: %d" indent (show side) score) $ return ()
+      $trace "{}| score for side {}: {}" (indent, show side, score)
       pop
       best <- getBest
 
@@ -292,7 +310,7 @@ scoreAB var params side depth alpha beta = do
              if score >= beta
                then do
                     best <- getBest
-                    trace (printf "%s| Return %s for depth %d = %d" indent bestStr depth best) $ return ()
+                    $trace "{}| Return {} for depth {} = {}" (indent, bestStr, depth, best)
                     return (best, [])
                     
                else iterateMoves moves

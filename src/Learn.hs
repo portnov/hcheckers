@@ -3,6 +3,7 @@ module Learn where
 
 import Control.Monad
 import Control.Monad.State
+import Control.Monad.IO.Class
 import Control.Exception (evaluate)
 import Control.Concurrent.STM
 import Data.Maybe
@@ -22,7 +23,7 @@ import AI
 import AICache
 import Pdn
 
-doLearn :: (GameRules rules, Evaluator eval) => rules -> eval -> AICacheHandle rules -> AlphaBetaParams -> GameRecord -> Int -> IO ()
+doLearn :: (GameRules rules, Evaluator eval) => rules -> eval -> AICacheHandle rules -> AlphaBetaParams -> GameRecord -> Int -> Checkers ()
 doLearn rules eval var params gameRec depth = do
     let board = initBoard rules
     go board $ grMoves gameRec
@@ -51,17 +52,17 @@ parseMoveRec rules side board rec =
     [] -> error $ "no such move: " ++ show rec
     ms -> error $ "ambigous move: " ++ show ms
 
-processMove :: (GameRules rules, Evaluator eval) => rules -> eval -> AICacheHandle rules -> AlphaBetaParams -> Side -> Int -> Move -> Board -> IO ()
+processMove :: (GameRules rules, Evaluator eval) => rules -> eval -> AICacheHandle rules -> AlphaBetaParams -> Side -> Int -> Move -> Board -> Checkers ()
 processMove rules eval var params side depth move board = do
   let ai = AlphaBeta params rules
   (moves, score) <- runAI ai var side board
-  printf "Processed: side %s, move: %s, depth: %d => score %d; we think next best moves are: %s\n" (show side) (show move) depth score (show moves)
+  liftIO $ printf "Processed: side %s, move: %s, depth: %d => score %d; we think next best moves are: %s\n" (show side) (show move) depth score (show moves)
   return ()
 
-learnPdn :: (GameRules rules) => AlphaBeta rules -> FilePath -> Int -> IO ()
+learnPdn :: (GameRules rules) => AlphaBeta rules -> FilePath -> Int -> Checkers ()
 learnPdn ai@(AlphaBeta params rules) path depth = do
   cache <- loadAiCache scoreMove ai
-  pdn <- parsePdn path
+  pdn <- liftIO $ parsePdn path
   forM_ pdn $ \gameRec -> do
     doLearn rules ai cache params gameRec depth
     saveAiCache rules params cache

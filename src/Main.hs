@@ -6,6 +6,7 @@ import qualified Data.Map as M
 import Text.Printf
 import Data.Default
 import System.Environment
+import System.Log.Heavy
 
 import Types
 import Board
@@ -14,10 +15,21 @@ import AI
 import AICache
 import Rest
 import Learn
+import Supervisor
+
+withCheckers :: LoggingSettings -> SupervisorHandle -> Checkers a -> IO a
+withCheckers (LoggingSettings settings) supervisor actions =
+  withLoggingB settings $ \backend ->
+    let logger = makeLogger backend
+        logging = LoggingTState logger (AnyLogBackend backend) []
+        cs = CheckersState logging supervisor
+    in  runCheckersT actions cs
 
 main :: IO ()
 main = do
   args <- getArgs
+  let settings = LoggingSettings defStdoutSettings
+  supervisor <- mkSupervisor
   case args of
     ["learn", path] -> do
       let rules = Russian
@@ -25,9 +37,13 @@ main = do
           ai = AlphaBeta params rules
           eval = ai
           depth = 6
-      learnPdn ai path depth
+      withCheckers settings supervisor $
+          learnPdn ai path depth
     
-    _ -> runRestServer
+    _ ->
+      withCheckers settings supervisor $
+          withLogContext (LogContextFrame [] (include defaultLogFilter)) $
+              runRestServer
 
 
 -- main :: IO ()

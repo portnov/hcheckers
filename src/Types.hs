@@ -2,10 +2,16 @@
 {-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE OverloadedStrings #-}
 module Types where
 
 import Control.Monad
+import Control.Monad.Reader
+import Control.Monad.IO.Class
+import Control.Concurrent.STM
 import Data.Maybe
 import Data.List
 import qualified Data.Map as M
@@ -14,6 +20,7 @@ import qualified Data.HashMap.Strict as H
 import Data.Array
 import Data.String
 import Data.Char (isDigit, ord)
+import Data.Dynamic
 import Data.Aeson (Value)
 import Data.Typeable
 import Data.Int
@@ -23,6 +30,10 @@ import Data.Store
 import Data.Hashable
 import Text.Printf
 import GHC.Generics
+import System.Log.Heavy
+import System.Clock
+import System.Log.Heavy
+import System.Log.Heavy.TH
 
 data Label = Label {
     labelColumn :: ! Line,
@@ -278,17 +289,135 @@ class Evaluator e where
 class (Typeable ai, Typeable (AiStorage ai)) => GameAi ai where
   type AiStorage ai
 
-  createAiStorage :: ai -> IO (AiStorage ai)
-  saveAiStorage :: ai -> AiStorage ai -> IO ()
+  createAiStorage :: ai -> Checkers (AiStorage ai)
+  saveAiStorage :: ai -> AiStorage ai -> Checkers ()
 
   aiName :: ai -> String
   
   updateAi :: ai -> Value -> ai
 
-  chooseMove :: ai -> AiStorage ai -> Side -> Board -> IO [Move]
+  chooseMove :: ai -> AiStorage ai -> Side -> Board -> Checkers [Move]
 
 data SomeAi = forall ai. GameAi ai => SomeAi ai
 
 updateSomeAi :: SomeAi -> Value -> SomeAi
 updateSomeAi (SomeAi ai) params = SomeAi (updateAi ai params)
+
+type GameId = String
+
+data Player =
+    User String
+  | forall ai. GameAi ai => AI ai
+
+instance Show Player where
+  show (User name) = name
+  show (AI ai) = aiName ai
+
+data GameStatus = New | Running
+  deriving (Eq, Show, Generic)
+
+data Game = Game {
+    getGameId :: GameId
+  , gState :: GameState
+  , gStatus :: GameStatus
+  , gRules :: SomeRules
+  , gPlayer1 :: Maybe Player
+  , gPlayer2 :: Maybe Player
+  , gMsgbox1 :: [Notify]
+  , gMsgbox2 :: [Notify]
+  }
+
+instance Show Game where
+  show g = printf "<Game: %s, 1: %s, 2: %s>"
+                  (show $ gRules g)
+                  (show $ gPlayer1 g)
+                  (show $ gPlayer2 g)
+
+instance Eq Game where
+  g1 == g2 = getGameId g1 == getGameId g2
+
+data GameState = GameState {
+    gsSide :: Side
+  , gsCurrentBoard :: Board
+  , gsHistory :: [HistoryRecord]
+  }
+
+data HistoryRecord = HistoryRecord {
+    hrSide :: Side
+  , hrMove :: Move
+  , hrPrevBoard :: Board
+  }
+
+data Notify =
+    MoveNotify {
+      nDestination :: Side
+    , nSource :: Side
+    , nMove :: MoveRep
+    , nBoard :: BoardRep
+    }
+  | UndoNotify {
+      nDestination :: Side
+    , nSource :: Side
+    , nBoard :: BoardRep
+    }
+  | ResultNotify {
+      nDestination :: Side
+    , nSource :: Side
+    , nResult :: GameResult
+  }
+  deriving (Eq, Show, Generic)
+
+data SupervisorState = SupervisorState {
+    ssGames :: M.Map GameId Game
+  , ssLastGameId :: Int
+  , ssAiStorages :: M.Map (String,String) Dynamic
+  }
+
+type SupervisorHandle = TVar SupervisorState
+
+data CheckersState = CheckersState {
+    csLogging :: LoggingTState
+  , csSupervisor :: SupervisorHandle
+  }
+
+newtype Checkers a = Checkers {
+    runCheckers :: ReaderT CheckersState IO a
+  }
+  deriving (Applicative, Functor, Monad, MonadIO, MonadReader CheckersState)
+
+runCheckersT :: Checkers a -> CheckersState -> IO a
+runCheckersT actions st = runReaderT (runCheckers actions) st
+
+askSupervisor :: Checkers SupervisorHandle
+askSupervisor = asks csSupervisor
+
+askLogging :: Checkers LoggingTState
+askLogging = asks csLogging
+
+instance HasLogContext Checkers where
+  getLogContext = asks (ltsContext . csLogging)
+
+  withLogContext frame actions =
+    Checkers $ ReaderT $ \cs ->
+      let logging = csLogging cs
+          logging' = logging {ltsContext = frame : ltsContext logging} 
+      in runReaderT (runCheckers actions) $ cs {csLogging = logging'}
+
+instance HasLogger Checkers where
+  getLogger = asks (ltsLogger . csLogging)
+
+  localLogger logger actions =
+    Checkers $ ReaderT $ \cs ->
+      let logging = csLogging cs
+          logging' = logging {ltsLogger = logger}
+      in runReaderT (runCheckers actions) $ cs {csLogging = logging'}
+
+timed :: String -> Checkers a -> Checkers a
+timed message actions = do
+    time1 <- liftIO $ getTime Realtime
+    result <- actions
+    time2 <- liftIO $ getTime Realtime
+    let delta = time2 - time1
+    $debug "{}: {}s + {}ns" (message, sec delta, nsec delta)
+    return result
 

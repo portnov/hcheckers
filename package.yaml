@@ -40,6 +40,8 @@ dependencies:
 - directory
 - data-default
 - megaparsec
+- heavy-logger
+- text-format-heavy
 
 executables:
   hcheckers-exe:

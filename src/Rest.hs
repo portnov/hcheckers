@@ -3,18 +3,21 @@
 module Rest where
 
 import Control.Monad
+import Control.Monad.Reader
+import Control.Monad.Trans
 import Control.Monad.IO.Class
 import Control.Concurrent
 import Control.Concurrent.STM
 import Data.Maybe
 import qualified Data.Map as M
 import qualified Data.Text as T
+import qualified Data.Text.Lazy as TL
 import Data.Ord
 import Data.List
 import Text.Printf
 import Data.Aeson hiding (json)
 import GHC.Generics
-import Web.Scotty
+import Web.Scotty.Trans
 import Network.HTTP.Types.Status
 
 import Types
@@ -25,7 +28,7 @@ import AI
 import Supervisor
 import Json
 
-error400 :: T.Text -> ActionM ()
+error400 :: T.Text -> ActionT TL.Text Checkers ()
 error400 message = do
   json $ object ["error" .= message]
   status status400
@@ -35,20 +38,20 @@ instance Parsable Side where
   parseParam "2" = Right Second
   parseParam text = Left $ "unknown side"
 
-restServer :: SupervisorHandle -> ScottyM ()
-restServer supervisor = do
+restServer :: ScottyT TL.Text Checkers ()
+restServer = do
   post "/game/new" $ do
     rq@(NewGameRq _ _ mbBoard) <- jsonData
     case selectRules rq of
       Nothing -> error400 "invalid game rules"
       Just rules -> do
-        gameId <- liftIO $ newGame supervisor rules mbBoard
+        gameId <- lift $ newGame rules mbBoard
         json $ SupervisorRs (NewGameRs gameId) []
 
   post "/game/:id/attach/ai/:side" $ do
     gameId <- param "id"
     side <- param "side"
-    mbRules <- liftIO $ getRules supervisor gameId
+    mbRules <- lift $ getRules gameId
     case mbRules of
       Nothing -> error400 "no such game"
       Just rules -> do
@@ -56,69 +59,70 @@ restServer supervisor = do
           case selectAi rq rules of
             Nothing -> error400 "invalid ai settings"
             Just ai -> do
-              liftIO $ initAiStorage supervisor rules ai
-              liftIO $ attachAi supervisor gameId side ai
+              lift $ initAiStorage rules ai
+              lift $ attachAi gameId side ai
               json $ SupervisorRs AttachAiRs []
 
   post "/game/:id/attach/:name/:side" $ do
     gameId <- param "id"
     name <- param "name"
     side <- param "side"
-    liftIO $ registerUser supervisor gameId side name
+    lift $ registerUser gameId side name
     json $ SupervisorRs RegisterUserRs []
 
   post "/game/:id/run" $ do
     gameId <- param "id"
-    liftIO $ runGame supervisor gameId
+    lift $ runGame gameId
     json $ SupervisorRs RunGameRs []
 
   get "/game/:id/state" $ do
     gameId <- param "id"
-    rs <- liftIO $ getState supervisor gameId
+    rs <- lift $ getState gameId
     json $ SupervisorRs rs []
 
   post "/game/:id/move/:name" $ do
     gameId <- param "id"
     name <- param "name"
     moveRq <- jsonData
-    board <- liftIO $ doMove supervisor gameId name moveRq
-    messages <- liftIO $ getMessages supervisor name
+    board <- lift $ doMove gameId name moveRq
+    messages <- lift $ getMessages name
     json $ SupervisorRs (MoveRs board) messages
 
   get "/game/:id/moves/:name" $ do
     gameId <- param "id"
     name <- param "name"
-    mbSide <- liftIO $ getSideByUser supervisor gameId name
+    mbSide <- lift $ getSideByUser gameId name
     case mbSide of
       Nothing -> error400 "no such user in this game"
       Just side -> do
-        moves <- liftIO $ getPossibleMoves supervisor gameId side
-        messages <- liftIO $ getMessages supervisor name
+        moves <- lift $ getPossibleMoves gameId side
+        messages <- lift $ getMessages name
         json $ SupervisorRs (PossibleMovesRs moves) messages
 
   post "/game/:id/undo/:name" $ do
     gameId <- param "id"
     name <- param "name"
-    board <- liftIO $ doUndo supervisor gameId name
-    messages <- liftIO $ getMessages supervisor name
+    board <- lift $ doUndo gameId name
+    messages <- lift $ getMessages name
     json $ SupervisorRs (UndoRs board) messages
 
   get "/poll/:name" $ do
     name <- param "name"
-    messages <- liftIO $ getMessages supervisor name
+    messages <- lift $ getMessages name
     json $ SupervisorRs (PollRs messages) []
 
   get "/lobby/:rules" $ do
     rules <- param "rules"
-    games <- liftIO $ getGames supervisor (Just rules)
+    games <- lift $ getGames (Just rules)
     json $ SupervisorRs (LobbyRs games) []
 
   get "/lobby" $ do
-    games <- liftIO $ getGames supervisor Nothing
+    games <- lift $ getGames Nothing
     json $ SupervisorRs (LobbyRs games) []
     
-runRestServer :: IO ()
+runRestServer :: Checkers ()
 runRestServer = do
-  supervisor <- mkSupervisor
-  scotty 3000 (restServer supervisor)
+  cs <- ask
+  let getResponse m = runCheckersT m cs
+  scottyT 3000 getResponse restServer
 

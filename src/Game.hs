@@ -21,71 +21,7 @@ import Board
 
 import Debug.Trace
 
-type GameId = String
-
-data Player =
-    User String
-  | forall ai. GameAi ai => AI ai
-
-instance Show Player where
-  show (User name) = name
-  show (AI ai) = aiName ai
-
-data GameStatus = New | Running
-  deriving (Eq, Show, Generic)
-
-data Game = Game {
-    getGameId :: GameId
-  , gState :: GameState
-  , gStatus :: GameStatus
-  , gRules :: SomeRules
-  , gPlayer1 :: Maybe Player
-  , gPlayer2 :: Maybe Player
-  , gMsgbox1 :: [Notify]
-  , gMsgbox2 :: [Notify]
-  }
-
-instance Show Game where
-  show g = printf "<Game: %s, 1: %s, 2: %s>"
-                  (show $ gRules g)
-                  (show $ gPlayer1 g)
-                  (show $ gPlayer2 g)
-
-instance Eq Game where
-  g1 == g2 = getGameId g1 == getGameId g2
-
-data GameState = GameState {
-    gsSide :: Side
-  , gsCurrentBoard :: Board
-  , gsHistory :: [HistoryRecord]
-  }
-
-data HistoryRecord = HistoryRecord {
-    hrSide :: Side
-  , hrMove :: Move
-  , hrPrevBoard :: Board
-  }
-
 type GameM a = ExceptT String (State Game) a
-
-data Notify =
-    MoveNotify {
-      nDestination :: Side
-    , nSource :: Side
-    , nMove :: MoveRep
-    , nBoard :: BoardRep
-    }
-  | UndoNotify {
-      nDestination :: Side
-    , nSource :: Side
-    , nBoard :: BoardRep
-    }
-  | ResultNotify {
-      nDestination :: Side
-    , nSource :: Side
-    , nResult :: GameResult
-  }
-  deriving (Eq, Show, Generic)
 
 mkGame :: GameRules rules => rules -> Int -> Maybe BoardRep -> Game
 mkGame rules id mbBoardRep =

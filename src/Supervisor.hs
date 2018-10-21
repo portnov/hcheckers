@@ -1,17 +1,20 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TemplateHaskell #-}
 
 module Supervisor where
 
 import Control.Monad
 import Control.Monad.State
+import Control.Monad.Reader
 import Control.Monad.Except
 import Control.Concurrent
 import Control.Concurrent.STM
 import Data.Maybe
 import qualified Data.Map as M
 import qualified Data.Text as T
+import Data.Text.Format.Heavy
 import Data.Ord
 import Data.List
 import Text.Printf
@@ -21,6 +24,8 @@ import Data.Dynamic
 import GHC.Generics
 import System.Random
 import System.Clock
+import System.Log.Heavy
+import System.Log.Heavy.TH
 
 import Types
 import Board
@@ -28,14 +33,6 @@ import Game
 import Russian
 import AI
 import AICache
-
-data SupervisorState = SupervisorState {
-    ssGames :: M.Map GameId Game
-  , ssLastGameId :: Int
-  , ssAiStorages :: M.Map (String,String) Dynamic
-  }
-
-type SupervisorHandle = TVar SupervisorState
 
 data NewGameRq = NewGameRq String Value (Maybe BoardRep)
   deriving (Eq, Show, Generic)
@@ -91,20 +88,22 @@ selectAi (AttachAiRq name params) rules = go supportedAis
       | key == name = Just $ updateSomeAi (fn rules) params
       | otherwise = go other
 
-initAiStorage :: SupervisorHandle -> SomeRules -> SomeAi -> IO ()
-initAiStorage var (SomeRules rules) (SomeAi ai) = do
-  st <- atomically $ readTVar var
+initAiStorage :: SomeRules -> SomeAi -> Checkers ()
+initAiStorage (SomeRules rules) (SomeAi ai) = do
+  var <- askSupervisor
+  st <- liftIO $ atomically $ readTVar var
   let key = (rulesName rules, aiName ai)
   case M.lookup key (ssAiStorages st) of
     Nothing -> do
       storage <- createAiStorage ai
-      atomically $ modifyTVar var $ \st ->
+      liftIO $ atomically $ modifyTVar var $ \st ->
           st {ssAiStorages = M.insert key (toDyn storage) (ssAiStorages st)}
     Just _ -> return ()
 
-newGame :: SupervisorHandle -> SomeRules -> Maybe BoardRep -> IO GameId
-newGame var r@(SomeRules rules) mbBoardRep =
-  atomically $ do
+newGame :: SomeRules -> Maybe BoardRep -> Checkers GameId
+newGame r@(SomeRules rules) mbBoardRep = do
+  var <- askSupervisor
+  liftIO $ atomically $ do
     st <- readTVar var
     let gameId = ssLastGameId st + 1
     writeTVar var $ st {ssLastGameId = gameId}
@@ -112,35 +111,39 @@ newGame var r@(SomeRules rules) mbBoardRep =
     modifyTVar var $ \st -> st {ssGames = M.insert (show gameId) game (ssGames st)}
     return $ show gameId
 
-registerUser :: SupervisorHandle -> GameId -> Side -> String -> IO ()
-registerUser var gameId side name =
-    atomically $ modifyTVar var $ \st -> st {ssGames = M.update (Just . update name) gameId (ssGames st)}
+registerUser :: GameId -> Side -> String -> Checkers ()
+registerUser gameId side name = do
+    var <- askSupervisor
+    liftIO $ atomically $ modifyTVar var $ \st -> st {ssGames = M.update (Just . update name) gameId (ssGames st)}
   where
     update name game
       | side == First = game {gPlayer1 = Just (User name)}
       | otherwise     = game {gPlayer2 = Just (User name)}
 
-attachAi :: SupervisorHandle -> GameId -> Side -> SomeAi -> IO ()
-attachAi var gameId side (SomeAi ai) = do
-    atomically $ modifyTVar var $ \st -> st {ssGames = M.update (Just . update) gameId (ssGames st)}
+attachAi :: GameId -> Side -> SomeAi -> Checkers ()
+attachAi gameId side (SomeAi ai) = do
+    var <- askSupervisor
+    liftIO $ atomically $ modifyTVar var $ \st -> st {ssGames = M.update (Just . update) gameId (ssGames st)}
   where
     update game
       | side == First = game {gPlayer1 = Just $ AI ai}
       | otherwise     = game {gPlayer2 = Just $ AI ai}
 
-runGame :: SupervisorHandle -> GameId -> IO ()
-runGame var gameId = do
-    atomically $ modifyTVar var $ \st -> st {ssGames = M.update (Just . update) gameId (ssGames st)}
-    mbGame <- getGame var gameId
+runGame :: GameId -> Checkers ()
+runGame gameId = do
+    var <- askSupervisor
+    liftIO $ atomically $ modifyTVar var $ \st -> st {ssGames = M.update (Just . update) gameId (ssGames st)}
+    mbGame <- getGame gameId
     let game = fromJust mbGame
-    letAiMove var gameId First Nothing
+    letAiMove gameId First Nothing
     return ()
   where
     update game = game {gStatus = Running}
 
-withGame :: SupervisorHandle -> GameId -> GameM a -> IO a
-withGame var gameId action =
-    atomically $ do
+withGame :: GameId -> GameM a -> Checkers a
+withGame gameId action = do
+    var <- askSupervisor
+    liftIO $ atomically $ do
       st <- readTVar var
       case M.lookup gameId (ssGames st) of
         Nothing -> fail $ "No such game: " ++ gameId
@@ -152,28 +155,31 @@ withGame var gameId action =
               writeTVar var $ st {ssGames = M.insert gameId game' (ssGames st)}
               return result
 
-getGame :: SupervisorHandle -> GameId -> IO (Maybe Game)
-getGame var gameId = do
-  st <- atomically $ readTVar var
+getGame :: GameId -> Checkers (Maybe Game)
+getGame gameId = do
+  var <- askSupervisor
+  st <- liftIO $ atomically $ readTVar var
   return $ M.lookup gameId (ssGames st)
 
-getRules :: SupervisorHandle -> GameId -> IO (Maybe SomeRules)
-getRules var gameId = do
-  mbGame <- getGame var gameId
+getRules :: GameId -> Checkers (Maybe SomeRules)
+getRules gameId = do
+  mbGame <- getGame gameId
   case mbGame of
     Nothing -> return Nothing
     Just game -> return $ Just $ gRules game
 
-getGameByUser :: SupervisorHandle -> String -> IO (Maybe Game)
-getGameByUser var name = do
-  st <- atomically $ readTVar var
+getGameByUser :: String -> Checkers (Maybe Game)
+getGameByUser name = do
+  var <- askSupervisor
+  st <- liftIO $ atomically $ readTVar var
   case filter (\g -> isJust (sideByUser g name)) (M.elems $ ssGames st) of
     [game] -> return (Just game)
     _ -> return Nothing
 
-getMessages :: SupervisorHandle -> String -> IO [Notify]
-getMessages var name = do
-  atomically $ do
+getMessages :: String -> Checkers [Notify]
+getMessages name = do
+  var <- askSupervisor
+  liftIO $ atomically $ do
     st <- readTVar var
     let messages = concatMap getM (M.elems $ ssGames st)
     let st' = st {ssGames = M.map updateGame (ssGames st)}
@@ -192,39 +198,39 @@ getMessages var name = do
         Just First -> gMsgbox1 game
         Just Second -> gMsgbox2 game
     
-getPossibleMoves :: SupervisorHandle -> GameId -> Side -> IO [MoveRep]
-getPossibleMoves var gameId side = do
-  moves <- withGame var gameId gamePossibleMoves 
+getPossibleMoves :: GameId -> Side -> Checkers [MoveRep]
+getPossibleMoves gameId side = do
+  moves <- withGame gameId gamePossibleMoves 
   return $ map (moveRep side) moves
 
-doMove :: SupervisorHandle -> GameId -> String -> MoveRep -> IO BoardRep
-doMove var gameId name moveRq = do
-  mbGame <- getGame var gameId
+doMove :: GameId -> String -> MoveRep -> Checkers BoardRep
+doMove gameId name moveRq = do
+  mbGame <- getGame gameId
   let game = fromJust mbGame
   let side = fromJust $ sideByUser game name
-  GMoveRs board' messages <- withGame var gameId $ doMoveRepRq side moveRq
-  queueNotifications var gameId messages
-  letAiMove var gameId (opposite side) (Just board')
+  GMoveRs board' messages <- withGame gameId $ doMoveRepRq side moveRq
+  queueNotifications gameId messages
+  letAiMove gameId (opposite side) (Just board')
   return $ boardRep board'
 
-doUndo :: SupervisorHandle -> GameId -> String -> IO BoardRep
-doUndo var gameId name = do
-  mbGame <- getGame var gameId
+doUndo :: GameId -> String -> Checkers BoardRep
+doUndo gameId name = do
+  mbGame <- getGame gameId
   let game = fromJust mbGame
   let side = fromJust $ sideByUser game name
-  GUndoRs board' messages <- withGame var gameId $ doUndoRq side
-  queueNotifications var gameId messages
-  letAiMove var gameId side (Just board')
+  GUndoRs board' messages <- withGame gameId $ doUndoRq side
+  queueNotifications gameId messages
+  letAiMove gameId side (Just board')
   return $ boardRep board'
 
 withAiStorage :: GameAi ai
-              => SupervisorHandle
-              -> SomeRules
+              => SomeRules
               -> ai
-              -> (AiStorage ai -> IO a)
-              -> IO a
-withAiStorage var (SomeRules rules) ai fn = do
-    st <- atomically $ readTVar var
+              -> (AiStorage ai -> Checkers a)
+              -> Checkers a
+withAiStorage (SomeRules rules) ai fn = do
+    var <- askSupervisor
+    st <- liftIO $ atomically $ readTVar var
     let key = (rulesName rules, aiName ai)
     case M.lookup key (ssAiStorages st) of
       Nothing -> fail $ "AI storage was not initialized yet for key: " ++ show key
@@ -235,48 +241,47 @@ withAiStorage var (SomeRules rules) ai fn = do
               result <- fn storage
               return result
 
-letAiMove :: SupervisorHandle -> GameId -> Side -> Maybe Board -> IO Board
-letAiMove var gameId side mbBoard = do
+letAiMove :: GameId -> Side -> Maybe Board -> Checkers Board
+letAiMove gameId side mbBoard = do
   board <- case mbBoard of
              Just b -> return b
              Nothing -> do
-               (_, b) <- withGame var gameId gameState
+               (_, b) <- withGame gameId gameState
                return b
 
-  mbGame <- getGame var gameId
+  mbGame <- getGame gameId
   let game = fromJust mbGame
   case getPlayer game side of
     AI ai -> do
 
-      Just rules <- getRules var gameId
-      withAiStorage var rules ai $ \storage -> do
-            time1 <- getTime Realtime
+      Just rules <- getRules gameId
+      withAiStorage rules ai $ \storage -> do
+        timed "Selecting AI move" $ do
             aiMoves <- chooseMove ai storage side board
             if null aiMoves
               then do
-                putStrLn "AI failed to move."
+                $info "AI failed to move." ()
                 return board
               else do
-                i <- randomRIO (0, length aiMoves - 1)
+                i <- liftIO $ randomRIO (0, length aiMoves - 1)
                 let aiMove = aiMoves !! i
-                time2 <- getTime Realtime
-                let delta = time2-time1
-                printf "AI returned %d move(s), selected: %s (in %ds + %dns)\n" (length aiMoves) (show aiMove) (sec delta) (nsec delta)
-                GMoveRs board' messages <- withGame var gameId $ doMoveRq side aiMove
-                putStrLn $ "Messages: " ++ show messages
-                queueNotifications var (getGameId game) messages
+                $info "AI returned {} move(s), selected: {}" (length aiMoves, show aiMove)
+                GMoveRs board' messages <- withGame gameId $ doMoveRq side aiMove
+                $debug "Messages: {}" (Single $ show messages)
+                queueNotifications (getGameId game) messages
                 return board'
 
     _ -> return board
 
-getState :: SupervisorHandle -> GameId -> IO RsPayload
-getState var gameId = do
-  (side, board) <- withGame var gameId gameState
+getState :: GameId -> Checkers RsPayload
+getState gameId = do
+  (side, board) <- withGame gameId gameState
   return $ StateRs (boardRep board) side
 
-getGames :: SupervisorHandle -> Maybe String -> IO [Game]
-getGames var mbRulesId = do
-  st <- atomically $ readTVar var
+getGames :: Maybe String -> Checkers [Game]
+getGames mbRulesId = do
+  var <- askSupervisor
+  st <- liftIO $ atomically $ readTVar var
   let games = M.elems (ssGames st)
       good (SomeRules rules) =
         case mbRulesId of
@@ -303,15 +308,17 @@ sideByUser game name =
     (_, Just (User name2)) | name2 == name -> Just Second
     _ -> Nothing
 
-getSideByUser :: SupervisorHandle -> GameId -> String -> IO (Maybe Side)
-getSideByUser var gameId name = do
-  mbGame <- getGame var gameId
+getSideByUser :: GameId -> String -> Checkers (Maybe Side)
+getSideByUser gameId name = do
+  mbGame <- getGame gameId
   case mbGame of
     Nothing -> return Nothing
     Just game -> return $ sideByUser game name
 
-queueNotifications :: SupervisorHandle -> GameId -> [Notify] -> IO ()
-queueNotifications var gameId messages = atomically $ modifyTVar var go
+queueNotifications :: GameId -> [Notify] -> Checkers ()
+queueNotifications gameId messages = do
+    var <- askSupervisor
+    liftIO $ atomically $ modifyTVar var go
   where
     go st = foldl route st messages
 

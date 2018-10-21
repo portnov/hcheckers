@@ -9,6 +9,7 @@ module AICache where
 import Control.Applicative
 import Control.Monad
 import Control.Monad.State
+import Control.Monad.Reader
 import Control.Concurrent
 import Control.Concurrent.STM
 import Control.Exception (evaluate)
@@ -93,66 +94,59 @@ data AICache rules = AICache Bool (Processor Move (ScoreMoveInput rules) (Move, 
 type AICacheHandle rules = TVar (AICache rules)
 
 loadAiCache :: GameRules rules
-            => (ScoreMoveInput rules -> IO (Move, Score))
+            => (ScoreMoveInput rules -> Checkers (Move, Score))
             -> AlphaBeta rules
-            -> IO (AICacheHandle rules)
+            -> Checkers (AICacheHandle rules)
 loadAiCache scoreMove (AlphaBeta params rules) = do
   let getKey (ai, var, side, depth, board, move) = move
   processor <- runProcessor 4 getKey scoreMove
   var <- if abLoadCache params
             then do
-              home <- getEnv "HOME"
+              home <- liftIO $ getEnv "HOME"
               let directory = home </> ".cache" </> "hcheckers" </> rulesName rules
-              createDirectoryIfMissing True directory
+              liftIO $ createDirectoryIfMissing True directory
               let path = directory </> "ai.cache"
-              exist <- doesFileExist path
+              exist <- liftIO $ doesFileExist path
               if exist
                 then do
-                  time1 <- getTime Realtime
-                  putStrLn $ "Loading: " ++ path
-                  bytes <- B.readFile path
-                  cache <- evaluate $ Data.Store.decodeEx bytes
-                  time2 <- getTime Realtime
-                  let delta = time2-time1
-                  printf "Loaded %s in %ds + %dns\n" path (sec delta) (nsec delta)
-                  atomically $ newTVar $ AICache False processor cache
-                else atomically $ newTVar $ AICache False processor emptyBoardMap
-            else atomically $ newTVar $ AICache False processor emptyBoardMap
-  forkIO $ cacheDumper rules params var
+                  cache <- timed "Loading cache" $ liftIO $ do
+                             bytes <- B.readFile path
+                             evaluate $ Data.Store.decodeEx bytes
+                  liftIO $ atomically $ newTVar $ AICache False processor cache
+                else liftIO $ atomically $ newTVar $ AICache False processor emptyBoardMap
+            else liftIO $ atomically $ newTVar $ AICache False processor emptyBoardMap
+  st <- ask
+  liftIO $ forkIO $
+      runCheckersT (cacheDumper rules params var) st
   return var
 
-cacheDumper :: GameRules rules => rules -> AlphaBetaParams -> AICacheHandle rules -> IO ()
+cacheDumper :: GameRules rules => rules -> AlphaBetaParams -> AICacheHandle rules -> Checkers ()
 cacheDumper rules params var = 
   when (abSaveCache params) $ forever $ do
     saved <- saveAiCache rules params var
-    threadDelay $ 30 * 1000 * 1000
+    liftIO $ threadDelay $ 30 * 1000 * 1000
 
-saveAiCache :: GameRules rules => rules -> AlphaBetaParams -> AICacheHandle rules -> IO Bool
+saveAiCache :: GameRules rules => rules -> AlphaBetaParams -> AICacheHandle rules -> Checkers Bool
 saveAiCache rules params var = do
-      AICache dirty _ cache <- atomically $ readTVar var
+      AICache dirty _ cache <- liftIO $ atomically $ readTVar var
       if dirty
         then do
-          home <- getEnv "HOME"
+          home <- liftIO $ getEnv "HOME"
           let directory = home </> ".cache" </> "hcheckers" </> rulesName rules
-          createDirectoryIfMissing True directory
+          liftIO $ createDirectoryIfMissing True directory
           let path = directory </> "ai.cache"
-          time1 <- getTime Realtime
-          putStrLn $ "Saving: " ++ path
-          B.writeFile path $ Data.Store.encode cache
-          time2 <- getTime Realtime
-          let delta = time2-time1
-          printf "Saved %s in %ds + %dns\n" path (sec delta) (nsec delta)
-          atomically $ modifyTVar var $ \(AICache _ p cache) -> AICache False p cache
+          timed "Saving cache" $ liftIO $ B.writeFile path $ Data.Store.encode cache
+          liftIO $ atomically $ modifyTVar var $ \(AICache _ p cache) -> AICache False p cache
           return True
         else return False
 
-lookupAiCache :: AlphaBetaParams -> Board -> Int -> Side -> AICacheHandle rules -> IO (Maybe CacheItemSide)
+lookupAiCache :: AlphaBetaParams -> Board -> Int -> Side -> AICacheHandle rules -> Checkers (Maybe CacheItemSide)
 lookupAiCache params board depth side var = do
   let c = boardCounts board
       total = bcFirstMen c + bcSecondMen c + bcFirstKings c + bcSecondKings c
   if total <= abUseCacheMaxPieces params && depth <= abUseCacheMaxPieces params
     then do
-        AICache _ _ cache <- atomically $ readTVar var
+        AICache _ _ cache <- liftIO $ atomically $ readTVar var
         case lookupBoardMap board cache of
           Nothing -> return Nothing
           Just byDepth -> do
@@ -165,12 +159,12 @@ lookupAiCache params board depth side var = do
                              Second -> return $ ciSecond item
     else return Nothing
 
-putAiCache :: AlphaBetaParams -> Board -> Int -> Side -> Score -> [Move] -> AICacheHandle rules -> IO ()
+putAiCache :: AlphaBetaParams -> Board -> Int -> Side -> Score -> [Move] -> AICacheHandle rules -> Checkers ()
 putAiCache params board depth side score moves var = do
   let c = boardCounts board
       total = bcFirstMen c + bcSecondMen c + bcFirstKings c + bcSecondKings c
   when (total <= abUpdateCacheMaxPieces params && depth <= abUpdateCacheMaxDepth params) $ do
-      atomically $ modifyTVar var $ \(AICache _ processor cache) ->
+      liftIO $ atomically $ modifyTVar var $ \(AICache _ processor cache) ->
           let updateItem item1 item2 =
                 case side of
                   First -> item1 {ciFirst = ciFirst item2 `mplus` ciFirst item1}

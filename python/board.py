@@ -383,7 +383,7 @@ class Board(QWidget):
             piece = self.fields[src_field].piece
             self.move_animation.start(src_field, dst_field, move, start_position, piece, process_result = False)
             my_side = 'First' if self.game.user_side == FIRST else 'Second'
-            #self.my_turn = True
+            self.my_turn = True
             #self.my_turn = message["to_side"] == my_side
         elif "undo" in message:
             self.message.emit("Other side requested undo")
