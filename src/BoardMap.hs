@@ -105,3 +105,6 @@ countAddresses fn amap = length $ findLabels fn amap
 occupiedLabels :: AddressMap a -> [(Label, a)]
 occupiedLabels amap = [(unpackIndex idx, value) | (idx, Just value) <- assocs amap]
 
+labelMapKeys :: LabelMap a -> [Label]
+labelMapKeys lmap = map unpackIndex $ indices lmap
+

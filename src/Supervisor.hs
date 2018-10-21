@@ -21,6 +21,7 @@ import System.Log.Heavy.TH
 
 import Types
 import Board
+import BoardMap
 import Game
 import Russian
 import AI ()
@@ -45,6 +46,7 @@ data RsPayload =
   | RunGameRs
   | PollRs [Notify]
   | LobbyRs [Game]
+  | NotationRs [(Label, Notation)]
   | StateRs BoardRep Side
   | PossibleMovesRs [MoveRep]
   | MoveRs BoardRep
@@ -280,6 +282,24 @@ getGames mbRulesId = do
           Nothing -> True
           Just rulesId -> rulesName rules == rulesId
   return [game | game <- games, good (gRules game)]
+
+getNotation :: String -> Checkers [(Label, Notation)]
+getNotation rname = do
+    let Just someRules = select supportedRules
+        result = process someRules
+    return result
+
+  where
+    select [] = Nothing
+    select ((name, rules) : rest)
+      | name == rname = Just rules
+      | otherwise = select rest
+
+    process (SomeRules rules) =
+      let board = initBoard rules
+          labels = labelMapKeys (bAddresses board)
+      in  [(label, boardNotation rules label) | label <- labels]
+    
 
 getPlayer :: Game -> Side -> Player
 getPlayer game First = fromJust $ gPlayer1 game

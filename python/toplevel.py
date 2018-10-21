@@ -123,6 +123,9 @@ class Checkers(QMainWindow):
                 self.do_poll = True
                 self.board.my_turn = side == FIRST
 
+            notation = self.game.get_notation(game.rules)
+            self.board.set_notation(notation)
+
             self.board.fields_setup()
             self.board.repaint()
 

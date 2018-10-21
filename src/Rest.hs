@@ -104,6 +104,11 @@ restServer = do
   get "/lobby" $ do
     games <- lift $ getGames Nothing
     json $ SupervisorRs (LobbyRs games) []
+
+  get "/notation/:rules" $ do
+    rules <- param "rules"
+    notation <- lift $ getNotation rules
+    json $ SupervisorRs (NotationRs notation) []
     
 runRestServer :: Checkers ()
 runRestServer = do

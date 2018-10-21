@@ -13,6 +13,7 @@ class Field(object):
         self._piece = None
         self._possible_piece = None
         self._label = None
+        self._notation = None
         self._notation_above = False
         self._pixmap = None
         self._rect = None
@@ -37,6 +38,15 @@ class Field(object):
         self.invalidate()
 
     label = property(get_label, set_label)
+
+    def get_notation(self):
+        return self._notation
+
+    def set_notation(self, value):
+        self._notation = value
+        self.invalidate()
+
+    notation = property(get_notation, set_notation)
 
     def get_show_frame(self):
         return self._show_frame
@@ -141,15 +151,15 @@ class Field(object):
 
         # notation
         painter.setPen(Qt.white)
-        notation_rect = painter.boundingRect(2, 2, 0, 0, Qt.AlignLeft, self.label)
+        notation_rect = painter.boundingRect(2, 2, 0, 0, Qt.AlignLeft, self.notation)
         if self.notation_above:
             self._draw_piece(painter)
             if self.show_label:
                 painter.fillRect(notation_rect, Qt.black)
-                painter.drawText(notation_rect, Qt.AlignTop | Qt.AlignLeft, self.label)
+                painter.drawText(notation_rect, Qt.AlignTop | Qt.AlignLeft, self.notation)
         else:
             if self.show_label:
-                painter.drawText(notation_rect, Qt.AlignTop | Qt.AlignLeft, self.label)
+                painter.drawText(notation_rect, Qt.AlignTop | Qt.AlignLeft, self.notation)
             self._draw_piece(painter)
 
         if self.show_frame:

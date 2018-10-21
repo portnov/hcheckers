@@ -30,25 +30,25 @@ class MoveAnimation(QObject):
         self.piece = piece
         self.piece_position = start_position
         self.step = 0
-        self.steps = 10 * len(move["steps"])
+        self.steps = 10 * len(move.steps)
         self.move = move
-        self.captured_fields = [step["field"] for step in move["steps"] if step["capture"] == True]
+        self.captured_fields = [step.field for step in move.steps if step.capture == True]
         self.start_field = start_field
         self.end_field = end_field
         self.process_result = process_result
 
     def get_animated_step(self, progress):
-        n = len(self.move["steps"])
+        n = len(self.move.steps)
         idx = int(math.floor(progress * n))
         if idx >= n:
             return None
         elif idx == 0:
-            field_from = self.move["from"]
-            field_to = self.move["steps"][0]["field"]
+            field_from = self.move.from_field
+            field_to = self.move.steps[0].field
             return field_from, field_to
         else:
-            field_from = self.move["steps"][idx-1]["field"]
-            field_to   = self.move["steps"][idx]["field"]
+            field_from = self.move.steps[idx-1].field
+            field_to   = self.move.steps[idx].field
             return field_from, field_to
 
     def interpolate(self, progress, p1, p2):
@@ -101,18 +101,17 @@ class Board(QWidget):
 
         self.game = game
         self._theme = theme
-        self.n_fields = 8
+        self.n_rows = 8
+        self.n_cols = 8
 
         self.fields = {}
         self.field_by_label = {}
         self.index_by_label = {}
-        for row in range(self.n_fields):
-            for col in range(self.n_fields):
-                letter = "abcdefgh"[col]
-                digit = row + 1
+        for row in range(self.n_rows):
+            for col in range(self.n_cols):
                 field = Field()
                 field.theme = self._theme
-                field.label = letter + str(digit)
+                field.label = Label(col, row)
                 self.fields[(row, col)] = field
                 self.field_by_label[field.label] = field
                 self.index_by_label[field.label] = (row, col)
@@ -152,8 +151,8 @@ class Board(QWidget):
         return self._theme
 
     def setup_patterns(self):
-        for row in range(self.n_fields):
-            for col in range(self.n_fields):
+        for row in range(self.n_rows):
+            for col in range(self.n_cols):
                 if (row % 2) == (col % 2):
                     self.fields[(row,col)].pattern_id = 2
                 else:
@@ -198,6 +197,13 @@ class Board(QWidget):
 
     show_notation = property(get_show_notation, set_show_notation)
 
+    def set_notation(self, pairs):
+        print pairs
+        for label, notation in pairs:
+            idx = self.index_by_label[Label.fromJson(label)]
+            self.fields[idx].notation = notation
+        self.invalidate()
+
     def reset(self):
         self.fields_setup()
 
@@ -228,8 +234,8 @@ class Board(QWidget):
         width = self.size().width()
         height = self.size().height()
 
-        row_height = height / self.n_fields
-        col_width = width / self.n_fields
+        row_height = height / self.n_rows
+        col_width = width / self.n_cols
         size = min(row_height, col_width)
 
         prev_hide_piece = field.hide_piece
@@ -245,7 +251,7 @@ class Board(QWidget):
         if self.move_animation.is_active() and label in self.move_animation.captured_fields:
             field.captured = True
 
-        field.draw(painter, QRect(col * size, (self.n_fields-1-row) * size, size, size))
+        field.draw(painter, QRect(col * size, (self.n_rows-1-row) * size, size, size))
         if hide:
             field.hide_piece = prev_hide_piece
         field.possible_piece = prev_possible_piece
@@ -289,7 +295,7 @@ class Board(QWidget):
         h_max = size.height()
         max_size = min(w_max, h_max)
 
-        return max_size / self.n_fields
+        return max_size / max(self.n_rows, self.n_cols)
     
     def paintEvent(self, e):
         self.draw()
@@ -314,13 +320,13 @@ class Board(QWidget):
     def get_field_center(self, idx):
         row, col = idx
         size = self.get_size()
-        x = (col + 0.5) / self.n_fields
-        y = (self.n_fields - 1 - row + 0.5) / self.n_fields
+        x = (col + 0.5) / self.n_cols
+        y = (self.n_rows - 1 - row + 0.5) / self.n_rows
         #print("{} => {}".format(idx, (x,y)))
         return (x*size, y*size)
 
     def get_move_end_field(self, move):
-        label = move["steps"][-1]["field"]
+        label = move.steps[-1].field
         return self.index_by_label[label]
     
     def timerEvent(self, e):
@@ -340,7 +346,7 @@ class Board(QWidget):
                 if not moves:
                     print("Piece at {} does not have moves".format(field.label))
                 else:
-                    self._valid_target_fields = dict((move["steps"][-1]["field"], move) for move in moves)
+                    self._valid_target_fields = dict((move.steps[-1].field, move) for move in moves)
                     print("Valid target fields: {}".format(self._valid_target_fields.keys()))
                     self.selected_field = (row, col)
                     self.repaint()
@@ -362,11 +368,15 @@ class Board(QWidget):
                 print("Field {} is not yours".format(field.label))
         except RequestError as e:
             print(e)
+
+    def get_notation(self, label):
+        idx = self.index_by_label[label]
+        return self.fields[idx].notation
     
     def show_move(self, move):
-        first = move["from"]
-        last = move["steps"][-1]["field"]
-        is_capture = any(step["capture"] == True for step in move["steps"])
+        first = self.get_notation(move.from_field)
+        last = self.get_notation(move.steps[-1].field)
+        is_capture = any(step.capture == True for step in move.steps)
         if is_capture:
             return "{}x{}".format(first, last)
         else:
@@ -374,10 +384,10 @@ class Board(QWidget):
 
     def process_message(self, message):
         if "move" in message:
-            move = message["move"]
+            move = Move.fromJson(message["move"])
             self.message.emit("Other side move: {}".format(self.show_move(move)))
             self._new_board = Game.parse_board(message["board"])
-            src_field = self.index_by_label[move["from"]]
+            src_field = self.index_by_label[move.from_field]
             dst_field = self.get_move_end_field(move)
             start_position = self.get_field_center(src_field)
             piece = self.fields[src_field].piece

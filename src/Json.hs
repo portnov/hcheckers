@@ -23,10 +23,12 @@ instance FromJSON Side
 instance ToJSON GameResult
 
 instance ToJSON Label where
-  toJSON label = toJSON (show label)
+  toJSON (Label col row) = toJSON (col, row)
 
 instance FromJSON Label where
-  parseJSON v = fromString <$> parseJSON v
+  parseJSON v = do
+    (col,row) <- parseJSON v
+    return $ Label col row
 
 instance ToJSON Step where
   toJSON (Step direction capture promote) =
@@ -119,6 +121,7 @@ instance ToJSON RsPayload where
   toJSON (MoveRs board) = toJSON board
   toJSON (UndoRs board) = toJSON board
   toJSON (LobbyRs games) = toJSON games
+  toJSON (NotationRs list) = toJSON list
 
 instance ToJSON SupervisorRs where
   toJSON (SupervisorRs payload messages) = object ["response" .= payload, "messages" .= messages]

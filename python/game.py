@@ -99,6 +99,13 @@ class Game(object):
         self.game_id = result["response"]["id"]
         return self.game_id
 
+    def get_notation(self, rules):
+        url = join(self.base_url, "notation", rules)
+        rs = requests.get(url)
+        self.process_response(rs)
+        result = rs.json()["response"]
+        return result
+
     def register_user(self, name, side):
         self.user_name = name
         self.user_side = side
@@ -153,7 +160,7 @@ class Game(object):
     def parse_board(cls, json):
         board = dict()
         for label, value in json:
-            board[label] = Piece.fromJson(value)
+            board[Label.fromJson(label)] = Piece.fromJson(value)
         return board
 
     def get_board(self):
@@ -167,11 +174,11 @@ class Game(object):
         rs = requests.get(url)
         self.process_response(rs)
         result = rs.json()
+        moves = [Move.fromJson(item) for item in result["response"]]
         if field is None:
-            return result["response"]
+            return moves
         else:
-            moves = result["response"]
-            return [move for move in moves if move["from"] == field]
+            return [move for move in moves if move.from_field == field]
 
     def undo(self):
         url = join(self.base_url, "game", self.game_id, "undo", self.user_name)
@@ -185,7 +192,7 @@ class Game(object):
         if self.move_thread is not None:
             raise Exception("it seems get_move_result() was not called after previous begin_move()")
         url = join(self.base_url, "game", self.game_id, "move", self.user_name)
-        rq = {"from": src, "to": dst}
+        rq = {"from": src.json(), "to": dst.json()}
         self.last_move_result = None
         self.move_thread = MoveRequest(self, url, rq)
         self.move_thread.start()
