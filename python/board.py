@@ -292,8 +292,8 @@ class Board(QWidget):
         self.update()
 
     def get_size(self):
-        size = self.size()
-        return (size.width(), size.height())
+        field_size = self.get_target_field_size(self.size())
+        return (field_size * self.n_cols, field_size * self.n_rows)
 
     def get_target_field_size(self, size):
         w_max = size.width()
