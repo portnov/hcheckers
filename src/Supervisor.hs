@@ -5,25 +5,17 @@
 
 module Supervisor where
 
-import Control.Monad
 import Control.Monad.State
-import Control.Monad.Reader
 import Control.Monad.Except
-import Control.Concurrent
 import Control.Concurrent.STM
 import Data.Maybe
 import qualified Data.Map as M
-import qualified Data.Text as T
 import Data.Text.Format.Heavy
-import Data.Ord
-import Data.List
-import Text.Printf
 import Data.Default
 import Data.Aeson hiding (Error)
 import Data.Dynamic
 import GHC.Generics
 import System.Random
-import System.Clock
 import System.Log.Heavy
 import System.Log.Heavy.TH
 
@@ -31,7 +23,7 @@ import Types
 import Board
 import Game
 import Russian
-import AI
+import AI ()
 import AICache
 
 data NewGameRq = NewGameRq String Value (Maybe BoardRep)

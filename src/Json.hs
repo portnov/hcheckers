@@ -1,19 +1,13 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Json where
 
-import Control.Monad
 import Control.Concurrent
-import Data.Maybe
-import Data.List
-import qualified Data.Map as M
 import Data.String
 import Data.Aeson
 import Data.Aeson.Types
-import Text.Printf
 import qualified Data.Text as T
 
 import Types
-import Game
 import Supervisor
 
 instance ToJSON PlayerDirection where

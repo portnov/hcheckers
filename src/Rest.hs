@@ -2,31 +2,16 @@
 
 module Rest where
 
-import Control.Monad
 import Control.Monad.Reader
-import Control.Monad.Trans
-import Control.Monad.IO.Class
-import Control.Concurrent
-import Control.Concurrent.STM
-import Data.Maybe
-import qualified Data.Map as M
 import qualified Data.Text as T
 import qualified Data.Text.Lazy as TL
-import Data.Ord
-import Data.List
-import Text.Printf
 import Data.Aeson hiding (json)
-import GHC.Generics
 import Web.Scotty.Trans
 import Network.HTTP.Types.Status
 
 import Types
-import Board
-import Game
-import Russian
-import AI
 import Supervisor
-import Json
+import Json () -- import instances only
 
 error400 :: T.Text -> ActionT TL.Text Checkers ()
 error400 message = do

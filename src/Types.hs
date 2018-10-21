@@ -8,11 +8,8 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Types where
 
-import Control.Monad
 import Control.Monad.Reader
-import Control.Monad.IO.Class
 import Control.Concurrent.STM
-import Data.Maybe
 import Data.List
 import qualified Data.Map as M
 import qualified Data.Text as T
@@ -22,8 +19,6 @@ import Data.String
 import Data.Char (isDigit, ord)
 import Data.Dynamic
 import Data.Aeson (Value)
-import Data.Typeable
-import Data.Int
 import Data.Word
 import Data.Binary
 import Data.Store
@@ -32,7 +27,6 @@ import Text.Printf
 import GHC.Generics
 import System.Log.Heavy
 import System.Clock
-import System.Log.Heavy
 import System.Log.Heavy.TH
 
 data Label = Label {

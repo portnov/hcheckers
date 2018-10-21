@@ -1,22 +1,16 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 module Russian (Russian (..)) where
 
-import Control.Monad
-import Control.Monad.State
-import Data.Maybe
-import qualified Data.Map as M
 import qualified Data.Text as T
 import Data.Typeable
 import Data.String
 import Data.Char
-import Data.Ord
 import Data.List
-import Text.Printf
 
 import Types
 import Board
 
-import Debug.Trace
+-- import Debug.Trace
 
 data Russian = Russian
   deriving (Show, Eq, Ord, Typeable)

@@ -6,31 +6,24 @@
 
 module AICache where
 
-import Control.Applicative
 import Control.Monad
 import Control.Monad.State
 import Control.Monad.Reader
 import Control.Concurrent
 import Control.Concurrent.STM
 import Control.Exception (evaluate)
-import Data.Maybe
 import qualified Data.Map as M
 import qualified Data.ByteString as B
-import Data.Ord
-import Data.List
 import Data.Binary
 import Data.Store
 import Data.Typeable
 import Data.Default
-import Text.Printf
 import GHC.Generics
 import System.FilePath
 import System.Environment
 import System.Directory
-import System.Clock
 
 import Types
-import Board
 import BoardMap
 import Parallel
 

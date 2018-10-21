@@ -1,14 +1,12 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Board where
 
-import Control.Monad
 import Data.Maybe
 import Data.List
 import qualified Data.Map as M
-import qualified Data.Text as T
 import Text.Printf
 
-import Debug.Trace
+-- import Debug.Trace
 
 import Types
 import BoardMap

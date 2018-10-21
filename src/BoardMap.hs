@@ -1,19 +1,9 @@
 
 module BoardMap where
 
-import Control.Monad
-import Data.Maybe
-import Data.List
 import qualified Data.Map as M
 import qualified Data.HashMap.Strict as H
-import qualified Data.Text as T
 import Data.Array
-import Data.Int
-import Data.String
-import Data.Char (isDigit, ord)
-import Data.Aeson (Value)
-import Text.Printf
-import GHC.Generics
 
 import Types
 

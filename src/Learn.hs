@@ -1,24 +1,15 @@
+{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 module Learn where
 
 import Control.Monad
 import Control.Monad.State
-import Control.Monad.IO.Class
-import Control.Exception (evaluate)
-import Control.Concurrent.STM
-import Data.Maybe
-import qualified Data.Map as M
-import qualified Data.Set as S
-import Data.Typeable
-import Data.Ord
-import Data.List
-import Data.Aeson
-import Text.Printf
-import System.Clock
+import System.Log.Heavy
+import System.Log.Heavy.TH
 
 import Types
 import Board
-import BoardMap
 import AI
 import AICache
 import Pdn
@@ -56,7 +47,7 @@ processMove :: (GameRules rules, Evaluator eval) => rules -> eval -> AICacheHand
 processMove rules eval var params side depth move board = do
   let ai = AlphaBeta params rules
   (moves, score) <- runAI ai var side board
-  liftIO $ printf "Processed: side %s, move: %s, depth: %d => score %d; we think next best moves are: %s\n" (show side) (show move) depth score (show moves)
+  $info "Processed: side {}, move: {}, depth: {} => score {}; we think next best moves are: {}" (show side, show move, depth, score, show moves)
   return ()
 
 learnPdn :: (GameRules rules) => AlphaBeta rules -> FilePath -> Int -> Checkers ()

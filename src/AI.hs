@@ -8,17 +8,11 @@ module AI where
 
 import Control.Monad
 import Control.Monad.State
-import Control.Exception (evaluate)
 import Control.Concurrent.STM
 import Data.Maybe
-import qualified Data.Map as M
 import Data.Text.Format.Heavy
-import Data.Typeable
-import Data.Ord
-import Data.List
 import Data.Aeson
 import Text.Printf
-import System.Clock
 import System.Log.Heavy
 import System.Log.Heavy.TH
 

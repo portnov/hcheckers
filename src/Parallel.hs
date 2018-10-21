@@ -6,22 +6,11 @@ module Parallel where
 
 import Control.Monad
 import Control.Monad.Reader
-import Control.Monad.State
-import Control.Monad.IO.Class
 import Control.Concurrent
-import Control.Concurrent.STM
 import Data.Maybe
 import qualified Data.Map as M
-import Data.Typeable
-import Data.Ord
-import Data.List
-import Data.Aeson
-import Text.Printf
-import System.Clock
 
 import Types
-import Board
-import BoardMap
 
 data Processor key input output = Processor (input -> key) (Chan input) (Chan (key, output))
 

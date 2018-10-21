@@ -1,17 +1,11 @@
 module Main where
 
-import Control.Monad
-import Data.Maybe
-import qualified Data.Map as M
-import Text.Printf
 import Data.Default
 import System.Environment
 import System.Log.Heavy
 
 import Types
-import Board
 import Russian
-import AI
 import AICache
 import Rest
 import Learn

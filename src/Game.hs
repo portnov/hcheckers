@@ -3,23 +3,13 @@
 
 module Game where
 
-import Control.Monad
 import Control.Monad.State
 import Control.Monad.Except
-import Control.Concurrent
-import Data.Maybe
-import qualified Data.Map as M
-import Data.Ord
-import Data.List
-import Text.Printf
-import Data.IORef
-import GHC.Generics
 
 import Types
 import Board
--- import Russian
 
-import Debug.Trace
+-- import Debug.Trace
 
 type GameM a = ExceptT String (State Game) a
 
