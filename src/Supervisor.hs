@@ -23,10 +23,12 @@ import Types
 import Board
 import BoardMap
 import Game
-import Russian
-import Spancirety
 import AI ()
 import AICache
+
+import Russian
+import Spancirety
+import Diagonal
 
 data NewGameRq = NewGameRq String Value (Maybe BoardRep)
   deriving (Eq, Show, Generic)
@@ -62,7 +64,8 @@ mkSupervisor = do
 supportedRules :: [(String, SomeRules)]
 supportedRules =
   [("russian", SomeRules Russian),
-   ("spancirety", SomeRules Spancirety)]
+   ("spancirety", SomeRules Spancirety),
+   ("diagonal", SomeRules Diagonal)]
 
 selectRules :: NewGameRq -> Maybe SomeRules
 selectRules (NewGameRq name params _) = go supportedRules
