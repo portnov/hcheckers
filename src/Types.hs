@@ -54,11 +54,12 @@ instance Show Label where
       letter = letters !! fromIntegral (labelColumn l)
 
 instance IsString Label where
-  fromString [l,d]
-    | isDigit d = case elemIndex l letters of
-                    Nothing -> error $ "Label.fromString: unknown letter: " ++ [l]
-                    Just col -> let row = ord d - ord '1'
-                                in  Label (fromIntegral col) (fromIntegral row)
+  fromString (l:ds)
+    | all isDigit ds =
+        case elemIndex l letters of
+          Nothing -> error $ "Label.fromString: unknown letter: " ++ [l]
+          Just col -> let row = read ds - 1
+                      in  Label (fromIntegral col) row
   fromString e = error $ "Label.fromString: cant parse: " ++ e
     
 data PieceKind = Man | King

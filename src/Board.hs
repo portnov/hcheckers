@@ -209,15 +209,24 @@ capturesCounts move board =
 
 applyStep :: Piece -> Address -> Step -> Board -> (Board, Address, Piece)
 applyStep piece@(Piece _ side) src step board =
-  case checkWellFormedStep piece board src step of
-    ValidStep dst ->
-        let piece' = if sPromote step
-                       then Piece King side
-                       else piece
-            board' = setPiece dst piece' $ removePiece src board
-        in (board', dst, piece')
-    err -> error $ printf "applyStep: Step is not well-formed: [%s at %s]: %s: %s" (show piece) (show src) (show step) (show err)
+  case neighbour (myDirection side (sDirection step)) src of
+    Nothing -> error $ "no such neighbour: " ++ show step
+    Just dst ->
+      let piece' = if sPromote step
+                     then Piece King side
+                     else piece
+          board' = setPiece dst piece' $ removePiece src board
+      in  (board', dst, piece')
 
+--   case checkWellFormedStep piece board src step of
+--     ValidStep dst ->
+--         let piece' = if sPromote step
+--                        then Piece King side
+--                        else piece
+--             board' = setPiece dst piece' $ removePiece src board
+--         in (board', dst, piece')
+--     err -> error $ printf "applyStep: Step is not well-formed: [%s at %s]: %s: %s" (show piece) (show src) (show step) (show err)
+-- 
 applyMove :: Side -> Move -> Board -> (Board, Address, Piece)
 applyMove side move board = go board piece (moveBegin move) (moveSteps move)
   where
@@ -261,6 +270,9 @@ simpleCapture side src dir = Move src [Step dir True False, Step dir False promo
 
 kingMove :: Side -> Address -> PlayerDirection -> Int -> Move
 kingMove side src dir n = Move src $ replicate n (Step dir False False)
+
+firstMoveDirection :: Move -> PlayerDirection
+firstMoveDirection move = sDirection $ head $ moveSteps move
 
 makeLine :: [Label] -> [Address]
 makeLine labels = map (\l -> Address l Nothing Nothing Nothing Nothing Nothing) labels

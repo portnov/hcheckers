@@ -27,6 +27,7 @@ import AI ()
 import AICache
 
 import Russian
+import International
 import Spancirety
 import Diagonal
 
@@ -64,6 +65,7 @@ mkSupervisor = do
 supportedRules :: [(String, SomeRules)]
 supportedRules =
   [("russian", SomeRules Russian),
+   ("international", SomeRules International),
    ("spancirety", SomeRules Spancirety),
    ("diagonal", SomeRules Diagonal)]
 

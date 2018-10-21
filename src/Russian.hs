@@ -1,5 +1,12 @@
 {-# LANGUAGE DeriveDataTypeable #-}
-module Russian (Russian (..)) where
+module Russian (
+        Russian (..),
+        Capture (..),
+        translateCapture,
+        possibleSimpleMoves1,
+        kingCaptures1,
+        kingCaptures
+      ) where
 
 import qualified Data.Text as T
 import Data.Typeable
@@ -115,7 +122,7 @@ pieceCaptures mbPrevDir piece board src =
 manCaptures :: Maybe PlayerDirection -> Piece -> Board -> Address -> [Move]
 manCaptures mbPrevDir piece@(Piece _ side) board src =
   let captures = captures1 mbPrevDir piece board src
-      nextMoves m = pieceCaptures (Just $ captureDirection m) p b a
+      nextMoves m = pieceCaptures (Just $ firstMoveDirection m) p b a
                       where (b, a, p) = applyMove side m board
   in concat $ flip map captures $ \capture ->
        let [move1] = translateCapture side board capture
@@ -123,9 +130,6 @@ manCaptures mbPrevDir piece@(Piece _ side) board src =
        in  if null moves2
              then [move1]
              else [catMoves move1 move2 | move2 <- moves2]
-
-captureDirection :: Move -> PlayerDirection
-captureDirection move = sDirection $ head $ moveSteps move
 
 manCaptures1 :: Maybe PlayerDirection -> Piece -> Board -> Address -> [Capture]
 manCaptures1 mbPrevDir piece@(Piece _ side) board src = concatMap (check src) $ filter allowedDir [ForwardLeft, ForwardRight, BackwardLeft, BackwardRight]
@@ -161,7 +165,7 @@ manCaptures1 mbPrevDir piece@(Piece _ side) board src = concatMap (check src) $ 
 kingCaptures :: Maybe PlayerDirection -> Piece -> Board -> Address -> [Move]
 kingCaptures mbPrevDir piece@(Piece _ side) board src =
   let captures = captures1 mbPrevDir piece board src
-      nextMoves m = pieceCaptures (Just $ captureDirection m) p b a
+      nextMoves m = pieceCaptures (Just $ firstMoveDirection m) p b a
                       where (b, a, p) = applyMove side m board
   in nub $ concat $ flip map captures $ \capture1 ->
             let moves1 = translateCapture side board capture1
