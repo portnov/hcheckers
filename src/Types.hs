@@ -49,6 +49,8 @@ instance Hashable Label where
   hashWithSalt salt (Label col row) =
     salt `hashWithSalt` col `hashWithSalt` row
 
+type Notation = T.Text
+
 letters :: [Char]
 letters = "abcdefgh" 
 
@@ -105,6 +107,8 @@ instance Ord Address where
   compare a1 a2 = compare (aLabel a1) (aLabel a2)
 
 type Line = Word8
+
+type BoardSize = (Line, Line)
 
 type FieldIndex = (Line, Line)
 
@@ -262,11 +266,16 @@ data BoardRep = BoardRep [(Label, Piece)]
 
 class (Ord g, Typeable g) => GameRules g where
   initBoard :: g -> Board
+  boardSize :: g -> BoardSize
+  boardNotation :: g -> Label -> Notation
+  parseNotation :: g -> Notation -> Maybe Label
   possibleMoves :: g -> Side -> Board -> [Move]
   updateRules :: g -> Value -> g
   getGameResult :: g -> Board -> GameResult
-  
   rulesName :: g -> String
+
+dfltBoardNotation :: Label -> Notation
+dfltBoardNotation l = T.pack $ show l
 
 data SomeRules = forall g. GameRules g => SomeRules g
 

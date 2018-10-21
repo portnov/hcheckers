@@ -27,7 +27,7 @@ mkGame :: GameRules rules => rules -> Int -> Maybe BoardRep -> Game
 mkGame rules id mbBoardRep =
     let board = case mbBoardRep of
                   Nothing -> initBoard rules
-                  Just rep -> parseBoardRep 8 rep
+                  Just rep -> parseBoardRep rules rep
         st = GameState First board []
     in  Game {
           getGameId = show id,

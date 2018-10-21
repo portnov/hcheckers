@@ -291,45 +291,22 @@ line7labels = ["a7", "c7", "e7", "g7"]
 line8labels :: [Label]
 line8labels = ["b8", "d8", "f8", "h8"]
 
---   2
---  / 
--- 1  
-linkPrimary :: Address -> Address -> (Address, Address)
-linkPrimary a1 a2 = (a1', a2')
-  where
-    a1' = a1 {aUpRight = Just a2'}
-    a2' = a2 {aDownLeft = Just a1'}
-   
-
--- 2
---  \
---   1
-linkSecondary :: Address -> Address -> (Address, Address)
-linkSecondary a1 a2 = (a1', a2')
-  where
-    a1' = a1 {aUpLeft = Just a2'}
-    a2' = a2 {aDownRight = Just a1'}
-
-linkA :: Bool -> Address -> Address -> (Address, Address)
-linkA True = linkPrimary
-linkA False = linkSecondary
-
-buildBoard :: Line -> Board
-buildBoard size =
+buildBoard :: BoardSize -> Board
+buildBoard (nrows, ncols) =
   let mkAddress p = Address (label p) (promote p) (upLeft p) (upRight p) (downLeft p) (downRight p)
       label (r,c) = Label (c-1) (r-1)
 
       promote (r,_)
         | r == 1 = Just Second
-        | r == size = Just First
+        | r == nrows = Just First
         | otherwise = Nothing
 
       upLeft (r,c)
-        | r+1 > size || c-1 < 1 = Nothing
+        | r+1 > nrows || c-1 < 1 = Nothing
         | otherwise = M.lookup (r+1, c-1) addresses
 
       upRight (r,c)
-        | r+1 > size || c+1 > size = Nothing
+        | r+1 > nrows || c+1 > ncols = Nothing
         | otherwise = M.lookup (r+1, c+1) addresses
 
       downLeft (r,c)
@@ -337,18 +314,18 @@ buildBoard size =
         | otherwise = M.lookup (r-1, c-1) addresses
 
       downRight (r,c)
-        | r-1 < 1 || c+1 > size = Nothing
+        | r-1 < 1 || c+1 > ncols = Nothing
         | otherwise = M.lookup (r-1, c+1) addresses
 
       addresses = M.fromList [(p, mkAddress p) | p <- coordinates]
 
-      odds = [1, 3 .. size]
-      evens = [2, 4 .. size]
-      coordinates = [(r, c) | r <- odds, c <- odds] ++ [(r, c) | r <- evens, c <- evens]
+      odds n = [1, 3 .. n]
+      evens n = [2, 4 .. n]
+      coordinates = [(r, c) | r <- odds nrows, c <- odds ncols] ++ [(r, c) | r <- evens nrows, c <- evens ncols]
 
-      addressByLabel = buildLabelMap size [(label p, address) | (p, address) <- M.assocs addresses]
+      addressByLabel = buildLabelMap nrows ncols [(label p, address) | (p, address) <- M.assocs addresses]
 
-      board = Board (emptyAddressMap size) addressByLabel counts key
+      board = Board (emptyAddressMap (nrows,ncols)) addressByLabel counts key
 
       counts = calcBoardCounts board
       key = calcBoardKey board
@@ -416,7 +393,7 @@ setManyPieces' labels piece board = foldr (\l b -> setPiece' l piece b) board la
 
 board8 :: Board
 board8 =
-  let board = buildBoard 8
+  let board = buildBoard (8, 8)
       labels1 = line1labels ++ line2labels ++ line3labels
       labels2 = line8labels ++ line7labels ++ line6labels
   in  setManyPieces' labels1 (Piece Man First) $ setManyPieces' labels2 (Piece Man Second) board
@@ -454,10 +431,11 @@ parseMoveRep rules side board (FullMoveRep from steps) =
 boardRep :: Board -> BoardRep
 boardRep board = BoardRep $ occupiedLabels $ bPieces board
 
-parseBoardRep :: Int -> BoardRep -> Board
-parseBoardRep n (BoardRep list) = foldr set (buildBoard $ fromIntegral n) list
+parseBoardRep :: GameRules rules => rules -> BoardRep -> Board
+parseBoardRep rules (BoardRep list) = foldr set (buildBoard bsize) list
   where
     set (label, piece) board = setPiece' label piece board
+    bsize = boardSize rules
 
 -- | Generic implementation of @getGameResult@, which suits most rules.
 -- This can not, however, recognize draws.

@@ -1,11 +1,14 @@
 {-# LANGUAGE DeriveDataTypeable #-}
-module Russian where
+module Russian (Russian (..)) where
 
 import Control.Monad
 import Control.Monad.State
 import Data.Maybe
 import qualified Data.Map as M
+import qualified Data.Text as T
 import Data.Typeable
+import Data.String
+import Data.Char
 import Data.Ord
 import Data.List
 import Text.Printf
@@ -20,6 +23,12 @@ data Russian = Russian
 
 instance GameRules Russian where
   initBoard Russian = board8
+
+  boardSize Russian = (8, 8)
+
+  boardNotation Russian l = T.pack $ map toUpper $ show l
+
+  parseNotation Russian n = Just $ fromString $ T.unpack n
 
   rulesName Russian = "russian"
 

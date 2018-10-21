@@ -85,17 +85,17 @@ aIndex :: Address -> FieldIndex
 aIndex a = (labelColumn l, labelRow l)
   where l = aLabel a
 
-buildLabelMap :: Line -> [(Label, a)] -> LabelMap a
-buildLabelMap n pairs =
-  array ((0,0), (n-1,n-1))
+buildLabelMap :: Line -> Line -> [(Label, a)] -> LabelMap a
+buildLabelMap nrows ncols pairs =
+  array ((0,0), (ncols-1,nrows-1))
         [((col, row), value) | (Label col row, value) <- pairs]
 
 lookupLabel :: Label -> LabelMap a -> Maybe a
 lookupLabel (Label col row) lmap = Just $ lmap ! (col,row)
 
-emptyAddressMap :: Line -> AddressMap a
-emptyAddressMap n =
-  listArray ((0,0), (n-1,n-1)) $ replicate (fromIntegral $ n*n) Nothing
+emptyAddressMap :: BoardSize -> AddressMap a
+emptyAddressMap (nrows,ncols) =
+  listArray ((0,0), (ncols-1,nrows-1)) $ replicate (fromIntegral $ ncols*nrows) Nothing
 
 lookupAddress :: Address -> AddressMap a -> Maybe a
 lookupAddress a amap = amap ! aIndex a
