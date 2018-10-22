@@ -16,7 +16,6 @@ import qualified Data.Text as T
 import qualified Data.HashMap.Strict as H
 import Data.Array
 import Data.String
-import Data.Char (isDigit, ord)
 import Data.Dynamic
 import Data.Aeson (Value)
 import Data.Word
@@ -53,15 +52,6 @@ instance Show Label where
     where
       letter = letters !! fromIntegral (labelColumn l)
 
-instance IsString Label where
-  fromString (l:ds)
-    | all isDigit ds =
-        case elemIndex l letters of
-          Nothing -> error $ "Label.fromString: unknown letter: " ++ [l]
-          Just col -> let row = read ds - 1
-                      in  Label (fromIntegral col) row
-  fromString e = error $ "Label.fromString: cant parse: " ++ e
-    
 data PieceKind = Man | King
   deriving (Eq, Ord, Generic, Typeable)
 
@@ -263,7 +253,7 @@ class (Ord g, Typeable g) => GameRules g where
   initBoard :: g -> Board
   boardSize :: g -> BoardSize
   boardNotation :: g -> Label -> Notation
-  parseNotation :: g -> Notation -> Maybe Label
+  parseNotation :: g -> Notation -> Either String Label
   possibleMoves :: g -> Side -> Board -> [Move]
   updateRules :: g -> Value -> g
   getGameResult :: g -> Board -> GameResult

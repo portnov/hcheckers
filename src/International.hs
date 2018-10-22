@@ -2,10 +2,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 module International (International (..)) where
 
-import qualified Data.Text as T
 import Data.Typeable
-import Data.String
-import Data.Char
 import Data.List
 
 import Types
@@ -34,9 +31,9 @@ instance GameRules International where
 
     in  setManyPieces' labels1 (Piece Man First) $ setManyPieces' labels2 (Piece Man Second) board
 
-  boardNotation International = boardNotation Russian.Russian
+  boardNotation International = numericNotation (boardSize International)
 
-  parseNotation International = parseNotation Russian.Russian
+  parseNotation International = parseNumericNotation (boardSize International)
 
   rulesName International = "international"
 

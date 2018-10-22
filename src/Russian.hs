@@ -10,7 +10,6 @@ module Russian (
 
 import qualified Data.Text as T
 import Data.Typeable
-import Data.String
 import Data.Char
 import Data.List
 
@@ -27,9 +26,9 @@ instance GameRules Russian where
 
   boardSize Russian = (8, 8)
 
-  boardNotation Russian l = T.pack $ map toUpper $ show l
+  boardNotation Russian = chessNotation
 
-  parseNotation Russian n = Just $ fromString $ T.unpack n
+  parseNotation Russian = parseChessNotation
 
   rulesName Russian = "russian"
 

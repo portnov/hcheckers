@@ -3,7 +3,10 @@ module Board where
 
 import Data.Maybe
 import Data.List
+import Data.String
+import Data.Char (isDigit, toLower, toUpper)
 import qualified Data.Map as M
+import qualified Data.Text as T
 import Text.Printf
 
 -- import Debug.Trace
@@ -456,4 +459,56 @@ genericGameResult rules board =
     else if null (possibleMoves rules Second board)
            then FirstWin
            else Ongoing
+
+instance IsString Label where
+  fromString str =
+    case parseChessNotationS str of
+      Left err -> error err
+      Right label -> label
+    
+-- | Chess-like fields notation, like "A1" or "H8"
+chessNotation :: Label -> Notation
+chessNotation = T.pack . map toUpper . show
+
+-- | Parse chess-like fields notation.
+parseChessNotation :: Notation -> Either String Label
+parseChessNotation = parseChessNotationS . T.unpack
+
+-- | Parse chess-like fields notation.
+parseChessNotationS :: String -> Either String Label
+parseChessNotationS = parse . map toLower
+  where
+    parse (l:ds)
+      | all isDigit ds =
+        case elemIndex l letters of
+          Nothing -> Left $ "parseChessNotation: unknown letter: " ++ [l]
+          Just col -> let row = read ds - 1
+                      in  Right $ Label (fromIntegral col) row
+    parse e = Left $ "parseChessNotation: cant parse: " ++ e
+
+-- | Numeric (international) fields notation
+numericNotation :: BoardSize -> Label -> Notation
+numericNotation (nrows, ncols) (Label col row) =
+  let half = ncols `div` 2
+      row' = nrows - row - 1
+      n = row' * half + (col `div` 2) + 1
+  in  T.pack $ show n
+
+-- | Parse numeric (international) fields notation
+parseNumericNotation :: BoardSize -> Notation -> Either String Label
+parseNumericNotation (nrows, ncols) t = parse (T.unpack t)
+  where
+    parse str
+      | all isDigit str =
+        let n = read str - 1
+            half = ncols `div` 2
+            row' = n `div` half
+            col' = n `mod` half
+            row = ncols - row' - 1
+            col = if odd row
+                    then col'*2 + 1
+                    else col'*2
+        in  Right $ Label col row
+
+      | otherwise = Left $ "parseNumericNotation: Cant parse: " ++ str
 
