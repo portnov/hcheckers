@@ -4,12 +4,13 @@ import Data.Default
 import System.Environment
 import System.Log.Heavy
 
-import Types
-import Russian
-import AICache
-import Rest
+import Core.Types
+import AI.AlphaBeta.Cache -- TODO: get rid of this import
+import Core.Rest
+import Core.Supervisor
+
 import Learn
-import Supervisor
+import Rules.Russian
 
 withCheckers :: LoggingSettings -> SupervisorHandle -> Checkers a -> IO a
 withCheckers (LoggingSettings settings) supervisor actions =

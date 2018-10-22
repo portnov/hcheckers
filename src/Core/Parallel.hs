@@ -2,7 +2,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE DeriveDataTypeable #-}
-module Parallel where
+module Core.Parallel where
 
 import Control.Monad
 import Control.Monad.Reader
@@ -10,7 +10,7 @@ import Control.Concurrent
 import Data.Maybe
 import qualified Data.Map as M
 
-import Types
+import Core.Types
 
 data Processor key input output = Processor (input -> key) (Chan input) (Chan (key, output))
 

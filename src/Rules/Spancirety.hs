@@ -1,16 +1,12 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DeriveDataTypeable #-}
-module Spancirety (Spancirety (..)) where
+module Rules.Spancirety (Spancirety (..)) where
 
-import qualified Data.Text as T
 import Data.Typeable
-import Data.String
-import Data.Char
-import Data.List
 
-import Types
-import Board
-import Russian
+import Core.Types
+import Core.Board
+import Rules.Russian
 
 data Spancirety = Spancirety
   deriving (Show, Eq, Ord, Typeable)

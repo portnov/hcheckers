@@ -2,7 +2,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeFamilies #-}
 
-module Pdn where
+module Core.Pdn where
 
 import qualified Data.Text as T
 import Data.Typeable
@@ -13,7 +13,7 @@ import Text.Megaparsec.Error (parseErrorPretty)
 import Data.Void
 import qualified Data.Text.IO as TIO
 
-import Types
+import Core.Types
 
 type Parser a = Parsec Void T.Text a
 

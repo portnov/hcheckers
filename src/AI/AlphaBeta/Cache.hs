@@ -4,7 +4,7 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE StandaloneDeriving #-}
 
-module AICache where
+module AI.AlphaBeta.Cache where
 
 import Control.Monad
 import Control.Monad.State
@@ -23,9 +23,9 @@ import System.FilePath
 import System.Environment
 import System.Directory
 
-import Types
-import BoardMap
-import Parallel
+import Core.Types
+import Core.BoardMap
+import Core.Parallel
 
 data AlphaBeta rules = AlphaBeta AlphaBetaParams rules
   deriving (Eq, Ord, Show, Typeable)

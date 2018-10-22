@@ -1,13 +1,13 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE OverloadedStrings #-}
-module International (International (..)) where
+module Rules.International (International (..)) where
 
 import Data.Typeable
 import Data.List
 
-import Types
-import Board
-import qualified Russian
+import Core.Types
+import Core.Board
+import qualified Rules.Russian as Russian
 
 -- import Debug.Trace
 

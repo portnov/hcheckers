@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Rest where
+module Core.Rest where
 
 import Control.Monad.Reader
 import qualified Data.Text as T
@@ -9,9 +9,9 @@ import Data.Aeson hiding (json)
 import Web.Scotty.Trans
 import Network.HTTP.Types.Status
 
-import Types
-import Supervisor
-import Json () -- import instances only
+import Core.Types
+import Core.Supervisor
+import Core.Json () -- import instances only
 
 error400 :: T.Text -> ActionT TL.Text Checkers ()
 error400 message = do

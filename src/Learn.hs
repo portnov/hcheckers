@@ -8,11 +8,11 @@ import Control.Monad.State
 import System.Log.Heavy
 import System.Log.Heavy.TH
 
-import Types
-import Board
-import AI
-import AICache
-import Pdn
+import Core.Types
+import Core.Board
+import Core.Pdn
+import AI.AlphaBeta
+import AI.AlphaBeta.Cache
 
 doLearn :: (GameRules rules, Evaluator eval) => rules -> eval -> AICacheHandle rules -> AlphaBetaParams -> GameRecord -> Int -> Checkers ()
 doLearn rules eval var params gameRec depth = do

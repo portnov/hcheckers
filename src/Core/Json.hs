@@ -1,14 +1,13 @@
 {-# LANGUAGE OverloadedStrings #-}
-module Json where
+module Core.Json where
 
 import Control.Concurrent
-import Data.String
 import Data.Aeson
 import Data.Aeson.Types
 import qualified Data.Text as T
 
-import Types
-import Supervisor
+import Core.Types
+import Core.Supervisor
 
 instance ToJSON PlayerDirection where
 

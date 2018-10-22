@@ -1,13 +1,13 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE ExistentialQuantification #-}
 
-module Game where
+module Core.Game where
 
 import Control.Monad.State
 import Control.Monad.Except
 
-import Types
-import Board
+import Core.Types
+import Core.Board
 
 -- import Debug.Trace
 

@@ -3,7 +3,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TemplateHaskell #-}
 
-module Supervisor where
+module Core.Supervisor where
 
 import Control.Monad.State
 import Control.Monad.Except
@@ -19,17 +19,17 @@ import System.Random
 import System.Log.Heavy
 import System.Log.Heavy.TH
 
-import Types
-import Board
-import BoardMap
-import Game
-import AI ()
-import AICache
+import Core.Types
+import Core.Board
+import Core.BoardMap
+import Core.Game
+import AI.AlphaBeta () -- import instances only
+import AI.AlphaBeta.Cache -- TODO: get rid of this import
 
-import Russian
-import International
-import Spancirety
-import Diagonal
+import Rules.Russian
+import Rules.International
+import Rules.Spancirety
+import Rules.Diagonal
 
 data NewGameRq = NewGameRq String Value (Maybe BoardRep)
   deriving (Eq, Show, Generic)

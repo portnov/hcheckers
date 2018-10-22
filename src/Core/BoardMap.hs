@@ -1,11 +1,11 @@
 
-module BoardMap where
+module Core.BoardMap where
 
 import qualified Data.Map as M
 import qualified Data.HashMap.Strict as H
 import Data.Array
 
-import Types
+import Core.Types
 
 calcBoardCounts :: Board -> BoardCounts
 calcBoardCounts board = BoardCounts {

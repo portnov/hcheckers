@@ -1,16 +1,12 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DeriveDataTypeable #-}
-module Diagonal (Diagonal (..)) where
+module Rules.Diagonal (Diagonal (..)) where
 
-import qualified Data.Text as T
 import Data.Typeable
-import Data.String
-import Data.Char
-import Data.List
 
-import Types
-import Board
-import Russian
+import Core.Types
+import Core.Board
+import Rules.Russian
 
 data Diagonal = Diagonal
   deriving (Show, Eq, Ord, Typeable)

@@ -6,7 +6,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE OverloadedStrings #-}
-module Types where
+module Core.Types where
 
 import Control.Monad.Reader
 import Control.Concurrent.STM
@@ -15,7 +15,6 @@ import qualified Data.Map as M
 import qualified Data.Text as T
 import qualified Data.HashMap.Strict as H
 import Data.Array
-import Data.String
 import Data.Dynamic
 import Data.Aeson (Value)
 import Data.Word

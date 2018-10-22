@@ -1,5 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
-module Board where
+module Core.Board where
 
 import Data.Maybe
 import Data.List
@@ -11,8 +11,8 @@ import Text.Printf
 
 -- import Debug.Trace
 
-import Types
-import BoardMap
+import Core.Types
+import Core.BoardMap
 
 showAddress :: Address -> String
 showAddress a =

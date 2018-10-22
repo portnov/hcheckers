@@ -4,7 +4,7 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE FlexibleInstances #-}
-module AI where
+module AI.AlphaBeta where
 
 import Control.Monad
 import Control.Monad.State
@@ -16,11 +16,11 @@ import Text.Printf
 import System.Log.Heavy
 import System.Log.Heavy.TH
 
-import Types
-import Board
-import BoardMap
-import AICache
-import Parallel
+import Core.Types
+import Core.Board
+import Core.BoardMap
+import Core.Parallel
+import AI.AlphaBeta.Cache
 
 instance FromJSON AlphaBetaParams where
   parseJSON = withObject "AlphaBetaParams" $ \v -> AlphaBetaParams

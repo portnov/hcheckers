@@ -1,5 +1,5 @@
 {-# LANGUAGE DeriveDataTypeable #-}
-module Russian (
+module Rules.Russian (
         Russian (..),
         Capture (..),
         translateCapture,
@@ -8,13 +8,11 @@ module Russian (
         kingCaptures
       ) where
 
-import qualified Data.Text as T
 import Data.Typeable
-import Data.Char
 import Data.List
 
-import Types
-import Board
+import Core.Types
+import Core.Board
 
 -- import Debug.Trace
 
