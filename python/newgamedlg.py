@@ -21,10 +21,11 @@ class NewGameDialog(QDialog):
         layout = QFormLayout()
 
         self.rules = QComboBox()
-        self.rules.addItem("Russian", "russian")
-        self.rules.addItem("International", "international")
-        self.rules.addItem("Spancirety", "spancirety")
-        self.rules.addItem("Diagonal", "diagonal")
+        self.rules.addItem("Russian draughts", "russian")
+        self.rules.addItem("Simple draughts", "simple")
+        self.rules.addItem("International draughts", "international")
+        self.rules.addItem("Spancirety draughts", "spancirety")
+        self.rules.addItem("Diagonal draughts", "diagonal")
         layout.addRow("Rules", self.rules)
 
         self.user_name = QLineEdit(self)

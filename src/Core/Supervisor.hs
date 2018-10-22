@@ -27,6 +27,7 @@ import AI.AlphaBeta () -- import instances only
 import AI.AlphaBeta.Cache -- TODO: get rid of this import
 
 import Rules.Russian
+import Rules.Simple
 import Rules.International
 import Rules.Spancirety
 import Rules.Diagonal
@@ -65,6 +66,7 @@ mkSupervisor = do
 supportedRules :: [(String, SomeRules)]
 supportedRules =
   [("russian", SomeRules Russian),
+   ("simple", SomeRules Simple),
    ("international", SomeRules International),
    ("spancirety", SomeRules Spancirety),
    ("diagonal", SomeRules Diagonal)]
