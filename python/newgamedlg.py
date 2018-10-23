@@ -43,6 +43,9 @@ class NewGameDialog(QDialog):
         self.game_type.addItem("Join a game against human", JOIN_HUMAN_GAME)
         layout.addRow("Action", self.game_type)
 
+        self.board_setup = QCheckBox(self)
+        layout.addRow("Manual initial position setup", self.board_setup)
+
         widget.setLayout(layout)
 
         vbox = QVBoxLayout()
@@ -88,12 +91,16 @@ class NewGameDialog(QDialog):
 
     def _on_action_changed(self, idx):
         action = self.game_type.itemData(idx)
+
         show_ai = action == START_AI_GAME
         show_lobby = action == JOIN_HUMAN_GAME
         show_side = action != JOIN_HUMAN_GAME
+        show_board_setup = action != JOIN_HUMAN_GAME
+
         self.ai_group.setVisible(show_ai)
         self.lobby.setVisible(show_lobby)
         self.user_side.setVisible(show_side)
+        self.board_setup.setVisible(show_board_setup)
 
     def get_settings(self):
         game = GameSettings()
@@ -104,6 +111,7 @@ class NewGameDialog(QDialog):
         side = self.user_side.currentData()
         game.user_turn_first = side == FIRST
         game.action = action
+        game.board_setup = self.board_setup.checkState() == Qt.Checked
 
         game.ai = ai = AI()
         ai.depth = self.ai_depth.currentData()

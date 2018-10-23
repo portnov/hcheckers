@@ -248,7 +248,7 @@ data MoveCheckResult =
 data BoardRep = BoardRep [(Label, Piece)]
   deriving (Eq, Ord, Show, Typeable)
 
-class (Ord g, Typeable g) => GameRules g where
+class (Ord g, Typeable g, Show g) => GameRules g where
   initBoard :: g -> Board
   boardSize :: g -> BoardSize
   boardNotation :: g -> Label -> Notation
@@ -279,7 +279,7 @@ class Evaluator e where
   evalBoard :: e -> Side -> Side -> Board -> Score
   evaluatorName :: e -> String
 
-class (Typeable ai, Typeable (AiStorage ai)) => GameAi ai where
+class (Typeable ai, Show ai, Typeable (AiStorage ai)) => GameAi ai where
   type AiStorage ai
 
   createAiStorage :: ai -> Checkers (AiStorage ai)
@@ -292,6 +292,9 @@ class (Typeable ai, Typeable (AiStorage ai)) => GameAi ai where
   chooseMove :: ai -> AiStorage ai -> Side -> Board -> Checkers [Move]
 
 data SomeAi = forall ai. GameAi ai => SomeAi ai
+
+instance Show SomeAi where
+  show (SomeAi ai) = show ai
 
 updateSomeAi :: SomeAi -> Value -> SomeAi
 updateSomeAi (SomeAi ai) params = SomeAi (updateAi ai params)

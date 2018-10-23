@@ -209,6 +209,21 @@ class Board(QWidget):
             self.fields[idx].notation = notation
         self.fields_setup()
 
+    def json(self):
+        board = []
+        for idx in self.fields:
+            piece = self.fields[idx].piece
+            if piece:
+                board.append([self.fields[idx].label.json(), piece.json()])
+        return board
+    
+    def empty(self):
+        self._board = {}
+        for idx in self.fields:
+            self.fields[idx].piece = None
+        self.invalidate()
+        self.repaint()
+
     def reset(self):
         self.fields_setup()
 
@@ -220,7 +235,10 @@ class Board(QWidget):
     def fields_setup(self, board=None):
         try:
             if board is None:
-                board = self.game.get_board()
+                if self.game.game_id is None:
+                    board = dict()
+                else:
+                    board = self.game.get_board()
 
             self._board = board
 

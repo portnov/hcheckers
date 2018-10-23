@@ -3,6 +3,7 @@
 module Core.Rest where
 
 import Control.Monad.Reader
+import Control.Monad.IO.Class
 import qualified Data.Text as T
 import qualified Data.Text.Lazy as TL
 import Data.Aeson hiding (json)
@@ -44,6 +45,7 @@ restServer = do
           case selectAi rq rules of
             Nothing -> error400 "invalid ai settings"
             Just ai -> do
+              liftIO $ putStrLn $ "Attached AI: " ++ show ai
               lift $ initAiStorage rules ai
               lift $ attachAi gameId side ai
               json $ SupervisorRs AttachAiRs []

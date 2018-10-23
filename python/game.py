@@ -58,6 +58,7 @@ class GameSettings(object):
         self.run_now = False
         self.url = None
         self.user_turn_first = True
+        self.board_setup = False
         self.action = None
 
 class Game(object):

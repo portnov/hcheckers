@@ -28,10 +28,23 @@ class Checkers(QMainWindow):
         QMainWindow.__init__(self)
         self.setWindowTitle("HCheckers client")
         self.settings = QSettings("hcheckers", "hcheckers")
+        self._board_setup_mode = False
         self._prepare()
         self._gui_setup()
         self._setup_actions()
         self._default_new_game()
+
+    def get_board_setup_mode(self):
+        return self._board_setup_mode
+
+    def set_board_setup_mode(self,mode):
+        self._board_setup_mode = mode
+        self.run_action.setEnabled(mode)
+        self.put_first_action.setEnabled(mode)
+        self.put_second_action.setEnabled(mode)
+        self.erase_action.setEnabled(mode)
+
+    board_setup_mode = property(get_board_setup_mode, set_board_setup_mode)
 
     def _prepare(self):
         self.share_dir = locate_share_dir()
@@ -48,6 +61,7 @@ class Checkers(QMainWindow):
         layout = QVBoxLayout()
         self.board = Board(self.theme, self.game)
         self.board.message.connect(self._on_board_message)
+        self.board.field_clicked.connect(self._on_field_clicked)
         #self.board.show()
         self.toolbar = QToolBar(self)
         self.message = QLabel(self)
@@ -57,7 +71,7 @@ class Checkers(QMainWindow):
         widget.setLayout(layout)
         self.setCentralWidget(widget)
     
-    def _create_action(self, icon, title, menu, handler, group=None, toggle=False, toolbar=True, key=None):
+    def _create_action(self, icon, title, menu, handler=None, group=None, toggle=False, toolbar=True, key=None):
         if group is None:
             parent = self
         else:
@@ -79,6 +93,20 @@ class Checkers(QMainWindow):
         self._create_action(None, "New Game", menu, self._on_new_game, key="Ctrl+N")
         self._create_action(None, "Undo", menu, self._on_undo, key="Ctrl+Z")
 
+        menu.addSeparator()
+        self.toolbar.addSeparator()
+
+        setup = QActionGroup(self)
+        setup.setExclusive(True)
+        self.put_first_action = self._create_action(None, "Put white piece", menu, group=setup, toggle=True)
+        self.put_second_action = self._create_action(None, "Put black piece", menu, group=setup, toggle=True)
+        self.erase_action = self._create_action(None, "Remove piece", menu, group=setup, toggle=True)
+        menu.addSeparator()
+        self.toolbar.addSeparator()
+
+        self.run_action = self._create_action(None, "Start Game", menu, self._on_run_game, key="Ctrl+R")
+        self.board_setup_mode = False
+
         menu = self.menuBar().addMenu("&View")
         self._create_action(None, "Show notation", menu, self._on_toggle_notation, toolbar=False, toggle=True)
 
@@ -97,6 +125,40 @@ class Checkers(QMainWindow):
             menu.addAction(action)
         themes.triggered.connect(self._on_set_theme)
 
+    def _on_run_game(self):
+        self.board_setup_mode = False
+        board = self.board.json()
+        self.game.start_new_game(self.game_settings.user_name, rules=self.game_settings.rules, user_turn_first=self.game_settings.user_turn_first, ai=self.game_settings.ai, board=board)
+        self.board.fields_setup()
+
+    def _on_field_clicked(self, row, col):
+        if not self.board_setup_mode:
+            return
+
+        first = self.put_first_action.isChecked()
+        second = self.put_second_action.isChecked()
+        erase = self.erase_action.isChecked()
+
+        if not first and not second and not erase:
+            return
+        if first:
+            side = FIRST
+        elif second:
+            side = SECOND
+
+        piece = self.board.fields[(row,col)].piece
+        if not erase:
+            if piece and piece.side == side:
+                if piece.kind == MAN:
+                    piece.kind = KING
+                else:
+                    piece.kind = MAN
+            else:
+                piece = Piece(MAN, side)
+        else:
+            piece = None
+        self.board.fields[(row,col)].piece = piece
+
     def _default_new_game(self):
         self._on_new_game()
 
@@ -104,9 +166,14 @@ class Checkers(QMainWindow):
         dialog = NewGameDialog(self)
         result = dialog.exec_()
         if result == QDialog.Accepted:
-            game = dialog.get_settings()
+            self.game.game_id = None
+            self.game_settings = game = dialog.get_settings()
             if game.action == START_AI_GAME:
-                self.game.start_new_game(game.user_name, rules=game.rules, user_turn_first=game.user_turn_first, ai=game.ai)
+                if game.board_setup:
+                    self.board.empty()
+                    self.board_setup_mode = True
+                else:
+                    self.game.start_new_game(game.user_name, rules=game.rules, user_turn_first=game.user_turn_first, ai=game.ai)
             elif game.action == START_HUMAN_GAME:
                 game_id = self.game.new_game(game.rules)
                 print(game_id)

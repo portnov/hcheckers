@@ -13,6 +13,11 @@ class Piece(object):
     def __str__(self):
         return "<{} {}>".format(self.kind, self.side)
 
+    def json(self):
+        kind = 'Man' if self.kind == MAN else 'King'
+        side = 'First' if self.side == FIRST else 'Second'
+        return {'kind': kind, 'side': side}
+
     @classmethod
     def fromJson(cls, json):
         piece = Piece(None,None)
