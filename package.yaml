@@ -24,8 +24,10 @@ dependencies:
 - mtl
 - containers
 - unordered-containers
+- psqueues
 - aeson
 - stm
+- exceptions
 - bytestring
 - text
 - hashable
@@ -38,6 +40,8 @@ dependencies:
 - store
 - filepath
 - directory
+- unix
+- unix-bytestring
 - data-default
 - megaparsec
 - heavy-logger

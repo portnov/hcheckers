@@ -24,8 +24,8 @@ import Data.Hashable
 import Text.Printf
 import GHC.Generics
 import System.Log.Heavy
-import System.Clock
 import System.Log.Heavy.TH
+import System.Clock
 
 data Label = Label {
     labelColumn :: ! Line,
@@ -64,6 +64,8 @@ data Side = First | Second
 instance Show Side where
   show First = "1"
   show Second = "2"
+
+instance Store Side
 
 data Piece = Piece PieceKind Side
   deriving (Eq, Ord, Typeable)
@@ -122,6 +124,10 @@ data BoardCounts = BoardCounts {
 instance Binary BoardCounts
 
 instance Store BoardCounts
+
+instance Hashable BoardCounts where
+  hashWithSalt salt bc =
+    salt `hashWithSalt` bcFirstMen bc `hashWithSalt` bcSecondMen bc `hashWithSalt` bcFirstKings bc `hashWithSalt` bcSecondKings bc
 
 data BoardKey = BoardKey {
     bkFirstMen :: [Label]

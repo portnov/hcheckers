@@ -35,7 +35,7 @@ class AI(object):
         self.load = True
         self.store = False
         self.update_cache_max_depth = 6
-        self.update_cache_max_pieces = 8
+        self.update_cache_max_pieces = 24
 
         for key in kwargs:
             setattr(self, key, kwargs[key])

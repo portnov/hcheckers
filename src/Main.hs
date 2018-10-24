@@ -5,7 +5,8 @@ import System.Environment
 import System.Log.Heavy
 
 import Core.Types
-import AI.AlphaBeta.Cache -- TODO: get rid of this import
+import AI.AlphaBeta.Types
+import AI.AlphaBeta.Persistent
 import Core.Rest
 import Core.Supervisor
 
@@ -34,6 +35,8 @@ main = do
           depth = 6
       withCheckers settings supervisor $
           learnPdn ai path depth
+
+    ["dump", path] -> dumpFile path
     
     _ ->
       withCheckers settings supervisor $

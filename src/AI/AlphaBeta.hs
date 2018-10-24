@@ -20,6 +20,7 @@ import Core.Types
 import Core.Board
 import Core.BoardMap
 import Core.Parallel
+import AI.AlphaBeta.Types
 import AI.AlphaBeta.Cache
 
 instance FromJSON AlphaBetaParams where
@@ -44,7 +45,7 @@ instance (GameRules rules) => GameAi (AlphaBeta rules) where
     return cache
 
   saveAiStorage (AlphaBeta params rules) cache = do
-      saveAiCache rules params cache
+      -- saveAiCache rules params cache
       return ()
 
   chooseMove ai storage side board = do
@@ -70,7 +71,7 @@ scoreMove (ai@(AlphaBeta params rules), var, side, depth, board, move) = do
 
 
 runAI :: GameRules rules => AlphaBeta rules -> AICacheHandle rules -> Side -> Board -> Checkers ([Move], Score)
-runAI ai@(AlphaBeta params rules) var side board = do
+runAI ai@(AlphaBeta params rules) handle side board = do
     let depth = abDepth params
         startDepth = fromMaybe depth (abStartDepth params)
     let moves = possibleMoves rules side board
@@ -88,8 +89,9 @@ runAI ai@(AlphaBeta params rules) var side board = do
                    else return (goodMoves, maxScore)
 
     runAI' depth moves = do
+          let var = aichData handle
           AICache _ processor _ <- liftIO $ atomically $ readTVar var
-          let inputs = [(ai, var, side, depth, board, move) | move <- moves]
+          let inputs = [(ai, handle, side, depth, board, move) | move <- moves]
           scores <- process processor inputs
           let select = if side == First then maximum else minimum
               maxScore = select $ map snd scores

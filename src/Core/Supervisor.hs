@@ -24,7 +24,7 @@ import Core.Board
 import Core.BoardMap
 import Core.Game
 import AI.AlphaBeta () -- import instances only
-import AI.AlphaBeta.Cache -- TODO: get rid of this import
+import AI.AlphaBeta.Types
 
 import Rules.Russian
 import Rules.Simple

@@ -12,6 +12,7 @@ import Core.Types
 import Core.Board
 import Core.Pdn
 import AI.AlphaBeta
+import AI.AlphaBeta.Types
 import AI.AlphaBeta.Cache
 
 doLearn :: (GameRules rules, Evaluator eval) => rules -> eval -> AICacheHandle rules -> AlphaBetaParams -> GameRecord -> Int -> Checkers ()
@@ -56,6 +57,6 @@ learnPdn ai@(AlphaBeta params rules) path depth = do
   pdn <- liftIO $ parsePdn path
   forM_ pdn $ \gameRec -> do
     doLearn rules ai cache params gameRec depth
-    saveAiCache rules params cache
+    -- saveAiCache rules params cache
     return ()
 
