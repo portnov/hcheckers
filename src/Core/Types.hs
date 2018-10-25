@@ -9,6 +9,7 @@
 module Core.Types where
 
 import Control.Monad.Reader
+import Control.Monad.Catch
 import Control.Concurrent.STM
 import Data.List
 import qualified Data.Map as M
@@ -27,6 +28,8 @@ import System.Log.Heavy
 import System.Log.Heavy.TH
 import System.Clock
 
+import Debug.Trace (traceEventIO)
+
 data Label = Label {
     labelColumn :: ! Line,
     labelRow :: ! Line
@@ -35,7 +38,17 @@ data Label = Label {
 
 instance Binary Label where
 
-instance Store Label
+instance Store Label where
+  size = ConstSize 1
+
+  poke (Label col row) = do
+    poke $ col * 16 + row
+
+  peek = do
+    n <- peek :: Peek Word8
+    let row = n `mod` 16
+        col = n `div` 16
+    return $ Label col row
 
 instance Hashable Label where
   hashWithSalt salt (Label col row) =
@@ -106,7 +119,8 @@ data Board = Board {
     bPieces :: AddressMap Piece,
     bAddresses :: LabelMap Address,
     boardCounts :: BoardCounts,
-    boardKey :: BoardKey
+    boardKey :: BoardKey,
+    bSize :: BoardSize
   }
   deriving (Typeable)
 
@@ -139,11 +153,60 @@ data BoardKey = BoardKey {
 
 instance Binary BoardKey
 
-instance Store BoardKey
+instance Store BoardKey where
+  poke bk = do
+    poke (fromIntegral (length (bkFirstMen bk)) :: Word8)
+    forM_ (bkFirstMen bk) poke
+    poke (fromIntegral (length (bkSecondMen bk)) :: Word8)
+    forM_ (bkSecondMen bk) poke
+    poke (fromIntegral (length (bkFirstKings bk)) :: Word8)
+    forM_ (bkFirstKings bk) poke
+    poke (fromIntegral (length (bkSecondKings bk)) :: Word8)
+    forM_ (bkSecondKings bk) poke
+
+  peek = do
+    n <- peek :: Peek Word8
+    firstMen <- replicateM (fromIntegral n) peek
+    n <- peek :: Peek Word8
+    secondMen <- replicateM (fromIntegral n) peek
+    n <- peek :: Peek Word8
+    firstKings <- replicateM (fromIntegral n) peek
+    n <- peek :: Peek Word8
+    secondKings <- replicateM (fromIntegral n) peek
+    return $ BoardKey firstMen secondMen firstKings secondKings
+
+  size = VarSize $ \bk ->
+         4 + length (bkFirstMen bk) +
+             length (bkSecondMen bk) +
+             length (bkFirstKings bk)  +
+             length (bkSecondKings bk) 
+  
 
 instance Hashable BoardKey where
   hashWithSalt salt bk =
     salt `hashWithSalt` bkFirstMen bk `hashWithSalt` bkSecondMen bk `hashWithSalt` bkFirstKings bk `hashWithSalt` bkSecondKings bk
+
+data BoardLineCounts = BoardLineCounts [Word8]
+  deriving (Show)
+
+instance Eq BoardLineCounts where
+  (BoardLineCounts list1) == (BoardLineCounts list2) =
+    let list1' = list1 ++ replicate (16 - length list1) 0
+        list2' = list2 ++ replicate (16 - length list2) 0
+    in  list1' == list2'
+
+instance Data.Store.Store BoardLineCounts where
+  size = ConstSize 16
+
+  poke (BoardLineCounts list) =
+    forM_ [0..15] $ \i ->
+      if i > length list - 1
+        then poke (0 :: Word8)
+        else poke (fromIntegral (list !! i) :: Word8)
+
+  peek = do
+    bytes <- replicateM 16 (peek :: Peek Word8)
+    return $ BoardLineCounts $ map fromIntegral bytes
 
 type BoardMap a = M.Map BoardCounts (H.HashMap BoardKey a)
 
@@ -385,7 +448,7 @@ data CheckersState = CheckersState {
 newtype Checkers a = Checkers {
     runCheckers :: ReaderT CheckersState IO a
   }
-  deriving (Applicative, Functor, Monad, MonadIO, MonadReader CheckersState)
+  deriving (Applicative, Functor, Monad, MonadIO, MonadReader CheckersState, MonadThrow, MonadCatch, MonadMask)
 
 runCheckersT :: Checkers a -> CheckersState -> IO a
 runCheckersT actions st = runReaderT (runCheckers actions) st
@@ -422,4 +485,10 @@ timed message actions = do
     let delta = time2 - time1
     $debug "{}: {}s + {}ns" (message, sec delta, nsec delta)
     return result
+
+event :: (MonadIO m, MonadMask m) => String -> m a -> m a
+event label actions =
+  bracket_ (liftIO $ traceEventIO ("START " ++ label))
+           (liftIO $ traceEventIO ("STOP " ++ label))
+           actions
 

@@ -14,6 +14,7 @@ import Control.Monad.Reader
 import Control.Concurrent
 import Control.Concurrent.STM
 import Control.Exception (evaluate)
+import Control.Monad.Catch (bracket_)
 import qualified Data.Map as M
 import qualified Data.HashPSQ as PQ
 import qualified Data.ByteString as B
@@ -92,7 +93,7 @@ type PerBoardData = M.Map Int CacheItem
 
 type AIData = BoardMap PerBoardData
 
-type StorageKey = (BoardKey, Int, Side)
+type StorageKey = (BoardKey, Int)
 
 type StorageValue = CacheItemSide
 

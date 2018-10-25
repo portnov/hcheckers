@@ -7,6 +7,7 @@ import Data.String
 import Data.Char (isDigit, toLower, toUpper)
 import qualified Data.Map as M
 import qualified Data.Text as T
+import Data.Array ((!))
 import Text.Printf
 
 -- import Debug.Trace
@@ -305,7 +306,7 @@ line8labels :: [Label]
 line8labels = ["b8", "d8", "f8", "h8"]
 
 buildBoard :: BoardSize -> Board
-buildBoard (nrows, ncols) =
+buildBoard bsize@(nrows, ncols) =
   let mkAddress p = Address (label p) (promote p) (upLeft p) (upRight p) (downLeft p) (downRight p)
       label (r,c) = Label (c-1) (r-1)
 
@@ -338,7 +339,7 @@ buildBoard (nrows, ncols) =
 
       addressByLabel = buildLabelMap nrows ncols [(label p, address) | (p, address) <- M.assocs addresses]
 
-      board = Board (emptyAddressMap (nrows,ncols)) addressByLabel counts key
+      board = Board (emptyAddressMap bsize) addressByLabel counts key bsize
 
       counts = calcBoardCounts board
       key = calcBoardKey board
@@ -449,6 +450,13 @@ parseBoardRep rules (BoardRep list) = foldr set (buildBoard bsize) list
   where
     set (label, piece) board = setPiece' label piece board
     bsize = boardSize rules
+
+boardLineCounts :: Board -> BoardLineCounts
+boardLineCounts board =
+  let (nrows,ncols) = bSize board
+      go row = fromIntegral $ length [col | col <- [0..ncols-1], isJust (bPieces board ! (col,row))]
+      counts = map go [0..nrows-1]
+  in  BoardLineCounts $ counts ++ replicate (16 - fromIntegral nrows) 0
 
 -- | Generic implementation of @getGameResult@, which suits most rules.
 -- This can not, however, recognize draws.

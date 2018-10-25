@@ -11,7 +11,7 @@ import Control.Monad.State
 import Control.Monad.Reader
 import Control.Concurrent
 import Control.Concurrent.STM
-import Control.Exception (evaluate)
+import Control.Monad.Catch (bracket_)
 import qualified Data.Map as M
 import qualified Data.HashPSQ as PQ
 import qualified Data.ByteString as B
@@ -128,7 +128,7 @@ lookupAiCache params board depth side handle = do
         queueCleanup
         return result
       Nothing -> do
-        mbValue <- runStorage handle $ lookupFile board depth side
+        mbValue <- runStorage handle $ event "file lookup" $ lookupFile board depth side
         case mbValue of
           Nothing -> return Nothing
           Just value -> do
@@ -141,7 +141,7 @@ lookupAiCache params board depth side handle = do
       now <- liftIO $ getTime Monotonic
       liftIO $ atomically $ putCleanupQueue (aichCleanupQueue handle) key now
     
-    lookupMemory = do
+    lookupMemory = event "memory lookup" $ do
       let c = boardCounts board
           total = bcFirstMen c + bcSecondMen c + bcFirstKings c + bcSecondKings c
       if total <= abUseCacheMaxPieces params && depth <= abUseCacheMaxPieces params

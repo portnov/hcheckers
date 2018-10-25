@@ -22,11 +22,13 @@ import Data.Store
 import System.Clock
 import System.IO 
 import Text.Printf
+import GHC.Generics
 import System.Posix.Types
 import System.Posix.IO
 import "unix-bytestring" System.Posix.IO.ByteString
 
 import Core.Types
+import Core.Board
 import AI.AlphaBeta.Types
 
 {-
@@ -48,10 +50,11 @@ import AI.AlphaBeta.Types
  -
  - After hash-indicies, there go some (variable) number of data blocks.
  - Size of blocks is constant and hardcoded.
- - Each block starts with:
+ - Each block starts with a block header:
  - * a number of previous block in the chain. maxBound here means that this block is
  -   the first in the chain (there is no previous one).
  - * a number of data records in this block
+ - * offset of first free byte in the block w.r.t. block start
  - After such block header, there go records themselve, in a format defined by
  - Data.Store.Store instance. There may be some free space (probably filled with
  - garbage) left between the end of last record in the block and the end of the block.
@@ -89,7 +92,7 @@ hashesCount :: Integer
 hashesCount = fromIntegral (maxBound :: Hash) + 1
 
 hashIndexSize :: ByteCount
-hashIndexSize = fromIntegral hashesCount * blockNumberSize
+hashIndexSize = fromIntegral hashesCount * blockNumberSize * 2
 
 allIndiciesSize :: ByteCount
 allIndiciesSize = blockNumberSize + fromIntegral hashIndiciesCount * hashIndexSize
@@ -98,10 +101,14 @@ blockNumberSize :: ByteCount
 blockNumberSize = sizeOf (0 :: BlockNumber)
 
 blockHeaderSize :: ByteCount
-blockHeaderSize = blockNumberSize + sizeOf (0 :: Word16) + sizeOf (0 :: Word16)
+blockHeaderSize =
+  blockNumberSize +         -- bhPrevBlock
+  sizeOf (0 :: Word16) +    -- bhRecordsCount
+  sizeOf (0 :: Word16) +    -- bhFreeSpaceOffset
+  sizeOf (0 :: Word8)       -- bhDepth
 
 blockSize :: ByteCount
-blockSize = 8192
+blockSize = 8*1024
 
 unexistingBlock :: BlockNumber
 unexistingBlock = maxBound
@@ -220,14 +227,25 @@ writeDataSized a = do
   writeData size
   writeBytes bstr
 
-calcIdxOffset :: Board -> FileOffset
-calcIdxOffset board = fromIntegral $
+calcIdxOffset :: Board -> Side -> FileOffset
+calcIdxOffset board side = fromIntegral $
     fromIntegral blockNumberSize +
-    fromIntegral hashIndexSize * fromIntegral (boardCountsIdx (boardCounts board)) +
-      fromIntegral (boardHash board) * fromIntegral blockNumberSize
+    (fromIntegral hashIndexSize * fromIntegral (boardCountsIdx (boardCounts board)) +
+      fromIntegral (boardHash board) * fromIntegral blockNumberSize * 2) +
+    (if side == First then 0 else 1) * fromIntegral blockNumberSize
 
 calcBlockOffset :: BlockNumber -> FileOffset
 calcBlockOffset blockNumber = fromIntegral allIndiciesSize + fromIntegral blockNumber * fromIntegral blockSize
+
+data BlockHeader = BlockHeader {
+    bhPrevBlock :: BlockNumber
+  , bhRecordsCount :: Word16
+  , bhFreeSpaceOffset :: Word16
+  , bhDepth :: Word8
+  }
+  deriving (Show, Generic)
+
+instance Data.Store.Store BlockHeader
 
 lookupFile :: forall rules. Board -> Int -> Side -> Storage rules (Maybe StorageValue)
 lookupFile board depth side = do
@@ -235,12 +253,14 @@ lookupFile board depth side = do
   case aichFileHandle handle of
     Nothing -> return Nothing
     Just file -> underLock board $ do
-          let indexOffset = calcIdxOffset board
+          let indexOffset = calcIdxOffset board side
           seek indexOffset
           blockNumber <- readData
-          lookupBlocks blockNumber (boardKey board)
+          lookupBlocks blockNumber (boardKey board, depth)
   where
-    lookupBlocks :: BlockNumber -> BoardKey -> Storage rules (Maybe StorageValue)
+    lineCounts = boardLineCounts board
+
+    lookupBlocks :: BlockNumber -> StorageKey -> Storage rules (Maybe StorageValue)
     lookupBlocks blockNumber key
       | blockNumber == unexistingBlock = return Nothing
       | otherwise = do
@@ -252,22 +272,20 @@ lookupFile board depth side = do
                  -- printf "Block #%d, offset %d: EOF\n" blockNumber blockOffset
                  return Nothing
             else do
-              prevBlockNumber <- readData 
-              recordsCount <- readData :: Storage rules Word16
-              freeSpaceOffset <- readData :: Storage rules Word16
---               liftIO $ printf "Reading %d records in block %d\n" recordsCount blockNumber
-              records <- replicateM (fromIntegral recordsCount) $
-                            readDataSized 
-              let result = search key records
-              case result of
-                Just _ -> return result
-                Nothing -> lookupBlocks prevBlockNumber key
+              header <- readData
+              if bhDepth header == fromIntegral depth
+                then do
+    --               liftIO $ printf "Reading %d records in block %d\n" recordsCount blockNumber
+                  records <- replicateM (fromIntegral $ bhRecordsCount header) $
+                                readDataSized 
+                  let result = search key records
+                  case result of
+                    Just _ -> return result
+                    Nothing -> lookupBlocks (bhPrevBlock header) key
+                else lookupBlocks (bhPrevBlock header) key
     
-    search :: BoardKey -> [(StorageKey, StorageValue)] -> Maybe StorageValue
-    search key [] = Nothing
-    search key (((bk,d,s), val) : rest)
-      | bk == key && d == depth && s == side = Just val
-      | otherwise = search key rest
+    search :: StorageKey -> [(StorageKey, StorageValue)] -> Maybe StorageValue
+    search = lookup
 
 putRecordFile :: Board -> Int -> Side -> StorageValue -> Storage rules ()
 putRecordFile board depth side value = do
@@ -276,54 +294,20 @@ putRecordFile board depth side value = do
       Nothing -> liftIO $ putStrLn "file is not open"
       Just file -> underLock board $ do
           -- putStrLn $ "Put: " ++ show (boardKey board)
-          let indexOffset = calcIdxOffset board
+          let indexOffset = calcIdxOffset board side
           position indexOffset
           blockNumber <- readData 
-          let newData = Data.Store.encode newRecord
-          if blockNumber == unexistingBlock
-            then do
-                 blockOffset <- createNewBlock indexOffset
-                 position blockOffset
-                 writeData unexistingBlock
-                 writeData (1 :: Word16) -- number of records
-                 writeData $ (fromIntegral (B.length newData) :: Word16) + fromIntegral blockHeaderSize + fromIntegral (sizeOf (0 :: Word16))
-                 writeDataSized newRecord
-            else do
-                 let blockOffset = calcBlockOffset blockNumber
-                 -- we are not interested in the number of previous block,
-                 -- so we just skip it
-                 position (blockOffset + fromIntegral blockNumberSize)
-                 recordsCount <- readData :: Storage rules Word16
-                 freeSpaceOffset <- readData :: Storage rules Word16
-                 let newBlockSize = freeSpaceOffset +
-                                    fromIntegral (sizeOf (0 :: Word16)) + -- for length of new data
-                                    fromIntegral (B.length newData)
-                 if newBlockSize > fromIntegral blockSize
-                   then do
-                     -- new record does not fit in existing block,
-                     -- we have to create a new block
-                     newBlockOffset <- createNewBlock indexOffset
-                     position newBlockOffset
-                     writeData blockNumber
-                     writeData (1 :: Word16) -- number of records
-                     writeData $ (fromIntegral (B.length newData) :: Word16) + fromIntegral blockHeaderSize + fromIntegral (sizeOf (0 :: Word16))
-                     writeDataSized newRecord
-                  else do
-                    -- new record fits in existing block.
-                    -- we are currently at the position after existing records
-                    -- in the block, so we need to write a new record
-                    -- and update the number of records in the block.
-                    position $ blockOffset + fromIntegral freeSpaceOffset
-                    writeDataSized newRecord
-                    newFree <- tell
-                    position (blockOffset + fromIntegral blockNumberSize)
-                    writeData $ recordsCount+1
-                    writeData (fromIntegral (newFree - blockOffset) :: Word16)
+          tryExistingBlock blockNumber indexOffset
           flush
   where
+
+    lineCounts = boardLineCounts board
     
     newRecord :: (StorageKey, StorageValue)
-    newRecord = ((boardKey board, depth, side), value)
+    newRecord = ((boardKey board, depth), value)
+
+    newData :: B.ByteString
+    newData = Data.Store.encode newRecord
 
     position :: FileOffset -> Storage rules ()
     position offset = do
@@ -339,9 +323,11 @@ putRecordFile board depth side value = do
           prevPosition <- tell
           -- read previous total number of blocks
           position 0
-          blocksCount <- readData :: Storage rules Word16
+          blocksCount <- readData :: Storage rules BlockNumber
           -- write new number of blocks
           position 0
+          when (blocksCount == maxBound - 1) $
+            fail "createNewBlock: block number too large"
           writeData (blocksCount + 1)
 
           let newBlockNumber = blocksCount -- for example, if there was 0 blocks previously, the number of new block is 0.
@@ -358,11 +344,58 @@ putRecordFile board depth side value = do
           position prevPosition
           return newBlockOffset
 
+    writeNewBlock :: BlockNumber -> FileOffset -> Storage rules ()
+    writeNewBlock blockNumber indexOffset = do
+       blockOffset <- createNewBlock indexOffset
+       position blockOffset
+       let header = BlockHeader {
+                      bhPrevBlock = blockNumber
+                    , bhRecordsCount = 1
+                    , bhFreeSpaceOffset = (fromIntegral (B.length newData) :: Word16) +
+                                          fromIntegral blockHeaderSize +
+                                          fromIntegral (sizeOf (0 :: Word16))
+                    , bhDepth = fromIntegral depth
+                    }
+       writeData header
+       writeDataSized newRecord
+       return ()
+
+    tryExistingBlock :: BlockNumber -> FileOffset -> Storage rules ()
+    tryExistingBlock blockNumber indexOffset
+      | blockNumber == unexistingBlock = writeNewBlock unexistingBlock indexOffset
+      | otherwise = do
+       let blockOffset = calcBlockOffset blockNumber
+       position blockOffset
+       header <- readData
+       if bhDepth header == fromIntegral depth
+         then do
+           let newBlockSize = bhFreeSpaceOffset header +
+                              fromIntegral (sizeOf (0 :: Word16)) + -- for length of new data
+                              fromIntegral (B.length newData)
+           if newBlockSize > fromIntegral blockSize
+             then do
+               -- new record does not fit in existing block,
+               -- we have to create a new block
+               writeNewBlock blockNumber indexOffset
+            else do
+              -- new record fits in existing block.
+              position $ blockOffset + fromIntegral (bhFreeSpaceOffset header)
+              writeDataSized newRecord
+              newFree <- tell
+              position blockOffset
+              let header' = header {
+                              bhRecordsCount = bhRecordsCount header + 1,
+                              bhFreeSpaceOffset = fromIntegral (newFree - blockOffset)
+                            }
+              writeData header'
+              return ()
+         else tryExistingBlock (bhPrevBlock header) indexOffset
+
 initFile :: Storage rules ()
 initFile = do
   seek 0
   writeData (0 :: Word16)
-  let size = fromIntegral hashIndiciesCount * fromIntegral hashesCount * fromIntegral blockNumberSize
+  let size = fromIntegral hashIndiciesCount * fromIntegral hashIndexSize
   let empty = B.replicate size 0xff
   writeBytes empty
   return ()
@@ -391,23 +424,23 @@ dumpFile path = withFile path ReadMode $ \file -> do
         forM_ [0 .. hashesCount - 1] $ \hash -> do
           lastBlockNr <- readDataIO file :: IO BlockNumber
           when (lastBlockNr /= unexistingBlock) $ do
-            printf "  Hash %d:\tlast block #%d\n" hash lastBlockNr
+            printf "  Hash %d, First:\tlast block #%d\n" hash lastBlockNr
+          lastBlockNr <- readDataIO file :: IO BlockNumber
+          when (lastBlockNr /= unexistingBlock) $ do
+            printf "  Hash %d, Second:\tlast block #%d\n" hash lastBlockNr
       forM_ [0 .. nBlocks - 1] $ \blockNr -> do
         let blockOffset = fromIntegral $ calcBlockOffset (fromIntegral blockNr)
         hSeek file AbsoluteSeek blockOffset
         printf "Block #%d, offset %d\n" blockNr blockOffset
-        prevBlockNr <- readDataIO file :: IO BlockNumber
-        printf "  Previous block: #%d\n" prevBlockNr
-        nRecords <- readDataIO file :: IO Word16
-        printf "  Number of records: %d\n" nRecords
-        free <- readDataIO file :: IO Word16
-        printf "  Free data offset: %d\n" free
+        header <- readDataIO file :: IO BlockHeader
+        let nRecords = bhRecordsCount header
+        printf "  Header: %s\n" (show header)
         when (nRecords > 0) $ do
           forM_ [0 .. nRecords - 1] $ \recordNr -> do
             printf "    Record #%d:\n" recordNr
-            ((bk,depth,side),item) <- readDataSizedIO file :: IO (StorageKey, StorageValue)
+            ((bk, depth),item) <- readDataSizedIO file :: IO (StorageKey, StorageValue)
             printf "      Board key: %s\n" (show bk)
-            printf "      Depth: %d, side: %s\n" depth (show side)
+            printf "      Depth: %d\n" depth
             printf "      Value: %s\n" (show item)
 
 readDataIO :: forall a. Data.Store.Store a => Handle -> IO a
