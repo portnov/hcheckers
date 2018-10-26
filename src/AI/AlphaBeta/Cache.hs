@@ -41,7 +41,7 @@ loadAiCache :: GameRules rules
             -> Checkers (AICacheHandle rules)
 loadAiCache scoreMove (AlphaBeta params rules) = do
   let getKey (ai, handle, side, depth, board, move) = move
-  processor <- runProcessor 4 getKey scoreMove
+  processor <- runProcessor (abThreads params) getKey scoreMove
   cache <- liftIO $ atomically $ newTVar $ AICache False processor emptyBoardMap
   cachePath <- do
               home <- liftIO $ getEnv "HOME"

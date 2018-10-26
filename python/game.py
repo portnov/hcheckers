@@ -31,6 +31,7 @@ class MoveRequest(Thread):
 class AI(object):
     def __init__(self, **kwargs):
         self.depth = 2
+        self.max_combination_depth = 8
         self.start_depth = None
         self.load = True
         self.store = False
@@ -44,6 +45,7 @@ class AI(object):
         return {
             "depth": self.depth,
             "start_depth": self.start_depth,
+            "max_combination_depth" : self.max_combination_depth,
             "load": self.load,
             "store" : self.store,
             "update_cache_max_depth": self.update_cache_max_depth,

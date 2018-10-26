@@ -27,6 +27,8 @@ instance FromJSON AlphaBetaParams where
   parseJSON = withObject "AlphaBetaParams" $ \v -> AlphaBetaParams
       <$> v .: "depth"
       <*> v .:? "start_depth"
+      <*> v .:? "max_combination_depth" .!= 8
+      <*> v .:? "threads" .!= 4
       <*> v .:? "load" .!= True
       <*> v .:? "store" .!= False
       <*> v .:? "use_cache_max_depth" .!= 8
@@ -60,11 +62,11 @@ instance (GameRules rules) => GameAi (AlphaBeta rules) where
   aiName _ = "default"
 
 scoreMove :: (GameRules rules) => ScoreMoveInput rules -> Checkers (Move, Score)
-scoreMove (ai@(AlphaBeta params rules), var, side, depth, board, move) = do
+scoreMove (ai@(AlphaBeta params rules), var, side, dp, board, move) = do
      score <- timed "Checking a move" $ do
                 let (board', _, _) = applyMove side move board
-                score <- doScore rules ai var params (opposite side) depth board'
-                $info "Check: {} (depth {}) => {}" (show move, depth, score)
+                score <- doScore rules ai var params (opposite side) dp board'
+                $info "Check: {} (depth {}) => {}" (show move, dpTarget dp, score)
                 return score
      
      return (move, score)
@@ -73,30 +75,21 @@ scoreMove (ai@(AlphaBeta params rules), var, side, depth, board, move) = do
 runAI :: GameRules rules => AlphaBeta rules -> AICacheHandle rules -> Side -> Board -> Checkers ([Move], Score)
 runAI ai@(AlphaBeta params rules) handle side board = do
     let depth = abDepth params
-        startDepth = fromMaybe depth (abStartDepth params)
     let moves = possibleMoves rules side board
-    if null moves
-      then return ([], -max_value)
-      else go startDepth depth moves
-  where
-    go depth maxDepth moves = do
-      (goodMoves, maxScore) <- runAI' depth moves
-      if length goodMoves < 3
-        then return (goodMoves, maxScore)
-        else let depth' = depth + 2
-             in  if depth' <= maxDepth
-                   then go depth' maxDepth goodMoves
-                   else return (goodMoves, maxScore)
-
-    runAI' depth moves = do
-          let var = aichData handle
-          AICache _ processor _ <- liftIO $ atomically $ readTVar var
-          let inputs = [(ai, handle, side, depth, board, move) | move <- moves]
-          scores <- process processor inputs
-          let select = if side == First then maximum else minimum
-              maxScore = select $ map snd scores
-              goodMoves = [move | (move, score) <- scores, score == maxScore]
-          return (goodMoves, maxScore)
+    let var = aichData handle
+    AICache _ processor _ <- liftIO $ atomically $ readTVar var
+    dp <- updateDepth (length moves) $ DepthParams {
+               dpTarget = depth
+             , dpCurrent = -1
+             , dpMax = abCombinationDepth params + depth
+             , dpMin = fromMaybe depth (abStartDepth params)
+             }
+    let inputs = [(ai, handle, side, dp, board, move) | move <- moves]
+    scores <- process processor inputs
+    let select = if side == First then maximum else minimum
+        maxScore = select $ map snd scores
+        goodMoves = [move | (move, score) <- scores, score == maxScore]
+    return (goodMoves, maxScore)
 
 max_value :: Score
 max_value = 1000000
@@ -118,9 +111,9 @@ putMoves First board moves memo =
 putMoves Second board moves memo =
   memo {mmSecond = putBoardMap board moves (mmSecond memo)}
 
-doScore :: (GameRules rules, Evaluator eval) => rules -> eval -> AICacheHandle rules -> AlphaBetaParams -> Side -> Int -> Board -> Checkers Score
-doScore rules eval var params side depth board =
-    fixSign <$> evalStateT (cachedScoreAB var params side depth (-max_value) max_value) initState
+doScore :: (GameRules rules, Evaluator eval) => rules -> eval -> AICacheHandle rules -> AlphaBetaParams -> Side -> DepthParams -> Board -> Checkers Score
+doScore rules eval var params side dp board =
+    fixSign <$> evalStateT (cachedScoreAB var params side dp (-max_value) max_value) initState
   where
     initState = ScoreState rules eval [StackItem Nothing board score0 (-max_value)] emptyMemo
     emptyMemo = MovesMemo emptyBoardMap emptyBoardMap
@@ -174,11 +167,12 @@ cachedScoreAB :: forall rules eval. (GameRules rules, Evaluator eval)
               => AICacheHandle rules
               -> AlphaBetaParams
               -> Side
-              -> Int
+              -> DepthParams
               -> Score
               -> Score
               -> ScoreM rules eval Score
-cachedScoreAB var params side depth alpha beta = do
+cachedScoreAB var params side dp alpha beta = do
+  let depth = dpCurrent dp
   board <- gets (siBoard . head . ssStack)
   mbItem <- lift $ lookupAiCache params board depth side var
   case mbItem of
@@ -191,33 +185,55 @@ cachedScoreAB var params side depth alpha beta = do
                then return beta
                else return score
     Nothing -> do
-      (score, moves) <- scoreAB var params side depth alpha beta 
+      (score, moves) <- scoreAB var params side dp alpha beta 
       lift $ putAiCache params board depth side score moves var
       return score
+
+isTargetDepth :: DepthParams -> Bool
+isTargetDepth dp = dpCurrent dp >= dpTarget dp
+
+updateDepth :: (Monad m, HasLogging m, MonadIO m) => Int -> DepthParams -> m DepthParams
+updateDepth nMoves dp
+  | nMoves == 1 = do
+                let target = min (dpTarget dp + 1) (dpMax dp)
+                let indent = replicate (2*dpCurrent dp) ' '
+                $info "{}| there is only one move, increase target depth to {}"
+                        (indent, target)
+                return $ dp {dpCurrent = dpCurrent dp + 1, dpTarget = target}
+  | nMoves > 16 = do
+                let target = max (dpCurrent dp + 1) (dpMin dp)
+                let indent = replicate (2*dpCurrent dp) ' '
+                $info "{}| there are too many moves, decrease target depth to {}"
+                        (indent, target)
+                return $ dp {dpCurrent = dpCurrent dp + 1, dpTarget = target}
+  | otherwise = return $ dp {dpCurrent = dpCurrent dp + 1}
 
 scoreAB :: forall rules eval. (GameRules rules, Evaluator eval)
         => AICacheHandle rules
         -> AlphaBetaParams
         -> Side
-        -> Int
+        -> DepthParams
         -> Score
         -> Score
         -> ScoreM rules eval (Score, [Move])
-scoreAB _ _ side 0 alpha beta = do
-    score0 <- gets (siScore0 . head . ssStack)
-    -- let score0' = if side == First then score0 else -score0
-    $trace "    X Side: {}, A = {}, B = {}, score0 = {}" (show side, alpha, beta, score0)
-    return (score0, [])
-scoreAB var params side depth alpha beta = do
-    rules <- gets ssRules
-    setBest $ if maximize then alpha else beta -- we assume alpha <= beta
-    $trace "{}V Side: {}, A = {}, B = {}" (indent, show side, alpha, beta)
-    board <- getBoard
-    moves <- possibleMoves' board
+scoreAB var params side dp alpha beta
+  | isTargetDepth dp = do
+      score0 <- gets (siScore0 . head . ssStack)
+      -- let score0' = if side == First then score0 else -score0
+      $trace "    X Side: {}, A = {}, B = {}, score0 = {}" (show side, alpha, beta, score0)
+      return (score0, [])
+  | otherwise = do
+      rules <- gets ssRules
+      setBest $ if maximize then alpha else beta -- we assume alpha <= beta
+      $trace "{}V Side: {}, A = {}, B = {}" (indent, show side, alpha, beta)
+      board <- getBoard
+      moves <- possibleMoves' board
 
-    when (null moves) $
-      $trace "{}| No moves left." (Single indent)
-    iterateMoves moves
+      when (null moves) $
+        $trace "{}| No moves left." (Single indent)
+
+      dp' <- updateDepth (length moves) dp
+      iterateMoves moves dp'
 
   where
 
@@ -262,7 +278,7 @@ scoreAB var params side depth alpha beta = do
       stack <- gets (reverse . ssStack)
       $trace "{}| side {}: {}" (indent, show side, showStack stack)
 
-    indent = replicate (2*(4-depth)) ' '
+    indent = replicate (2*dpCurrent dp) ' '
 
     getBest =
       gets (siScoreBest . head . ssStack)
@@ -270,16 +286,16 @@ scoreAB var params side depth alpha beta = do
     setBest :: Score -> ScoreM rules eval ()
     setBest best = do
       oldBest <- getBest
-      $trace "{}| {} for depth {} : {} => {}" (indent, bestStr, depth, oldBest, best)
+      $trace "{}| {} for depth {} : {} => {}" (indent, bestStr, dpCurrent dp, oldBest, best)
       modify $ \st -> st {ssStack = update (head $ ssStack st) : tail (ssStack st)}
         where
           update item = item {siScoreBest = best}
 
-    iterateMoves [] = do
+    iterateMoves [] _ = do
       best <- getBest
       $trace "{}|—All moves considered at this level, return best = {}" (indent, best)
       return (best, [])
-    iterateMoves (move : moves) = do
+    iterateMoves (move : moves) dp' = do
       $trace "{}|+Check move of side {}: {}" (indent, show side, show move)
       board <- getBoard
       evaluator <- gets ssEvaluator
@@ -294,7 +310,7 @@ scoreAB var params side depth alpha beta = do
           beta'  = if maximize
                      then beta
                      else min beta best
-      score <- cachedScoreAB var params (opposite side) (depth - 1) alpha' beta'
+      score <- cachedScoreAB var params (opposite side) dp' alpha' beta'
       $trace "{}| score for side {}: {}" (indent, show side, score)
       pop
       best <- getBest
@@ -306,13 +322,13 @@ scoreAB var params side depth alpha beta = do
              if score >= beta
                then do
                     best <- getBest
-                    $trace "{}| Return {} for depth {} = {}" (indent, bestStr, depth, best)
+                    $trace "{}| Return {} for depth {} = {}" (indent, bestStr, dpCurrent dp, best)
                     return (best, [])
                     
-               else iterateMoves moves
+               else iterateMoves moves dp'
         else do
              -- trace (printf "%s| Score for side %s = %d, go to next move." indent (show side) score) $ return ()
-             iterateMoves moves
+             iterateMoves moves dp'
         
 win :: Score
 win = max_value

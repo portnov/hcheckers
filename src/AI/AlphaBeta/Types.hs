@@ -45,6 +45,8 @@ data AlphaBeta rules = AlphaBeta AlphaBetaParams rules
 data AlphaBetaParams = AlphaBetaParams {
     abDepth :: Int
   , abStartDepth :: Maybe Int
+  , abCombinationDepth :: Int
+  , abThreads :: Int
   , abLoadCache :: Bool
   , abSaveCache :: Bool
   , abUseCacheMaxDepth :: Int
@@ -60,6 +62,8 @@ instance Default AlphaBetaParams where
   def = AlphaBetaParams {
           abDepth = 2
         , abStartDepth = Nothing
+        , abCombinationDepth = 8
+        , abThreads = 4
         , abLoadCache = True
         , abSaveCache = False
         , abUseCacheMaxDepth = 8
@@ -69,6 +73,14 @@ instance Default AlphaBetaParams where
         , abUpdateCacheMaxDepth = 6
         , abUpdateCacheMaxPieces = 8
         }
+
+data DepthParams = DepthParams {
+    dpTarget :: Int
+  , dpCurrent :: Int
+  , dpMax :: Int
+  , dpMin :: Int
+  }
+  deriving (Eq, Show)
 
 data CacheItemSide = CacheItemSide {
     cisScore :: ! Score
@@ -98,7 +110,7 @@ type StorageKey = (BoardKey, Int)
 type StorageValue = CacheItemSide
 
 type ScoreMoveInput rules =
-  (AlphaBeta rules, AICacheHandle rules, Side, Int, Board, Move)
+  (AlphaBeta rules, AICacheHandle rules, Side, DepthParams, Board, Move)
 
 data AICache rules = AICache {
     aicDirty :: Bool
