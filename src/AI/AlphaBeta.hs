@@ -197,13 +197,13 @@ updateDepth nMoves dp
   | nMoves == 1 = do
                 let target = min (dpTarget dp + 1) (dpMax dp)
                 let indent = replicate (2*dpCurrent dp) ' '
-                $info "{}| there is only one move, increase target depth to {}"
+                $debug "{}| there is only one move, increase target depth to {}"
                         (indent, target)
                 return $ dp {dpCurrent = dpCurrent dp + 1, dpTarget = target}
-  | nMoves > 16 = do
+  | nMoves > 8 = do
                 let target = max (dpCurrent dp + 1) (dpMin dp)
                 let indent = replicate (2*dpCurrent dp) ' '
-                $info "{}| there are too many moves, decrease target depth to {}"
+                $debug "{}| there are too many moves, decrease target depth to {}"
                         (indent, target)
                 return $ dp {dpCurrent = dpCurrent dp + 1, dpTarget = target}
   | otherwise = return $ dp {dpCurrent = dpCurrent dp + 1}

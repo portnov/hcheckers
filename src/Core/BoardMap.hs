@@ -66,6 +66,14 @@ singleBoardMap board x =
 emptyBoardMap :: BoardMap a
 emptyBoardMap = M.empty
 
+deleteBoardMap :: BoardCounts -> BoardKey -> BoardMap a -> BoardMap a
+deleteBoardMap bc bk bm =
+  let del m = let m' = H.delete bk m
+              in  if H.null m'
+                    then Nothing
+                    else Just m'
+  in  M.update del bc bm
+
 ------------------
 
 unpackIndex :: FieldIndex -> Label

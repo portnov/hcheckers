@@ -115,6 +115,7 @@ class NewGameDialog(QDialog):
 
         game.ai = ai = AI()
         ai.depth = self.ai_depth.currentData()
+        #ai.start_depth = ai.depth - 2
         ai.load = self.ai_load.checkState() == Qt.Checked
         ai.store = self.ai_save.checkState() == Qt.Checked
 

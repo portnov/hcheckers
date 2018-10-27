@@ -82,10 +82,12 @@ loadAiCache scoreMove (AlphaBeta params rules) = do
     }
   when (abSaveCache params && isJust file && not exist) $ do
      runStorage handle $ initFile
-  liftIO $ forkIO $
+  when (abSaveCache params) $ do
+    liftIO $ forkIO $
       runCheckersT (cacheDumper rules params handle) st
---   liftIO $ forkIO $
---       runCheckersT (cacheCleaner handle) st
+    return ()
+  liftIO $ forkIO $
+      runCheckersT (cacheCleaner handle) st
 
   return handle
 
@@ -104,6 +106,24 @@ cacheDumper rules params handle =
               putRecordFile board depth side value
           return True
       
+    liftIO $ threadDelay $ 30 * 1000 * 1000
+
+cacheCleaner :: AICacheHandle rules -> Checkers ()
+cacheCleaner handle = forever $ do
+    repeatTimed 5 $ do
+      now <- liftIO $ getTime Monotonic
+      mbRecord <- liftIO $ atomically $ checkCleanupQueue (aichCleanupQueue handle) now
+      case mbRecord of
+        Nothing -> do
+          liftIO $ putStrLn "Cleanup queue exhaused"
+          return False
+        Just (bc, bk) -> do
+          liftIO $ atomically $ do
+            aic <- readTVar (aichData handle)
+            let cache = aicData aic
+            let aic' = aic {aicData = deleteBoardMap bc bk cache}
+            writeTVar (aichData handle) aic'
+          return True
     liftIO $ threadDelay $ 30 * 1000 * 1000
 
 -- saveAiCache :: GameRules rules => rules -> AlphaBetaParams -> AICacheHandle rules -> Checkers Bool
@@ -163,7 +183,7 @@ putAiCache' :: AlphaBetaParams -> Board -> Int -> Side -> StorageValue -> AICach
 putAiCache' params board depth side sideItem handle = do
   let c = boardCounts board
       total = bcFirstMen c + bcSecondMen c + bcFirstKings c + bcSecondKings c
-  when (total <= abUpdateCacheMaxPieces params && depth <= abUpdateCacheMaxDepth params) $ do
+  when (total <= abUpdateCacheMaxPieces params && depth > abUpdateCacheMaxDepth params) $ do
       now <- liftIO $ getTime Monotonic
       liftIO $ atomically $ do
         aic <- readTVar (aichData handle)
