@@ -1,8 +1,13 @@
+{-# LANGUAGE OverloadedStrings #-}
 module Main where
 
+import qualified Control.Monad.Metrics as Metrics
 import Data.Default
 import System.Environment
 import System.Log.Heavy
+import qualified System.Metrics as EKG
+import qualified System.Remote.Monitoring as EKG
+import Lens.Micro ((^.))
 
 import Core.Types
 import AI.AlphaBeta.Types
@@ -14,11 +19,15 @@ import Learn
 import Rules.Russian
 
 withCheckers :: LoggingSettings -> SupervisorHandle -> Checkers a -> IO a
-withCheckers (LoggingSettings settings) supervisor actions =
+withCheckers (LoggingSettings settings) supervisor actions = do
+  metrics <- Metrics.initialize
+  let store = metrics ^. Metrics.metricsStore
+  EKG.registerGcMetrics store
+  EKG.forkServerWith store "localhost" 8000
   withLoggingB settings $ \backend ->
     let logger = makeLogger backend
         logging = LoggingTState logger (AnyLogBackend backend) []
-        cs = CheckersState logging supervisor
+        cs = CheckersState logging supervisor metrics
     in  runCheckersT actions cs
 
 main :: IO ()
@@ -36,7 +45,7 @@ main = do
       withCheckers settings supervisor $
           learnPdn ai path depth
 
-    ["dump", path] -> dumpFile path
+--     ["dump", path] -> dumpFile path
     
     _ ->
       withCheckers settings supervisor $

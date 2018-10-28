@@ -10,6 +10,7 @@ module Core.Types where
 
 import Control.Monad.Reader
 import Control.Monad.Catch
+import Control.Monad.Metrics as Metrics
 import Control.Concurrent.STM
 import Data.List
 import qualified Data.Map as M
@@ -327,6 +328,11 @@ class (Ord g, Typeable g, Show g) => GameRules g where
   getGameResult :: g -> Board -> GameResult
   rulesName :: g -> String
 
+fieldsCount :: GameRules rules => rules -> Line
+fieldsCount rules =
+  let (nrows, ncols) = boardSize rules
+  in  nrows * ncols `div` 2
+
 dfltBoardNotation :: Label -> Notation
 dfltBoardNotation l = T.pack $ show l
 
@@ -443,6 +449,7 @@ type SupervisorHandle = TVar SupervisorState
 data CheckersState = CheckersState {
     csLogging :: LoggingTState
   , csSupervisor :: SupervisorHandle
+  , csMetrics :: Metrics.Metrics
   }
 
 newtype Checkers a = Checkers {
@@ -476,6 +483,9 @@ instance HasLogger Checkers where
       let logging = csLogging cs
           logging' = logging {ltsLogger = logger}
       in runReaderT (runCheckers actions) $ cs {csLogging = logging'}
+
+instance MonadMetrics Checkers where
+  getMetrics = asks csMetrics
 
 timed :: String -> Checkers a -> Checkers a
 timed message actions = do

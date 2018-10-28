@@ -8,6 +8,7 @@ module AI.AlphaBeta where
 
 import Control.Monad
 import Control.Monad.State
+import qualified Control.Monad.Metrics as Metrics
 import Control.Concurrent.STM
 import Data.Maybe
 import Data.Text.Format.Heavy
@@ -63,7 +64,7 @@ instance (GameRules rules) => GameAi (AlphaBeta rules) where
 
 scoreMove :: (GameRules rules) => ScoreMoveInput rules -> Checkers (Move, Score)
 scoreMove (ai@(AlphaBeta params rules), var, side, dp, board, move) = do
-     score <- timed "Checking a move" $ do
+     score <- Metrics.timed "ai.score.move" $ do
                 let (board', _, _) = applyMove side move board
                 score <- doScore rules ai var params (opposite side) dp board'
                 $info "Check: {} (depth {}) => {}" (show move, dpTarget dp, score)
@@ -102,8 +103,8 @@ data MovesMemo = MovesMemo {
   }
 
 lookupMoves :: Side -> Board -> MovesMemo -> Maybe [Move]
-lookupMoves First board memo = lookupBoardMap board (mmFirst memo)
-lookupMoves Second board memo = lookupBoardMap board (mmSecond memo)
+lookupMoves First board memo = lookupBoardMap (boardCounts board, boardKey board) (mmFirst memo)
+lookupMoves Second board memo = lookupBoardMap (boardCounts board, boardKey board) (mmSecond memo)
 
 putMoves :: Side -> Board -> [Move] -> MovesMemo -> MovesMemo
 putMoves First board moves memo =
@@ -185,7 +186,7 @@ cachedScoreAB var params side dp alpha beta = do
                then return beta
                else return score
     Nothing -> do
-      (score, moves) <- scoreAB var params side dp alpha beta 
+      (score, moves) <- Metrics.timed "ai.score.board" $ scoreAB var params side dp alpha beta 
       lift $ putAiCache params board depth side score moves var
       return score
 

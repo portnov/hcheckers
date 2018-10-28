@@ -24,6 +24,7 @@ dependencies:
 - mtl
 - containers
 - unordered-containers
+- concurrent-extra
 - psqueues
 - aeson
 - stm
@@ -46,6 +47,10 @@ dependencies:
 - megaparsec
 - heavy-logger
 - text-format-heavy
+- ekg
+- ekg-core
+- monad-metrics
+- microlens
 
 executables:
   hcheckers-exe:

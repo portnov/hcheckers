@@ -11,7 +11,9 @@ module AI.AlphaBeta.Types where
 import Control.Monad
 import Control.Monad.State
 import Control.Monad.Reader
+import qualified Control.Monad.Metrics as Metrics
 import Control.Concurrent
+import qualified Control.Concurrent.ReadWriteLock as RWL
 import Control.Concurrent.STM
 import Control.Exception (evaluate)
 import Control.Monad.Catch (bracket_)
@@ -95,7 +97,7 @@ data CacheItem = CacheItem {
     ciFirst :: Maybe CacheItemSide
   , ciSecond :: Maybe CacheItemSide
   }
-  deriving (Generic, Typeable)
+  deriving (Generic, Typeable, Show)
 
 instance Binary CacheItem
 
@@ -105,7 +107,7 @@ type PerBoardData = M.Map Int CacheItem
 
 type AIData = BoardMap PerBoardData
 
-type StorageKey = (BoardKey, Int)
+type StorageKey = (Int, BoardKey)
 
 type StorageValue = CacheItemSide
 
@@ -120,29 +122,47 @@ data AICache rules = AICache {
 
 type QueueKey = (BoardCounts, BoardKey)
 
-data AICacheHandle rules = AICacheHandle {
-    aichData :: TVar (AICache rules)
-  , aichWriteQueue :: WriteQueue
-  , aichCleanupQueue :: CleanupQueue
-  , aichBlocksCountLock :: QSem
-  , aichLockedBoard :: TVar (Maybe BoardKey)
-  , aichBoardLock :: QSem
-  , aichFileHandle :: Maybe Fd
+type IndexBlockNumber = Word32
+type DataBlockNumber = Word32
+
+data FileType = IndexFile | DataFile
+  deriving (Eq, Show)
+
+data Locks = Locks {
+    lBlocksCount :: RWL.RWLock
+  , lBlockLocks :: TVar (M.Map IndexBlockNumber RWL.RWLock)
   }
 
-type WriteQueue = TChan (Board, Int, Side, StorageValue)
+data AICacheHandle rules = AICacheHandle {
+    aichRules :: rules
+  , aichData :: TVar (AICache rules)
+  , aichWriteQueue :: WriteQueue
+  , aichCleanupQueue :: CleanupQueue
+  , aichIndexFile :: Maybe FHandle
+  , aichDataFile :: Maybe FHandle
+  }
+
+type WriteQueue = TChan (BoardKey, Int, Side, StorageValue)
 
 type CleanupQueue = TVar (PQ.HashPSQ QueueKey TimeSpec ())
 
-data StorageState rules = StorageState {
-    ssLogging :: LoggingTState
-  , ssFileOffset :: FileOffset
-  , ssHandle :: AICacheHandle rules
+data FHandle = FHandle {
+    fhOffset :: FileOffset
+  , fhHandle :: Fd
+  , fhLocks :: Locks
   }
 
-type Storage rules a = StateT (StorageState rules) IO a
+data StorageState = StorageState {
+    ssLogging :: LoggingTState
+  , ssMetrics :: Metrics.Metrics
+  , ssBoardSize :: BoardSize
+  , ssIndex :: Maybe FHandle
+  , ssData :: Maybe FHandle
+  }
 
-instance HasLogContext (StateT (StorageState rules) IO) where
+type Storage a = StateT StorageState IO a
+
+instance HasLogContext (StateT StorageState IO) where
   getLogContext = gets (ltsContext . ssLogging)
 
   withLogContext frame actions = do
@@ -153,7 +173,7 @@ instance HasLogContext (StateT (StorageState rules) IO) where
     modify $ \ss -> ss {ssLogging = logging}
     return result
     
-instance HasLogger (StateT (StorageState rules) IO) where
+instance HasLogger (StateT StorageState IO) where
   getLogger = gets (ltsLogger . ssLogging)
 
   localLogger logger actions = do
@@ -164,9 +184,16 @@ instance HasLogger (StateT (StorageState rules) IO) where
     modify $ \ss -> ss {ssLogging = logging}
     return result
 
-runStorage :: AICacheHandle rules -> Storage rules a -> Checkers a
+instance Metrics.MonadMetrics (StateT StorageState IO) where
+  getMetrics = gets ssMetrics
+
+runStorage :: GameRules rules => AICacheHandle rules -> Storage a -> Checkers a
 runStorage handle actions = do
   lts <- asks csLogging
-  let initState = StorageState lts 0 handle
+  let indexHandle = aichIndexFile handle
+  let dataHandle = aichDataFile handle
+  let bsize = boardSize (aichRules handle)
+  metrics <- Metrics.getMetrics
+  let initState = StorageState lts metrics bsize indexHandle dataHandle
   liftIO $ evalStateT actions initState
   

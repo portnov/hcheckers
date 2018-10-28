@@ -520,3 +520,23 @@ parseNumericNotation (nrows, ncols) t = parse (T.unpack t)
 
       | otherwise = Left $ "parseNumericNotation: Cant parse: " ++ str
 
+flipBoardKey :: BoardSize -> BoardKey -> BoardKey
+flipBoardKey (nrows,ncols) bk =
+    bk {
+      bkFirstMen = map flipLabel (bkSecondMen bk),
+      bkSecondMen = map flipLabel (bkFirstMen bk),
+      bkFirstKings = map flipLabel (bkSecondKings bk),
+      bkSecondKings = map flipLabel (bkFirstKings bk)
+    }
+  where
+    flipLabel (Label col row) = Label (ncols - col - 1) (nrows - row - 1)
+
+flipBoardCounts :: BoardCounts -> BoardCounts
+flipBoardCounts bc =
+  bc {
+    bcFirstMen = bcSecondMen bc,
+    bcSecondMen = bcFirstMen bc,
+    bcFirstKings = bcSecondKings bc,
+    bcSecondKings = bcFirstKings bc
+  }
+
