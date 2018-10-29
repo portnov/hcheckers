@@ -112,7 +112,7 @@ type BoardSize = (Line, Line)
 
 type FieldIndex = (Line, Line)
 
-type AddressMap a = Array FieldIndex (Maybe a)
+type AddressMap a = M.Map FieldIndex a
 
 type LabelMap a = Array FieldIndex a
 

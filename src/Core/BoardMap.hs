@@ -74,6 +74,9 @@ deleteBoardMap bc bk bm =
                     else Just m'
   in  M.update del bc bm
 
+boardMapSize :: BoardMap a -> Int
+boardMapSize bmap = sum $ map H.size $ M.elems bmap
+
 ------------------
 
 unpackIndex :: FieldIndex -> Label
@@ -92,26 +95,25 @@ lookupLabel :: Label -> LabelMap a -> Maybe a
 lookupLabel (Label col row) lmap = Just $ lmap ! (col,row)
 
 emptyAddressMap :: BoardSize -> AddressMap a
-emptyAddressMap (nrows,ncols) =
-  listArray ((0,0), (ncols-1,nrows-1)) $ replicate (fromIntegral $ ncols*nrows) Nothing
+emptyAddressMap (nrows,ncols) = M.empty
 
 lookupAddress :: Address -> AddressMap a -> Maybe a
-lookupAddress a amap = amap ! aIndex a
+lookupAddress a amap = M.lookup (aIndex a) amap
 
 setAddress :: Address -> a -> AddressMap a -> AddressMap a
-setAddress a x amap = amap // [(aIndex a, Just x)]
+setAddress a x amap = M.insert (aIndex a) x amap
 
 removeAddress :: Address -> AddressMap a -> AddressMap a
-removeAddress a amap = amap // [(aIndex a, Nothing)]
+removeAddress a amap = M.delete (aIndex a) amap
 
 findLabels :: (a -> Bool) -> AddressMap a -> [Label]
-findLabels fn amap = [unpackIndex idx | (idx, Just value) <- assocs amap, fn value]
+findLabels fn amap = [unpackIndex idx | idx <- M.keys $ M.filter fn amap]
 
 countAddresses :: (a -> Bool) -> AddressMap a -> Int
 countAddresses fn amap = length $ findLabels fn amap
 
 occupiedLabels :: AddressMap a -> [(Label, a)]
-occupiedLabels amap = [(unpackIndex idx, value) | (idx, Just value) <- assocs amap]
+occupiedLabels amap = [(unpackIndex idx, value) | (idx, value) <- M.assocs amap]
 
 labelMapKeys :: LabelMap a -> [Label]
 labelMapKeys lmap = map unpackIndex $ indices lmap

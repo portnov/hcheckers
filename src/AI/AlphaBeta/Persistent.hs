@@ -541,3 +541,12 @@ dumpIndexBlock h bsize n = do
     when (irDataBlock record /= unexistingBlock || irIndexBlock record /= unexistingBlock) $
       printf "Char #%d: next index #%d, data block #%d\n" char (irIndexBlock record) (irDataBlock record)
 
+checkDataFile :: FilePath -> IO ()
+checkDataFile path = withFile path ReadMode $ \file -> do
+  nBlocks <- readDataIO file :: IO DataBlockNumber
+  forM_ [0 .. nBlocks - 1] $ \i -> do
+    let start = fromIntegral $ calcDataBlockOffset i
+    hSeek file AbsoluteSeek start
+    size <- readDataIO file :: IO Word16
+    printf "Block #%d: data size %d\n" i size
+

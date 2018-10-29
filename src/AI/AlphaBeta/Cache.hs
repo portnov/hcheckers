@@ -3,6 +3,7 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE StandaloneDeriving #-}
+{-# LANGUAGE TemplateHaskell #-}
 
 module AI.AlphaBeta.Cache where
 
@@ -22,6 +23,7 @@ import Data.Binary
 import Data.Store
 import Data.Typeable
 import Data.Default
+import Data.Text.Format.Heavy (Single (..))
 import GHC.Generics
 import System.FilePath
 import System.Environment
@@ -30,6 +32,8 @@ import System.IO
 import System.Posix.Types
 import System.Posix.IO
 import System.Clock
+import System.Log.Heavy
+import System.Log.Heavy.TH
 
 import Core.Types
 import Core.Board
@@ -140,19 +144,27 @@ cacheDumper rules params handle =
 
 cacheCleaner :: AICacheHandle rules -> Checkers ()
 cacheCleaner handle = forever $ do
-    repeatTimed "cleanup" 5 $ do
-      now <- liftIO $ getTime Monotonic
-      mbRecord <- liftIO $ atomically $ checkCleanupQueue (aichCleanupQueue handle) now
-      case mbRecord of
-        Nothing -> return False
-        Just (bc, bk) -> do
-          liftIO $ atomically $ do
-            aic <- readTVar (aichData handle)
-            let cache = aicData aic
-            let aic' = aic {aicData = deleteBoardMap bc bk cache}
+    delta <- liftIO $ atomically $ do
+        aic <- readTVar (aichData handle)
+        let cache = aicData aic
+        let oldSize = boardMapSize cache
+        if oldSize > 3*1000*1000
+          then do
+            let bcs = M.keys cache
+                total bc = bcFirstMen bc + bcSecondMen bc + bcFirstKings bc + bcSecondKings bc
+                bcounts = map total bcs
+                mincount = minimum bcounts
+                maxcount = maximum bcounts
+                avg = (mincount + maxcount) `div` 2
+                cache' = M.filterWithKey (\bc _ -> total bc > avg) cache
+                aic' = aic {aicData = cache'}
+                newSize = boardMapSize cache'
+                delta = oldSize - newSize
             writeTVar (aichData handle) aic'
-          Metrics.increment "cache.records.cleaned"
-          return True
+            return delta
+          else return 0
+    $info "cleanup: cleaned {} records" (Single delta)
+      
     liftIO $ threadDelay $ 30 * 1000 * 1000
 
 normalize :: BoardSize -> (BoardCounts,BoardKey,Side) -> (BoardCounts,BoardKey,Side)
@@ -185,10 +197,11 @@ lookupAiCache params board depth side handle = do
             return mbValue
 
   where 
-    queueCleanup bc bk = do
-      let key = (bc, bk)
-      now <- liftIO $ getTime Monotonic
-      liftIO $ atomically $ putCleanupQueue (aichCleanupQueue handle) key now
+    queueCleanup bc bk = return ()
+--     queueCleanup bc bk = do
+--       let key = (bc, bk)
+--       now <- liftIO $ getTime Monotonic
+--       liftIO $ atomically $ putCleanupQueue (aichCleanupQueue handle) key now
     
     lookupMemory (bc, bk) side = Metrics.timed "cache.lookup.memory" $ do
       let total = bcFirstMen bc + bcSecondMen bc + bcFirstKings bc + bcSecondKings bc

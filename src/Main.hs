@@ -38,14 +38,22 @@ main = do
   case args of
     ["learn", path] -> do
       let rules = Russian
-          params = def :: AlphaBetaParams
-          ai = AlphaBeta params rules
           eval = ai
           depth = 6
+          params = def {
+                     abDepth = depth
+                   , abCombinationDepth = 4
+                   , abLoadCache = True
+                   , abSaveCache = True
+                   , abUpdateCacheMaxPieces = 24
+                   , abUpdateCacheMaxDepth = 0
+                   }
+          ai = AlphaBeta params rules
       withCheckers settings supervisor $
-          learnPdn ai path depth
+          withLogContext (LogContextFrame [] (include defaultLogFilter)) $
+            learnPdn ai path depth
 
---     ["dump", path] -> dumpFile path
+    ["dump", path] -> checkDataFile path
     
     _ ->
       withCheckers settings supervisor $

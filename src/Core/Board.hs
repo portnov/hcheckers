@@ -454,7 +454,7 @@ parseBoardRep rules (BoardRep list) = foldr set (buildBoard bsize) list
 boardLineCounts :: Board -> BoardLineCounts
 boardLineCounts board =
   let (nrows,ncols) = bSize board
-      go row = fromIntegral $ length [col | col <- [0..ncols-1], isJust (bPieces board ! (col,row))]
+      go row = fromIntegral $ length [col | col <- [0..ncols-1], M.member (col,row) (bPieces board)]
       counts = map go [0..nrows-1]
   in  BoardLineCounts $ counts ++ replicate (16 - fromIntegral nrows) 0
 

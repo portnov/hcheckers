@@ -31,12 +31,12 @@ class MoveRequest(Thread):
 class AI(object):
     def __init__(self, **kwargs):
         self.depth = 2
-        self.max_combination_depth = 0
+        self.max_combination_depth = 8
         self.start_depth = None
         self.load = True
         self.store = False
         self.update_cache_max_depth = 2
-        self.update_cache_max_pieces = 24
+        self.update_cache_max_pieces = 40
 
         for key in kwargs:
             setattr(self, key, kwargs[key])
