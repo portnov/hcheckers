@@ -54,8 +54,8 @@ doMoveRq side move = do
     else if move `notElem` possibleMoves rules side board
            then throwError "Not allowed move"
            else do
-                let (board', _, _) = applyMove side move board
-                    moveMsg = MoveNotify (opposite side) side (moveRep side move) (boardRep board')
+                let (board', _, _) = applyMove rules side move board
+                    moveMsg = MoveNotify (opposite side) side (moveRep rules side move) (boardRep board')
                     result = getGameResult rules board'
                     resultMsg to = ResultNotify to side result
                     messages = if result == Ongoing

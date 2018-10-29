@@ -23,13 +23,13 @@ doLearn rules eval var params gameRec depth = do
     go _ [] = return ()
     go board0 (moveRec : rest) = do
       let move1 = parseMoveRec rules First board0 (mrFirst moveRec)
-      let (board1, _,_) = applyMove First move1 board0
+      let (board1, _,_) = applyMove rules First move1 board0
       processMove rules eval var params Second depth move1 board1
       case mrSecond moveRec of
         Nothing -> return ()
         Just rec -> do
           let move2 = parseMoveRec rules Second board1 rec
-          let (board2, _, _) = applyMove Second move2 board1
+          let (board2, _, _) = applyMove rules Second move2 board1
           processMove rules eval var params First depth move2 board2
           go board2 rest
 
@@ -37,7 +37,7 @@ parseMoveRec :: GameRules rules => rules -> Side -> Board -> SemiMoveRec -> Move
 parseMoveRec rules side board rec =
   let moves = possibleMoves rules side board
       suits m = aLabel (moveBegin m) == smrFrom rec &&
-                aLabel (moveEnd side board m) == smrTo rec &&
+                aLabel (moveEnd rules side board m) == smrTo rec &&
                 isCapture m == smrCapture rec
   in case filter suits moves of
     [m] -> m

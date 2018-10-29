@@ -72,6 +72,9 @@ instance Show PieceKind where
   show Man = "M"
   show King = "K"
 
+data BoardSide = Top | Bottom
+  deriving (Eq, Ord, Show, Generic, Typeable)
+
 data Side = First | Second
   deriving (Eq, Ord, Generic, Typeable)
 
@@ -80,6 +83,9 @@ instance Show Side where
   show Second = "2"
 
 instance Store Side
+
+data BoardOrientation = FirstAtBottom | SecondAtBottom
+  deriving (Eq, Ord, Show, Generic, Typeable)
 
 data Piece = Piece PieceKind Side
   deriving (Eq, Ord, Typeable)
@@ -321,8 +327,13 @@ data BoardRep = BoardRep [(Label, Piece)]
 class (Ord g, Typeable g, Show g) => GameRules g where
   initBoard :: g -> Board
   boardSize :: g -> BoardSize
+
   boardNotation :: g -> Label -> Notation
   parseNotation :: g -> Notation -> Either String Label
+
+  boardOrientation :: g -> BoardOrientation
+  boardOrientation _ = FirstAtBottom
+
   possibleMoves :: g -> Side -> Board -> [Move]
   updateRules :: g -> Value -> g
   getGameResult :: g -> Board -> GameResult

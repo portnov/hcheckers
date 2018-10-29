@@ -2,6 +2,7 @@
 {-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE RankNTypes #-}
 
 module Core.Supervisor where
 
@@ -144,7 +145,7 @@ runGame gameId = do
   where
     update game = game {gStatus = Running}
 
-withGame :: GameId -> GameM a -> Checkers a
+withGame :: GameId -> (SomeRules -> GameM a) -> Checkers a
 withGame gameId action = do
     var <- askSupervisor
     liftIO $ atomically $ do
@@ -152,7 +153,8 @@ withGame gameId action = do
       case M.lookup gameId (ssGames st) of
         Nothing -> fail $ "No such game: " ++ gameId
         Just game -> do
-          let (r, game') = runState (runExceptT action) game
+          let rules = gRules game
+          let (r, game') = runState (runExceptT $ action rules) game
           case r of
             Left err -> fail err
             Right result -> do
@@ -204,15 +206,17 @@ getMessages name = do
     
 getPossibleMoves :: GameId -> Side -> Checkers [MoveRep]
 getPossibleMoves gameId side = do
-  moves <- withGame gameId gamePossibleMoves 
-  return $ map (moveRep side) moves
+    withGame gameId $ \(SomeRules rules) -> do
+      game <- get
+      moves <- gamePossibleMoves
+      return $ map (moveRep rules side) moves
 
 doMove :: GameId -> String -> MoveRep -> Checkers BoardRep
 doMove gameId name moveRq = do
   mbGame <- getGame gameId
   let game = fromJust mbGame
   let side = fromJust $ sideByUser game name
-  GMoveRs board' messages <- withGame gameId $ doMoveRepRq side moveRq
+  GMoveRs board' messages <- withGame gameId $ \_ -> doMoveRepRq side moveRq
   queueNotifications gameId messages
   letAiMove gameId (opposite side) (Just board')
   return $ boardRep board'
@@ -222,7 +226,7 @@ doUndo gameId name = do
   mbGame <- getGame gameId
   let game = fromJust mbGame
   let side = fromJust $ sideByUser game name
-  GUndoRs board' messages <- withGame gameId $ doUndoRq side
+  GUndoRs board' messages <- withGame gameId $ \_ -> doUndoRq side
   queueNotifications gameId messages
   letAiMove gameId side (Just board')
   return $ boardRep board'
@@ -250,7 +254,7 @@ letAiMove gameId side mbBoard = do
   board <- case mbBoard of
              Just b -> return b
              Nothing -> do
-               (_, b) <- withGame gameId gameState
+               (_, b) <- withGame gameId $ \_ -> gameState
                return b
 
   mbGame <- getGame gameId
@@ -270,7 +274,7 @@ letAiMove gameId side mbBoard = do
                 i <- liftIO $ randomRIO (0, length aiMoves - 1)
                 let aiMove = aiMoves !! i
                 $info "AI returned {} move(s), selected: {}" (length aiMoves, show aiMove)
-                GMoveRs board' messages <- withGame gameId $ doMoveRq side aiMove
+                GMoveRs board' messages <- withGame gameId $ \_ -> doMoveRq side aiMove
                 $debug "Messages: {}" (Single $ show messages)
                 queueNotifications (getGameId game) messages
                 return board'
@@ -279,7 +283,7 @@ letAiMove gameId side mbBoard = do
 
 getState :: GameId -> Checkers RsPayload
 getState gameId = do
-  (side, board) <- withGame gameId gameState
+  (side, board) <- withGame gameId $ \_ -> gameState
   return $ StateRs (boardRep board) side
 
 getGames :: Maybe String -> Checkers [Game]

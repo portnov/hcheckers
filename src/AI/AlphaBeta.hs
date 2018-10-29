@@ -65,7 +65,7 @@ instance (GameRules rules) => GameAi (AlphaBeta rules) where
 scoreMove :: (GameRules rules) => ScoreMoveInput rules -> Checkers (Move, Score)
 scoreMove (ai@(AlphaBeta params rules), var, side, dp, board, move) = do
      score <- Metrics.timed "ai.score.move" $ do
-                let (board', _, _) = applyMove side move board
+                let (board', _, _) = applyMove rules side move board
                 score <- doScore rules ai var params (opposite side) dp board'
                 $info "Check: {} (depth {}) => {}" (show move, dpTarget dp, score)
                 return score
@@ -292,6 +292,7 @@ scoreAB var params side dp alpha beta
         where
           update item = item {siScoreBest = best}
 
+    iterateMoves :: [Move] -> DepthParams -> ScoreM rules eval (Score, [Move])
     iterateMoves [] _ = do
       best <- getBest
       $trace "{}|—All moves considered at this level, return best = {}" (indent, best)
@@ -300,7 +301,8 @@ scoreAB var params side dp alpha beta
       $trace "{}|+Check move of side {}: {}" (indent, show side, show move)
       board <- getBoard
       evaluator <- gets ssEvaluator
-      let (board', _, _) = applyMove side move board
+      rules <- gets ssRules
+      let (board', _, _) = applyMove rules side move board
       let score0 = evalBoard evaluator First (opposite side) board' -- next move will be done by another side
       best <- getBest
       push move board' score0

@@ -43,15 +43,24 @@ isMan (Piece kind _) = kind == Man
 isKing :: Piece -> Bool
 isKing (Piece kind _) = kind == King
 
-myDirection :: Side -> PlayerDirection -> BoardDirection
-myDirection First ForwardLeft = UpLeft
-myDirection First ForwardRight = UpRight
-myDirection First BackwardLeft = DownLeft
-myDirection First BackwardRight = DownRight
-myDirection Second ForwardLeft = DownRight
-myDirection Second ForwardRight = DownLeft
-myDirection Second BackwardLeft = UpRight
-myDirection Second BackwardRight = UpLeft
+boardDirection :: BoardSide -> PlayerDirection -> BoardDirection
+boardDirection Bottom ForwardLeft = UpLeft
+boardDirection Bottom ForwardRight = UpRight
+boardDirection Bottom BackwardLeft = DownLeft
+boardDirection Bottom BackwardRight = DownRight
+boardDirection Top ForwardLeft = DownRight
+boardDirection Top ForwardRight = DownLeft
+boardDirection Top BackwardLeft = UpRight
+boardDirection Top BackwardRight = UpLeft
+
+boardSide :: BoardOrientation -> Side -> BoardSide
+boardSide FirstAtBottom First = Bottom
+boardSide FirstAtBottom Second = Top
+boardSide SecondAtBottom First = Top
+boardSide SecondAtBottom Second = Bottom
+
+myDirection :: GameRules rules => rules -> Side -> PlayerDirection -> BoardDirection
+myDirection rules side dir = boardDirection (boardSide (boardOrientation rules) side) dir
 
 playerDirection :: Side -> BoardDirection -> PlayerDirection
 playerDirection First UpLeft = ForwardLeft
@@ -109,21 +118,21 @@ isLastHorizontal :: Side -> Address -> Bool
 isLastHorizontal side a =
   aPromotionSide a == Just side
 
-isWithinBoard :: Side -> Board -> Move -> Bool
-isWithinBoard side board move = go (moveBegin move) (moveSteps move)
+isWithinBoard :: GameRules rules => rules -> Side -> Board -> Move -> Bool
+isWithinBoard rules side board move = go (moveBegin move) (moveSteps move)
   where
     go _ [] = True
     go addr (step : steps) =
-      case neighbour (myDirection side (sDirection step)) addr of
+      case neighbour (myDirection rules side (sDirection step)) addr of
         Just addr' -> go addr' steps
         Nothing -> False
 
-allPassedAddresses :: Side -> Board -> Move -> [Address]
-allPassedAddresses side board move = reverse $ go [] (moveBegin move) (moveSteps move)
+allPassedAddresses :: GameRules rules => rules -> Side -> Board -> Move -> [Address]
+allPassedAddresses rules side board move = reverse $ go [] (moveBegin move) (moveSteps move)
   where
     go acc _ [] = acc
     go acc addr (step : steps) =
-      case neighbour (myDirection side (sDirection step)) addr of
+      case neighbour (myDirection rules side (sDirection step)) addr of
         Just addr' -> go (addr' : acc) addr' steps
         Nothing -> error $ "allPassedAddresses: invalid step: " ++ show step
 
@@ -165,34 +174,34 @@ myCounts side board =
         First -> (bcFirstMen counts, bcFirstKings counts)
         Second -> (bcSecondMen counts, bcSecondKings counts)
 
-checkWellFormedStep :: Piece -> Board -> Address -> Step -> StepCheckResult
-checkWellFormedStep (Piece kind side) board src step =
-  case neighbour (myDirection side (sDirection step)) src of
-    Nothing -> NoSuchNeighbour
-    Just dst ->
-      if sCapture step
-        then -- trace (printf "Dir: %s, Capture: %s, Dst: %s, piece: %s" (show $ myDirection side (sDirection step)) (show $ sCapture step) (show dst) (show $ getPiece dst board)) $
-             case getPiece dst board of
-               Nothing -> NoPieceToCapture
-               Just piece -> if isMyPiece side piece
-                               then CapturingOwnPiece
-                               else ValidStep dst
-        else if isJust (getPiece dst board)
-               then OccupatedField
-               else if (kind == Man) && (sPromote step /= isLastHorizontal side dst)
-                       then InvalidPromotion (sPromote step) (isLastHorizontal side dst)
-                       else ValidStep dst
-
-isWellFormedMove :: Piece -> Board -> Move -> MoveCheckResult
-isWellFormedMove piece board move =
-    -- isMyPieceAt side (moveBegin move) board &&
-    go (moveBegin move) (moveSteps move)
-  where
-    go _ [] = ValidMove
-    go src (step : steps) =
-      case checkWellFormedStep piece board src step of
-        ValidStep dst -> go dst steps
-        err -> InvalidStep step err
+-- checkWellFormedStep :: Piece -> Board -> Address -> Step -> StepCheckResult
+-- checkWellFormedStep (Piece kind side) board src step =
+--   case neighbour (myDirection side (sDirection step)) src of
+--     Nothing -> NoSuchNeighbour
+--     Just dst ->
+--       if sCapture step
+--         then -- trace (printf "Dir: %s, Capture: %s, Dst: %s, piece: %s" (show $ myDirection side (sDirection step)) (show $ sCapture step) (show dst) (show $ getPiece dst board)) $
+--              case getPiece dst board of
+--                Nothing -> NoPieceToCapture
+--                Just piece -> if isMyPiece side piece
+--                                then CapturingOwnPiece
+--                                else ValidStep dst
+--         else if isJust (getPiece dst board)
+--                then OccupatedField
+--                else if (kind == Man) && (sPromote step /= isLastHorizontal side dst)
+--                        then InvalidPromotion (sPromote step) (isLastHorizontal side dst)
+--                        else ValidStep dst
+-- 
+-- isWellFormedMove :: Piece -> Board -> Move -> MoveCheckResult
+-- isWellFormedMove piece board move =
+--     -- isMyPieceAt side (moveBegin move) board &&
+--     go (moveBegin move) (moveSteps move)
+--   where
+--     go _ [] = ValidMove
+--     go src (step : steps) =
+--       case checkWellFormedStep piece board src step of
+--         ValidStep dst -> go dst steps
+--         err -> InvalidStep step err
 
 catMoves :: Move -> Move -> Move
 catMoves m1 m2 =
@@ -204,16 +213,16 @@ isCapture move = any sCapture (moveSteps move)
 capturesCount :: Move -> Int
 capturesCount move = length $ filter sCapture (moveSteps move)
 
-capturesCounts :: Move -> Board -> (Int, Int)
-capturesCounts move board =
+capturesCounts :: GameRules rules => rules -> Move -> Board -> (Int, Int)
+capturesCounts rules move board =
 --   trace (printf "CC: %s" (show move)) $
-  let captures = getCaptured move board
+  let captures = getCaptured rules move board
       (men, kings) = partition isMan $ map snd captures
   in  (length men, length kings)
 
-applyStep :: Piece -> Address -> Step -> Board -> (Board, Address, Piece)
-applyStep piece@(Piece _ side) src step board =
-  case neighbour (myDirection side (sDirection step)) src of
+applyStep :: GameRules rules => rules -> Piece -> Address -> Step -> Board -> (Board, Address, Piece)
+applyStep rules piece@(Piece _ side) src step board =
+  case neighbour (myDirection rules side (sDirection step)) src of
     Nothing -> error $ "no such neighbour: " ++ show step
     Just dst ->
       let piece' = if sPromote step
@@ -231,18 +240,18 @@ applyStep piece@(Piece _ side) src step board =
 --         in (board', dst, piece')
 --     err -> error $ printf "applyStep: Step is not well-formed: [%s at %s]: %s: %s" (show piece) (show src) (show step) (show err)
 -- 
-applyMove :: Side -> Move -> Board -> (Board, Address, Piece)
-applyMove side move board = go board piece (moveBegin move) (moveSteps move)
+applyMove :: GameRules rules => rules -> Side -> Move -> Board -> (Board, Address, Piece)
+applyMove rules side move board = go board piece (moveBegin move) (moveSteps move)
   where
     go b p src [] = (b, src, p)
     go b p src (step : steps) =
-      let (b', dst, p') = applyStep p src step b
+      let (b', dst, p') = applyStep rules p src step b
       in  go b' p' dst steps
 
     piece = getPiece_ "applyMove" (moveBegin move) board
 
-getCaptured :: Move -> Board -> [(Address, Piece)]
-getCaptured move board = go board (moveBegin move) (moveSteps move)
+getCaptured :: GameRules rules => rules -> Move -> Board -> [(Address, Piece)]
+getCaptured rules move board = go board (moveBegin move) (moveSteps move)
   where
     me = getPiece_ "getCaptured: me" (moveBegin move) board
 
@@ -250,25 +259,25 @@ getCaptured move board = go board (moveBegin move) (moveSteps move)
     go board addr (step : steps) =
       if sCapture step
         then let victim = getPiece_ "getCaptured" addr' board
-                 (board', addr', _) = applyStep me addr step board
+                 (board', addr', _) = applyStep rules me addr step board
              in (addr, victim) : go board' addr' steps
-        else let (board', addr', _) = applyStep me addr step board
+        else let (board', addr', _) = applyStep rules me addr step board
              in go board' addr' steps
 
-moveEnd :: Side -> Board -> Move -> Address
-moveEnd side board move = last $ allPassedAddresses side board move
+moveEnd :: GameRules rules => rules -> Side -> Board -> Move -> Address
+moveEnd rules side board move = last $ allPassedAddresses rules side board move
 
-simpleMove :: Side -> Address -> PlayerDirection -> Move
-simpleMove side src dir = Move src [Step dir False promote]
+simpleMove :: GameRules rules => rules -> Side -> Address -> PlayerDirection -> Move
+simpleMove rules side src dir = Move src [Step dir False promote]
   where
-    promote = case neighbour (myDirection side dir) src of
+    promote = case neighbour (myDirection rules side dir) src of
                 Nothing -> False
                 Just dst -> isLastHorizontal side dst
 
-simpleCapture :: Side -> Address -> PlayerDirection -> Move
-simpleCapture side src dir = Move src [Step dir True False, Step dir False promote]
+simpleCapture :: GameRules rules => rules -> Side -> Address -> PlayerDirection -> Move
+simpleCapture rules side src dir = Move src [Step dir True False, Step dir False promote]
   where
-    promote = case neighbour (myDirection side dir) =<< neighbour (myDirection side dir) src of
+    promote = case neighbour (myDirection rules side dir) =<< neighbour (myDirection rules side dir) src of
                 Nothing -> False
                 Just dst -> isLastHorizontal side dst
 
@@ -412,13 +421,13 @@ board8 =
       labels2 = line8labels ++ line7labels ++ line6labels
   in  setManyPieces' labels1 (Piece Man First) $ setManyPieces' labels2 (Piece Man Second) board
 
-moveRep :: Side -> Move -> MoveRep
-moveRep side move = FullMoveRep (aLabel $ moveBegin move) $ rep (moveBegin move) (moveSteps move)
+moveRep :: GameRules rules => rules -> Side -> Move -> MoveRep
+moveRep rules side move = FullMoveRep (aLabel $ moveBegin move) $ rep (moveBegin move) (moveSteps move)
   where
 
     rep _ [] = []
     rep prev (step@(Step dir capture promote) : steps) =
-      case neighbour (myDirection side dir) prev of
+      case neighbour (myDirection rules side dir) prev of
         Nothing -> error $ "moveRep: invalid step: " ++ show step
         Just addr -> (StepRep (aLabel addr) capture promote) : rep addr steps
 
@@ -426,7 +435,7 @@ parseMoveRep :: GameRules rules => rules -> Side -> Board -> MoveRep -> MovePars
 parseMoveRep rules side board (ShortMoveRep from to) =
   let moves = possibleMoves rules side board
       suits m = aLabel (moveBegin m) == from &&
-                aLabel (moveEnd side board m) == to
+                aLabel (moveEnd rules side board m) == to
   in  case filter suits moves of
         [m] -> Parsed m
         [] -> NoSuchMove

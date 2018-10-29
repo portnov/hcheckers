@@ -25,41 +25,41 @@ instance GameRules Simple where
   getGameResult = genericGameResult
 
   possibleMoves Simple side board =
-    let simpleMoves = concatMap (possibleSimpleMoves1 board) (allMyAddresses side board)
-        captures = concatMap (possibleCaptures1 board) (allMyAddresses side board)
+    let simpleMoves = concatMap (possibleSimpleMoves1 Simple board) (allMyAddresses side board)
+        captures = concatMap (possibleCaptures1 Simple board) (allMyAddresses side board)
     in  if null captures
           then simpleMoves
           else captures
 
-possibleSimpleMoves1 :: Board -> Address -> [Move]
-possibleSimpleMoves1 board src =
+possibleSimpleMoves1 :: GameRules rules => rules -> Board -> Address -> [Move]
+possibleSimpleMoves1 rules board src =
   case getPiece src board of
     Nothing -> error "possibleSimpleMoves1: not my field"
-    Just piece@(Piece Man _) -> manSimpleMoves piece board src
+    Just piece@(Piece Man _) -> manSimpleMoves rules piece board src
     Just _ -> error "possibleSimpleMoves1: kings are not possible in simple draughts"
 
-manSimpleMoves :: Piece -> Board -> Address -> [Move]
-manSimpleMoves piece@(Piece _ side) board src = check ForwardLeft ++ check ForwardRight
+manSimpleMoves :: GameRules rules => rules -> Piece -> Board -> Address -> [Move]
+manSimpleMoves rules piece@(Piece _ side) board src = check ForwardLeft ++ check ForwardRight
   where
     check dir =
-      case neighbour (myDirection side dir) src of
+      case neighbour (myDirection rules side dir) src of
         Nothing -> []
         Just dst -> if isFree dst board
                       then [Move src [Step dir False False]]
                       else []
 
-possibleCaptures1 :: Board -> Address -> [Move]
-possibleCaptures1 board src =
+possibleCaptures1 :: GameRules rules => rules -> Board -> Address -> [Move]
+possibleCaptures1 rules board src =
   case getPiece src board of
     Nothing -> error "possibleCaptures: not my field"
-    Just piece@(Piece Man _) -> manCaptures Nothing piece board src
+    Just piece@(Piece Man _) -> manCaptures rules Nothing piece board src
     Just _ -> error "possibleCaptures1: kings are not possible in simple draughts"
 
-manCaptures :: Maybe PlayerDirection -> Piece -> Board -> Address -> [Move]
-manCaptures mbPrevDir piece@(Piece _ side) board src =
-  let captures = manCaptures1 mbPrevDir piece board src
-      nextMoves m = manCaptures (Just $ firstMoveDirection m) p b a
-                      where (b, a, p) = applyMove side m board
+manCaptures :: GameRules rules => rules -> Maybe PlayerDirection -> Piece -> Board -> Address -> [Move]
+manCaptures rules mbPrevDir piece@(Piece _ side) board src =
+  let captures = manCaptures1 rules mbPrevDir piece board src
+      nextMoves m = manCaptures rules (Just $ firstMoveDirection m) p b a
+                      where (b, a, p) = applyMove rules side m board
   in concat $ flip map captures $ \capture ->
        let [move1] = Russian.translateCapture side board capture
            moves2 = nextMoves move1
@@ -67,8 +67,9 @@ manCaptures mbPrevDir piece@(Piece _ side) board src =
              then [move1]
              else [catMoves move1 move2 | move2 <- moves2]
 
-manCaptures1 :: Maybe PlayerDirection -> Piece -> Board -> Address -> [Russian.Capture]
-manCaptures1 mbPrevDir piece@(Piece _ side) board src = concatMap (check src) $ filter allowedDir [ForwardLeft, ForwardRight, BackwardLeft, BackwardRight]
+manCaptures1 :: GameRules rules => rules -> Maybe PlayerDirection -> Piece -> Board -> Address -> [Russian.Capture]
+manCaptures1 rules mbPrevDir piece@(Piece _ side) board src =
+    concatMap (check src) $ filter allowedDir [ForwardLeft, ForwardRight, BackwardLeft, BackwardRight]
   where
 
     allowedDir dir =
@@ -77,7 +78,7 @@ manCaptures1 mbPrevDir piece@(Piece _ side) board src = concatMap (check src) $ 
         Just prevDir -> oppositeDirection prevDir /= dir
 
     check a dir =
-      case neighbour (myDirection side dir) a of
+      case neighbour (myDirection rules side dir) a of
         Nothing -> []
         Just victimAddr ->
           case getPiece victimAddr board of
@@ -85,7 +86,7 @@ manCaptures1 mbPrevDir piece@(Piece _ side) board src = concatMap (check src) $ 
             Just victim ->
               if isMyPiece side victim
                 then []
-                else case neighbour (myDirection side dir) victimAddr of
+                else case neighbour (myDirection rules side dir) victimAddr of
                        Nothing -> []
                        Just freeAddr ->
                         if isFree freeAddr board

@@ -31,8 +31,8 @@ instance GameRules Russian where
   rulesName Russian = "russian"
 
   possibleMoves Russian side board =
-    let simpleMoves = concatMap (possibleSimpleMoves1 board) (allMyAddresses side board)
-        captures = concatMap (possibleCaptures1 board) (allMyAddresses side board)
+    let simpleMoves = concatMap (possibleSimpleMoves1 Russian board) (allMyAddresses side board)
+        captures = concatMap (possibleCaptures1 Russian board) (allMyAddresses side board)
     in  if null captures
           then simpleMoves
           else captures
@@ -65,38 +65,38 @@ translateCapture side board capture =
               replicate (n-1) (Step dir False False) ++
               [Step dir False promote]
 
-possibleSimpleMoves1 :: Board -> Address -> [Move]
-possibleSimpleMoves1 board src =
+possibleSimpleMoves1 :: GameRules rules => rules -> Board -> Address -> [Move]
+possibleSimpleMoves1 rules board src =
   case getPiece src board of
     Nothing -> error $ "possibleSimpleMoves1: not my field"
-    Just piece@(Piece Man _) -> manSimpleMoves piece board src
-    Just piece@(Piece King _) -> kingSimpleMoves piece board src
+    Just piece@(Piece Man _) -> manSimpleMoves rules piece board src
+    Just piece@(Piece King _) -> kingSimpleMoves rules piece board src
 
-possibleCaptures1 :: Board -> Address -> [Move]
-possibleCaptures1 board src =
+possibleCaptures1 :: GameRules rules => rules -> Board -> Address -> [Move]
+possibleCaptures1 rules board src =
   case getPiece src board of
     Nothing -> error $ "possibleCaptures: not my field"
-    Just piece@(Piece Man _) -> manCaptures Nothing piece board src
-    Just piece@(Piece King _) -> kingCaptures Nothing piece board src
+    Just piece@(Piece Man _) -> manCaptures rules Nothing piece board src
+    Just piece@(Piece King _) -> kingCaptures rules Nothing piece board src
 
-possibleMoves1 :: Side -> Board -> Address -> [Move]
-possibleMoves1 side board src =
+possibleMoves1 :: GameRules rules => rules -> Side -> Board -> Address -> [Move]
+possibleMoves1 rules side board src =
   case getPiece src board of
     Nothing -> error $ "possibleMoves1: not my field"
-    Just piece@(Piece Man _) -> manMoves piece board src
-    Just piece@(Piece King _) -> kingMoves piece board src
+    Just piece@(Piece Man _) -> manMoves rules piece board src
+    Just piece@(Piece King _) -> kingMoves rules piece board src
 
-manMoves :: Piece -> Board -> Address -> [Move]
-manMoves piece@(Piece _ side) board src =
-  let captures = manCaptures Nothing piece board src
-      moves = manSimpleMoves piece board src
+manMoves :: GameRules rules => rules -> Piece -> Board -> Address -> [Move]
+manMoves rules piece@(Piece _ side) board src =
+  let captures = manCaptures rules Nothing piece board src
+      moves = manSimpleMoves rules piece board src
   in  captures ++ moves
 
-manSimpleMoves :: Piece -> Board -> Address -> [Move]
-manSimpleMoves piece@(Piece _ side) board src = check ForwardLeft ++ check ForwardRight
+manSimpleMoves :: GameRules rules => rules -> Piece -> Board -> Address -> [Move]
+manSimpleMoves rules piece@(Piece _ side) board src = check ForwardLeft ++ check ForwardRight
   where
     check dir =
-      case neighbour (myDirection side dir) src of
+      case neighbour (myDirection rules side dir) src of
         Nothing -> []
         Just dst -> if isFree dst board
                       then [Move src [Step dir False (promote dst)]]
@@ -104,23 +104,23 @@ manSimpleMoves piece@(Piece _ side) board src = check ForwardLeft ++ check Forwa
 
     promote addr = isLastHorizontal side addr
 
-captures1 :: Maybe PlayerDirection -> Piece -> Board -> Address -> [Capture]
-captures1 mbPrevDir piece board src =
+captures1 :: GameRules rules => rules -> Maybe PlayerDirection -> Piece -> Board -> Address -> [Capture]
+captures1 rules mbPrevDir piece board src =
   case piece of
-    (Piece Man _) -> manCaptures1 mbPrevDir piece board src
-    (Piece King _) -> kingCaptures1 mbPrevDir piece board src
+    (Piece Man _) -> manCaptures1 rules mbPrevDir piece board src
+    (Piece King _) -> kingCaptures1 rules mbPrevDir piece board src
 
-pieceCaptures :: Maybe PlayerDirection -> Piece -> Board -> Address -> [Move]
-pieceCaptures mbPrevDir piece board src =
+pieceCaptures :: GameRules rules => rules -> Maybe PlayerDirection -> Piece -> Board -> Address -> [Move]
+pieceCaptures rules mbPrevDir piece board src =
   case piece of
-    (Piece Man _) -> manCaptures mbPrevDir piece board src
-    (Piece King _) -> kingCaptures mbPrevDir piece board src
+    (Piece Man _) -> manCaptures rules mbPrevDir piece board src
+    (Piece King _) -> kingCaptures rules mbPrevDir piece board src
 
-manCaptures :: Maybe PlayerDirection -> Piece -> Board -> Address -> [Move]
-manCaptures mbPrevDir piece@(Piece _ side) board src =
-  let captures = captures1 mbPrevDir piece board src
-      nextMoves m = pieceCaptures (Just $ firstMoveDirection m) p b a
-                      where (b, a, p) = applyMove side m board
+manCaptures :: GameRules rules => rules -> Maybe PlayerDirection -> Piece -> Board -> Address -> [Move]
+manCaptures rules mbPrevDir piece@(Piece _ side) board src =
+  let captures = captures1 rules mbPrevDir piece board src
+      nextMoves m = pieceCaptures rules (Just $ firstMoveDirection m) p b a
+                      where (b, a, p) = applyMove rules side m board
   in concat $ flip map captures $ \capture ->
        let [move1] = translateCapture side board capture
            moves2 = nextMoves move1
@@ -128,8 +128,8 @@ manCaptures mbPrevDir piece@(Piece _ side) board src =
              then [move1]
              else [catMoves move1 move2 | move2 <- moves2]
 
-manCaptures1 :: Maybe PlayerDirection -> Piece -> Board -> Address -> [Capture]
-manCaptures1 mbPrevDir piece@(Piece _ side) board src = concatMap (check src) $ filter allowedDir [ForwardLeft, ForwardRight, BackwardLeft, BackwardRight]
+manCaptures1 :: GameRules rules => rules -> Maybe PlayerDirection -> Piece -> Board -> Address -> [Capture]
+manCaptures1 rules mbPrevDir piece@(Piece _ side) board src = concatMap (check src) $ filter allowedDir [ForwardLeft, ForwardRight, BackwardLeft, BackwardRight]
   where
 
     allowedDir dir =
@@ -138,7 +138,7 @@ manCaptures1 mbPrevDir piece@(Piece _ side) board src = concatMap (check src) $ 
         Just prevDir -> oppositeDirection prevDir /= dir
 
     check a dir =
-      case neighbour (myDirection side dir) a of
+      case neighbour (myDirection rules side dir) a of
         Nothing -> []
         Just victimAddr ->
           case getPiece victimAddr board of
@@ -146,7 +146,7 @@ manCaptures1 mbPrevDir piece@(Piece _ side) board src = concatMap (check src) $ 
             Just victim ->
               if isMyPiece side victim
                 then []
-                else case neighbour (myDirection side dir) victimAddr of
+                else case neighbour (myDirection rules side dir) victimAddr of
                        Nothing -> []
                        Just freeAddr -> if isFree freeAddr board
                                           then [Capture {
@@ -159,11 +159,11 @@ manCaptures1 mbPrevDir piece@(Piece _ side) board src = concatMap (check src) $ 
                                                 }]
                                           else []
 
-kingCaptures :: Maybe PlayerDirection -> Piece -> Board -> Address -> [Move]
-kingCaptures mbPrevDir piece@(Piece _ side) board src =
-  let captures = captures1 mbPrevDir piece board src
-      nextMoves m = pieceCaptures (Just $ firstMoveDirection m) p b a
-                      where (b, a, p) = applyMove side m board
+kingCaptures :: GameRules rules => rules -> Maybe PlayerDirection -> Piece -> Board -> Address -> [Move]
+kingCaptures rules mbPrevDir piece@(Piece _ side) board src =
+  let captures = captures1 rules mbPrevDir piece board src
+      nextMoves m = pieceCaptures rules (Just $ firstMoveDirection m) p b a
+                      where (b, a, p) = applyMove rules side m board
   in nub $ concat $ flip map captures $ \capture1 ->
             let moves1 = translateCapture side board capture1
                 allNext = map nextMoves moves1
@@ -172,8 +172,8 @@ kingCaptures mbPrevDir piece@(Piece _ side) board src =
                   then moves1
                   else [catMoves move1 move2 | move1 <- moves1, move2 <- nextMoves move1]
 
-kingCaptures1 :: Maybe PlayerDirection -> Piece -> Board -> Address -> [Capture]
-kingCaptures1 mbPrevDir piece@(Piece _ side) board src = concatMap check $ filter allowedDir [ForwardLeft, ForwardRight, BackwardLeft, BackwardRight]
+kingCaptures1 :: GameRules rules => rules -> Maybe PlayerDirection -> Piece -> Board -> Address -> [Capture]
+kingCaptures1 rules mbPrevDir piece@(Piece _ side) board src = concatMap check $ filter allowedDir [ForwardLeft, ForwardRight, BackwardLeft, BackwardRight]
   where
     
     allowedDir dir =
@@ -202,7 +202,7 @@ kingCaptures1 mbPrevDir piece@(Piece _ side) board src = concatMap check $ filte
 
     search :: PlayerDirection -> Address -> Maybe (Address, Int)
     search dir a =
-      case neighbour (myDirection side dir) a of
+      case neighbour (myDirection rules side dir) a of
         Nothing -> Nothing
         Just a' -> case getPiece a' board of
                      Nothing -> case search dir a' of
@@ -214,14 +214,14 @@ kingCaptures1 mbPrevDir piece@(Piece _ side) board src = concatMap check $ filte
 
     freeFields :: PlayerDirection -> Address -> [Address]
     freeFields dir addr =
-      case neighbour (myDirection side dir) addr of
+      case neighbour (myDirection rules side dir) addr of
         Nothing -> []
         Just a' -> if isFree a' board
                      then a' : freeFields dir a'
                      else []
 
-kingSimpleMoves :: Piece -> Board -> Address -> [Move]
-kingSimpleMoves piece@(Piece _ side) board src =
+kingSimpleMoves :: GameRules rules => rules -> Piece -> Board -> Address -> [Move]
+kingSimpleMoves rules piece@(Piece _ side) board src =
     concatMap check [ForwardLeft, ForwardRight, BackwardLeft, BackwardRight]
   where
     check dir =
@@ -229,13 +229,13 @@ kingSimpleMoves piece@(Piece _ side) board src =
       in  [Move src (replicate n (Step dir False False)) | n <- [1..free]]
 
     findFree a dir =
-      case neighbour (myDirection side dir) a of
+      case neighbour (myDirection rules side dir) a of
         Nothing -> 0
         Just a' -> if isFree a' board
                      then 1 + findFree a' dir
                      else 0
 
-kingMoves :: Piece -> Board -> Address -> [Move]
-kingMoves piece@(Piece _ side) board src =
-  kingCaptures Nothing piece board src ++ kingSimpleMoves piece board src
+kingMoves :: GameRules rules => rules -> Piece -> Board -> Address -> [Move]
+kingMoves rules piece@(Piece _ side) board src =
+  kingCaptures rules Nothing piece board src ++ kingSimpleMoves rules piece board src
 

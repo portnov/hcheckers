@@ -42,7 +42,7 @@ instance GameRules International where
   getGameResult = genericGameResult
 
   possibleMoves International side board =
-    let simpleMoves = concatMap (Russian.possibleSimpleMoves1 board) (allMyAddresses side board)
+    let simpleMoves = concatMap (Russian.possibleSimpleMoves1 International board) (allMyAddresses side board)
         captures = concatMap (possibleCaptures1 board) (allMyAddresses side board)
     in  if null captures
           then simpleMoves
@@ -54,14 +54,14 @@ possibleCaptures1 :: Board -> Address -> [Move]
 possibleCaptures1 board src =
   case getPiece src board of
     Nothing -> error $ "possibleCaptures: not my field"
-    Just piece@(Piece Man _) -> manCaptures Nothing piece board src
-    Just piece@(Piece King _) -> Russian.kingCaptures Nothing piece board src
+    Just piece@(Piece Man _) -> manCaptures International Nothing piece board src
+    Just piece@(Piece King _) -> Russian.kingCaptures International Nothing piece board src
 
-manCaptures :: Maybe PlayerDirection -> Piece -> Board -> Address -> [Move]
-manCaptures mbPrevDir piece@(Piece _ side) board src =
-  let captures = manCaptures1 mbPrevDir piece board src
-      nextMoves m = manCaptures (Just $ firstMoveDirection m) p b a
-                      where (b, a, p) = applyMove side m board
+manCaptures :: GameRules rules => rules -> Maybe PlayerDirection -> Piece -> Board -> Address -> [Move]
+manCaptures rules mbPrevDir piece@(Piece _ side) board src =
+  let captures = manCaptures1 rules mbPrevDir piece board src
+      nextMoves m = manCaptures rules (Just $ firstMoveDirection m) p b a
+                      where (b, a, p) = applyMove rules side m board
   in concat $ flip map captures $ \capture ->
        let [move1] = Russian.translateCapture side board capture
            moves2 = nextMoves move1
@@ -69,12 +69,15 @@ manCaptures mbPrevDir piece@(Piece _ side) board src =
              then [move1]
              else [catMoves move1 move2 | move2 <- moves2]
 
-canCaptureFrom :: Maybe PlayerDirection -> Piece -> Board -> Address -> Bool
-canCaptureFrom mbPrevDir piece@(Piece Man side) board src = null (manCaptures1 mbPrevDir piece board src)
-canCaptureFrom mbPrevDir piece@(Piece King side) board src = null (Russian.kingCaptures1 mbPrevDir piece board src)
+canCaptureFrom :: GameRules rules => rules -> Maybe PlayerDirection -> Piece -> Board -> Address -> Bool
+canCaptureFrom rules mbPrevDir piece@(Piece Man side) board src =
+    null (manCaptures1 rules mbPrevDir piece board src)
+canCaptureFrom rules mbPrevDir piece@(Piece King side) board src =
+    null (Russian.kingCaptures1 rules mbPrevDir piece board src)
 
-manCaptures1 :: Maybe PlayerDirection -> Piece -> Board -> Address -> [Russian.Capture]
-manCaptures1 mbPrevDir piece@(Piece _ side) board src = concatMap (check src) $ filter allowedDir [ForwardLeft, ForwardRight, BackwardLeft, BackwardRight]
+manCaptures1 :: GameRules rules => rules -> Maybe PlayerDirection -> Piece -> Board -> Address -> [Russian.Capture]
+manCaptures1 rules mbPrevDir piece@(Piece _ side) board src =
+    concatMap (check src) $ filter allowedDir [ForwardLeft, ForwardRight, BackwardLeft, BackwardRight]
   where
 
     allowedDir dir =
@@ -83,7 +86,7 @@ manCaptures1 mbPrevDir piece@(Piece _ side) board src = concatMap (check src) $ 
         Just prevDir -> oppositeDirection prevDir /= dir
 
     check a dir =
-      case neighbour (myDirection side dir) a of
+      case neighbour (myDirection rules side dir) a of
         Nothing -> []
         Just victimAddr ->
           case getPiece victimAddr board of
@@ -91,7 +94,7 @@ manCaptures1 mbPrevDir piece@(Piece _ side) board src = concatMap (check src) $ 
             Just victim ->
               if isMyPiece side victim
                 then []
-                else case neighbour (myDirection side dir) victimAddr of
+                else case neighbour (myDirection rules side dir) victimAddr of
                        Nothing -> []
                        Just freeAddr ->
                         if isFree freeAddr board
@@ -100,7 +103,7 @@ manCaptures1 mbPrevDir piece@(Piece _ side) board src = concatMap (check src) $ 
                                   Russian.cDirection = dir,
                                   Russian.cInitSteps = 0,
                                   Russian.cFreeSteps = 1,
-                                  Russian.cPromote = isLastHorizontal side freeAddr && not (canCaptureFrom (Just dir) piece board freeAddr)
+                                  Russian.cPromote = isLastHorizontal side freeAddr && not (canCaptureFrom rules (Just dir) piece board freeAddr)
                                 }]
                           else []
 
