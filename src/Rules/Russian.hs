@@ -14,11 +14,16 @@ import Data.List
 
 import Core.Types
 import Core.Board
+import Core.Evaluator
 
 -- import Debug.Trace
 
 data Russian = Russian
   deriving (Show, Eq, Ord, Typeable)
+
+instance Evaluator Russian where
+  evaluatorName _ = "russian"
+  evalBoard _ = evalBoard defaultEvaluator
 
 instance GameRules Russian where
   initBoard Russian = board8

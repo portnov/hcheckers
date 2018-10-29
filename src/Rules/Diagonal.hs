@@ -6,10 +6,15 @@ import Data.Typeable
 
 import Core.Types
 import Core.Board
+import Core.Evaluator
 import Rules.Russian
 
 data Diagonal = Diagonal
   deriving (Show, Eq, Ord, Typeable)
+
+instance Evaluator Diagonal where
+  evaluatorName _ = "diagonal"
+  evalBoard _ = evalBoard defaultEvaluator
 
 instance GameRules Diagonal where
   initBoard Diagonal =

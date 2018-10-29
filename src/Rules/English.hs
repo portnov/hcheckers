@@ -6,10 +6,15 @@ import Data.List
 
 import Core.Types
 import Core.Board
+import Core.Evaluator
 import qualified Rules.Russian as Russian
 
 data English = English
   deriving (Show, Eq, Ord, Typeable)
+
+instance Evaluator English where
+  evaluatorName _ = "english"
+  evalBoard rules = evalBoard $ ComplexEvaluator {ceRules = rules, ceCaptureManCoef = 10, ceCaptureKingCoef = 20}
 
 instance GameRules English where
   boardSize English = boardSize Russian.Russian

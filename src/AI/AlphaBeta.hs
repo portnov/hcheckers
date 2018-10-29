@@ -19,6 +19,7 @@ import System.Log.Heavy.TH
 
 import Core.Types
 import Core.Board
+import Core.Evaluator
 import Core.BoardMap
 import Core.Parallel
 import AI.AlphaBeta.Types
@@ -92,9 +93,6 @@ runAI ai@(AlphaBeta params rules) handle side board = do
         goodMoves = [move | (move, score) <- scores, score == maxScore]
     return (goodMoves, maxScore)
 
-max_value :: Score
-max_value = 1000000
-
 -- type ScoreMemo = M.Map Side (M.Map Int (M.Map Score (M.Map Score Score)))
 
 data MovesMemo = MovesMemo {
@@ -114,9 +112,9 @@ putMoves Second board moves memo =
 
 doScore :: (GameRules rules, Evaluator eval) => rules -> eval -> AICacheHandle rules -> AlphaBetaParams -> Side -> DepthParams -> Board -> Checkers Score
 doScore rules eval var params side dp board =
-    fixSign <$> evalStateT (cachedScoreAB var params side dp (-max_value) max_value) initState
+    fixSign <$> evalStateT (cachedScoreAB var params side dp (-max_score) max_score) initState
   where
-    initState = ScoreState rules eval [StackItem Nothing board score0 (-max_value)] emptyMemo
+    initState = ScoreState rules eval [StackItem Nothing board score0 (-max_score)] emptyMemo
     emptyMemo = MovesMemo emptyBoardMap emptyBoardMap
     score0 = evalBoard eval First (opposite side) board
 
@@ -261,7 +259,7 @@ scoreAB var params side dp alpha beta
     
     push :: Move -> Board -> Score -> ScoreM rules eval ()
     push move board score =
-      modify $ \st -> st {ssStack = (StackItem (Just move) board score (-max_value)) : (ssStack st)}
+      modify $ \st -> st {ssStack = (StackItem (Just move) board score (-max_score)) : (ssStack st)}
 
     pop = 
       modify $ \st -> st {ssStack = tail (ssStack st)}
@@ -333,56 +331,7 @@ scoreAB var params side dp alpha beta
              -- trace (printf "%s| Score for side %s = %d, go to next move." indent (show side) score) $ return ()
              iterateMoves moves dp'
         
-win :: Score
-win = max_value
+instance Evaluator rules => Evaluator (AlphaBeta rules) where
+  evaluatorName (AlphaBeta _ rules) = evaluatorName rules
+  evalBoard (AlphaBeta _ rules) = evalBoard rules
 
-captureManCoef :: Int
-captureManCoef = 10
-
-captureKingCoef :: Int
-captureKingCoef = 50
-
-kingCoef :: Int
-kingCoef = 5
-
-instance GameRules rules => Evaluator (AlphaBeta rules) where
-  evaluatorName _ = "russian"
-
-  evalBoard ai@(AlphaBeta _ rules) whoAsks whoMovesNext board =
-    let (myMen, myKings) = myCounts whoAsks board
-        (opponentMen, opponentKings) = myCounts (opposite whoAsks) board
-        myScore = kingCoef * myKings + myMen
-        opponentScore = kingCoef * opponentKings + opponentMen
-    in  if myMen == 0 && myKings == 0
-          then -win
-          else if opponentMen == 0 && opponentKings == 0
-                 then win
-                 else fromIntegral $ myScore - opponentScore
-
---     let allMyMoves = possibleMoves rules whoAsks board
---         allOpponentMoves = possibleMoves rules (opposite whoAsks) board
--- 
---         myMoves = if whoAsks == whoMovesNext
---                     then allMyMoves
---                     else filter (not . isCapture) allMyMoves
---         opponentMoves = if whoAsks == whoMovesNext
---                           then filter (not . isCapture) allOpponentMoves
---                           else allOpponentMoves
--- 
---     in  if null allMyMoves
---           then {- trace (printf "Side %s loses" (show whoAsks)) -} (-win)
---           else if null allOpponentMoves
---                  then {-  trace (printf "Side %s wins" (show whoAsks)) -} win
---                  else let movesScore s ms = if all isCapture ms
---                                                then let (men, kings) = unzip [capturesCounts move board | move <- ms]
---                                                         maxMen = if null men then 0 else maximum men
---                                                         maxKings = if null kings then 0 else maximum kings
---                                                     in  fromIntegral $
--- --                                                         trace (printf "Side %s possible captures: %s men, %s kings" (show s) (show men) (show kings)) $
---                                                         captureManCoef * maxMen + captureKingCoef * maxKings
---                                                else fromIntegral $ length ms
---                           myMovesScore = movesScore whoAsks myMoves
---                           opponentMovesScore = movesScore (opposite whoAsks) opponentMoves
---                       in --  trace (printf "Side %s moves score %d, opponent moves score %d, total score = %d" (show whoAsks) myMovesScore opponentMovesScore (myMovesScore - opponentMovesScore)) $
---                           myMovesScore - opponentMovesScore
--- 

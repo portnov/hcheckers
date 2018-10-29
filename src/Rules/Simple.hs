@@ -5,10 +5,15 @@ import Data.Typeable
 
 import Core.Types
 import Core.Board
+import Core.Evaluator
 import qualified Rules.Russian as Russian
 
 data Simple = Simple
   deriving (Show, Eq, Ord, Typeable)
+
+instance Evaluator Simple where
+  evaluatorName _ = "simple"
+  evalBoard _ = evalBoard defaultEvaluator
 
 instance GameRules Simple where
   initBoard Simple = initBoard Russian.Russian

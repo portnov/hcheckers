@@ -6,10 +6,15 @@ import Data.Typeable
 
 import Core.Types
 import Core.Board
+import Core.Evaluator
 import Rules.Russian
 
 data Spancirety = Spancirety
   deriving (Show, Eq, Ord, Typeable)
+
+instance Evaluator Spancirety where
+  evaluatorName _ = "spancirety"
+  evalBoard _ = evalBoard defaultEvaluator
 
 instance GameRules Spancirety where
   initBoard Spancirety =

@@ -324,7 +324,7 @@ data MoveCheckResult =
 data BoardRep = BoardRep [(Label, Piece)]
   deriving (Eq, Ord, Show, Typeable)
 
-class (Ord g, Typeable g, Show g) => GameRules g where
+class (Ord g, Typeable g, Show g, Evaluator g) => GameRules g where
   initBoard :: g -> Board
   boardSize :: g -> BoardSize
 

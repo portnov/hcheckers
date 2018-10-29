@@ -7,12 +7,18 @@ import Data.List
 
 import Core.Types
 import Core.Board
+import Core.Evaluator
 import qualified Rules.Russian as Russian
 
 -- import Debug.Trace
 
 data International = International
   deriving (Show, Eq, Ord, Typeable)
+
+instance Evaluator International where
+  evaluatorName _ = "international"
+  -- TODO: I suspect in international draughts a king has much more weight
+  evalBoard _ = evalBoard defaultEvaluator
 
 instance GameRules International where
   boardSize International = (10, 10)
