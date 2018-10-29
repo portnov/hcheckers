@@ -4,6 +4,7 @@ module Rules.Russian (
         Capture (..),
         translateCapture,
         possibleSimpleMoves1,
+        manSimpleMoves,
         kingCaptures1,
         kingCaptures
       ) where

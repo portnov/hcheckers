@@ -29,6 +29,7 @@ import AI.AlphaBeta.Types
 
 import Rules.Russian
 import Rules.Simple
+import Rules.English
 import Rules.International
 import Rules.Spancirety
 import Rules.Diagonal
@@ -68,6 +69,7 @@ supportedRules :: [(String, SomeRules)]
 supportedRules =
   [("russian", SomeRules Russian),
    ("simple", SomeRules Simple),
+   ("english", SomeRules English),
    ("international", SomeRules International),
    ("spancirety", SomeRules Spancirety),
    ("diagonal", SomeRules Diagonal)]

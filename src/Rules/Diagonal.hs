@@ -13,7 +13,7 @@ data Diagonal = Diagonal
 
 instance GameRules Diagonal where
   initBoard Diagonal =
-    let board = buildBoard (8, 8)
+    let board = buildBoard (boardOrientation Diagonal) (8, 8)
         labels1 = ["c1", "e1", "g1",
                    "d2", "f2", "h2",
                    "e3", "g3",

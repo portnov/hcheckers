@@ -23,6 +23,7 @@ class NewGameDialog(QDialog):
         self.rules = QComboBox()
         self.rules.addItem("Russian draughts", "russian")
         self.rules.addItem("Simple draughts", "simple")
+        self.rules.addItem("English draughts", "english")
         self.rules.addItem("International draughts", "international")
         self.rules.addItem("Spancirety draughts", "spancirety")
         self.rules.addItem("Diagonal draughts", "diagonal")

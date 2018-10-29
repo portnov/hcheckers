@@ -13,7 +13,7 @@ data Spancirety = Spancirety
 
 instance GameRules Spancirety where
   initBoard Spancirety =
-    let board = buildBoard (8, 10)
+    let board = buildBoard (boardOrientation Spancirety) (8, 10)
         labels1 = ["a1", "c1", "e1", "g1", "i1",
                    "b2", "d2", "f2", "h2", "j2",
                    "a3", "c3", "e3", "g3", "i3"]

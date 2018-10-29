@@ -59,6 +59,12 @@ boardSide FirstAtBottom Second = Top
 boardSide SecondAtBottom First = Top
 boardSide SecondAtBottom Second = Bottom
 
+playerSide :: BoardOrientation -> BoardSide -> Side
+playerSide FirstAtBottom Bottom = First
+playerSide FirstAtBottom Top = Second
+playerSide SecondAtBottom Bottom = Second
+playerSide SecondAtBottom Top = First
+
 myDirection :: GameRules rules => rules -> Side -> PlayerDirection -> BoardDirection
 myDirection rules side dir = boardDirection (boardSide (boardOrientation rules) side) dir
 
@@ -314,14 +320,14 @@ line7labels = ["a7", "c7", "e7", "g7"]
 line8labels :: [Label]
 line8labels = ["b8", "d8", "f8", "h8"]
 
-buildBoard :: BoardSize -> Board
-buildBoard bsize@(nrows, ncols) =
+buildBoard :: BoardOrientation -> BoardSize -> Board
+buildBoard orient bsize@(nrows, ncols) =
   let mkAddress p = Address (label p) (promote p) (upLeft p) (upRight p) (downLeft p) (downRight p)
       label (r,c) = Label (c-1) (r-1)
 
       promote (r,_)
-        | r == 1 = Just Second
-        | r == nrows = Just First
+        | r == 1 = Just $ playerSide orient Top
+        | r == nrows = Just $ playerSide orient Bottom
         | otherwise = Nothing
 
       upLeft (r,c)
@@ -416,7 +422,7 @@ setManyPieces' labels piece board = foldr (\l b -> setPiece' l piece b) board la
 
 board8 :: Board
 board8 =
-  let board = buildBoard (8, 8)
+  let board = buildBoard FirstAtBottom (8, 8)
       labels1 = line1labels ++ line2labels ++ line3labels
       labels2 = line8labels ++ line7labels ++ line6labels
   in  setManyPieces' labels1 (Piece Man First) $ setManyPieces' labels2 (Piece Man Second) board
@@ -455,10 +461,11 @@ boardRep :: Board -> BoardRep
 boardRep board = BoardRep $ occupiedLabels $ bPieces board
 
 parseBoardRep :: GameRules rules => rules -> BoardRep -> Board
-parseBoardRep rules (BoardRep list) = foldr set (buildBoard bsize) list
+parseBoardRep rules (BoardRep list) = foldr set (buildBoard orient bsize) list
   where
     set (label, piece) board = setPiece' label piece board
     bsize = boardSize rules
+    orient = boardOrientation rules
 
 boardLineCounts :: Board -> BoardLineCounts
 boardLineCounts board =
