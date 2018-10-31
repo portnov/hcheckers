@@ -54,6 +54,7 @@ instance (GameRules rules) => GameAi (AlphaBeta rules) where
 
   chooseMove ai storage side board = do
     (moves, _) <- runAI ai storage side board
+    liftIO $ atomically $ writeTVar (aichCurrentCounts storage) $ boardCounts board
     return moves
 
   updateAi ai@(AlphaBeta _ rules) json =
@@ -137,7 +138,7 @@ data StackItem = StackItem {
   }
 
 instance Show StackItem where
-  show si = printf "(%s : %d)" (showM (siMove si)) (siScore0 si)
+  show si = printf "(%s : %s)" (showM (siMove si)) (show $ siScore0 si)
     where
       showM Nothing = "Start"
       showM (Just move) = show move

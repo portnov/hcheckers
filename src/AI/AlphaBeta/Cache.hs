@@ -107,11 +107,13 @@ loadAiCache scoreMove (AlphaBeta params rules) = do
                          lBlockLocks = dataBlockLocks
                      }
                    }
+  counts <- liftIO $ atomically $ newTVar $ BoardCounts 50 50 50 50
   let handle = AICacheHandle {
       aichRules = rules,
       aichData = cache,
       aichWriteQueue = writeQueue,
       aichCleanupQueue = cleanupQueue,
+      aichCurrentCounts = counts,
       aichIndexFile = indexHandle,
       aichDataFile = dataHandle
     }
@@ -146,23 +148,18 @@ cacheCleaner :: AICacheHandle rules -> Checkers ()
 cacheCleaner handle = forever $ do
     delta <- liftIO $ atomically $ do
         aic <- readTVar (aichData handle)
+        currentCounts <- readTVar (aichCurrentCounts handle)
         let cache = aicData aic
         let oldSize = boardMapSize cache
-        if oldSize > 3*1000*1000
-          then do
-            let bcs = M.keys cache
-                total bc = bcFirstMen bc + bcSecondMen bc + bcFirstKings bc + bcSecondKings bc
-                bcounts = map total bcs
-                mincount = minimum bcounts
-                maxcount = maximum bcounts
-                avg = (mincount + maxcount) `div` 2
-                cache' = M.filterWithKey (\bc _ -> total bc > avg) cache
-                aic' = aic {aicData = cache'}
-                newSize = boardMapSize cache'
-                delta = oldSize - newSize
-            writeTVar (aichData handle) aic'
-            return delta
-          else return 0
+        let cache' = M.filterWithKey biggerCounts cache
+            biggerCounts bc _ =
+              (bcFirstMen bc + bcFirstKings bc + bcSecondMen bc + bcSecondKings bc) <=
+              (bcFirstMen currentCounts + bcFirstKings currentCounts + bcSecondMen currentCounts + bcSecondKings currentCounts)
+            aic' = aic {aicData = cache'}
+            newSize = boardMapSize cache'
+            delta = oldSize - newSize
+        writeTVar (aichData handle) aic'
+        return delta
     $info "cleanup: cleaned {} records" (Single delta)
       
     liftIO $ threadDelay $ 30 * 1000 * 1000

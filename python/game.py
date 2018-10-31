@@ -31,12 +31,15 @@ class MoveRequest(Thread):
 class AI(object):
     def __init__(self, **kwargs):
         self.depth = 2
-        self.max_combination_depth = 8
+        self.max_combination_depth = 6
         self.start_depth = None
         self.load = True
         self.store = False
-        self.update_cache_max_depth = 2
+        self.threads = 1
+        self.update_cache_max_depth = 0
         self.update_cache_max_pieces = 40
+        self.use_cache_max_depth = 0
+        self.use_cache_max_pieces = 40
 
         for key in kwargs:
             setattr(self, key, kwargs[key])
@@ -48,8 +51,11 @@ class AI(object):
             "max_combination_depth" : self.max_combination_depth,
             "load": self.load,
             "store" : self.store,
+            "threads": self.threads,
             "update_cache_max_depth": self.update_cache_max_depth,
-            "update_cache_max_pieces": self.update_cache_max_pieces
+            "update_cache_max_pieces": self.update_cache_max_pieces,
+            "use_cache_max_depth": self.use_cache_max_depth,
+            "use_cache_max_pieces": self.use_cache_max_pieces
         }
 
 class GameSettings(object):

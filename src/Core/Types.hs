@@ -4,6 +4,7 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE OverloadedStrings #-}
 module Core.Types where
@@ -13,12 +14,15 @@ import Control.Monad.Catch
 import Control.Monad.Metrics as Metrics
 import Control.Concurrent.STM
 import Data.List
+import Data.Monoid ((<>))
 import qualified Data.Map as M
 import qualified Data.Text as T
 import qualified Data.HashMap.Strict as H
+import Data.Text.Format.Heavy (Formatable (..))
 import Data.Array
 import Data.Dynamic
 import Data.Aeson (Value)
+import Data.Int
 import Data.Word
 import Data.Binary
 import Data.Store
@@ -352,7 +356,7 @@ data SomeRules = forall g. GameRules g => SomeRules g
 instance Show SomeRules where
   show (SomeRules rules) = rulesName rules
 
-type Score = Int
+type Score = Int16
 
 data GameResult =
     FirstWin

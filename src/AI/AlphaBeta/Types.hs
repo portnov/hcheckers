@@ -138,6 +138,7 @@ data AICacheHandle rules = AICacheHandle {
   , aichData :: TVar (AICache rules)
   , aichWriteQueue :: WriteQueue
   , aichCleanupQueue :: CleanupQueue
+  , aichCurrentCounts :: TVar BoardCounts
   , aichIndexFile :: Maybe FHandle
   , aichDataFile :: Maybe FHandle
   }

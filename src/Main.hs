@@ -57,7 +57,7 @@ main = do
     
     _ ->
       withCheckers settings supervisor $
-          withLogContext (LogContextFrame [] (include defaultLogFilter)) $
+          -- withLogContext (LogContextFrame [] (include defaultLogFilter)) $
               runRestServer
 
 
