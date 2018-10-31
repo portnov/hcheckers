@@ -10,10 +10,11 @@ import System.Log.Heavy.TH
 
 import Core.Types
 import Core.Board
-import Core.Pdn
 import AI.AlphaBeta
 import AI.AlphaBeta.Types
 import AI.AlphaBeta.Cache
+import Formats.Types
+import Formats.Pdn
 
 doLearn :: (GameRules rules, Evaluator eval) => rules -> eval -> AICacheHandle rules -> AlphaBetaParams -> GameRecord -> Int -> Checkers ()
 doLearn rules eval var params gameRec depth = do

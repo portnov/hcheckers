@@ -68,6 +68,7 @@ class GameSettings(object):
         self.user_turn_first = True
         self.board_setup = False
         self.action = None
+        self.fen_path = None
 
 class Game(object):
     def __init__(self, url=None):
@@ -97,11 +98,14 @@ class Game(object):
         result = rs.json()["response"]
         return result
 
-    def new_game(self, rules, board=None):
+    def new_game(self, rules, board=None, fen_path=None):
         url = join(self.base_url, "game", "new")
         rq = {"rules": rules}
         if board is not None:
             rq["board"] = board
+        elif fen_path is not None:
+            fen_text = open(fen_path).read()
+            rq["fen"] = fen_text
         rs = requests.post(url, json=rq)
         self.process_response(rs)
         result = rs.json()
@@ -137,10 +141,10 @@ class Game(object):
         self.process_response(rs)
         result = rs.json()
 
-    def start_new_game(self, user_name, rules="russian", board=None, user_turn_first=True, ai=None):
+    def start_new_game(self, user_name, rules="russian", board=None, fen_path=None, user_turn_first=True, ai=None):
         if ai is None:
             ai = AI()
-        self.new_game(rules, board)
+        self.new_game(rules, board=board, fen_path=fen_path)
         if user_turn_first:
             self.register_user(user_name, FIRST)
             self.attach_ai(SECOND, ai)

@@ -2,7 +2,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeFamilies #-}
 
-module Core.Pdn where
+module Formats.Pdn where
 
 import qualified Data.Text as T
 import Data.Typeable
@@ -14,60 +14,28 @@ import Data.Void
 import qualified Data.Text.IO as TIO
 
 import Core.Types
+import Rules.Diagonal
+import Rules.English
+import Rules.International
+import Rules.Russian
+import Rules.Simple
+import Rules.Spancirety
+import Formats.Types
+import Formats.Fen
 
-type Parser a = Parsec Void T.Text a
+pLabel :: SomeRules -> Parser Label
+pLabel (SomeRules rules) = do
+  word <- some $ oneOf $ letters ++ ['0'..'9']
+  case parseNotation rules (T.pack word) of
+    Left err -> fail err
+    Right label -> return label
 
-type Position = T.Text
-
-data Tag =
-    Event T.Text
-  | Site T.Text
-  | Date T.Text
-  | Round T.Text
-  | White T.Text
-  | Black T.Text
-  | Result GameResult
-  | SetUp T.Text
-  | FEN Position
-  | GameType T.Text
-  | Opening T.Text
-  | Unknown T.Text T.Text
-  deriving (Eq, Show, Typeable)
-
-data SemiMoveRec = SemiMoveRec {
-    smrFrom :: Label
-  , smrTo :: Label
-  , smrCapture :: Bool
-  }
-  deriving (Eq, Show, Typeable)
-
-data MoveRec = MoveRec {
-    mrFirst :: SemiMoveRec
-  , mrSecond :: Maybe SemiMoveRec
-  }
-  deriving (Eq, Show, Typeable)
-
-data GameRecord = GameRecord {
-    grTags :: [Tag]
-  , grMoves :: [MoveRec]
-  , grResult :: GameResult
-  }
-  deriving (Eq, Show, Typeable)
-
-pLabel :: Parser Label
-pLabel = do
-  letter <- oneOf letters
-  digit <- oneOf ['1'..'8']
-  let row = fromIntegral $ ord digit - ord '1'
-      col = fromIntegral $ ord letter - ord 'a'
-  return $ Label col row
-
-pSemiMove :: Parser SemiMoveRec
-pSemiMove = do
-  from <- pLabel
+pSemiMove :: SomeRules -> Parser SemiMoveRec
+pSemiMove rules = do
+  from <- pLabel rules
   x <- oneOf ['-', 'x']
   let capture = (x == 'x')
-  to <- pLabel
+  to <- pLabel rules
   return $ SemiMoveRec from to capture
 
 whitespace :: Parser ()
@@ -79,14 +47,14 @@ pComment :: Parser ()
 pComment = between (char '{') (char '}') $ do
   skipSome $ noneOf ['}']
 
-pMove :: Parser MoveRec
-pMove = do
+pMove :: SomeRules -> Parser MoveRec
+pMove rules = do
   n <- some digitChar
   char '.'
   whitespace
-  first <- pSemiMove
+  first <- pSemiMove rules
   whitespace
-  second <- optional $ try pSemiMove
+  second <- optional $ try (pSemiMove rules)
   return $ MoveRec first second
 
 pResult :: Parser GameResult
@@ -103,7 +71,7 @@ pText = between (char '"') (char '"') $ do
 
 pTag :: Parser Tag
 pTag = do
-    tag <- choice $ map try [pEvent, pSite, pDate, pRound, pWhite, pBlack, pResultTag, pFen, pGameType, pOpening, pUnknown]
+    tag <- choice $ map try [pEvent, pSite, pDate, pRound, pWhite, pBlack, pResultTag, pFenTag, pGameTypeTag, pOpening, pUnknown]
     eol
     return tag
   where
@@ -122,8 +90,8 @@ pTag = do
     pWhite = textTag White "White"
     pBlack = textTag Black "Black"
     pResultTag = pTag Result "Result" $ between (char '"') (char '"') pResult
-    pFen = textTag FEN "FEN"
-    pGameType = textTag GameType "GameType"
+    pFenTag = pTag FEN "FEN" (pFen (SomeRules International))
+    pGameTypeTag = pTag GameType "GameType" pGameType
     pOpening = textTag Opening "Opening"
 
     pUnknown = between (char '[') (char ']') $ do
@@ -132,11 +100,29 @@ pTag = do
       value <- pText
       return $ Unknown (T.pack name) value
 
+pGameType :: Parser SomeRules
+pGameType = do
+  n <- some digitChar
+  case n of
+    "42" -> return $ SomeRules Diagonal
+    "21" -> return $ SomeRules English
+    "20" -> return $ SomeRules International
+    "25" -> return $ SomeRules Russian
+    "43" -> return $ SomeRules Simple
+    "41" -> return $ SomeRules Spancirety
+    _ -> fail $ "Unsupported rules: " ++ n
+
+selectRules :: [Tag] -> Parser SomeRules
+selectRules [] = fail "Rules are not defined"
+selectRules (GameType r:_) = return r
+selectRules (_:rest) = selectRules rest
+
 pGame :: Parser GameRecord
 pGame = do
   tags <- some (try pTag)
+  rules <- selectRules tags
   eol
-  moves <- try pMove `sepEndBy` whitespace
+  moves <- try (pMove rules) `sepEndBy` whitespace
   result <- pResult
   return $ GameRecord tags moves result
 

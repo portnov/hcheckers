@@ -13,6 +13,7 @@ import Network.HTTP.Types.Status
 import Core.Types
 import Core.Supervisor
 import Core.Json () -- import instances only
+import Formats.Fen
 
 error400 :: T.Text -> ActionT TL.Text Checkers ()
 error400 message = do
@@ -24,15 +25,28 @@ instance Parsable Side where
   parseParam "2" = Right Second
   parseParam text = Left $ "unknown side"
 
+boardRq :: SomeRules -> Maybe BoardRep -> Maybe T.Text -> Either T.Text (Maybe BoardRep)
+boardRq _ (Just _) (Just _) = Left "board and fen notation can not be provided simultaneously"
+boardRq _ (Just br) Nothing = Right $ Just br
+boardRq rules Nothing (Just fen) =
+  case parseFen rules fen of
+    Left err -> Left $ T.pack err
+    Right br -> Right $ Just br
+boardRq _ Nothing Nothing = Right Nothing
+
 restServer :: ScottyT TL.Text Checkers ()
 restServer = do
   post "/game/new" $ do
-    rq@(NewGameRq _ _ mbBoard) <- jsonData
+    rq@(NewGameRq _ _ mbBoard mbFen) <- jsonData
     case selectRules rq of
       Nothing -> error400 "invalid game rules"
       Just rules -> do
-        gameId <- lift $ newGame rules mbBoard
-        json $ SupervisorRs (NewGameRs gameId) []
+        case boardRq rules mbBoard mbFen of
+          Left err -> error400 err
+          Right board -> do
+            liftIO $ print board
+            gameId <- lift $ newGame rules board
+            json $ SupervisorRs (NewGameRs gameId) []
 
   post "/game/:id/attach/ai/:side" $ do
     gameId <- param "id"

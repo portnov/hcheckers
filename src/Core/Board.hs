@@ -467,6 +467,17 @@ parseBoardRep rules (BoardRep list) = foldr set (buildBoard orient bsize) list
     bsize = boardSize rules
     orient = boardOrientation rules
 
+parseBoardKey :: GameRules rules => rules -> BoardKey -> Board
+parseBoardKey rules bk = foldr set (buildBoard orient bsize) list
+  where
+    bsize = boardSize rules
+    orient = boardOrientation rules
+    list = [(lbl, Piece Man First) | lbl <- bkFirstMen bk] ++
+           [(lbl, Piece Man Second) | lbl <- bkSecondMen bk] ++
+           [(lbl, Piece King First) | lbl <- bkFirstKings bk] ++
+           [(lbl, Piece King Second) | lbl <- bkSecondKings bk]
+    set (label, piece) board = setPiece' label piece board
+
 boardLineCounts :: Board -> BoardLineCounts
 boardLineCounts board =
   let (nrows,ncols) = bSize board

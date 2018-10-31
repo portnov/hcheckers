@@ -11,6 +11,7 @@ import Control.Monad.Except
 import Control.Concurrent.STM
 import Data.Maybe
 import qualified Data.Map as M
+import qualified Data.Text as T
 import Data.Text.Format.Heavy
 import Data.Default
 import Data.Aeson hiding (Error)
@@ -34,7 +35,7 @@ import Rules.International
 import Rules.Spancirety
 import Rules.Diagonal
 
-data NewGameRq = NewGameRq String Value (Maybe BoardRep)
+data NewGameRq = NewGameRq String Value (Maybe BoardRep) (Maybe T.Text)
   deriving (Eq, Show, Generic)
 
 -- data RegisterUserRq = RegisterUserRq String
@@ -75,7 +76,7 @@ supportedRules =
    ("diagonal", SomeRules Diagonal)]
 
 selectRules :: NewGameRq -> Maybe SomeRules
-selectRules (NewGameRq name params _) = go supportedRules
+selectRules (NewGameRq name params _ _) = go supportedRules
   where
     go :: [(String, SomeRules)] -> Maybe SomeRules
     go [] = Nothing

@@ -111,4 +111,12 @@ class Move(object):
             move.steps.append(step)
         return move
 
+supported_rules = [
+        ("Russian draughts", "russian"),
+        ("Simple draughts", "simple"),
+        ("English draughts", "english"),
+        ("International draughts", "international"),
+        ("Spancirety draughts", "spancirety"),
+        ("Diagonal draughts", "diagonal")
+    ]
 

@@ -3,7 +3,7 @@ import getpass
 
 from PyQt5.QtGui import QPainter, QPixmap
 from PyQt5.QtCore import QRect, QSize, Qt, QObject, QTimer, pyqtSignal, QSettings
-from PyQt5.QtWidgets import QWidget, QDialog, QVBoxLayout, QFormLayout, QLineEdit, QComboBox, QGroupBox, QCheckBox, QDialogButtonBox
+from PyQt5.QtWidgets import QWidget, QDialog, QPushButton, QVBoxLayout, QHBoxLayout, QFormLayout, QLineEdit, QComboBox, QGroupBox, QCheckBox, QDialogButtonBox, QFileDialog
 
 from common import *
 from game import AI, GameSettings
@@ -13,6 +13,28 @@ START_AI_GAME = 1
 START_HUMAN_GAME = 2
 JOIN_HUMAN_GAME = 3
 
+DEFAULT_BOARD = 1
+MANUAL_BOARD = 2
+LOAD_FEN = 3
+
+class FileSelectWidget(QWidget):
+    def __init__(self, parent=None):
+        QWidget.__init__(self, parent)
+        layout = QHBoxLayout()
+        self.textbox = QLineEdit(self)
+        self.button = QPushButton("Browse...")
+        self.button.clicked.connect(self._on_browse)
+        layout.addWidget(self.textbox)
+        layout.addWidget(self.button)
+        self.setLayout(layout)
+
+    def _on_browse(self):
+        (path,_) = QFileDialog.getOpenFileName(self, "Open FEN file", ".", "FEN notation (*.fen)")
+        self.textbox.setText(path)
+
+    def path(self):
+        return self.textbox.text()
+
 class NewGameDialog(QDialog):
     def __init__(self, parent=None):
         QDialog.__init__(self, parent)
@@ -21,12 +43,8 @@ class NewGameDialog(QDialog):
         layout = QFormLayout()
 
         self.rules = QComboBox()
-        self.rules.addItem("Russian draughts", "russian")
-        self.rules.addItem("Simple draughts", "simple")
-        self.rules.addItem("English draughts", "english")
-        self.rules.addItem("International draughts", "international")
-        self.rules.addItem("Spancirety draughts", "spancirety")
-        self.rules.addItem("Diagonal draughts", "diagonal")
+        for (title, name) in supported_rules:
+            self.rules.addItem(title, name)
         layout.addRow("Rules", self.rules)
 
         self.user_name = QLineEdit(self)
@@ -44,8 +62,15 @@ class NewGameDialog(QDialog):
         self.game_type.addItem("Join a game against human", JOIN_HUMAN_GAME)
         layout.addRow("Action", self.game_type)
 
-        self.board_setup = QCheckBox(self)
-        layout.addRow("Manual initial position setup", self.board_setup)
+        self.board_type = QComboBox(self)
+        self.board_type.addItem("Use default initial position", DEFAULT_BOARD)
+        self.board_type.addItem("Manual initial position setup", MANUAL_BOARD)
+        self.board_type.addItem("Load initial board from FEN file", LOAD_FEN)
+        layout.addRow("Initial board type", self.board_type)
+
+        self.fen_path = FileSelectWidget(self)
+        self.fen_path.setVisible(False)
+        layout.addRow("Select FEN file", self.fen_path)
 
         widget.setLayout(layout)
 
@@ -82,6 +107,7 @@ class NewGameDialog(QDialog):
         self.setLayout(vbox)
 
         self.game_type.currentIndexChanged.connect(self._on_action_changed)
+        self.board_type.currentIndexChanged.connect(self._on_board_type_changed)
 
         buttons = QDialogButtonBox(
                     QDialogButtonBox.Ok | QDialogButtonBox.Cancel,
@@ -101,7 +127,12 @@ class NewGameDialog(QDialog):
         self.ai_group.setVisible(show_ai)
         self.lobby.setVisible(show_lobby)
         self.user_side.setVisible(show_side)
-        self.board_setup.setVisible(show_board_setup)
+        self.board_type.setVisible(show_board_setup)
+
+    def _on_board_type_changed(self, idx):
+        action = self.board_type.itemData(idx)
+        show_fen = action == LOAD_FEN
+        self.fen_path.setVisible(show_fen)
 
     def get_settings(self):
         game = GameSettings()
@@ -112,7 +143,9 @@ class NewGameDialog(QDialog):
         side = self.user_side.currentData()
         game.user_turn_first = side == FIRST
         game.action = action
-        game.board_setup = self.board_setup.checkState() == Qt.Checked
+        game.board_setup = self.board_type.currentData() == MANUAL_BOARD
+        if self.board_type.currentData() == LOAD_FEN:
+            game.fen_path = self.fen_path.path()
 
         game.ai = ai = AI()
         ai.depth = self.ai_depth.currentData()

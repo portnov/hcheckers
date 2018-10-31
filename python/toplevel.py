@@ -173,7 +173,7 @@ class Checkers(QMainWindow):
                     self.board.empty()
                     self.board_setup_mode = True
                 else:
-                    self.game.start_new_game(game.user_name, rules=game.rules, user_turn_first=game.user_turn_first, ai=game.ai)
+                    self.game.start_new_game(game.user_name, rules=game.rules, user_turn_first=game.user_turn_first, ai=game.ai, fen_path=game.fen_path)
             elif game.action == START_HUMAN_GAME:
                 game_id = self.game.new_game(game.rules)
                 print(game_id)
