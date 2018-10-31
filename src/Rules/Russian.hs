@@ -23,7 +23,7 @@ data Russian = Russian
 
 instance Evaluator Russian where
   evaluatorName _ = "russian"
-  evalBoard _ = evalBoard defaultEvaluator
+  evalBoard rules = evalBoard defaultEvaluator
 
 instance GameRules Russian where
   initBoard Russian = board8
@@ -168,15 +168,17 @@ manCaptures1 rules mbPrevDir piece@(Piece _ side) board src = concatMap (check s
 kingCaptures :: GameRules rules => rules -> Maybe PlayerDirection -> Piece -> Board -> Address -> [Move]
 kingCaptures rules mbPrevDir piece@(Piece _ side) board src =
   let captures = captures1 rules mbPrevDir piece board src
+      grouped = groupBy (\c1 c2 -> cDirection c1 == cDirection c2) $ sortOn cDirection captures
+      capturesByDirection = [(cDirection (head cs), cs) | cs <- grouped]
       nextMoves m = pieceCaptures rules (Just $ firstMoveDirection m) p b a
                       where (b, a, p) = applyMove rules side m board
-  in nub $ concat $ flip map captures $ \capture1 ->
-            let moves1 = translateCapture side board capture1
-                allNext = map nextMoves moves1
-                isLast = all null allNext
-            in  if isLast
-                  then moves1
-                  else [catMoves move1 move2 | move1 <- moves1, move2 <- nextMoves move1]
+  in nub $ concat $ flip map capturesByDirection $ \(dir, captures) ->
+            let moves1 c = translateCapture side board c
+                allNext c = map nextMoves (moves1 c)
+                isLast c = all null (allNext c)
+            in  if all isLast captures
+                  then concatMap moves1 captures
+                  else [catMoves move1 move2 | c <- captures, move1 <- moves1 c, move2 <- nextMoves move1]
 
 kingCaptures1 :: GameRules rules => rules -> Maybe PlayerDirection -> Piece -> Board -> Address -> [Capture]
 kingCaptures1 rules mbPrevDir piece@(Piece _ side) board src = concatMap check $ filter allowedDir [ForwardLeft, ForwardRight, BackwardLeft, BackwardRight]
