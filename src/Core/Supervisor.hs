@@ -68,12 +68,12 @@ mkSupervisor = do
 
 supportedRules :: [(String, SomeRules)]
 supportedRules =
-  [("russian", SomeRules Russian),
-   ("simple", SomeRules Simple),
-   ("english", SomeRules English),
-   ("international", SomeRules International),
-   ("spancirety", SomeRules Spancirety),
-   ("diagonal", SomeRules Diagonal)]
+  [("russian", SomeRules russian),
+   ("simple", SomeRules simple),
+   ("english", SomeRules english),
+   ("international", SomeRules international),
+   ("spancirety", SomeRules spancirety),
+   ("diagonal", SomeRules diagonal)]
 
 selectRules :: NewGameRq -> Maybe SomeRules
 selectRules (NewGameRq name params _ _) = go supportedRules

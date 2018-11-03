@@ -37,11 +37,11 @@ doLearn rules eval var params gameRec depth = do
 parseMoveRec :: GameRules rules => rules -> Side -> Board -> SemiMoveRec -> Move
 parseMoveRec rules side board rec =
   let moves = possibleMoves rules side board
-      suits m = aLabel (moveBegin m) == smrFrom rec &&
-                aLabel (moveEnd rules side board m) == smrTo rec &&
-                isCapture m == smrCapture rec
+      suits m = aLabel (pmBegin m) == smrFrom rec &&
+                aLabel (pmEnd m) == smrTo rec &&
+                (not $ null $ pmVictims m) == smrCapture rec
   in case filter suits moves of
-    [m] -> m
+    [m] -> pmMove m
     [] -> error $ "no such move: " ++ show rec
     ms -> error $ "ambigous move: " ++ show ms
 

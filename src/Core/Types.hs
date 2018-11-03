@@ -16,6 +16,8 @@ import Control.Concurrent.STM
 import Data.List
 import Data.Monoid ((<>))
 import qualified Data.Map as M
+import qualified Data.IntMap.Strict as IM
+import qualified Data.IntSet as IS
 import qualified Data.Text as T
 import qualified Data.HashMap.Strict as H
 import Data.Text.Format.Heavy (Formatable (..))
@@ -120,15 +122,21 @@ type Line = Word8
 
 type BoardSize = (Line, Line)
 
-type FieldIndex = (Line, Line)
+type FieldIndex = Int
 
-type AddressMap a = M.Map FieldIndex a
+type AddressMap a = IM.IntMap a
 
-type LabelMap a = Array FieldIndex a
+type LabelMap a = IM.IntMap a
+
+type LabelSet = IS.IntSet
 
 data Board = Board {
-    bPieces :: AddressMap Piece,
+    bFirstMen :: LabelSet,
+    bSecondMen :: LabelSet,
+    bFirstKings :: LabelSet,
+    bSecondKings :: LabelSet,
     bAddresses :: LabelMap Address,
+    bCaptured :: LabelSet,
     boardCounts :: BoardCounts,
     boardKey :: BoardKey,
     bSize :: BoardSize
@@ -155,47 +163,14 @@ instance Hashable BoardCounts where
     salt `hashWithSalt` bcFirstMen bc `hashWithSalt` bcSecondMen bc `hashWithSalt` bcFirstKings bc `hashWithSalt` bcSecondKings bc
 
 data BoardKey = BoardKey {
-    bkFirstMen :: [Label]
-  , bkSecondMen :: [Label]
-  , bkFirstKings :: [Label]
-  , bkSecondKings :: [Label]
+    bkFirstMen :: LabelSet
+  , bkSecondMen :: LabelSet
+  , bkFirstKings :: LabelSet
+  , bkSecondKings :: LabelSet
   }
   deriving (Eq, Ord, Show, Typeable, Generic)
 
 instance Binary BoardKey
-
-instance Store BoardKey where
-  poke bk = do
-    poke (fromIntegral (length (bkFirstMen bk)) :: Word8)
-    forM_ (bkFirstMen bk) poke
-    poke (fromIntegral (length (bkSecondMen bk)) :: Word8)
-    forM_ (bkSecondMen bk) poke
-    poke (fromIntegral (length (bkFirstKings bk)) :: Word8)
-    forM_ (bkFirstKings bk) poke
-    poke (fromIntegral (length (bkSecondKings bk)) :: Word8)
-    forM_ (bkSecondKings bk) poke
-
-  peek = do
-    n <- peek :: Peek Word8
-    firstMen <- replicateM (fromIntegral n) peek
-    n <- peek :: Peek Word8
-    secondMen <- replicateM (fromIntegral n) peek
-    n <- peek :: Peek Word8
-    firstKings <- replicateM (fromIntegral n) peek
-    n <- peek :: Peek Word8
-    secondKings <- replicateM (fromIntegral n) peek
-    return $ BoardKey firstMen secondMen firstKings secondKings
-
-  size = VarSize $ \bk ->
-         4 + length (bkFirstMen bk) +
-             length (bkSecondMen bk) +
-             length (bkFirstKings bk)  +
-             length (bkSecondKings bk) 
-  
-
-instance Hashable BoardKey where
-  hashWithSalt salt bk =
-    salt `hashWithSalt` bkFirstMen bk `hashWithSalt` bkSecondMen bk `hashWithSalt` bkFirstKings bk `hashWithSalt` bkSecondKings bk
 
 data BoardLineCounts = BoardLineCounts [Word8]
   deriving (Show)
@@ -308,7 +283,7 @@ instance Show MoveRep where
 data MoveParseResult =
     Parsed Move
   | NoSuchMove
-  | AmbigousMove [Move]
+  | AmbigousMove [PossibleMove]
   deriving (Eq, Show)
 
 data StepCheckResult =
@@ -328,17 +303,42 @@ data MoveCheckResult =
 data BoardRep = BoardRep [(Label, Piece)]
   deriving (Eq, Ord, Show, Typeable)
 
-class (Ord g, Typeable g, Show g, Evaluator g) => GameRules g where
+data PossibleMove = PossibleMove {
+    pmBegin :: Address
+  , pmEnd :: Address
+  , pmVictims :: [Address]
+  , pmMove :: Move
+  , pmPromote :: Bool
+  , pmResult :: [MoveAction]
+  }
+  deriving (Typeable)
+
+instance Eq PossibleMove where
+  pm1 == pm2 =
+    pmBegin pm1 == pmBegin pm2 &&
+    pmMove pm1 == pmMove pm2
+
+instance Show PossibleMove where
+  show pm = show (pmMove pm)
+
+data MoveAction =
+    Take Address
+  | RemoveCaptured Address
+  | Put Address Piece
+  deriving (Eq, Ord, Show, Typeable)
+
+class HasBoardOrientation a where
+  boardOrientation :: a -> BoardOrientation
+  boardOrientation _ = FirstAtBottom
+
+class (Typeable g, Show g, Evaluator g, HasBoardOrientation g) => GameRules g where
   initBoard :: g -> Board
   boardSize :: g -> BoardSize
 
   boardNotation :: g -> Label -> Notation
   parseNotation :: g -> Notation -> Either String Label
 
-  boardOrientation :: g -> BoardOrientation
-  boardOrientation _ = FirstAtBottom
-
-  possibleMoves :: g -> Side -> Board -> [Move]
+  possibleMoves :: g -> Side -> Board -> [PossibleMove]
   updateRules :: g -> Value -> g
   getGameResult :: g -> Board -> GameResult
   rulesName :: g -> String

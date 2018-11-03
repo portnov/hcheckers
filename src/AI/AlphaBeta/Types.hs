@@ -70,7 +70,7 @@ instance Default AlphaBetaParams where
         , abSaveCache = False
         , abUseCacheMaxDepth = 8
         , abUseCacheMaxPieces = 24
-        , abUseCacheMaxDepthPlus = 2
+        , abUseCacheMaxDepthPlus = 0
         , abUseCacheMaxDepthMinus = 0
         , abUpdateCacheMaxDepth = 6
         , abUpdateCacheMaxPieces = 8
@@ -112,7 +112,7 @@ type StorageKey = (Int, BoardKey)
 type StorageValue = CacheItemSide
 
 type ScoreMoveInput rules =
-  (AlphaBeta rules, AICacheHandle rules, Side, DepthParams, Board, Move)
+  (AlphaBeta rules, AICacheHandle rules, Side, DepthParams, Board, PossibleMove)
 
 data AICache rules = AICache {
     aicDirty :: Bool

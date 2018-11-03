@@ -20,6 +20,7 @@ import qualified Data.HashPSQ as PQ
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as BL
 import qualified Data.Map as M
+import qualified Data.IntSet as IS
 import Data.Word
 import qualified Data.Binary
 import qualified Data.Binary.Put
@@ -34,6 +35,7 @@ import "unix-bytestring" System.Posix.IO.ByteString
 
 import Core.Types
 import Core.Board
+import Core.BoardMap
 import AI.AlphaBeta.Types
 
 {-
@@ -79,14 +81,14 @@ encodeBoard (nrows, ncols) board = BL.toStrict $ Data.Binary.Put.runPut (encodeB
       Data.Binary.put (n :: Word8)
 
     encodeBk bk = do
-      Data.Binary.put (fromIntegral (length (bkFirstMen bk)) :: Word8)
-      Data.Binary.put (fromIntegral (length (bkSecondMen bk)) :: Word8)
-      Data.Binary.put (fromIntegral (length (bkFirstKings bk)) :: Word8)
-      Data.Binary.put (fromIntegral (length (bkSecondKings bk)) :: Word8)
-      forM_ (bkFirstMen bk) encodeLabel
-      forM_ (bkSecondMen bk) encodeLabel
-      forM_ (bkFirstKings bk) encodeLabel
-      forM_ (bkSecondKings bk) encodeLabel
+      Data.Binary.put (fromIntegral (IS.size (bkFirstMen bk)) :: Word8)
+      Data.Binary.put (fromIntegral (IS.size (bkSecondMen bk)) :: Word8)
+      Data.Binary.put (fromIntegral (IS.size (bkFirstKings bk)) :: Word8)
+      Data.Binary.put (fromIntegral (IS.size (bkSecondKings bk)) :: Word8)
+      forM_ (labelSetToList $ bkFirstMen bk) encodeLabel
+      forM_ (labelSetToList $ bkSecondMen bk) encodeLabel
+      forM_ (labelSetToList $ bkFirstKings bk) encodeLabel
+      forM_ (labelSetToList $ bkSecondKings bk) encodeLabel
       
 
 sizeOf :: Data.Store.Store a => a -> ByteCount

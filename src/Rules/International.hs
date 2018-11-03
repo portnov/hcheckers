@@ -1,19 +1,25 @@
 {-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE OverloadedStrings #-}
-module Rules.International (International (..)) where
+module Rules.International (International, international) where
 
 import Data.Typeable
 import Data.List
 
 import Core.Types
 import Core.Board
+import Core.BoardMap
 import Core.Evaluator
 import qualified Rules.Russian as Russian
+import Rules.Generic
 
 -- import Debug.Trace
 
-data International = International
-  deriving (Show, Eq, Ord, Typeable)
+newtype International = International GenericRules
+  deriving (Typeable, HasBoardOrientation)
+
+instance Show International where
+  show = rulesName
 
 instance Evaluator International where
   evaluatorName _ = "international"
@@ -21,10 +27,10 @@ instance Evaluator International where
   evalBoard _ = evalBoard defaultEvaluator
 
 instance GameRules International where
-  boardSize International = (10, 10)
+  boardSize _ = (10, 10)
 
-  initBoard International =
-    let board = buildBoard (boardOrientation International) (10, 10)
+  initBoard r =
+    let board = buildBoard (boardOrientation r) (10, 10)
         labels1 = ["a1", "c1", "e1", "g1", "i1",
                    "b2", "d2", "f2", "h2", "j2",
                    "a3", "c3", "e3", "g3", "i3",
@@ -37,53 +43,45 @@ instance GameRules International where
 
     in  setManyPieces' labels1 (Piece Man First) $ setManyPieces' labels2 (Piece Man Second) board
 
-  boardNotation International = numericNotation (boardSize International)
+  boardNotation r = numericNotation (boardSize r)
 
-  parseNotation International = parseNumericNotation (boardSize International)
+  parseNotation r = parseNumericNotation (boardSize r)
 
-  rulesName International = "international"
+  rulesName _ = "international"
 
-  updateRules International _ = International
+  updateRules r _ = r
 
   getGameResult = genericGameResult
 
-  possibleMoves International side board =
-    let simpleMoves = concatMap (Russian.possibleSimpleMoves1 International board) (allMyAddresses side board)
-        captures = concatMap (possibleCaptures1 board) (allMyAddresses side board)
-    in  if null captures
-          then simpleMoves
-          else let captures' = sortOn (negate . capturesCount) captures
-                   n = capturesCount (head captures')
-               in  filter (\c -> capturesCount c == n) captures'
+  possibleMoves (International rules) side board = gPossibleMoves rules side board
 
-possibleCaptures1 :: Board -> Address -> [Move]
-possibleCaptures1 board src =
-  case getPiece src board of
-    Nothing -> error $ "possibleCaptures: not my field"
-    Just piece@(Piece Man _) -> manCaptures International Nothing piece board src
-    Just piece@(Piece King _) -> Russian.kingCaptures International Nothing piece board src
+international :: International
+international = International $
+  let rules = (abstractRules rules) {
+                gManCaptures = manCaptures rules,
+                gManCaptures1 = manCaptures1 rules,
+                gCaptureMax = True
+              }
+  in  rules
 
-manCaptures :: GameRules rules => rules -> Maybe PlayerDirection -> Piece -> Board -> Address -> [Move]
-manCaptures rules mbPrevDir piece@(Piece _ side) board src =
-  let captures = manCaptures1 rules mbPrevDir piece board src
-      nextMoves m = manCaptures rules (Just $ firstMoveDirection m) p b a
-                      where (b, a, p) = applyMove rules side m board
+manCaptures :: GenericRules -> Maybe PlayerDirection -> LabelSet -> Piece -> Board -> Address -> [PossibleMove]
+manCaptures rules mbPrevDir captured piece@(Piece _ side) board src =
+  let captures = manCaptures1 rules mbPrevDir captured piece board src
+      nextMoves pm = manCaptures rules (Just $ firstMoveDirection m) captured' piece b (pmEnd pm)
+                      where
+                        m = pmMove pm
+                        b = setPiece (pmEnd pm) piece board
+                        captured' = foldr insertLabelSet captured (map aLabel $ pmVictims pm)
   in concat $ flip map captures $ \capture ->
-       let [move1] = Russian.translateCapture side board capture
+       let [move1] = translateCapture piece capture
            moves2 = nextMoves move1
        in  if null moves2
              then [move1]
-             else [catMoves move1 move2 | move2 <- moves2]
+             else [catPMoves move1 move2 | move2 <- moves2]
 
-canCaptureFrom :: GameRules rules => rules -> Maybe PlayerDirection -> Piece -> Board -> Address -> Bool
-canCaptureFrom rules mbPrevDir piece@(Piece Man side) board src =
-    null (manCaptures1 rules mbPrevDir piece board src)
-canCaptureFrom rules mbPrevDir piece@(Piece King side) board src =
-    null (Russian.kingCaptures1 rules mbPrevDir piece board src)
-
-manCaptures1 :: GameRules rules => rules -> Maybe PlayerDirection -> Piece -> Board -> Address -> [Russian.Capture]
-manCaptures1 rules mbPrevDir piece@(Piece _ side) board src =
-    concatMap (check src) $ filter allowedDir [ForwardLeft, ForwardRight, BackwardLeft, BackwardRight]
+manCaptures1 :: GenericRules -> Maybe PlayerDirection -> LabelSet -> Piece -> Board -> Address -> [Capture]
+manCaptures1 rules mbPrevDir captured piece@(Piece _ side) board src =
+    concatMap (check src) $ filter allowedDir (gManCaptureDirections rules)
   where
 
     allowedDir dir =
@@ -92,24 +90,28 @@ manCaptures1 rules mbPrevDir piece@(Piece _ side) board src =
         Just prevDir -> oppositeDirection prevDir /= dir
 
     check a dir =
-      case neighbour (myDirection rules side dir) a of
-        Nothing -> []
-        Just victimAddr ->
+      case myNeighbour rules side dir a of
+        Just victimAddr | not (aLabel victimAddr `labelSetMember` captured) ->
           case getPiece victimAddr board of
             Nothing -> []
             Just victim ->
               if isMyPiece side victim
                 then []
-                else case neighbour (myDirection rules side dir) victimAddr of
+                else case myNeighbour rules side dir victimAddr of
                        Nothing -> []
                        Just freeAddr ->
                         if isFree freeAddr board
-                          then [Russian.Capture {
-                                  Russian.cSrc = a,
-                                  Russian.cDirection = dir,
-                                  Russian.cInitSteps = 0,
-                                  Russian.cFreeSteps = 1,
-                                  Russian.cPromote = isLastHorizontal side freeAddr && not (canCaptureFrom rules (Just dir) piece board freeAddr)
+                          then let captured' = insertLabelSet (aLabel victimAddr) captured
+                               in [Capture {
+                                  cSrc = a,
+                                  cDirection = dir,
+                                  cInitSteps = 0,
+                                  cFreeSteps = 1,
+                                  cVictim = victimAddr,
+                                  cDst = freeAddr,
+                                  cPromote = isLastHorizontal side freeAddr &&
+                                             not (gCanCaptureFrom rules (Just dir) captured' piece board freeAddr)
                                 }]
                           else []
+        _ -> []
 

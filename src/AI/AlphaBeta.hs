@@ -65,15 +65,14 @@ instance (GameRules rules) => GameAi (AlphaBeta rules) where
   aiName _ = "default"
 
 scoreMove :: (GameRules rules) => ScoreMoveInput rules -> Checkers (Move, Score)
-scoreMove (ai@(AlphaBeta params rules), var, side, dp, board, move) = do
+scoreMove (ai@(AlphaBeta params rules), var, side, dp, board, pm) = do
      score <- Metrics.timed "ai.score.move" $ do
-                let (board', _, _) = applyMove rules side move board
+                let board' = applyMoveActions (pmResult pm) board
                 score <- doScore rules ai var params (opposite side) dp board'
-                $info "Check: {} (depth {}) => {}" (show move, dpTarget dp, score)
+                $info "Check: {} (depth {}) => {}" (show pm, dpTarget dp, score)
                 return score
      
-     return (move, score)
-
+     return (pmMove pm, score)
 
 runAI :: GameRules rules => AlphaBeta rules -> AICacheHandle rules -> Side -> Board -> Checkers ([Move], Score)
 runAI ai@(AlphaBeta params rules) handle side board = do
@@ -97,15 +96,15 @@ runAI ai@(AlphaBeta params rules) handle side board = do
 -- type ScoreMemo = M.Map Side (M.Map Int (M.Map Score (M.Map Score Score)))
 
 data MovesMemo = MovesMemo {
-    mmFirst :: BoardMap [Move],
-    mmSecond :: BoardMap [Move]
+    mmFirst :: BoardMap [PossibleMove],
+    mmSecond :: BoardMap [PossibleMove]
   }
 
-lookupMoves :: Side -> Board -> MovesMemo -> Maybe [Move]
+lookupMoves :: Side -> Board -> MovesMemo -> Maybe [PossibleMove]
 lookupMoves First board memo = lookupBoardMap (boardCounts board, boardKey board) (mmFirst memo)
 lookupMoves Second board memo = lookupBoardMap (boardCounts board, boardKey board) (mmSecond memo)
 
-putMoves :: Side -> Board -> [Move] -> MovesMemo -> MovesMemo
+putMoves :: Side -> Board -> [PossibleMove] -> MovesMemo -> MovesMemo
 putMoves First board moves memo =
   memo {mmFirst = putBoardMap board moves (mmFirst memo)}
 putMoves Second board moves memo =
@@ -113,11 +112,10 @@ putMoves Second board moves memo =
 
 doScore :: (GameRules rules, Evaluator eval) => rules -> eval -> AICacheHandle rules -> AlphaBetaParams -> Side -> DepthParams -> Board -> Checkers Score
 doScore rules eval var params side dp board =
-    fixSign <$> evalStateT (cachedScoreAB var params side dp (-max_score) max_score) initState
+    fixSign <$> evalStateT (cachedScoreAB var params side dp (-max_score) max_score board) initState
   where
-    initState = ScoreState rules eval [StackItem Nothing board score0 (-max_score)] emptyMemo
+    initState = ScoreState rules eval [StackItem Nothing (-max_score)] emptyMemo
     emptyMemo = MovesMemo emptyBoardMap emptyBoardMap
-    score0 = evalBoard eval First (opposite side) board
 
     fixSign s = s
 --       | side == First = s
@@ -131,14 +129,12 @@ data ScoreState rules eval = ScoreState {
   }
 
 data StackItem = StackItem {
-    siMove :: Maybe Move
-  , siBoard :: ! Board
-  , siScore0 :: ! Score
+    siMove :: Maybe PossibleMove
   , siScoreBest :: ! Score
   }
 
 instance Show StackItem where
-  show si = printf "(%s : %s)" (showM (siMove si)) (show $ siScore0 si)
+  show si = printf "(%s)" (showM (siMove si))
     where
       showM Nothing = "Start"
       showM (Just move) = show move
@@ -170,10 +166,10 @@ cachedScoreAB :: forall rules eval. (GameRules rules, Evaluator eval)
               -> DepthParams
               -> Score
               -> Score
+              -> Board
               -> ScoreM rules eval Score
-cachedScoreAB var params side dp alpha beta = do
+cachedScoreAB var params side dp alpha beta board = do
   let depth = dpCurrent dp
-  board <- gets (siBoard . head . ssStack)
   mbItem <- lift $ lookupAiCache params board depth side var
   case mbItem of
     Just item -> do
@@ -185,7 +181,7 @@ cachedScoreAB var params side dp alpha beta = do
                then return beta
                else return score
     Nothing -> do
-      (score, moves) <- Metrics.timed "ai.score.board" $ scoreAB var params side dp alpha beta 
+      (score, moves) <- Metrics.timed "ai.score.board" $ scoreAB var params side dp alpha beta board
       lift $ putAiCache params board depth side score moves var
       return score
 
@@ -215,18 +211,18 @@ scoreAB :: forall rules eval. (GameRules rules, Evaluator eval)
         -> DepthParams
         -> Score
         -> Score
+        -> Board
         -> ScoreM rules eval (Score, [Move])
-scoreAB var params side dp alpha beta
+scoreAB var params side dp alpha beta board
   | isTargetDepth dp = do
-      score0 <- gets (siScore0 . head . ssStack)
-      -- let score0' = if side == First then score0 else -score0
+      evaluator <- gets ssEvaluator
+      let score0 = evalBoard evaluator First side board
       $trace "    X Side: {}, A = {}, B = {}, score0 = {}" (show side, alpha, beta, score0)
       return (score0, [])
   | otherwise = do
       rules <- gets ssRules
       setBest $ if maximize then alpha else beta -- we assume alpha <= beta
       $trace "{}V Side: {}, A = {}, B = {}" (indent, show side, alpha, beta)
-      board <- getBoard
       moves <- possibleMoves' board
 
       when (null moves) $
@@ -237,7 +233,7 @@ scoreAB var params side dp alpha beta
 
   where
 
-    possibleMoves' :: Board -> ScoreM rules eval [Move]
+    possibleMoves' :: Board -> ScoreM rules eval [PossibleMove]
     possibleMoves' board = do
 --         rules <- gets ssRules
 --         return $ possibleMoves rules side board
@@ -258,19 +254,12 @@ scoreAB var params side dp alpha beta
                 then "Maximum"
                 else "Minimum"
     
-    push :: Move -> Board -> Score -> ScoreM rules eval ()
-    push move board score =
-      modify $ \st -> st {ssStack = (StackItem (Just move) board score (-max_score)) : (ssStack st)}
+    push :: PossibleMove -> ScoreM rules eval ()
+    push move =
+      modify $ \st -> st {ssStack = (StackItem (Just move) (-max_score)) : (ssStack st)}
 
     pop = 
       modify $ \st -> st {ssStack = tail (ssStack st)}
-
-    getBoard =
-      gets (siBoard . head . ssStack)
-
-    getScore0 :: ScoreM rules eval Score
-    getScore0 =
-      gets (siScore0 . head . ssStack)
 
     showStack s = unwords $ map show s
 
@@ -291,20 +280,18 @@ scoreAB var params side dp alpha beta
         where
           update item = item {siScoreBest = best}
 
-    iterateMoves :: [Move] -> DepthParams -> ScoreM rules eval (Score, [Move])
+    iterateMoves :: [PossibleMove] -> DepthParams -> ScoreM rules eval (Score, [Move])
     iterateMoves [] _ = do
       best <- getBest
       $trace "{}|—All moves considered at this level, return best = {}" (indent, best)
       return (best, [])
     iterateMoves (move : moves) dp' = do
       $trace "{}|+Check move of side {}: {}" (indent, show side, show move)
-      board <- getBoard
       evaluator <- gets ssEvaluator
       rules <- gets ssRules
-      let (board', _, _) = applyMove rules side move board
-      let score0 = evalBoard evaluator First (opposite side) board' -- next move will be done by another side
+      let board' = applyMoveActions (pmResult move) board
       best <- getBest
-      push move board' score0
+      push move 
       printStack
       let alpha' = if maximize
                      then max alpha best
@@ -312,7 +299,7 @@ scoreAB var params side dp alpha beta
           beta'  = if maximize
                      then beta
                      else min beta best
-      score <- cachedScoreAB var params (opposite side) dp' alpha' beta'
+      score <- cachedScoreAB var params (opposite side) dp' alpha' beta' board'
       $trace "{}| score for side {}: {}" (indent, show side, score)
       pop
       best <- getBest

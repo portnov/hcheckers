@@ -35,7 +35,7 @@ gamePossibleMoves = do
   SomeRules rules <- gets gRules
   board <- gets (gsCurrentBoard . gState)
   currentSide <- gets (gsSide . gState)
-  return $ possibleMoves rules currentSide board
+  return $ map pmMove $ possibleMoves rules currentSide board
 
 gameState :: GameM (Side, Board)
 gameState = do
@@ -51,7 +51,7 @@ doMoveRq side move = do
   board <- gets (gsCurrentBoard . gState)
   if side /= currentSide
     then throwError "Not your turn"
-    else if move `notElem` possibleMoves rules side board
+    else if move `notElem` (map pmMove $ possibleMoves rules side board)
            then throwError "Not allowed move"
            else do
                 let (board', _, _) = applyMove rules side move board

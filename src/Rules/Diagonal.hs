@@ -1,6 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DeriveDataTypeable #-}
-module Rules.Diagonal (Diagonal (..)) where
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+module Rules.Diagonal (Diagonal, diagonal) where
 
 import Data.Typeable
 
@@ -8,17 +9,21 @@ import Core.Types
 import Core.Board
 import Core.Evaluator
 import Rules.Russian
+import Rules.Generic
 
-data Diagonal = Diagonal
-  deriving (Show, Eq, Ord, Typeable)
+newtype Diagonal = Diagonal GenericRules
+  deriving (Typeable, HasBoardOrientation)
 
 instance Evaluator Diagonal where
   evaluatorName _ = "diagonal"
   evalBoard _ = evalBoard defaultEvaluator
 
+instance Show Diagonal where
+  show = rulesName
+
 instance GameRules Diagonal where
-  initBoard Diagonal =
-    let board = buildBoard (boardOrientation Diagonal) (8, 8)
+  initBoard r =
+    let board = buildBoard (boardOrientation r) (8, 8)
         labels1 = ["c1", "e1", "g1",
                    "d2", "f2", "h2",
                    "e3", "g3",
@@ -33,17 +38,22 @@ instance GameRules Diagonal where
                    "a3"]
     in  setManyPieces' labels1 (Piece Man First) $ setManyPieces' labels2 (Piece Man Second) board
 
-  boardSize Diagonal = (8, 8)
+  boardSize _ = (8, 8)
 
-  boardNotation Diagonal = boardNotation Russian
+  boardNotation _ = boardNotation russian
 
-  parseNotation Diagonal = parseNotation Russian
+  parseNotation _ = parseNotation russian
 
-  rulesName Diagonal = "diagonal"
+  rulesName _ = "diagonal"
 
-  possibleMoves Diagonal = possibleMoves Russian
+  possibleMoves _ = possibleMoves russian
 
-  updateRules Diagonal _ = Diagonal
+  updateRules r _ = r
 
   getGameResult = genericGameResult
+
+diagonal :: Diagonal
+diagonal = Diagonal $
+  let rules = russianBase rules
+  in  rules
 

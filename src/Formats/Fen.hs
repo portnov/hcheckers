@@ -15,6 +15,7 @@ import qualified Data.Text.IO as TIO
 
 import Core.Types
 import Core.Board
+import Core.BoardMap
 import Rules.International
 import Formats.Types
 
@@ -54,10 +55,10 @@ pFen rules = do
 fenToBoardKey :: Fen -> BoardKey
 fenToBoardKey fen =
   BoardKey {
-    bkFirstMen = [lbl | (lbl, Man) <- fenFirst fen],
-    bkSecondMen = [lbl | (lbl, Man) <- fenSecond fen],
-    bkFirstKings = [lbl | (lbl, King) <- fenFirst fen],
-    bkSecondKings = [lbl | (lbl, King) <- fenSecond fen]
+    bkFirstMen = labelSetFromList [lbl | (lbl, Man) <- fenFirst fen],
+    bkSecondMen = labelSetFromList [lbl | (lbl, Man) <- fenSecond fen],
+    bkFirstKings = labelSetFromList [lbl | (lbl, King) <- fenFirst fen],
+    bkSecondKings = labelSetFromList [lbl | (lbl, King) <- fenSecond fen]
   }
 
 fenToBoardRep :: Fen -> BoardRep

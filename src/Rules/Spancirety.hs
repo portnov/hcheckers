@@ -1,24 +1,29 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DeriveDataTypeable #-}
-module Rules.Spancirety (Spancirety (..)) where
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+module Rules.Spancirety (Spancirety, spancirety) where
 
 import Data.Typeable
 
 import Core.Types
 import Core.Board
 import Core.Evaluator
+import Rules.Generic
 import Rules.Russian
 
-data Spancirety = Spancirety
-  deriving (Show, Eq, Ord, Typeable)
+newtype Spancirety = Spancirety GenericRules
+  deriving (Typeable, HasBoardOrientation)
+
+instance Show Spancirety where
+  show = rulesName
 
 instance Evaluator Spancirety where
   evaluatorName _ = "spancirety"
   evalBoard _ = evalBoard defaultEvaluator
 
 instance GameRules Spancirety where
-  initBoard Spancirety =
-    let board = buildBoard (boardOrientation Spancirety) (8, 10)
+  initBoard r =
+    let board = buildBoard (boardOrientation r) (8, 10)
         labels1 = ["a1", "c1", "e1", "g1", "i1",
                    "b2", "d2", "f2", "h2", "j2",
                    "a3", "c3", "e3", "g3", "i3"]
@@ -27,17 +32,22 @@ instance GameRules Spancirety where
                    "b6", "d6", "f6", "h6", "j6"]
     in  setManyPieces' labels1 (Piece Man First) $ setManyPieces' labels2 (Piece Man Second) board
 
-  boardSize Spancirety = (8, 10)
+  boardSize _ = (8, 10)
 
-  boardNotation Spancirety = boardNotation Russian
+  boardNotation _ = boardNotation russian
 
-  parseNotation Spancirety = parseNotation Russian
+  parseNotation _ = parseNotation russian
 
-  rulesName Spancirety = "spancirety"
+  rulesName _ = "spancirety"
 
-  possibleMoves Spancirety = possibleMoves Russian
+  possibleMoves _ = possibleMoves russian
 
-  updateRules Spancirety _ = Spancirety
+  updateRules r _ = r
 
   getGameResult = genericGameResult
+
+spancirety :: Spancirety
+spancirety = Spancirety $
+  let rules = russianBase rules
+  in  rules
 

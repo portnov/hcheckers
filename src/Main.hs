@@ -37,7 +37,7 @@ main = do
   supervisor <- mkSupervisor
   case args of
     ["learn", path] -> do
-      let rules = Russian
+      let rules = russian
           eval = ai
           depth = 6
           params = def {
@@ -57,7 +57,7 @@ main = do
     
     _ ->
       withCheckers settings supervisor $
-          -- withLogContext (LogContextFrame [] (include defaultLogFilter)) $
+          withLogContext (LogContextFrame [] (include defaultLogFilter)) $
               runRestServer
 
 

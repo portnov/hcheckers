@@ -90,7 +90,7 @@ pTag = do
     pWhite = textTag White "White"
     pBlack = textTag Black "Black"
     pResultTag = pTag Result "Result" $ between (char '"') (char '"') pResult
-    pFenTag = pTag FEN "FEN" (pFen (SomeRules International))
+    pFenTag = pTag FEN "FEN" (pFen (SomeRules international))
     pGameTypeTag = pTag GameType "GameType" pGameType
     pOpening = textTag Opening "Opening"
 
@@ -104,12 +104,12 @@ pGameType :: Parser SomeRules
 pGameType = do
   n <- some digitChar
   case n of
-    "42" -> return $ SomeRules Diagonal
-    "21" -> return $ SomeRules English
-    "20" -> return $ SomeRules International
-    "25" -> return $ SomeRules Russian
-    "43" -> return $ SomeRules Simple
-    "41" -> return $ SomeRules Spancirety
+    "42" -> return $ SomeRules diagonal
+    "21" -> return $ SomeRules english
+    "20" -> return $ SomeRules international
+    "25" -> return $ SomeRules russian
+    "43" -> return $ SomeRules simple
+    "41" -> return $ SomeRules spancirety
     _ -> fail $ "Unsupported rules: " ++ n
 
 selectRules :: [Tag] -> Parser SomeRules
