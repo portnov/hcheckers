@@ -112,11 +112,11 @@ class Move(object):
         return move
 
 supported_rules = [
-        ("Russian draughts", "russian"),
-        ("Simple draughts", "simple"),
-        ("English draughts", "english"),
-        ("International draughts", "international"),
-        ("Spancirety draughts", "spancirety"),
-        ("Diagonal draughts", "diagonal")
+        ("russian", "Russian draughts"),
+        ("simple", "Simple draughts"),
+        ("english", "English draughts"), 
+        ("international", "International draughts"),
+        ("spancirety", "Spancirety draughts"), 
+        ("diagonal", "Diagonal draughts")
     ]
 

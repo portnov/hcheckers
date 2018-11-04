@@ -44,8 +44,12 @@ class NewGameDialog(QDialog):
         layout = QFormLayout()
 
         self.rules = QComboBox()
-        for (title, name) in supported_rules:
+        for name, title in supported_rules:
             self.rules.addItem(title, name)
+        rules = settings.value("rules")
+        if rules is not None:
+            idx = self.rules.findData(rules)
+            self.rules.setCurrentIndex(idx)
         layout.addRow("Rules", self.rules)
 
         self.user_name = QLineEdit(self)
@@ -124,6 +128,7 @@ class NewGameDialog(QDialog):
 
     def _on_accept(self):
         self.settings.setValue("ai", self.ai.currentText())
+        self.settings.setValue("rules", self.rules.currentData())
         self.accept()
 
     def get_settings(self):
