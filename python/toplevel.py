@@ -4,7 +4,7 @@ import os
 
 from PyQt5.QtGui import QPainter, QPixmap
 from PyQt5.QtCore import QRect, QSize, Qt, QObject, QTimer, pyqtSignal, QSettings
-from PyQt5.QtWidgets import QApplication, QWidget, QToolBar, QMainWindow, QDialog, QVBoxLayout, QAction, QActionGroup, QLabel
+from PyQt5.QtWidgets import QApplication, QWidget, QToolBar, QMainWindow, QDialog, QVBoxLayout, QAction, QActionGroup, QLabel, QFileDialog
 
 from field import Field
 from game import Game, AI, RequestError
@@ -91,6 +91,7 @@ class Checkers(QMainWindow):
     def _setup_actions(self):
         menu = self.menuBar().addMenu("&Game")
         self._create_action(None, "New Game", menu, self._on_new_game, key="Ctrl+N")
+        self._create_action(None, "Save Position", menu, self._on_save_game, key="Ctrl+S")
         self._create_action(None, "Undo", menu, self._on_undo, key="Ctrl+Z")
 
         menu.addSeparator()
@@ -194,6 +195,12 @@ class Checkers(QMainWindow):
             self.board.set_notation(size, notation)
 
             self.board.repaint()
+
+    def _on_save_game(self):
+        fen = self.game.get_fen()
+        (path,_) = QFileDialog.getSaveFileName(self.board, "Save FEN file", ".", "FEN notation (*.fen)")
+        with open(path, 'w') as f:
+            f.write(fen)
 
     def _on_undo(self):
         prev_board = self.game.undo()

@@ -9,6 +9,7 @@ import Control.Monad.Reader
 import Control.Concurrent
 import Data.Maybe
 import qualified Data.Map as M
+import System.Log.Heavy
 
 import Core.Types
 
@@ -21,12 +22,12 @@ runProcessor nThreads getKey fn = do
     outChan <- liftIO newChan
 
     forM_ [1 .. nThreads] $ \i -> do
-       liftIO $ forkIO $ worker st inputChan outChan
+       liftIO $ forkIO $ worker st inputChan outChan i
     return $ Processor getKey inputChan outChan
   where
-    worker st inChan outChan = forever $ do
+    worker st inChan outChan i = forever $ do
       input <- readChan inChan
-      output <- runCheckersT (fn input) st
+      output <- runCheckersT (withLogVariable "thread" (i :: Int) $ fn input) st
       writeChan outChan (getKey input, output)
 
 process :: Ord key => Processor key input output -> [input] -> Checkers [output]

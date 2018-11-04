@@ -31,15 +31,15 @@ class MoveRequest(Thread):
 class AI(object):
     def __init__(self, **kwargs):
         self.depth = 2
-        self.max_combination_depth = 0
+        self.max_combination_depth = 6
         self.start_depth = None
         self.load = True
         self.store = False
         self.threads = 4
-        self.update_cache_max_depth = 0
-        self.update_cache_max_pieces = 24
-        self.use_cache_max_depth = 0
-        self.use_cache_max_pieces = 40
+        self.update_cache_max_depth = 10
+        self.update_cache_max_pieces = 0
+        self.use_cache_max_depth = 10
+        self.use_cache_max_pieces = 0
 
         for key in kwargs:
             setattr(self, key, kwargs[key])
@@ -181,6 +181,12 @@ class Game(object):
         if state is not None:
             board = Game.parse_board(state["board"])
             return board
+    
+    def get_fen(self):
+        url = join(self.base_url, "game", self.game_id, "fen")
+        rs = requests.get(url)
+        self.process_response(rs)
+        return rs.text
     
     def get_possible_moves(self, field=None):
         url = join(self.base_url, "game", self.game_id, "moves", self.user_name)

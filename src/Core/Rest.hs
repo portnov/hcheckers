@@ -81,6 +81,11 @@ restServer = do
     rs <- lift $ getState gameId
     json $ SupervisorRs rs []
 
+  get "/game/:id/fen" $ do
+    gameId <- param "id"
+    rs <- lift $ getFen gameId
+    Web.Scotty.Trans.text $ TL.fromStrict rs
+
   post "/game/:id/move/:name" $ do
     gameId <- param "id"
     name <- param "name"

@@ -27,6 +27,7 @@ import Core.BoardMap
 import Core.Game
 import AI.AlphaBeta () -- import instances only
 import AI.AlphaBeta.Types
+import Formats.Fen
 
 import Rules.Russian
 import Rules.Simple
@@ -288,6 +289,11 @@ getState :: GameId -> Checkers RsPayload
 getState gameId = do
   (side, board) <- withGame gameId $ \_ -> gameState
   return $ StateRs (boardRep board) side
+
+getFen :: GameId -> Checkers T.Text
+getFen gameId = do
+  (side, board) <- withGame gameId $ \_ -> gameState
+  return $ showFen (bSize board) $ boardToFen side board
 
 getGames :: Maybe String -> Checkers [Game]
 getGames mbRulesId = do

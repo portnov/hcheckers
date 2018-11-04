@@ -174,23 +174,27 @@ normalize bsize (bc,bk,side) =
 
 lookupAiCache :: GameRules rules => AlphaBetaParams -> Board -> Int -> Side -> AICacheHandle rules -> Checkers (Maybe CacheItemSide)
 lookupAiCache params board depth side handle = do
-    let bsize = boardSize (aichRules handle)
-    let (bc, bk, side') = normalize bsize (boardCounts board, boardKey board, side)
-    result <- lookupMemory (bc,bk) side
-    case result of
-      Just _ -> do
+    -- let bsize = boardSize (aichRules handle)
+    -- let (bc, bk, side') = normalize bsize (boardCounts board, boardKey board, side)
+    -- let fixSign = if side' == side then id else negate
+    let bc = boardCounts board
+        bk = boardKey board
+    cached <- lookupMemory (bc, bk) side
+    case cached of
+      Just result -> do
         Metrics.increment "cache.hit.memory"
         queueCleanup bc bk
-        return result
+        return cached
+--         return $ Just $ CacheItemSide $ fixSign $ cisScore result
       Nothing -> do
-        mbValue <- runStorage handle $ event "file lookup" $ lookupFile bk depth side'
+        mbValue <- runStorage handle $ event "file lookup" $ lookupFile bk depth side
         case mbValue of
           Nothing -> do
             Metrics.increment "cache.miss"
             return Nothing
           Just value -> do
             Metrics.increment "cache.hit.file"
-            putAiCache' params (bc,bk) depth side' value handle
+            putAiCache' params (bc,bk) depth side value handle
             return mbValue
 
   where 
@@ -202,7 +206,7 @@ lookupAiCache params board depth side handle = do
     
     lookupMemory (bc, bk) side = Metrics.timed "cache.lookup.memory" $ do
       let total = bcFirstMen bc + bcSecondMen bc + bcFirstKings bc + bcSecondKings bc
-      if total <= abUseCacheMaxPieces params && depth <= abUseCacheMaxPieces params
+      if total <= abUseCacheMaxPieces params && depth >= abUseCacheMaxDepth params
         then do
             AICache _ _ cache <- liftIO $ atomically $ readTVar (aichData handle)
             case lookupBoardMap (bc,bk) cache of
@@ -220,7 +224,7 @@ lookupAiCache params board depth side handle = do
 putAiCache' :: GameRules rules => AlphaBetaParams -> (BoardCounts,BoardKey) -> Int -> Side -> StorageValue -> AICacheHandle rules -> Checkers ()
 putAiCache' params (bc,bk) depth side sideItem handle = do
   let bsize = boardSize (aichRules handle)
-  let (bc', bk', side') = normalize bsize (bc, bk, side)
+  --let (bc', bk', side') = normalize bsize (bc, bk, side)
   let total = bcFirstMen bc + bcSecondMen bc + bcFirstKings bc + bcSecondKings bc
   when (total <= abUpdateCacheMaxPieces params && depth > abUpdateCacheMaxDepth params) $ Metrics.timed "cache.put.memory" $ do
       now <- liftIO $ getTime Monotonic
@@ -228,26 +232,27 @@ putAiCache' params (bc,bk) depth side sideItem handle = do
       liftIO $ atomically $ do
         aic <- readTVar (aichData handle)
         let updateItem item1 item2 =
-              case side' of
+              case side of
                 First -> item1 {ciFirst = ciFirst item2 `mplus` ciFirst item1}
                 Second -> item2 {ciSecond = ciSecond item2 `mplus` ciSecond item1}
 
             updateDepthMap m1 m2 = M.unionWith updateItem m1 m2
 
-            item = case side' of
+            item = case side of
                      First -> CacheItem {ciFirst = Just sideItem, ciSecond = Nothing}
                      Second -> CacheItem {ciFirst = Nothing, ciSecond = Just sideItem}
 
             init = M.singleton depth item
 
-            newAicData = putBoardMapWith updateDepthMap (bc',bk') init (aicData aic)
+            newAicData = putBoardMapWith updateDepthMap (bc,bk) init (aicData aic)
             aic' = aic {aicDirty = True, aicData = newAicData}
 
-            Just perBoard = lookupBoardMap (bc',bk') newAicData 
+            Just perBoard = lookupBoardMap (bc,bk) newAicData 
 
         writeTVar (aichData handle) aic'
-        putWriteQueue (aichWriteQueue handle) (bk', depth, side', sideItem)
-        putCleanupQueue (aichCleanupQueue handle) (bc', bk') now
+        when (abSaveCache params) $
+            putWriteQueue (aichWriteQueue handle) (bk, depth, side, sideItem)
+        putCleanupQueue (aichCleanupQueue handle) (bc, bk) now
 
 
 putAiCache :: GameRules rules => AlphaBetaParams -> Board -> Int -> Side -> Score -> [Move] -> AICacheHandle rules -> Checkers ()

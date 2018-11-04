@@ -33,7 +33,10 @@ withCheckers (LoggingSettings settings) supervisor actions = do
 main :: IO ()
 main = do
   args <- getArgs
-  let settings = LoggingSettings defStdoutSettings
+  let -- stdout = LoggingSettings $ filtering defaultLogFilter defStdoutSettings
+      -- debug = LoggingSettings $ Filtering (\m -> lmLevel m == trace_level) ((defFileSettings "trace.log") {lsFormat = "{time} {source} [{thread}]: {message}\n"})
+      -- settings = LoggingSettings $ ParallelLogSettings [stdout, debug]
+      settings = LoggingSettings defStdoutSettings
   supervisor <- mkSupervisor
   case args of
     ["learn", path] -> do

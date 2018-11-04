@@ -143,9 +143,6 @@ data Board = Board {
   }
   deriving (Typeable)
 
-instance Show Board where
-  show board = show $ boardKey board
-
 data BoardCounts = BoardCounts {
     bcFirstMen :: ! Int
   , bcSecondMen :: ! Int
@@ -168,7 +165,7 @@ data BoardKey = BoardKey {
   , bkFirstKings :: LabelSet
   , bkSecondKings :: LabelSet
   }
-  deriving (Eq, Ord, Show, Typeable, Generic)
+  deriving (Eq, Ord, Typeable, Generic)
 
 instance Binary BoardKey
 

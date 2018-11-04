@@ -11,6 +11,7 @@ import Data.Store
 import Data.List
 import Data.Array
 import Data.Word
+import Text.Printf
 
 import Core.Types
 
@@ -199,4 +200,14 @@ instance Store BoardKey where
 instance Hashable BoardKey where
   hashWithSalt salt bk =
     salt `hashWithSalt` bkFirstMen bk `hashWithSalt` bkSecondMen bk `hashWithSalt` bkFirstKings bk `hashWithSalt` bkSecondKings bk
+
+instance Show BoardKey where
+  show bk = printf "{First Men: %s; Second Men: %s; First Kings: %s; Second Kings: %s}"
+              (show $ labelSetToList $ bkFirstMen bk)
+              (show $ labelSetToList $ bkSecondMen bk)
+              (show $ labelSetToList $ bkFirstKings bk)
+              (show $ labelSetToList $ bkSecondKings bk)
+
+instance Show Board where
+  show board = show $ boardKey board
 

@@ -50,10 +50,10 @@ translateCapture piece@(Piece _ side) capture =
       pmBegin = src,
       pmEnd = dst,
       pmVictims = [victim],
-      pmMove = Move src (steps n),
+      pmMove = Move src (steps $ cFreeSteps capture),
       pmPromote = promote,
       pmResult = [Take src, RemoveCaptured victim, Put dst piece']
-    } | n <- [1 .. cFreeSteps capture]]
+    }]
   where
     steps n = replicate (cInitSteps capture) (Step dir False False) ++
               [Step dir True False] ++

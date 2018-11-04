@@ -7,6 +7,7 @@ module Formats.Fen where
 import qualified Data.Text as T
 import Data.Typeable
 import Data.Char
+import Data.Monoid ((<>))
 import Text.Megaparsec hiding (Label)
 import Text.Megaparsec.Char
 import Text.Megaparsec.Error (parseErrorPretty)
@@ -71,4 +72,26 @@ parseFen rules text =
   case parse (pFen rules) "FEN" text of
     Left err -> Left $ parseErrorPretty err
     Right fen -> Right $ fenToBoardRep fen
+
+boardToFen :: Side -> Board -> Fen
+boardToFen side b =
+  Fen {
+    fenNextMove = side,
+    fenFirst = [(lbl, Man) | lbl <- labelSetToList (bFirstMen b)] ++
+               [(lbl, King) | lbl <- labelSetToList (bFirstKings b)],
+    fenSecond = [(lbl, Man) | lbl <- labelSetToList (bSecondMen b)] ++
+                [(lbl, King) | lbl <- labelSetToList (bSecondKings b)]
+  }
+
+showFen :: BoardSize -> Fen -> T.Text
+showFen bsize fen =
+    showSide (fenNextMove fen) <> ":W" <>
+    T.intercalate "," (map showPiece $ fenFirst fen) <> ":B" <>
+    T.intercalate "," (map showPiece $ fenSecond fen)
+  where
+    showSide First = "W"
+    showSide Second = "B"
+
+    showPiece (lbl, Man) = numericNotation bsize lbl
+    showPiece (lbl, King) = "K" <> numericNotation bsize lbl
 
