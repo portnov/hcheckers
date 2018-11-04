@@ -11,6 +11,7 @@ from game import Game, AI, RequestError
 from board import Board
 from theme import Theme
 from newgamedlg import *
+from settingsdlg import SettingsDialog
 
 def locate_share_dir():
     home = os.environ["HOME"]
@@ -59,7 +60,8 @@ class Checkers(QMainWindow):
     def _gui_setup(self):
         widget = QWidget(self)
         layout = QVBoxLayout()
-        self.board = Board(self.theme, self.game)
+        show_notation = self.settings.value("show_notation", type=bool)
+        self.board = Board(self.theme, show_notation, self.game)
         self.board.message.connect(self._on_board_message)
         self.board.field_clicked.connect(self._on_field_clicked)
         #self.board.show()
@@ -70,6 +72,13 @@ class Checkers(QMainWindow):
         layout.addWidget(self.board, stretch=1)
         widget.setLayout(layout)
         self.setCentralWidget(widget)
+
+        geometry = self.settings.value("geometry")
+        if geometry is not None:
+            self.restoreGeometry(geometry)
+        state = self.settings.value("windowState")
+        if state is not None:
+            self.restoreState(state)
     
     def _create_action(self, icon, title, menu, handler=None, group=None, toggle=False, toolbar=True, key=None):
         if group is None:
@@ -106,25 +115,9 @@ class Checkers(QMainWindow):
         self.toolbar.addSeparator()
 
         self.run_action = self._create_action(None, "Start Game", menu, self._on_run_game, key="Ctrl+R")
-        self.board_setup_mode = False
-
-        menu = self.menuBar().addMenu("&View")
-        self._create_action(None, "Show notation", menu, self._on_toggle_notation, toolbar=False, toggle=True)
-
         menu.addSeparator()
-        themes = QActionGroup(self)
-        themes.setExclusive(True)
-        self.themes = dict()
-        for theme in Theme.list_themes(self.share_dir):
-            self.themes[theme.name] = theme
-            action = QAction(theme.name, self)
-            action.setData(theme.name)
-            action.setCheckable(True)
-            if theme.name == "default":
-                actin.setChecked(True)
-            themes.addAction(action)
-            menu.addAction(action)
-        themes.triggered.connect(self._on_set_theme)
+        self._create_action(None, "Settings", menu, self._on_settings, toolbar=False)
+        self.board_setup_mode = False
 
     def _on_run_game(self):
         self.board_setup_mode = False
@@ -164,7 +157,7 @@ class Checkers(QMainWindow):
         self._on_new_game()
 
     def _on_new_game(self):
-        dialog = NewGameDialog(self)
+        dialog = NewGameDialog(self.settings, self)
         result = dialog.exec_()
         if result == QDialog.Accepted:
             self.game.game_id = None
@@ -207,17 +200,22 @@ class Checkers(QMainWindow):
         self.board.fields_setup(prev_board)
         self.board.repaint()
 
-    def _on_toggle_notation(self):
-        self.board.show_notation = not self.board.show_notation
-
-    def _on_set_theme(self, action):
-        theme_name = action.data()
-        theme = self.themes[theme_name]
-        self.board.theme = theme
-
     def _on_board_message(self, message):
         self.message.setText(message)
         print(message)
+
+    def _on_settings(self):
+        dialog = SettingsDialog(self.settings, self.share_dir, self)
+        result = dialog.exec_()
+        if result == QDialog.Accepted:
+            self.board.show_notation = dialog.get_show_notation()
+            self.board.theme = dialog.get_theme()
+            print("ok")
+
+    def closeEvent(self, ev):
+        self.settings.setValue("geometry", self.saveGeometry())
+        self.settings.setValue("windowState", self.saveState())
+        QMainWindow.closeEvent(self, ev)
 
     def timerEvent(self, e):
         if e.timerId() != self.poll_timer:

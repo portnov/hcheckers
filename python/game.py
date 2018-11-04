@@ -30,6 +30,7 @@ class MoveRequest(Thread):
 
 class AI(object):
     def __init__(self, **kwargs):
+        self.title = "Default AI"
         self.depth = 2
         self.max_combination_depth = 6
         self.start_depth = None
@@ -43,6 +44,42 @@ class AI(object):
 
         for key in kwargs:
             setattr(self, key, kwargs[key])
+
+    @classmethod
+    def from_settings(cls, settings):
+        ai = AI()
+        ai.title = settings.value("title")
+        ai.depth = settings.value("depth", type=int)
+        ai.max_combination_depth = settings.value("max_combination_depth", type=int)
+        ai.start_depth = settings.value("start_depth", type=int)
+        ai.threads = settings.value("threads", type=int)
+        ai.load = settings.value("load", type=bool)
+        ai.store = settings.value("store", type=bool)
+        return ai
+    
+    @classmethod
+    def list_from_settings(cls, settings):
+        result = []
+        size = settings.beginReadArray("AI")
+        if size is None or size == 0:
+            result = [AI()]
+        else:
+            for idx in range(size):
+                settings.setArrayIndex(idx)
+                ai = AI.from_settings(settings)
+                result.append(ai)
+        settings.endArray()
+        return result
+
+    
+    def to_settings(self, settings):
+        settings.setValue("title", self.title)
+        settings.setValue("depth", self.depth)
+        settings.setValue("max_combination_depth", self.max_combination_depth)
+        settings.setValue("start_depth", self.start_depth)
+        settings.setValue("threads", self.threads)
+        settings.setValue("load", self.load)
+        settings.setValue("store", self.store)
 
     def params(self):
         return {

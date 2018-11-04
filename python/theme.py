@@ -49,7 +49,8 @@ class Theme(object):
         self.size = size
         settings = QSettings(join(path, "theme"), QSettings.IniFormat)
 
-        self.name = settings.value("name", basename(path))
+        self.id = basename(path) 
+        self.name = settings.value("name", self.id)
 
         self.pattern1 = CachedPixmap(join(path, settings.value("tile1", "tile1.svg")))
         self.pattern2 = CachedPixmap(join(path, settings.value("tile2", "tile2.svg")))

@@ -36,8 +36,9 @@ class FileSelectWidget(QWidget):
         return self.textbox.text()
 
 class NewGameDialog(QDialog):
-    def __init__(self, parent=None):
+    def __init__(self, settings, parent=None):
         QDialog.__init__(self, parent)
+        self.settings = settings
 
         widget = QWidget()
         layout = QFormLayout()
@@ -77,28 +78,15 @@ class NewGameDialog(QDialog):
         vbox = QVBoxLayout()
         vbox.addWidget(widget)
 
-        self.ai_group = QGroupBox()
-        self.ai_group.setTitle("AI Settings")
-        ai_layout = QFormLayout()
-
-        self.ai_depth = QComboBox(self)
-        self.ai_depth.addItem("Level 2", 2)
-        self.ai_depth.addItem("Level 4", 4)
-        self.ai_depth.addItem("Level 6", 6)
-        self.ai_depth.addItem("Level 8", 8)
-        self.ai_depth.addItem("Level 9", 9)
-        ai_layout.addRow("Strength", self.ai_depth)
-
-        self.ai_load = QCheckBox(self)
-        self.ai_load.setTristate(False)
-        ai_layout.addRow("Load cache", self.ai_load)
-
-        self.ai_save = QCheckBox(self)
-        self.ai_save.setTristate(False)
-        ai_layout.addRow("Save cache", self.ai_save)
-
-        self.ai_group.setLayout(ai_layout)
-        vbox.addWidget(self.ai_group)
+        self.ai = QComboBox(self)
+        self.ais = AI.list_from_settings(settings)
+        for idx, ai in enumerate(self.ais):
+            self.ai.addItem(ai.title, idx)
+        ai = settings.value("ai")
+        if ai is not None:
+            idx = self.ai.findText(ai)
+            self.ai.setCurrentIndex(idx)
+        layout.addRow("AI", self.ai)
 
         self.lobby = LobbyWidget(parent=self)
         self.lobby.hide()
@@ -112,7 +100,7 @@ class NewGameDialog(QDialog):
         buttons = QDialogButtonBox(
                     QDialogButtonBox.Ok | QDialogButtonBox.Cancel,
                     Qt.Horizontal, self)
-        buttons.accepted.connect(self.accept)
+        buttons.accepted.connect(self._on_accept)
         buttons.rejected.connect(self.reject)
         vbox.addWidget(buttons)
 
@@ -124,7 +112,7 @@ class NewGameDialog(QDialog):
         show_side = action != JOIN_HUMAN_GAME
         show_board_setup = action != JOIN_HUMAN_GAME
 
-        self.ai_group.setVisible(show_ai)
+        self.ai.setVisible(show_ai)
         self.lobby.setVisible(show_lobby)
         self.user_side.setVisible(show_side)
         self.board_type.setVisible(show_board_setup)
@@ -133,6 +121,10 @@ class NewGameDialog(QDialog):
         action = self.board_type.itemData(idx)
         show_fen = action == LOAD_FEN
         self.fen_path.setVisible(show_fen)
+
+    def _on_accept(self):
+        self.settings.setValue("ai", self.ai.currentText())
+        self.accept()
 
     def get_settings(self):
         game = GameSettings()
@@ -147,12 +139,7 @@ class NewGameDialog(QDialog):
         if self.board_type.currentData() == LOAD_FEN:
             game.fen_path = self.fen_path.path()
 
-        game.ai = ai = AI()
-        ai.depth = self.ai_depth.currentData()
-        #ai.start_depth = ai.depth - 2
-        ai.load = self.ai_load.checkState() == Qt.Checked
-        ai.store = self.ai_save.checkState() == Qt.Checked
+        game.ai = self.ais[self.ai.currentIndex()]
 
         return game
-
 

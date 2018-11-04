@@ -83,9 +83,13 @@ abstractRules =
       let simpleMoves = concatMap (gPossibleSimpleMoves1 rules board) (allMyAddresses side board)
           captures = concatMap (gPossibleCaptures1 rules board) (allMyAddresses side board)
       in  if gCaptureMax rules
-            then let captures' = sortOn (negate . length . pmVictims) captures
-                     n = length $ pmVictims (head captures')
-                 in  filter (\c -> length (pmVictims c) == n) captures'
+            then
+              if null captures
+                then simpleMoves
+                else
+                  let captures' = sortOn (negate . length . pmVictims) captures
+                      n = length $ pmVictims (head captures')
+                  in  filter (\c -> length (pmVictims c) == n) captures'
             else if null captures
                    then simpleMoves
                    else captures

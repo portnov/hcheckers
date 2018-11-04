@@ -57,7 +57,7 @@ instance GameRules International where
 
 international :: International
 international = International $
-  let rules = (abstractRules rules) {
+  let rules = abstractRules rules {
                 gManCaptures = manCaptures rules,
                 gManCaptures1 = manCaptures1 rules,
                 gCaptureMax = True

@@ -96,17 +96,17 @@ class MoveAnimation(QObject):
         return True
 
 class Board(QWidget):
-    def __init__(self, theme, game, parent=None):
+    def __init__(self, theme, show_notation, game, parent=None):
         QWidget.__init__(self, parent)
 
         self.game = game
         self._theme = theme
+        self._show_notation = show_notation
 
         self._init_fields(8, 8)
 
         self._pixmap = None
 
-        self._show_notation = False
         self._selected_field = None
         self._valid_target_fields = None
         self._board = dict()
@@ -133,6 +133,7 @@ class Board(QWidget):
             for col in range(self.n_cols):
                 field = Field()
                 field.theme = self._theme
+                field.show_label = self._show_notation
                 field.label = Label(col, row)
                 self.fields[(row, col)] = field
                 self.field_by_label[field.label] = field
