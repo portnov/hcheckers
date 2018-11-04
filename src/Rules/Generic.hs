@@ -248,9 +248,9 @@ abstractRules =
               } | n <- [1..nFree]]
 
     canCaptureFrom rules mbPrevDir captured piece@(Piece Man side) board src =
-        null (gManCaptures1 rules mbPrevDir captured piece board src)
+        not $ null (gManCaptures1 rules mbPrevDir captured piece board src)
     canCaptureFrom rules mbPrevDir captured piece@(Piece King side) board src =
-        null (gKingCaptures1 rules mbPrevDir captured piece board src)
+        not $ null (gKingCaptures1 rules mbPrevDir captured piece board src)
 
     manSimpleMoveDirections rules = [ForwardLeft, ForwardRight]
 
