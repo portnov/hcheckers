@@ -122,6 +122,7 @@ class Game(object):
 
     def process_response(self, rs):
         if rs.status_code != requests.codes.ok:
+            print(rs.url)
             print(rs.text)
             raise RequestError(str(rs))
 

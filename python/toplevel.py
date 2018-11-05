@@ -160,6 +160,7 @@ class Checkers(QMainWindow):
         dialog = NewGameDialog(self.settings, self)
         result = dialog.exec_()
         if result == QDialog.Accepted:
+            self.board.locked = False
             self.game.game_id = None
             self.game_settings = game = dialog.get_settings()
             if game.action == START_AI_GAME:
@@ -168,6 +169,7 @@ class Checkers(QMainWindow):
                     self.board_setup_mode = True
                 else:
                     self.game.start_new_game(game.user_name, rules=game.rules, user_turn_first=game.user_turn_first, ai=game.ai, fen_path=game.fen_path)
+                    self.board.my_turn = game.user_turn_first
             elif game.action == START_HUMAN_GAME:
                 game_id = self.game.new_game(game.rules)
                 print(game_id)
@@ -201,8 +203,11 @@ class Checkers(QMainWindow):
         self.board.repaint()
 
     def _on_board_message(self, message):
-        self.message.setText(message)
+        self.message.setText(str(message))
         print(message)
+        if isinstance(message, GameResultMessage):
+            self.board.locked = True
+            self.board.setCursor(Qt.ArrowCursor)
 
     def _on_settings(self):
         dialog = SettingsDialog(self.settings, self.share_dir, self)
@@ -222,8 +227,8 @@ class Checkers(QMainWindow):
             return
         if not self.do_poll:
             return
-        if self.board.my_turn:
-            return
+        #if self.board.my_turn:
+        #    return
 
         board, messages = self.game.poll()
         for message in messages:

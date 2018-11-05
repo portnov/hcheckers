@@ -57,12 +57,12 @@ pMove rules = do
   second <- optional $ try (pSemiMove rules)
   return $ MoveRec first second
 
-pResult :: Parser GameResult
+pResult :: Parser (Maybe GameResult)
 pResult =
-      (try $ string "*" >> return Ongoing)
-  <|> (try $ string "1-0" >> return FirstWin)
-  <|> (try $ string "0-1" >> return SecondWin)
-  <|> (try $ string "1/2-1/2" >> return Draw)
+      (try $ string "*" >> return Nothing)
+  <|> (try $ string "1-0" >> return (Just FirstWin))
+  <|> (try $ string "0-1" >> return (Just SecondWin))
+  <|> (try $ string "1/2-1/2" >> return (Just Draw))
 
 pText :: Parser T.Text
 pText = between (char '"') (char '"') $ do

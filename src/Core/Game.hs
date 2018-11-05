@@ -56,12 +56,17 @@ doMoveRq side move = do
            else do
                 let (board', _, _) = applyMove rules side move board
                     moveMsg = MoveNotify (opposite side) side (moveRep rules side move) (boardRep board')
-                    result = getGameResult rules board'
-                    resultMsg to = ResultNotify to side result
-                    messages = if result == Ongoing
-                                 then [moveMsg]
-                                 else [moveMsg, resultMsg First, resultMsg Second]
+                    mbResult = getGameResult rules board'
+                    messages = case mbResult of
+                                 Nothing -> [moveMsg]
+                                 Just result ->
+                                  let resultMsg to = ResultNotify to side result
+                                  in  [moveMsg, resultMsg First, resultMsg Second]
                 modify $ \game -> game {gState = pushMove move board' (gState game)}
+                case mbResult of
+                  Just result -> 
+                    modify $ \game -> game {gStatus = Ended result}
+                  _ -> return ()
                 return $ GMoveRs board' messages
 
 doMoveRepRq :: Side -> MoveRep -> GameM GMoveRs

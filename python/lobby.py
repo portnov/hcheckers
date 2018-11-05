@@ -25,7 +25,8 @@ class LobbyWidget(QWidget):
 
     def fill(self):
         def make_item(game, key, selectable=True):
-            item = QTableWidgetItem(game[key])
+            value = game[key]
+            item = QTableWidgetItem(value)
             flags = Qt.ItemIsEnabled
             if selectable:
                 flags = flags | Qt.ItemIsSelectable

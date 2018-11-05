@@ -77,7 +77,10 @@ instance ToJSON Player where
 instance ToJSON SomeRules where
   toJSON (SomeRules rules) = toJSON (rulesName rules)
 
-instance ToJSON GameStatus
+instance ToJSON GameStatus where
+  toJSON New = toJSON ("New" :: T.Text)
+  toJSON Running = toJSON ("Running" :: T.Text)
+  toJSON (Ended result) = toJSON result
 
 instance ToJSON Game where
   toJSON g =

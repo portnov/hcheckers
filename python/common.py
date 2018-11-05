@@ -111,6 +111,29 @@ class Move(object):
             move.steps.append(step)
         return move
 
+class Message(object):
+    pass
+
+class OtherSideMove(Message):
+    def __init__(self, board, move):
+        self.board = board
+        self.move = move
+
+    def __str__(self):
+        return "Other side move: {}".format(self.board.show_move(self.move))
+
+
+class UndoMessage(Message):
+    def __str__(self):
+        return "Other side requested undo"
+
+class GameResultMessage(Message):
+    def __init__(self, result):
+        self.result = result
+
+    def __str__(self):
+        return "Game result: {}".format(self.result)
+
 supported_rules = [
         ("russian", "Russian draughts"),
         ("simple", "Simple draughts"),

@@ -337,7 +337,7 @@ class (Typeable g, Show g, Evaluator g, HasBoardOrientation g) => GameRules g wh
 
   possibleMoves :: g -> Side -> Board -> [PossibleMove]
   updateRules :: g -> Value -> g
-  getGameResult :: g -> Board -> GameResult
+  getGameResult :: g -> Board -> Maybe GameResult
   rulesName :: g -> String
 
 fieldsCount :: GameRules rules => rules -> Line
@@ -359,7 +359,6 @@ data GameResult =
     FirstWin
   | SecondWin
   | Draw
-  | Ongoing
   deriving (Eq, Show, Ord, Typeable, Generic)
 
 class Evaluator e where
@@ -396,7 +395,7 @@ instance Show Player where
   show (User name) = name
   show (AI ai) = aiName ai
 
-data GameStatus = New | Running
+data GameStatus = New | Running | Ended GameResult
   deriving (Eq, Show, Generic)
 
 data Game = Game {

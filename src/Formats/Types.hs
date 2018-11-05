@@ -24,7 +24,7 @@ data Tag =
   | Round T.Text
   | White T.Text
   | Black T.Text
-  | Result GameResult
+  | Result (Maybe GameResult)
   | SetUp T.Text
   | FEN Fen
   | GameType SomeRules
@@ -48,7 +48,7 @@ data MoveRec = MoveRec {
 data GameRecord = GameRecord {
     grTags :: [Tag]
   , grMoves :: [MoveRec]
-  , grResult :: GameResult
+  , grResult :: Maybe GameResult
   }
   deriving (Show, Typeable)
 

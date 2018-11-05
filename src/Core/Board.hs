@@ -606,13 +606,13 @@ boardLineCounts board =
 
 -- | Generic implementation of @getGameResult@, which suits most rules.
 -- This can not, however, recognize draws.
-genericGameResult :: GameRules rules => rules -> Board -> GameResult
+genericGameResult :: GameRules rules => rules -> Board -> Maybe GameResult
 genericGameResult rules board =
   if null (possibleMoves rules First board)
-    then SecondWin
+    then Just SecondWin
     else if null (possibleMoves rules Second board)
-           then FirstWin
-           else Ongoing
+           then Just FirstWin
+           else Nothing
 
 instance IsString Label where
   fromString str =

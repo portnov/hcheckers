@@ -113,6 +113,7 @@ class Board(QWidget):
         self._new_board = None
 
         self._my_turn = True
+        self.locked = False
 
         self.move_animation = MoveAnimation(self)
         self.move_animation.finished.connect(self.on_animation_finished)
@@ -121,7 +122,7 @@ class Board(QWidget):
 
     field_clicked = pyqtSignal(int, int)
 
-    message = pyqtSignal(str)
+    message = pyqtSignal(object)
 
     def _init_fields(self, rows, cols):
         self.n_rows = rows
@@ -409,7 +410,7 @@ class Board(QWidget):
     def process_message(self, message):
         if "move" in message:
             move = Move.fromJson(message["move"])
-            self.message.emit("Other side move: {}".format(self.show_move(move)))
+            self.message.emit(OtherSideMove(self, move))
             self._new_board = Game.parse_board(message["board"])
             src_field = self.index_by_label[move.from_field]
             dst_field = self.get_move_end_field(move)
@@ -420,11 +421,11 @@ class Board(QWidget):
             self.my_turn = True
             #self.my_turn = message["to_side"] == my_side
         elif "undo" in message:
-            self.message.emit("Other side requested undo")
+            self.message.emit(UndoMessage())
             self._board = Game.parse_board(message["board"])
         elif "result" in message:
             result = message["result"]
-            self.message.emit("Game result: " + result)
+            self.message.emit(GameResultMessage(result))
 
     def on_animation_finished(self, process_result):
         if process_result:
@@ -447,6 +448,9 @@ class Board(QWidget):
             return
         
         if not self.my_turn:
+            return
+        print(self.locked)
+        if self.locked:
             return
         
         for (row, col) in self.fields:
