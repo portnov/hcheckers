@@ -36,13 +36,15 @@ to implement them soon.
 
 ## (Planned) features
 
-For now, only Russian draughts rules are implemented. However, the code is
-general enough to implement a wide range of checkers variants:
+The code is general enough to implement a wide range of checkers variants:
 
-* Russian (done)
+* Russian
+* Simple russian (russian draughts without kings)
+* Diagonal russian (russian draughts with different initial setup)
+* Spancirety (russian draughts on 8x10 board)
 * English
 * International checkers (10x10)
-* and so on
+* ...
 
 It is possible to implement different AI algorithms; currently there is only
 one, based on standard alpha-beta pruning. The algorithm has some number of
