@@ -6,6 +6,7 @@
 
 module Core.Supervisor where
 
+import Control.Monad
 import Control.Monad.State
 import Control.Monad.Except
 import Control.Concurrent.STM
@@ -27,7 +28,9 @@ import Core.BoardMap
 import Core.Game
 import AI.AlphaBeta () -- import instances only
 import AI.AlphaBeta.Types
+import Formats.Types
 import Formats.Fen
+import Formats.Pdn
 
 import Rules.Russian
 import Rules.Simple
@@ -37,7 +40,13 @@ import Rules.Canadian
 import Rules.Spancirety
 import Rules.Diagonal
 
-data NewGameRq = NewGameRq String Value (Maybe BoardRep) (Maybe T.Text)
+data NewGameRq = NewGameRq {
+    rqRules :: String
+  , rqRulesParams :: Value
+  , rqBoard :: Maybe BoardRep
+  , rqFen :: Maybe T.Text
+  , rqPdn :: Maybe T.Text
+  }
   deriving (Eq, Show, Generic)
 
 -- data RegisterUserRq = RegisterUserRq String
@@ -79,13 +88,21 @@ supportedRules =
    ("diagonal", SomeRules diagonal)]
 
 selectRules :: NewGameRq -> Maybe SomeRules
-selectRules (NewGameRq name params _ _) = go supportedRules
+selectRules (NewGameRq {rqRules=name, rqRulesParams=params, rqPdn=mbPdn}) =
+    fromPdn mbPdn `mplus` go supportedRules
   where
     go :: [(String, SomeRules)] -> Maybe SomeRules
     go [] = Nothing
     go ((key, (SomeRules rules)) : other)
       | key == name = Just $ SomeRules $ updateRules rules params
       | otherwise = go other
+
+    fromPdn :: Maybe T.Text -> Maybe SomeRules
+    fromPdn Nothing = Nothing
+    fromPdn (Just text) =
+      case parsePdn text of
+        Left _ -> Nothing
+        Right gr -> rulesFromTags (grTags gr)
 
 supportedAis :: [(String, SomeRules -> SomeAi)]
 supportedAis = [("default", \(SomeRules rules) -> SomeAi (AlphaBeta def rules))]
@@ -296,6 +313,12 @@ getFen :: GameId -> Checkers T.Text
 getFen gameId = do
   (side, board) <- withGame gameId $ \_ -> gameState
   return $ showFen (bSize board) $ boardToFen side board
+
+getPdn :: GameId -> Checkers T.Text
+getPdn gameId = do
+  mbGame <- getGame gameId
+  let game = fromJust mbGame
+  return $ showPdn (gRules game) $ gameToPdn game
 
 getGames :: Maybe String -> Checkers [Game]
 getGames mbRulesId = do

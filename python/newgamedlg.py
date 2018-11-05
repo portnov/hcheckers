@@ -16,6 +16,10 @@ JOIN_HUMAN_GAME = 3
 DEFAULT_BOARD = 1
 MANUAL_BOARD = 2
 LOAD_FEN = 3
+LOAD_PDN = 4
+
+FEN_MASK = "FEN notation (*.fen)"
+PDN_MASK = "Portable Draughts Notation (*.pdn)"
 
 class FileSelectWidget(QWidget):
     def __init__(self, parent=None):
@@ -27,9 +31,10 @@ class FileSelectWidget(QWidget):
         layout.addWidget(self.textbox)
         layout.addWidget(self.button)
         self.setLayout(layout)
+        self.mask = FEN_MASK
 
     def _on_browse(self):
-        (path,_) = QFileDialog.getOpenFileName(self, "Open FEN file", ".", "FEN notation (*.fen)")
+        (path,_) = QFileDialog.getOpenFileName(self, "Open file", ".", self.mask)
         self.textbox.setText(path)
 
     def path(self):
@@ -71,11 +76,12 @@ class NewGameDialog(QDialog):
         self.board_type.addItem("Use default initial position", DEFAULT_BOARD)
         self.board_type.addItem("Manual initial position setup", MANUAL_BOARD)
         self.board_type.addItem("Load initial board from FEN file", LOAD_FEN)
+        self.board_type.addItem("Load initial board from PDN file", LOAD_PDN)
         layout.addRow("Initial board type", self.board_type)
 
-        self.fen_path = FileSelectWidget(self)
-        self.fen_path.setVisible(False)
-        layout.addRow("Select FEN file", self.fen_path)
+        self.file_path = FileSelectWidget(self)
+        self.file_path.setVisible(False)
+        layout.addRow("Select file", self.file_path)
 
         widget.setLayout(layout)
 
@@ -123,8 +129,16 @@ class NewGameDialog(QDialog):
 
     def _on_board_type_changed(self, idx):
         action = self.board_type.itemData(idx)
-        show_fen = action == LOAD_FEN
-        self.fen_path.setVisible(show_fen)
+        show_file = action == LOAD_FEN or action == LOAD_PDN
+        self.file_path.setVisible(show_file)
+
+        show_rules = action != LOAD_PDN
+        self.rules.setVisible(show_rules)
+
+        if action == LOAD_FEN:
+            self.file_path.mask = FEN_MASK
+        elif action == LOAD_PDN:
+            self.file_path.mask = PDN_MASK
 
     def _on_accept(self):
         self.settings.setValue("ai", self.ai.currentText())
@@ -142,7 +156,9 @@ class NewGameDialog(QDialog):
         game.action = action
         game.board_setup = self.board_type.currentData() == MANUAL_BOARD
         if self.board_type.currentData() == LOAD_FEN:
-            game.fen_path = self.fen_path.path()
+            game.fen_path = self.file_path.path()
+        elif self.board_type.currentData() == LOAD_PDN:
+            game.pdn_path = self.file_path.path()
 
         game.ai = self.ais[self.ai.currentIndex()]
 

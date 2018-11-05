@@ -99,6 +99,7 @@ instance FromJSON NewGameRq where
     <*> v .:? "params" .!= Null
     <*> v .:? "board"
     <*> v .:? "fen"
+    <*> v .:? "pdn"
 
 instance FromJSON AttachAiRq where
   parseJSON = withObject "AttachAi" $ \v -> AttachAiRq

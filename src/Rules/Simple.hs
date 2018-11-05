@@ -37,6 +37,8 @@ instance GameRules Simple where
 
   possibleMoves (Simple rules) side board = gPossibleMoves rules side board
 
+  pdnId _ = "43"
+
 simple :: Simple
 simple = Simple $
   let rules = (Russian.russianBase rules) {

@@ -51,6 +51,8 @@ instance GameRules Canadian where
 
   getGameResult = genericGameResult
 
+  pdnId _ = "27"
+
   possibleMoves (Canadian rules) side board = gPossibleMoves rules side board
 
 canadian :: Canadian

@@ -41,6 +41,8 @@ instance GameRules Russian where
 
   getGameResult = genericGameResult
 
+  pdnId _ = "25"
+
 russianBase :: GenericRules -> GenericRules
 russianBase =
   let rules this = abstractRules this {

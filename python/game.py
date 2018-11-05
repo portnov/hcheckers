@@ -106,6 +106,7 @@ class GameSettings(object):
         self.board_setup = False
         self.action = None
         self.fen_path = None
+        self.pdn_path = None
 
 class Game(object):
     def __init__(self, url=None):
@@ -136,7 +137,7 @@ class Game(object):
         result = rs.json()["response"]
         return result
 
-    def new_game(self, rules, board=None, fen_path=None):
+    def new_game(self, rules, board=None, fen_path=None, pdn_path=None):
         url = join(self.base_url, "game", "new")
         rq = {"rules": rules}
         if board is not None:
@@ -144,6 +145,9 @@ class Game(object):
         elif fen_path is not None:
             fen_text = open(fen_path).read()
             rq["fen"] = fen_text
+        elif pdn_path is not None:
+            pdn_text = open(pdn_path).read()
+            rq["pdn"] = pdn_text
         rs = requests.post(url, json=rq)
         self.process_response(rs)
         result = rs.json()
@@ -179,10 +183,10 @@ class Game(object):
         self.process_response(rs)
         result = rs.json()
 
-    def start_new_game(self, user_name, rules="russian", board=None, fen_path=None, user_turn_first=True, ai=None):
+    def start_new_game(self, user_name, rules="russian", board=None, fen_path=None, pdn_path=None, user_turn_first=True, ai=None):
         if ai is None:
             ai = AI()
-        self.new_game(rules, board=board, fen_path=fen_path)
+        self.new_game(rules, board=board, fen_path=fen_path, pdn_path=pdn_path)
         if user_turn_first:
             self.register_user(user_name, FIRST)
             self.attach_ai(SECOND, ai)
@@ -222,6 +226,12 @@ class Game(object):
     
     def get_fen(self):
         url = join(self.base_url, "game", self.game_id, "fen")
+        rs = requests.get(url)
+        self.process_response(rs)
+        return rs.text
+    
+    def get_pdn(self):
+        url = join(self.base_url, "game", self.game_id, "pdn")
         rs = requests.get(url)
         self.process_response(rs)
         return rs.text

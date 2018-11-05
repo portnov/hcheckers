@@ -53,6 +53,8 @@ instance GameRules International where
 
   possibleMoves (International rules) side board = gPossibleMoves rules side board
 
+  pdnId _ = "20"
+
 internationalBase :: GenericRules -> GenericRules
 internationalBase =
   let rules this = abstractRules this {

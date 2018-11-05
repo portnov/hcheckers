@@ -34,17 +34,6 @@ doLearn rules eval var params gameRec depth = do
           processMove rules eval var params First depth move2 board2
           go board2 rest
 
-parseMoveRec :: GameRules rules => rules -> Side -> Board -> SemiMoveRec -> Move
-parseMoveRec rules side board rec =
-  let moves = possibleMoves rules side board
-      suits m = aLabel (pmBegin m) == smrFrom rec &&
-                aLabel (pmEnd m) == smrTo rec &&
-                (not $ null $ pmVictims m) == smrCapture rec
-  in case filter suits moves of
-    [m] -> pmMove m
-    [] -> error $ "no such move: " ++ show rec
-    ms -> error $ "ambigous move: " ++ show ms
-
 processMove :: (GameRules rules, Evaluator eval) => rules -> eval -> AICacheHandle rules -> AlphaBetaParams -> Side -> Int -> Move -> Board -> Checkers ()
 processMove rules eval var params side depth move board = do
   let ai = AlphaBeta params rules
@@ -55,7 +44,7 @@ processMove rules eval var params side depth move board = do
 learnPdn :: (GameRules rules) => AlphaBeta rules -> FilePath -> Int -> Checkers ()
 learnPdn ai@(AlphaBeta params rules) path depth = do
   cache <- loadAiCache scoreMove ai
-  pdn <- liftIO $ parsePdn path
+  pdn <- liftIO $ parsePdnFile path
   forM_ pdn $ \gameRec -> do
     doLearn rules ai cache params gameRec depth
     -- saveAiCache rules params cache

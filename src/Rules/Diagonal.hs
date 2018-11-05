@@ -52,6 +52,8 @@ instance GameRules Diagonal where
 
   getGameResult = genericGameResult
 
+  pdnId _ = "42"
+
 diagonal :: Diagonal
 diagonal = Diagonal $
   let rules = russianBase rules

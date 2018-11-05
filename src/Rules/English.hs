@@ -41,6 +41,8 @@ instance GameRules English where
 
   possibleMoves (English rules) side board = gPossibleMoves rules side board
 
+  pdnId _ = "21"
+
 english :: English
 english = English $
   let rules = (abstractRules rules) {

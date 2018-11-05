@@ -10,9 +10,11 @@ import Web.Scotty.Trans
 import Network.HTTP.Types.Status
 
 import Core.Types
+import Core.Board
 import Core.Supervisor
 import Core.Json () -- import instances only
 import Formats.Fen
+import Formats.Pdn
 
 error400 :: T.Text -> ActionT TL.Text Checkers ()
 error400 message = do
@@ -24,23 +26,27 @@ instance Parsable Side where
   parseParam "2" = Right Second
   parseParam text = Left $ "unknown side"
 
-boardRq :: SomeRules -> Maybe BoardRep -> Maybe T.Text -> Either T.Text (Maybe BoardRep)
-boardRq _ (Just _) (Just _) = Left "board and fen notation can not be provided simultaneously"
-boardRq _ (Just br) Nothing = Right $ Just br
-boardRq rules Nothing (Just fen) =
+boardRq :: SomeRules -> Maybe BoardRep -> Maybe T.Text -> Maybe T.Text -> Either T.Text (Maybe BoardRep)
+boardRq _ (Just br) Nothing Nothing = Right $ Just br
+boardRq rules Nothing (Just fen) Nothing =
   case parseFen rules fen of
     Left err -> Left $ T.pack err
     Right br -> Right $ Just br
-boardRq _ Nothing Nothing = Right Nothing
+boardRq rules Nothing Nothing (Just pdn) =
+  case parsePdn pdn of
+    Left err -> Left $ T.pack err
+    Right gr -> Right $ Just $ boardRep $ loadPdn gr
+boardRq _ Nothing Nothing Nothing = Right Nothing
+boardRq _ _ _ _ = Left "only one of fields must be filled: board, fen, pdn"
 
 restServer :: ScottyT TL.Text Checkers ()
 restServer = do
   post "/game/new" $ do
-    rq@(NewGameRq _ _ mbBoard mbFen) <- jsonData
+    rq@(NewGameRq {rqBoard=mbBoard, rqFen=mbFen, rqPdn=mbPdn}) <- jsonData
     case selectRules rq of
       Nothing -> error400 "invalid game rules"
       Just rules -> do
-        case boardRq rules mbBoard mbFen of
+        case boardRq rules mbBoard mbFen mbPdn of
           Left err -> error400 err
           Right board -> do
             liftIO $ print board
@@ -83,6 +89,11 @@ restServer = do
   get "/game/:id/fen" $ do
     gameId <- param "id"
     rs <- lift $ getFen gameId
+    Web.Scotty.Trans.text $ TL.fromStrict rs
+
+  get "/game/:id/pdn" $ do
+    gameId <- param "id"
+    rs <- lift $ getPdn gameId
     Web.Scotty.Trans.text $ TL.fromStrict rs
 
   post "/game/:id/move/:name" $ do

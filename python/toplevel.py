@@ -168,7 +168,7 @@ class Checkers(QMainWindow):
                     self.board.empty()
                     self.board_setup_mode = True
                 else:
-                    self.game.start_new_game(game.user_name, rules=game.rules, user_turn_first=game.user_turn_first, ai=game.ai, fen_path=game.fen_path)
+                    self.game.start_new_game(game.user_name, rules=game.rules, user_turn_first=game.user_turn_first, ai=game.ai, fen_path=game.fen_path, pdn_path=game.pdn_path)
                     self.board.my_turn = game.user_turn_first
             elif game.action == START_HUMAN_GAME:
                 game_id = self.game.new_game(game.rules)
@@ -192,10 +192,16 @@ class Checkers(QMainWindow):
             self.board.repaint()
 
     def _on_save_game(self):
-        fen = self.game.get_fen()
-        (path,_) = QFileDialog.getSaveFileName(self.board, "Save FEN file", ".", "FEN notation (*.fen)")
-        with open(path, 'w') as f:
-            f.write(fen)
+        (path,mask) = QFileDialog.getSaveFileName(self.board, "Save file", ".", FEN_MASK + ";;" + PDN_MASK)
+        if path:
+            if mask == FEN_MASK:
+                fen = self.game.get_fen()
+                with open(path, 'w') as f:
+                    f.write(fen)
+            elif mask == PDN_MASK:
+                pdn = self.game.get_pdn()
+                with open(path, 'w') as f:
+                    f.write(pdn)
 
     def _on_undo(self):
         prev_board = self.game.undo()

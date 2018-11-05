@@ -46,6 +46,8 @@ instance GameRules Spancirety where
 
   getGameResult = genericGameResult
 
+  pdnId _ = "41"
+
 spancirety :: Spancirety
 spancirety = Spancirety $
   let rules = russianBase rules

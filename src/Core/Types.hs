@@ -336,6 +336,7 @@ class (Typeable g, Show g, Evaluator g, HasBoardOrientation g) => GameRules g wh
   updateRules :: g -> Value -> g
   getGameResult :: g -> Board -> Maybe GameResult
   rulesName :: g -> String
+  pdnId :: g -> String
 
 fieldsCount :: GameRules rules => rules -> Line
 fieldsCount rules =
