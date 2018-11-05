@@ -13,23 +13,14 @@ import Control.Monad.Reader
 import Control.Concurrent
 import Control.Concurrent.STM
 import qualified Control.Concurrent.ReadWriteLock as RWL
-import Control.Monad.Catch (bracket_)
 import qualified Control.Monad.Metrics as Metrics
 import qualified Data.Map as M
 import qualified Data.HashPSQ as PQ
-import qualified Data.ByteString as B
 import Data.Maybe
-import Data.Binary
-import Data.Store
-import Data.Typeable
-import Data.Default
 import Data.Text.Format.Heavy (Single (..))
-import GHC.Generics
 import System.FilePath
 import System.Environment
 import System.Directory
-import System.IO
-import System.Posix.Types
 import System.Posix.IO
 import System.Clock
 import System.Log.Heavy

@@ -5,12 +5,9 @@
 module Formats.Pdn where
 
 import qualified Data.Text as T
-import Data.Typeable
-import Data.Char
 import Text.Megaparsec hiding (Label)
 import Text.Megaparsec.Char
 import Text.Megaparsec.Error (parseErrorPretty)
-import Data.Void
 import qualified Data.Text.IO as TIO
 
 import Core.Types

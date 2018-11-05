@@ -1,8 +1,6 @@
 
 module Core.Evaluator where
 
-import Data.Ratio
-
 import Core.Types
 import Core.Board
 

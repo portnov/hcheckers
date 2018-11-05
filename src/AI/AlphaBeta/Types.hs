@@ -8,37 +8,26 @@
 
 module AI.AlphaBeta.Types where
 
-import Control.Monad
 import Control.Monad.State
 import Control.Monad.Reader
 import qualified Control.Monad.Metrics as Metrics
-import Control.Concurrent
 import qualified Control.Concurrent.ReadWriteLock as RWL
 import Control.Concurrent.STM
-import Control.Exception (evaluate)
-import Control.Monad.Catch (bracket_)
 import qualified Data.Map as M
 import qualified Data.HashPSQ as PQ
-import qualified Data.ByteString as B
 import Data.Word
-import Data.Int
 import Data.Binary
 import Data.Store
 import Data.Typeable
 import Data.Default
 import GHC.Generics
-import System.FilePath
-import System.Environment
-import System.Directory
 import System.Clock
 -- import System.IO
 import System.Posix.Types
-import System.Posix.IO
-import "unix-bytestring" System.Posix.IO.ByteString
+-- import "unix-bytestring" System.Posix.IO.ByteString
 import System.Log.Heavy
 
 import Core.Types
-import Core.BoardMap
 import Core.Parallel
 
 data AlphaBeta rules = AlphaBeta AlphaBetaParams rules

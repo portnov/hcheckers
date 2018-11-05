@@ -7,7 +7,6 @@ import Data.Typeable
 
 import Core.Types
 import Core.Board
-import Core.BoardMap
 import Core.Evaluator
 import Rules.Generic
 import Rules.International

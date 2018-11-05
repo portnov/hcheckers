@@ -8,8 +8,6 @@ import qualified Data.IntMap.Strict as IM
 import qualified Data.IntSet as IS
 import Data.Hashable
 import Data.Store
-import Data.List
-import Data.Array
 import Data.Word
 import Text.Printf
 

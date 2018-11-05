@@ -13,7 +13,6 @@ import Control.Monad
 import Control.Monad.State
 import Control.Monad.Catch (bracket_)
 import qualified Control.Monad.Metrics as Metrics
-import Control.Concurrent
 import Control.Concurrent.STM
 import qualified Control.Concurrent.ReadWriteLock as RWL
 import qualified Data.HashPSQ as PQ
@@ -30,11 +29,9 @@ import System.IO
 import Text.Printf
 import GHC.Generics
 import System.Posix.Types
-import System.Posix.IO
 import "unix-bytestring" System.Posix.IO.ByteString
 
 import Core.Types
-import Core.Board
 import Core.BoardMap
 import AI.AlphaBeta.Types
 

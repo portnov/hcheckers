@@ -1,14 +1,11 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 module Rules.Generic where
 
-import Data.Typeable
 import Data.List
-import Text.Printf
 
 import Core.Types
 import Core.Board
 import Core.BoardMap
-import Core.Evaluator
 
 data Capture = Capture {
     cSrc :: Address,

@@ -4,13 +4,11 @@
 module Rules.International (International, international, internationalBase) where
 
 import Data.Typeable
-import Data.List
 
 import Core.Types
 import Core.Board
 import Core.BoardMap
 import Core.Evaluator
-import qualified Rules.Russian as Russian
 import Rules.Generic
 
 -- import Debug.Trace

@@ -5,19 +5,14 @@
 module Formats.Fen where
 
 import qualified Data.Text as T
-import Data.Typeable
-import Data.Char
 import Data.Monoid ((<>))
 import Text.Megaparsec hiding (Label)
 import Text.Megaparsec.Char
 import Text.Megaparsec.Error (parseErrorPretty)
-import Data.Void
-import qualified Data.Text.IO as TIO
 
 import Core.Types
 import Core.Board
 import Core.BoardMap
-import Rules.International
 import Formats.Types
 
 pSide :: Parser Side
