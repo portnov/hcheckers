@@ -43,7 +43,8 @@ The code is general enough to implement a wide range of checkers variants:
 * Diagonal russian (russian draughts with different initial setup)
 * Spancirety (russian draughts on 8x10 board)
 * English
-* International checkers (10x10)
+* International draughts (10x10)
+* Canadian draughts (12x12)
 * ...
 
 It is possible to implement different AI algorithms; currently there is only

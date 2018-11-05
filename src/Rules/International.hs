@@ -1,7 +1,7 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE OverloadedStrings #-}
-module Rules.International (International, international) where
+module Rules.International (International, international, internationalBase) where
 
 import Data.Typeable
 import Data.List
@@ -55,13 +55,18 @@ instance GameRules International where
 
   possibleMoves (International rules) side board = gPossibleMoves rules side board
 
-international :: International
-international = International $
-  let rules = abstractRules rules {
-                gManCaptures = manCaptures rules,
-                gManCaptures1 = manCaptures1 rules,
+internationalBase :: GenericRules -> GenericRules
+internationalBase =
+  let rules this = abstractRules this {
+                gManCaptures = manCaptures this,
+                gManCaptures1 = manCaptures1 this,
                 gCaptureMax = True
               }
+  in rules
+
+international :: International
+international = International $
+  let rules = internationalBase rules
   in  rules
 
 manCaptures :: GenericRules -> Maybe PlayerDirection -> LabelSet -> Piece -> Board -> Address -> [PossibleMove]
