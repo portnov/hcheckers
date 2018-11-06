@@ -18,7 +18,7 @@ newtype English = English GenericRules
 instance Evaluator English where
   evaluatorName _ = "english"
   -- evalBoard rules = evalBoard $ ComplexEvaluator {ceRules = rules, ceCaptureManCoef = 10, ceCaptureKingCoef = 20}
-  evalBoard rules = evalBoard defaultEvaluator
+  evalBoard rules = evalBoard $ defaultEvaluator {seKingCoef = 2}
 
 instance Show English where
   show = rulesName
