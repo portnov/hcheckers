@@ -173,7 +173,7 @@ cachedScoreAB var params side dp alpha beta board = do
   mbItem <- lift $ lookupAiCache params board depth side var
   case mbItem of
     Just item -> do
-      -- lift $ putStrLn "Cache hit"
+      $trace "Cache hit" ()
       let score = cisScore item
       if score < alpha
         then return alpha
@@ -304,7 +304,6 @@ scoreAB var params side dp alpha beta board
       pop
       best <- getBest
 
-      -- trace (printf "%s| Score for depth %d = %d, prev.best = %d" indent depth score best) $ return ()
       if (maximize && score > best) || (minimize && score < best)
         then do
              setBest score
@@ -316,7 +315,6 @@ scoreAB var params side dp alpha beta board
                     
                else iterateMoves moves dp'
         else do
-             -- trace (printf "%s| Score for side %s = %d, go to next move." indent (show side) score) $ return ()
              iterateMoves moves dp'
         
 instance Evaluator rules => Evaluator (AlphaBeta rules) where

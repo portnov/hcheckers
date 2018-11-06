@@ -70,7 +70,7 @@ loadAiCache scoreMove (AlphaBeta params rules) = do
                           dataFd <- openFd dataPath mode fileMode flags
                           return (Just indexFd, Just dataFd, exist)
   when (isJust mbMode) $
-      liftIO $ putStrLn $ "Opened: " ++ cachePath
+      $info "Opened cache: {}" (Single cachePath)
 
   st <- ask
   indexLock <- liftIO RWL.new

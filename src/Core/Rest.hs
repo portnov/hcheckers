@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TemplateHaskell #-}
 
 module Core.Rest where
 
@@ -8,6 +9,8 @@ import qualified Data.Text.Lazy as TL
 import Data.Aeson hiding (json)
 import Web.Scotty.Trans
 import Network.HTTP.Types.Status
+import System.Log.Heavy
+import System.Log.Heavy.TH
 
 import Core.Types
 import Core.Board
@@ -49,8 +52,8 @@ restServer = do
         case boardRq rules mbBoard mbFen mbPdn of
           Left err -> error400 err
           Right board -> do
-            liftIO $ print board
             gameId <- lift $ newGame rules board
+            lift $ $info "Created new game #{} with board: {}" (gameId, show board)
             json $ SupervisorRs (NewGameRs gameId) []
 
   post "/game/:id/attach/ai/:side" $ do
@@ -64,7 +67,7 @@ restServer = do
           case selectAi rq rules of
             Nothing -> error400 "invalid ai settings"
             Just ai -> do
-              liftIO $ putStrLn $ "Attached AI: " ++ show ai
+              lift $ $info "Attached AI: {} to game #{}" (show ai, gameId)
               lift $ initAiStorage rules ai
               lift $ attachAi gameId side ai
               json $ SupervisorRs AttachAiRs []

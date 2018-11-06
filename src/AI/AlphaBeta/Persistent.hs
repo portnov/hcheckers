@@ -6,6 +6,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE ViewPatterns #-}
 {-# LANGUAGE PackageImports #-}
+{-# LANGUAGE TemplateHaskell #-}
 
 module AI.AlphaBeta.Persistent where
 
@@ -30,6 +31,8 @@ import Text.Printf
 import GHC.Generics
 import System.Posix.Types
 import "unix-bytestring" System.Posix.IO.ByteString
+import System.Log.Heavy
+import System.Log.Heavy.TH
 
 import Core.Types
 import Core.BoardMap
@@ -470,7 +473,7 @@ initFile = do
   writeData DataFile $ DataHeader 0
   return ()
 
-repeatTimed :: forall m. MonadIO m => String -> Int -> m Bool -> m ()
+repeatTimed :: forall m. (MonadIO m, HasLogging m) => String -> Int -> m Bool -> m ()
 repeatTimed label seconds action = do
     start <- liftIO $ getTime Monotonic
     run 0 start
@@ -483,9 +486,9 @@ repeatTimed label seconds action = do
             time2 <- liftIO $ getTime Monotonic
             let delta = time2 - start
             if sec delta >= fromIntegral seconds
-              then liftIO $ printf "%s: timeout exhaused, done %d records\n" label (i+1)
+              then $info "{}: timeout exhaused, done {} records" (label, i+1)
               else run (i+1) start
-        else liftIO $ printf "%s: queue exhaused, done %d records\n" label i
+        else $info "{}: queue exhaused, done {} records" (label, i)
   
 -- dumpFile :: FilePath -> IO ()
 -- dumpFile path = withFile path ReadMode $ \file -> do
