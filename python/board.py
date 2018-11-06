@@ -381,6 +381,7 @@ class Board(QWidget):
                     dst_field = field.label
                     self.game.begin_move(src_field, dst_field)
                     self.my_turn = False
+                    self.message.emit(WaitingMove())
 
                     move = self._valid_target_fields[field.label]
                     start_position = self.get_field_center(self.index_by_label[src_field])

@@ -134,6 +134,10 @@ class GameResultMessage(Message):
     def __str__(self):
         return "Game result: {}".format(self.result)
 
+class WaitingMove(Message):
+    def __str__(self):
+        return "Wating for another side turn"
+
 supported_rules = [
         ("russian", "Russian draughts"),
         ("simple", "Simple draughts"),

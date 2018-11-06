@@ -30,6 +30,7 @@ class Checkers(QMainWindow):
         self.setWindowTitle("HCheckers client")
         self.settings = QSettings("hcheckers", "hcheckers")
         self._board_setup_mode = False
+        self._game_active = False
         self._prepare()
         self._gui_setup()
         self._setup_actions()
@@ -46,6 +47,27 @@ class Checkers(QMainWindow):
         self.erase_action.setEnabled(mode)
 
     board_setup_mode = property(get_board_setup_mode, set_board_setup_mode)
+
+    def get_my_turn(self):
+        return self.board.my_turn
+
+    def set_my_turn(self, value):
+        self.board.my_turn = value
+        if value:
+            self.statusBar().showMessage("Your turn.")
+        else:
+            self.statusBar().showMessage("Awaiting a turn from another side.")
+
+    my_turn = property(get_my_turn, set_my_turn)
+
+    def get_game_active(self):
+        return self._game_active
+
+    def set_game_active(self, value):
+        self._game_active = value
+        self.board.locked = not value
+
+    game_active = property(get_game_active, set_game_active)
 
     def _prepare(self):
         self.share_dir = locate_share_dir()
@@ -72,6 +94,9 @@ class Checkers(QMainWindow):
         layout.addWidget(self.board, stretch=1)
         widget.setLayout(layout)
         self.setCentralWidget(widget)
+
+        self.status_info = QLabel(self)
+        self.statusBar().addPermanentWidget(self.status_info)
 
         geometry = self.settings.value("geometry")
         if geometry is not None:
@@ -160,7 +185,7 @@ class Checkers(QMainWindow):
         dialog = NewGameDialog(self.settings, self)
         result = dialog.exec_()
         if result == QDialog.Accepted:
-            self.board.locked = False
+            self.game_active = True
             self.game.game_id = None
             self.game_settings = game = dialog.get_settings()
             if game.action == START_AI_GAME:
@@ -169,7 +194,10 @@ class Checkers(QMainWindow):
                     self.board_setup_mode = True
                 else:
                     self.game.start_new_game(game.user_name, rules=game.rules, user_turn_first=game.user_turn_first, ai=game.ai, fen_path=game.fen_path, pdn_path=game.pdn_path)
-                    self.board.my_turn = game.user_turn_first
+                    state = self.game.get_state()
+                    my_side = 'First' if self.game.user_side == FIRST else 'Second'
+                    self.my_turn = state["side"] == my_side
+                    self.status_info.setText("Rules: {}; AI: {}".format(game.rules, game.ai.title))
             elif game.action == START_HUMAN_GAME:
                 game_id = self.game.new_game(game.rules)
                 print(game_id)
@@ -178,13 +206,17 @@ class Checkers(QMainWindow):
                 else:
                     self.game.register_user(game.user_name, SECOND)
                 self.do_poll = True
+                self.status_info.setText("Rules: {}".format(game.rules))
+                self.game_active = False
+                self.statusBar().showMessage("Waiting for another side to join the game.")
             elif game.action == JOIN_HUMAN_GAME:
                 self.game.game_id = dialog.lobby.get_game_id()
                 self.game.user_side = side = dialog.lobby.get_free_side()
                 self.game.register_user(game.user_name, side)
                 self.game.run_game()
                 self.do_poll = True
-                self.board.my_turn = side == FIRST
+                self.my_turn = side == FIRST
+                self.status_info.setText("Rules: {}".format(game.rules))
 
             size, notation = self.game.get_notation(game.rules)
             self.board.set_notation(size, notation)
@@ -209,11 +241,15 @@ class Checkers(QMainWindow):
         self.board.repaint()
 
     def _on_board_message(self, message):
-        self.message.setText(str(message))
-        print(message)
         if isinstance(message, GameResultMessage):
-            self.board.locked = True
+            self.game_active = False
+            self.status_info.setText(str(message))
             self.board.setCursor(Qt.ArrowCursor)
+        elif isinstance(message, OtherSideMove):
+            self.message.setText(str(message))
+            self.my_turn = True
+        elif isinstance(message, WaitingMove):
+            self.statusBar().showMessage(str(message))
 
     def _on_settings(self):
         dialog = SettingsDialog(self.settings, self.share_dir, self)
@@ -233,13 +269,21 @@ class Checkers(QMainWindow):
             return
         if not self.do_poll:
             return
-        #if self.board.my_turn:
+        #if self.my_turn:
         #    return
+
+        if not self.game_active:
+            state = self.game.get_state()
+            if state["status"] == 'Running':
+                self.game_active = True
+                my_side = 'First' if self.game.user_side == FIRST else 'Second'
+                self.my_turn = state['side'] == my_side
+                #self.statusBar().clearMessage()
 
         board, messages = self.game.poll()
         for message in messages:
             self.board.process_message(message)
-            self.board.my_turn = True
+            self.my_turn = True
 
         self.board.fields_setup(board)
 

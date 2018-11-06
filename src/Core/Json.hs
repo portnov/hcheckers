@@ -120,7 +120,7 @@ instance ToJSON RsPayload where
   toJSON AttachAiRs = object ["attach_ai" .= ("ok" :: T.Text)]
   toJSON RunGameRs = object ["run_game" .= ("ok" :: T.Text)]
   toJSON (PollRs messages) = toJSON messages
-  toJSON (StateRs board side) = object ["board" .= board, "side" .= side]
+  toJSON (StateRs board status side) = object ["board" .= board, "side" .= side, "status" .= status]
   toJSON (PossibleMovesRs moves) = toJSON moves
   toJSON (MoveRs board) = toJSON board
   toJSON (UndoRs board) = toJSON board

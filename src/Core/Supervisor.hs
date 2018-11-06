@@ -66,7 +66,7 @@ data RsPayload =
   | PollRs [Notify]
   | LobbyRs [Game]
   | NotationRs BoardSize [(Label, Notation)]
-  | StateRs BoardRep Side
+  | StateRs BoardRep GameStatus Side
   | PossibleMovesRs [MoveRep]
   | MoveRs BoardRep
   | UndoRs BoardRep
@@ -277,7 +277,7 @@ letAiMove gameId side mbBoard = do
   board <- case mbBoard of
              Just b -> return b
              Nothing -> do
-               (_, b) <- withGame gameId $ \_ -> gameState
+               (_, _, b) <- withGame gameId $ \_ -> gameState
                return b
 
   mbGame <- getGame gameId
@@ -306,12 +306,12 @@ letAiMove gameId side mbBoard = do
 
 getState :: GameId -> Checkers RsPayload
 getState gameId = do
-  (side, board) <- withGame gameId $ \_ -> gameState
-  return $ StateRs (boardRep board) side
+  (side, status, board) <- withGame gameId $ \_ -> gameState
+  return $ StateRs (boardRep board) status side
 
 getFen :: GameId -> Checkers T.Text
 getFen gameId = do
-  (side, board) <- withGame gameId $ \_ -> gameState
+  (side, _, board) <- withGame gameId $ \_ -> gameState
   return $ showFen (bSize board) $ boardToFen side board
 
 getPdn :: GameId -> Checkers T.Text

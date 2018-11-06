@@ -37,10 +37,11 @@ gamePossibleMoves = do
   currentSide <- gets (gsSide . gState)
   return $ map pmMove $ possibleMoves rules currentSide board
 
-gameState :: GameM (Side, Board)
+gameState :: GameM (Side, GameStatus, Board)
 gameState = do
   st <- gets gState
-  return (gsSide st, gsCurrentBoard st)
+  status <- gets gStatus
+  return (gsSide st, status, gsCurrentBoard st)
 
 data GMoveRs = GMoveRs Board [Notify]
 
