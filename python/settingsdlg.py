@@ -66,19 +66,19 @@ class AiEditorWidget(QWidget):
         layout = QFormLayout()
         self.title = QLineEdit(self)
         self.title.editingFinished.connect(self.edited)
-        layout.addRow("Title", self.title)
+        layout.addRow(_("Title"), self.title)
         self.depth = QSpinBox(self)
         self.depth.setRange(0, 9)
         self.depth.valueChanged.connect(self.edited)
-        layout.addRow("Default depth (half-steps)", self.depth)
+        layout.addRow(_("Default depth (half-steps)"), self.depth)
         self.start_depth = QSpinBox(self)
         self.start_depth.setRange(0, 9)
         self.start_depth.valueChanged.connect(self.edited)
-        layout.addRow("Minimum depth", self.start_depth)
+        layout.addRow(_("Minimum depth"), self.start_depth)
         self.max_combination_depth = QSpinBox(self)
         self.max_combination_depth.setRange(0, 9)
         self.max_combination_depth.valueChanged.connect(self.edited)
-        layout.addRow("Combination depth", self.max_combination_depth)
+        layout.addRow(_("Combination depth"), self.max_combination_depth)
         self.load = QCheckBox(self)
         self.load.setTristate(False)
         self.load.stateChanged.connect(self.edited)
@@ -116,10 +116,10 @@ class AiPresetsPage(QWidget):
         layout = QHBoxLayout()
         vbox = QVBoxLayout()
         self.toolbar = QToolBar(self)
-        self.add_ai = QAction("Add AI preset", self)
+        self.add_ai = QAction(_("Add AI preset"), self)
         self.add_ai.triggered.connect(self._on_add)
         self.toolbar.addAction(self.add_ai)
-        self.del_ai = QAction("Delete AI preset", self)
+        self.del_ai = QAction(_("Delete AI preset"), self)
         self.del_ai.triggered.connect(self._on_del)
         self.toolbar.addAction(self.del_ai)
         vbox.addWidget(self.toolbar)
@@ -159,13 +159,13 @@ class ViewSettingsPage(QWidget):
         QWidget.__init__(self, parent)
         layout = QFormLayout()
         self.show_notation = QCheckBox(self)
-        layout.addRow("Show fields notation", self.show_notation)
+        layout.addRow(_("Show fields notation"), self.show_notation)
         self.theme = QComboBox(self)
         self.themes = dict()
         for theme in Theme.list_themes(share_dir):
             self.themes[theme.id] = theme
             self.theme.addItem(theme.name, theme.id)
-        layout.addRow("Theme", self.theme)
+        layout.addRow(_("Theme"), self.theme)
         self.setLayout(layout)
 
     def get_theme(self):
@@ -186,6 +186,22 @@ class ViewSettingsPage(QWidget):
         settings.setValue("show_notation", self.show_notation.checkState() == Qt.Checked)
         settings.setValue("theme", self.theme.currentData())
 
+class GeneralPage(QWidget):
+    def __init__(self, parent=None):
+        QWidget.__init__(self, parent)
+        layout = QFormLayout()
+        self.server_url = QLineEdit(self)
+        layout.addRow(_("Server URL"), self.server_url)
+        self.setLayout(layout)
+
+    def load(self, settings):
+        url = settings.value("server_url", DEFAULT_SERVER_URL)
+        self.server_url.setText(url)
+
+    def save(self, settings):
+        settings.setValue("server_url", self.server_url.text())
+
+
 class SettingsDialog(QDialog):
     def __init__(self, settings, share_dir, parent=None):
         QDialog.__init__(self, parent)
@@ -193,10 +209,12 @@ class SettingsDialog(QDialog):
         self.share_dir = share_dir
         layout = QVBoxLayout()
         self.tabs = QTabWidget(self)
-        self.general = ViewSettingsPage(share_dir, self)
-        self.tabs.addTab(self.general, "View Settings")
+        self.general = GeneralPage(self)
+        self.tabs.addTab(self.general, _("General"))
+        self.view = ViewSettingsPage(share_dir, self)
+        self.tabs.addTab(self.view, _("View Settings"))
         self.ais = AiPresetsPage(self)
-        self.tabs.addTab(self.ais, "AI Presets")
+        self.tabs.addTab(self.ais, _("AI Presets"))
         layout.addWidget(self.tabs)
         buttons = QDialogButtonBox(
                     QDialogButtonBox.Ok | QDialogButtonBox.Cancel,
@@ -206,16 +224,18 @@ class SettingsDialog(QDialog):
         layout.addWidget(buttons)
         self.setLayout(layout)
         self.general.load(settings)
+        self.view.load(settings)
         self.ais.load(settings)
 
     def get_show_notation(self):
-        return self.general.show_notation.checkState() == Qt.Checked
+        return self.view.show_notation.checkState() == Qt.Checked
 
     def get_theme(self):
-        return self.general.get_theme()
+        return self.view.get_theme()
     
     def _on_accept(self):
         self.general.save(self.settings)
+        self.view.save(self.settings)
         self.ais.save(self.settings)
         self.accept()
 

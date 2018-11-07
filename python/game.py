@@ -111,7 +111,7 @@ class GameSettings(object):
 class Game(object):
     def __init__(self, url=None):
         if url is None:
-            url = "http://localhost:3000"
+            url = DEFAULT_SERVER_URL
         self.base_url = url
         self.game_id = None
         self.user_name = None

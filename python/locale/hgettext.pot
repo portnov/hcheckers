@@ -1,0 +1,261 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR ORGANIZATION
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"POT-Creation-Date: 2018-11-07 22:27+YEKT\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=CHARSET\n"
+"Content-Transfer-Encoding: ENCODING\n"
+"Generated-By: pygettext.py 1.5\n"
+
+
+#: python/common.py:125
+msgid "Other side move: {}"
+msgstr ""
+
+#: python/common.py:130
+msgid "Other side requested undo"
+msgstr ""
+
+#: python/common.py:137
+msgid "Game result: {}"
+msgstr ""
+
+#: python/common.py:141
+msgid "Wating for another side turn"
+msgstr ""
+
+#: python/common.py:144
+msgid "Russian draughts"
+msgstr ""
+
+#: python/common.py:145
+msgid "Simple draughts"
+msgstr ""
+
+#: python/common.py:146
+msgid "English draughts"
+msgstr ""
+
+#: python/common.py:147
+msgid "International draughts"
+msgstr ""
+
+#: python/common.py:148
+msgid "Canadian draughts"
+msgstr ""
+
+#: python/common.py:149
+msgid "Spancirety draughts"
+msgstr ""
+
+#: python/common.py:150
+msgid "Diagonal draughts"
+msgstr ""
+
+#: python/lobby.py:18
+msgid "ID"
+msgstr ""
+
+#: python/lobby.py:18
+msgid "Status"
+msgstr ""
+
+#: python/lobby.py:18 python/newgamedlg.py:58
+msgid "Rules"
+msgstr ""
+
+#: python/lobby.py:18 python/newgamedlg.py:65
+msgid "White"
+msgstr ""
+
+#: python/lobby.py:18 python/newgamedlg.py:66
+msgid "Black"
+msgstr ""
+
+#: python/newgamedlg.py:21
+msgid "FEN notation (*.fen)"
+msgstr ""
+
+#: python/newgamedlg.py:22
+msgid "Portable Draughts Notation (*.pdn)"
+msgstr ""
+
+#: python/newgamedlg.py:29
+msgid "Browse..."
+msgstr ""
+
+#: python/newgamedlg.py:37
+msgid "Open file"
+msgstr ""
+
+#: python/newgamedlg.py:62
+msgid "User name"
+msgstr ""
+
+#: python/newgamedlg.py:67
+msgid "User plays"
+msgstr ""
+
+#: python/newgamedlg.py:70
+msgid "Start a game against computer"
+msgstr ""
+
+#: python/newgamedlg.py:71
+msgid "Start a game against human"
+msgstr ""
+
+#: python/newgamedlg.py:72
+msgid "Join a game against human"
+msgstr ""
+
+#: python/newgamedlg.py:73
+msgid "Action"
+msgstr ""
+
+#: python/newgamedlg.py:76
+msgid "Use default initial position"
+msgstr ""
+
+#: python/newgamedlg.py:77
+msgid "Manual initial position setup"
+msgstr ""
+
+#: python/newgamedlg.py:78
+msgid "Load initial board from FEN file"
+msgstr ""
+
+#: python/newgamedlg.py:79
+msgid "Load initial board from PDN file"
+msgstr ""
+
+#: python/newgamedlg.py:80
+msgid "Initial board type"
+msgstr ""
+
+#: python/newgamedlg.py:84
+msgid "Select file"
+msgstr ""
+
+#: python/newgamedlg.py:99
+msgid "AI"
+msgstr ""
+
+#: python/settingsdlg.py:69
+msgid "Title"
+msgstr ""
+
+#: python/settingsdlg.py:73
+msgid "Default depth (half-steps)"
+msgstr ""
+
+#: python/settingsdlg.py:77
+msgid "Minimum depth"
+msgstr ""
+
+#: python/settingsdlg.py:81
+msgid "Combination depth"
+msgstr ""
+
+#: python/settingsdlg.py:119
+msgid "Add AI preset"
+msgstr ""
+
+#: python/settingsdlg.py:122
+msgid "Delete AI preset"
+msgstr ""
+
+#: python/settingsdlg.py:162
+msgid "Show fields notation"
+msgstr ""
+
+#: python/settingsdlg.py:168
+msgid "Theme"
+msgstr ""
+
+#: python/settingsdlg.py:194
+msgid "Server URL"
+msgstr ""
+
+#: python/settingsdlg.py:213
+msgid "General"
+msgstr ""
+
+#: python/settingsdlg.py:215
+msgid "View Settings"
+msgstr ""
+
+#: python/settingsdlg.py:217
+msgid "AI Presets"
+msgstr ""
+
+#: python/toplevel.py:21
+msgid "HCheckers client"
+msgstr ""
+
+#: python/toplevel.py:48
+msgid "Your turn."
+msgstr ""
+
+#: python/toplevel.py:50
+msgid "Awaiting a turn from another side."
+msgstr ""
+
+#: python/toplevel.py:116
+msgid "&Game"
+msgstr ""
+
+#: python/toplevel.py:117
+msgid "&New Game"
+msgstr ""
+
+#: python/toplevel.py:118
+msgid "Save Position"
+msgstr ""
+
+#: python/toplevel.py:119
+msgid "&Undo"
+msgstr ""
+
+#: python/toplevel.py:126
+msgid "Put &white piece"
+msgstr ""
+
+#: python/toplevel.py:127
+msgid "Put &black piece"
+msgstr ""
+
+#: python/toplevel.py:128
+msgid "&Remove piece"
+msgstr ""
+
+#: python/toplevel.py:132
+msgid "Start &Game"
+msgstr ""
+
+#: python/toplevel.py:134
+msgid "Se&ttings"
+msgstr ""
+
+#: python/toplevel.py:190
+msgid "Rules: {}; AI: {}"
+msgstr ""
+
+#: python/toplevel.py:199 python/toplevel.py:209
+msgid "Rules: {}"
+msgstr ""
+
+#: python/toplevel.py:201
+msgid "Waiting for another side to join the game."
+msgstr ""
+
+#: python/toplevel.py:217
+msgid "Save file"
+msgstr ""
+

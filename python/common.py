@@ -5,6 +5,8 @@ KING = 2
 FIRST = 1
 SECOND = 2
 
+DEFAULT_SERVER_URL = "http://localhost:3000"
+
 class Piece(object):
     def __init__(self, kind, side):
         self.kind = kind
@@ -119,32 +121,32 @@ class OtherSideMove(Message):
         self.board = board
         self.move = move
 
-    def __str__(self):
-        return "Other side move: {}".format(self.board.show_move(self.move))
+    def __unicode__(self):
+        return _("Other side move: {}").format(self.board.show_move(self.move))
 
 
 class UndoMessage(Message):
-    def __str__(self):
-        return "Other side requested undo"
+    def __unicode__(self):
+        return _("Other side requested undo")
 
 class GameResultMessage(Message):
     def __init__(self, result):
         self.result = result
 
-    def __str__(self):
-        return "Game result: {}".format(self.result)
+    def __unicode__(self):
+        return _("Game result: {}").format(self.result)
 
 class WaitingMove(Message):
-    def __str__(self):
-        return "Wating for another side turn"
+    def __unicode__(self):
+        return _("Wating for another side turn")
 
 supported_rules = [
-        ("russian", "Russian draughts"),
-        ("simple", "Simple draughts"),
-        ("english", "English draughts"), 
-        ("international", "International draughts"),
-        ("canadian", "Canadian draughts"),
-        ("spancirety", "Spancirety draughts"), 
-        ("diagonal", "Diagonal draughts")
+        ("russian", _("Russian draughts")),
+        ("simple", _("Simple draughts")),
+        ("english", _("English draughts")), 
+        ("international", _("International draughts")),
+        ("canadian", _("Canadian draughts")),
+        ("spancirety", _("Spancirety draughts")), 
+        ("diagonal", _("Diagonal draughts"))
     ]
 

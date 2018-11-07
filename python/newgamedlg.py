@@ -18,15 +18,15 @@ MANUAL_BOARD = 2
 LOAD_FEN = 3
 LOAD_PDN = 4
 
-FEN_MASK = "FEN notation (*.fen)"
-PDN_MASK = "Portable Draughts Notation (*.pdn)"
+FEN_MASK = _("FEN notation (*.fen)")
+PDN_MASK = _("Portable Draughts Notation (*.pdn)")
 
 class FileSelectWidget(QWidget):
     def __init__(self, parent=None):
         QWidget.__init__(self, parent)
         layout = QHBoxLayout()
         self.textbox = QLineEdit(self)
-        self.button = QPushButton("Browse...")
+        self.button = QPushButton(_("Browse..."))
         self.button.clicked.connect(self._on_browse)
         layout.addWidget(self.textbox)
         layout.addWidget(self.button)
@@ -34,7 +34,7 @@ class FileSelectWidget(QWidget):
         self.mask = FEN_MASK
 
     def _on_browse(self):
-        (path,_) = QFileDialog.getOpenFileName(self, "Open file", ".", self.mask)
+        (path,_) = QFileDialog.getOpenFileName(self, _("Open file"), ".", self.mask)
         self.textbox.setText(path)
 
     def path(self):
@@ -55,33 +55,33 @@ class NewGameDialog(QDialog):
         if rules is not None:
             idx = self.rules.findData(rules)
             self.rules.setCurrentIndex(idx)
-        layout.addRow("Rules", self.rules)
+        layout.addRow(_("Rules"), self.rules)
 
         self.user_name = QLineEdit(self)
         self.user_name.setText(getpass.getuser())
-        layout.addRow("User name", self.user_name)
+        layout.addRow(_("User name"), self.user_name)
 
         self.user_side = QComboBox(self)
-        self.user_side.addItem("White", FIRST)
-        self.user_side.addItem("Black", SECOND)
-        layout.addRow("User plays", self.user_side)
+        self.user_side.addItem(_("White"), FIRST)
+        self.user_side.addItem(_("Black"), SECOND)
+        layout.addRow(_("User plays"), self.user_side)
 
         self.game_type = QComboBox(self)
-        self.game_type.addItem("Start a game against computer", START_AI_GAME)
-        self.game_type.addItem("Start a game against human", START_HUMAN_GAME)
-        self.game_type.addItem("Join a game against human", JOIN_HUMAN_GAME)
-        layout.addRow("Action", self.game_type)
+        self.game_type.addItem(_("Start a game against computer"), START_AI_GAME)
+        self.game_type.addItem(_("Start a game against human"), START_HUMAN_GAME)
+        self.game_type.addItem(_("Join a game against human"), JOIN_HUMAN_GAME)
+        layout.addRow(_("Action"), self.game_type)
 
         self.board_type = QComboBox(self)
-        self.board_type.addItem("Use default initial position", DEFAULT_BOARD)
-        self.board_type.addItem("Manual initial position setup", MANUAL_BOARD)
-        self.board_type.addItem("Load initial board from FEN file", LOAD_FEN)
-        self.board_type.addItem("Load initial board from PDN file", LOAD_PDN)
-        layout.addRow("Initial board type", self.board_type)
+        self.board_type.addItem(_("Use default initial position"), DEFAULT_BOARD)
+        self.board_type.addItem(_("Manual initial position setup"), MANUAL_BOARD)
+        self.board_type.addItem(_("Load initial board from FEN file"), LOAD_FEN)
+        self.board_type.addItem(_("Load initial board from PDN file"), LOAD_PDN)
+        layout.addRow(_("Initial board type"), self.board_type)
 
         self.file_path = FileSelectWidget(self)
         self.file_path.setVisible(False)
-        layout.addRow("Select file", self.file_path)
+        layout.addRow(_("Select file"), self.file_path)
 
         widget.setLayout(layout)
 
@@ -96,7 +96,7 @@ class NewGameDialog(QDialog):
         if ai is not None:
             idx = self.ai.findText(ai)
             self.ai.setCurrentIndex(idx)
-        layout.addRow("AI", self.ai)
+        layout.addRow(_("AI"), self.ai)
 
         self.lobby = LobbyWidget(parent=self)
         self.lobby.hide()

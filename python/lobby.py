@@ -15,7 +15,7 @@ class LobbyWidget(QWidget):
 
         self.table = QTableWidget(self)
         self.table.setColumnCount(5)
-        self.table.setHorizontalHeaderLabels(["ID", "Rules", "White", "Black", "Status"])
+        self.table.setHorizontalHeaderLabels([_("ID"), _("Rules"), _("White"), _("Black"), _("Status")])
 
         layout.addWidget(self.table)
 

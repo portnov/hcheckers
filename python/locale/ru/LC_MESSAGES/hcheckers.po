@@ -1,0 +1,261 @@
+# HCheckers
+# Copyright (C) 2018 Ilya Portnov
+# Ilya Portnvo <portnov84@rambler.ru>, 2018.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: 0.1.0.0\n"
+"POT-Creation-Date: 2018-11-07 22:27+YEKT\n"
+"PO-Revision-Date: 2018-11-07 22:30+5\n"
+"Last-Translator: Ilya Portnov <portnov84@rambler.ru>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: utf-8\n"
+"Generated-By: pygettext.py 1.5\n"
+
+
+#: python/common.py:125
+msgid "Other side move: {}"
+msgstr "Ход другой стороны: {}"
+
+#: python/common.py:130
+msgid "Other side requested undo"
+msgstr "Другая сторона запросила откат"
+
+#: python/common.py:137
+msgid "Game result: {}"
+msgstr "Результат игры: {}"
+
+#: python/common.py:141
+msgid "Wating for another side turn"
+msgstr "Ожидаем хода другой стороны"
+
+#: python/common.py:144
+msgid "Russian draughts"
+msgstr "Русские шашки"
+
+#: python/common.py:145
+msgid "Simple draughts"
+msgstr "Простые шашки"
+
+#: python/common.py:146
+msgid "English draughts"
+msgstr "Английские шашки"
+
+#: python/common.py:147
+msgid "International draughts"
+msgstr "Международные шашки"
+
+#: python/common.py:148
+msgid "Canadian draughts"
+msgstr "Канадские шашки"
+
+#: python/common.py:149
+msgid "Spancirety draughts"
+msgstr "Шашки Спанцирети"
+
+#: python/common.py:150
+msgid "Diagonal draughts"
+msgstr "Диагональные шашки"
+
+#: python/lobby.py:18
+msgid "ID"
+msgstr "Ид"
+
+#: python/lobby.py:18
+msgid "Status"
+msgstr "Статус"
+
+#: python/lobby.py:18 python/newgamedlg.py:58
+msgid "Rules"
+msgstr "Правила"
+
+#: python/lobby.py:18 python/newgamedlg.py:65
+msgid "White"
+msgstr "Белые"
+
+#: python/lobby.py:18 python/newgamedlg.py:66
+msgid "Black"
+msgstr "Черные"
+
+#: python/newgamedlg.py:21
+msgid "FEN notation (*.fen)"
+msgstr "Нотация FEN"
+
+#: python/newgamedlg.py:22
+msgid "Portable Draughts Notation (*.pdn)"
+msgstr "Portable Draughts Notation (*.pdn)"
+
+#: python/newgamedlg.py:29
+msgid "Browse..."
+msgstr "Обзор..."
+
+#: python/newgamedlg.py:37
+msgid "Open file"
+msgstr "Открыть файл"
+
+#: python/newgamedlg.py:62
+msgid "User name"
+msgstr "Имя пользователя"
+
+#: python/newgamedlg.py:67
+msgid "User plays"
+msgstr "Пользователь играет"
+
+#: python/newgamedlg.py:70
+msgid "Start a game against computer"
+msgstr "Начать игру против компьютера"
+
+#: python/newgamedlg.py:71
+msgid "Start a game against human"
+msgstr "Начать игру против человека"
+
+#: python/newgamedlg.py:72
+msgid "Join a game against human"
+msgstr "Присоединиться к игре против человека"
+
+#: python/newgamedlg.py:73
+msgid "Action"
+msgstr "Действие"
+
+#: python/newgamedlg.py:76
+msgid "Use default initial position"
+msgstr "Использовать начальную расстановку по умолчанию"
+
+#: python/newgamedlg.py:77
+msgid "Manual initial position setup"
+msgstr "Ручная начальная расстановка"
+
+#: python/newgamedlg.py:78
+msgid "Load initial board from FEN file"
+msgstr "Загрузить начальную расстановку из файла FEN"
+
+#: python/newgamedlg.py:79
+msgid "Load initial board from PDN file"
+msgstr "Загрузить начальную расстановку из файла PDN"
+
+#: python/newgamedlg.py:80
+msgid "Initial board type"
+msgstr "Вид начальной расстановки"
+
+#: python/newgamedlg.py:84
+msgid "Select file"
+msgstr "Выберите файл"
+
+#: python/newgamedlg.py:99
+msgid "AI"
+msgstr "ИИ"
+
+#: python/settingsdlg.py:69
+msgid "Title"
+msgstr "Название"
+
+#: python/settingsdlg.py:73
+msgid "Default depth (half-steps)"
+msgstr "Глубина по умолчанию (в полуходах)"
+
+#: python/settingsdlg.py:77
+msgid "Minimum depth"
+msgstr "Минимальная глубина"
+
+#: python/settingsdlg.py:81
+msgid "Combination depth"
+msgstr "Глубина комбинаций"
+
+#: python/settingsdlg.py:119
+msgid "Add AI preset"
+msgstr "Добавить настройку ИИ"
+
+#: python/settingsdlg.py:122
+msgid "Delete AI preset"
+msgstr "Удалить настройку ИИ"
+
+#: python/settingsdlg.py:162
+msgid "Show fields notation"
+msgstr "Показывать нотацию полей"
+
+#: python/settingsdlg.py:168
+msgid "Theme"
+msgstr "Тема"
+
+#: python/settingsdlg.py:194
+msgid "Server URL"
+msgstr "URL сервера"
+
+#: python/settingsdlg.py:213
+msgid "General"
+msgstr "Общее"
+
+#: python/settingsdlg.py:215
+msgid "View Settings"
+msgstr "Настройки внешнего вида"
+
+#: python/settingsdlg.py:217
+msgid "AI Presets"
+msgstr "Настройки ИИ"
+
+#: python/toplevel.py:21
+msgid "HCheckers client"
+msgstr "Клиент HCheckers"
+
+#: python/toplevel.py:48
+msgid "Your turn."
+msgstr "Ваш ход."
+
+#: python/toplevel.py:50
+msgid "Awaiting a turn from another side."
+msgstr "Ожидаем хода другой стороны."
+
+#: python/toplevel.py:116
+msgid "&Game"
+msgstr "&Игра"
+
+#: python/toplevel.py:117
+msgid "&New Game"
+msgstr "&Новая игра"
+
+#: python/toplevel.py:118
+msgid "Save Position"
+msgstr "Сохранить позицию"
+
+#: python/toplevel.py:119
+msgid "&Undo"
+msgstr "&Отменить"
+
+#: python/toplevel.py:126
+msgid "Put &white piece"
+msgstr "Установить &белую шашку"
+
+#: python/toplevel.py:127
+msgid "Put &black piece"
+msgstr "Установить &черную шашку"
+
+#: python/toplevel.py:128
+msgid "&Remove piece"
+msgstr "&Удалить шашку"
+
+#: python/toplevel.py:132
+msgid "Start &Game"
+msgstr "Начать &игру"
+
+#: python/toplevel.py:134
+msgid "Se&ttings"
+msgstr "Нас&тройки"
+
+#: python/toplevel.py:190
+msgid "Rules: {}; AI: {}"
+msgstr "Правила: {}; ИИ: {}"
+
+#: python/toplevel.py:199 python/toplevel.py:209
+msgid "Rules: {}"
+msgstr "Правила: {}"
+
+#: python/toplevel.py:201
+msgid "Waiting for another side to join the game."
+msgstr "Ожидаем подключения второй стороны к игре"
+
+#: python/toplevel.py:217
+msgid "Save file"
+msgstr "Сохранить файл"
+

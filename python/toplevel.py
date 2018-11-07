@@ -1,5 +1,6 @@
 
-from os.path import join, exists
+import sys
+from os.path import join, exists, dirname
 import os
 
 from PyQt5.QtGui import QPainter, QPixmap
@@ -13,21 +14,11 @@ from theme import Theme
 from newgamedlg import *
 from settingsdlg import SettingsDialog
 
-def locate_share_dir():
-    home = os.environ["HOME"]
-    bases = ["/usr/share/hcheckers", "/usr/local/share/hcheckers",
-             join(home, ".local", "share", "hcheckers"),
-             "."]
-    for base in bases:
-        themes = join(base, "themes")
-        if exists(base) and exists(themes):
-            return base
-    return None
-
 class Checkers(QMainWindow):
-    def __init__(self):
+    def __init__(self, share_dir):
         QMainWindow.__init__(self)
-        self.setWindowTitle("HCheckers client")
+        self.share_dir = share_dir
+        self.setWindowTitle(_("HCheckers client"))
         self.settings = QSettings("hcheckers", "hcheckers")
         self._board_setup_mode = False
         self._game_active = False
@@ -54,9 +45,9 @@ class Checkers(QMainWindow):
     def set_my_turn(self, value):
         self.board.my_turn = value
         if value:
-            self.statusBar().showMessage("Your turn.")
+            self.statusBar().showMessage(_("Your turn."))
         else:
-            self.statusBar().showMessage("Awaiting a turn from another side.")
+            self.statusBar().showMessage(_("Awaiting a turn from another side."))
 
     my_turn = property(get_my_turn, set_my_turn)
 
@@ -70,12 +61,11 @@ class Checkers(QMainWindow):
     game_active = property(get_game_active, set_game_active)
 
     def _prepare(self):
-        self.share_dir = locate_share_dir()
         if self.share_dir is None:
             raise Exception("Cant locate share directory")
         theme_name = self.settings.value("theme", "default")
         self.theme = Theme(join(self.share_dir, "themes", theme_name), None)
-        self.game = Game()
+        self.game = Game(self.settings.value("server_url", DEFAULT_SERVER_URL))
         self.poll_timer = self.startTimer(500)
         self.do_poll = False
 
@@ -123,25 +113,25 @@ class Checkers(QMainWindow):
         return action
 
     def _setup_actions(self):
-        menu = self.menuBar().addMenu("&Game")
-        self._create_action(None, "New Game", menu, self._on_new_game, key="Ctrl+N")
-        self._create_action(None, "Save Position", menu, self._on_save_game, key="Ctrl+S")
-        self._create_action(None, "Undo", menu, self._on_undo, key="Ctrl+Z")
+        menu = self.menuBar().addMenu(_("&Game"))
+        self._create_action(None, _("&New Game"), menu, self._on_new_game, key="Ctrl+N")
+        self._create_action(None, _("Save Position"), menu, self._on_save_game, key="Ctrl+S")
+        self._create_action(None, _("&Undo"), menu, self._on_undo, key="Ctrl+Z")
 
         menu.addSeparator()
         self.toolbar.addSeparator()
 
         setup = QActionGroup(self)
         setup.setExclusive(True)
-        self.put_first_action = self._create_action(None, "Put white piece", menu, group=setup, toggle=True)
-        self.put_second_action = self._create_action(None, "Put black piece", menu, group=setup, toggle=True)
-        self.erase_action = self._create_action(None, "Remove piece", menu, group=setup, toggle=True)
+        self.put_first_action = self._create_action(None, _("Put &white piece"), menu, group=setup, toggle=True)
+        self.put_second_action = self._create_action(None, _("Put &black piece"), menu, group=setup, toggle=True)
+        self.erase_action = self._create_action(None, _("&Remove piece"), menu, group=setup, toggle=True)
         menu.addSeparator()
         self.toolbar.addSeparator()
 
-        self.run_action = self._create_action(None, "Start Game", menu, self._on_run_game, key="Ctrl+R")
+        self.run_action = self._create_action(None, _("Start &Game"), menu, self._on_run_game, key="Ctrl+R")
         menu.addSeparator()
-        self._create_action(None, "Settings", menu, self._on_settings, toolbar=False)
+        self._create_action(None, _("Se&ttings"), menu, self._on_settings, toolbar=False)
         self.board_setup_mode = False
 
     def _on_run_game(self):
@@ -197,7 +187,7 @@ class Checkers(QMainWindow):
                     state = self.game.get_state()
                     my_side = 'First' if self.game.user_side == FIRST else 'Second'
                     self.my_turn = state["side"] == my_side
-                    self.status_info.setText("Rules: {}; AI: {}".format(game.rules, game.ai.title))
+                    self.status_info.setText(_("Rules: {}; AI: {}").format(game.rules, game.ai.title))
             elif game.action == START_HUMAN_GAME:
                 game_id = self.game.new_game(game.rules)
                 print(game_id)
@@ -206,9 +196,9 @@ class Checkers(QMainWindow):
                 else:
                     self.game.register_user(game.user_name, SECOND)
                 self.do_poll = True
-                self.status_info.setText("Rules: {}".format(game.rules))
+                self.status_info.setText(_("Rules: {}").format(game.rules))
                 self.game_active = False
-                self.statusBar().showMessage("Waiting for another side to join the game.")
+                self.statusBar().showMessage(_("Waiting for another side to join the game."))
             elif game.action == JOIN_HUMAN_GAME:
                 self.game.game_id = dialog.lobby.get_game_id()
                 self.game.user_side = side = dialog.lobby.get_free_side()
@@ -216,7 +206,7 @@ class Checkers(QMainWindow):
                 self.game.run_game()
                 self.do_poll = True
                 self.my_turn = side == FIRST
-                self.status_info.setText("Rules: {}".format(game.rules))
+                self.status_info.setText(_("Rules: {}").format(game.rules))
 
             size, notation = self.game.get_notation(game.rules)
             self.board.set_notation(size, notation)
@@ -224,7 +214,7 @@ class Checkers(QMainWindow):
             self.board.repaint()
 
     def _on_save_game(self):
-        (path,mask) = QFileDialog.getSaveFileName(self.board, "Save file", ".", FEN_MASK + ";;" + PDN_MASK)
+        (path,mask) = QFileDialog.getSaveFileName(self.board, _("Save file"), ".", FEN_MASK + ";;" + PDN_MASK)
         if path:
             if mask == FEN_MASK:
                 fen = self.game.get_fen()
@@ -243,13 +233,13 @@ class Checkers(QMainWindow):
     def _on_board_message(self, message):
         if isinstance(message, GameResultMessage):
             self.game_active = False
-            self.status_info.setText(str(message))
+            self.status_info.setText(unicode(message))
             self.board.setCursor(Qt.ArrowCursor)
         elif isinstance(message, OtherSideMove):
-            self.message.setText(str(message))
+            self.message.setText(unicode(message))
             self.my_turn = True
         elif isinstance(message, WaitingMove):
-            self.statusBar().showMessage(str(message))
+            self.statusBar().showMessage(unicode(message))
 
     def _on_settings(self):
         dialog = SettingsDialog(self.settings, self.share_dir, self)

@@ -1,6 +1,33 @@
 #!/usr/bin/python
 
 import sys
+import os
+from os.path import join, exists, dirname, abspath
+import gettext
+
+def locate_share_dir():
+    home = os.environ["HOME"]
+    bindir = abspath(dirname(sys.argv[0]))
+    print(bindir)
+    bases = ["/usr/share/hcheckers", "/usr/local/share/hcheckers",
+             join(home, ".local", "share", "hcheckers"),
+             bindir]
+    for base in bases:
+        themes = join(base, "themes")
+        if exists(base) and exists(themes):
+            return base
+    return None
+
+def locate_locales():
+    share = locate_share_dir()
+    if share is None:
+        raise Exception("Cannot locate share directory")
+    locales = join(share, "locale")
+    print("Using locales at: {}".format(locales))
+    return locales
+
+gettext.install("hcheckers", localedir=locate_locales(), unicode=True)
+
 from PyQt5.QtWidgets import QApplication, QWidget
 
 from board import Board
@@ -26,7 +53,7 @@ board = [['b2', checker["m2"]],
 
 app = QApplication(sys.argv)
 
-window = Checkers()
+window = Checkers(locate_share_dir())
 window.show()
 
 sys.exit(app.exec_())
