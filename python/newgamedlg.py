@@ -18,8 +18,8 @@ MANUAL_BOARD = 2
 LOAD_FEN = 3
 LOAD_PDN = 4
 
-FEN_MASK = _("FEN notation (*.fen)")
-PDN_MASK = _("Portable Draughts Notation (*.pdn)")
+FEN_MASK = "FEN notation (*.fen)"
+PDN_MASK = "Portable Draughts Notation (*.pdn)"
 
 class FileSelectWidget(QWidget):
     def __init__(self, parent=None):
@@ -34,7 +34,7 @@ class FileSelectWidget(QWidget):
         self.mask = FEN_MASK
 
     def _on_browse(self):
-        (path,_) = QFileDialog.getOpenFileName(self, _("Open file"), ".", self.mask)
+        (path,mask) = QFileDialog.getOpenFileName(self, _("Open file"), ".", self.mask)
         self.textbox.setText(path)
 
     def path(self):

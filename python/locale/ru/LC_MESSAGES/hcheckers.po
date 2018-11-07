@@ -81,7 +81,7 @@ msgstr "Черные"
 
 #: python/newgamedlg.py:21
 msgid "FEN notation (*.fen)"
-msgstr "Нотация FEN"
+msgstr "Нотация FEN (*.fen)"
 
 #: python/newgamedlg.py:22
 msgid "Portable Draughts Notation (*.pdn)"

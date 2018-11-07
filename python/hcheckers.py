@@ -30,6 +30,8 @@ gettext.install("hcheckers", localedir=locate_locales(), unicode=True)
 
 from PyQt5.QtWidgets import QApplication, QWidget
 
+import newgamedlg
+import settingsdlg
 from board import Board
 from game import Game, AI
 from theme import Theme
