@@ -4,6 +4,11 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE RankNTypes #-}
 
+{- 
+ - Supervisor is a singleton unit, which manages set of games (which may be
+ - just created, running, or already finished). It supports methods like "make this move in that game".
+ -}
+
 module Core.Supervisor where
 
 import Control.Monad
@@ -40,24 +45,28 @@ import Rules.Canadian
 import Rules.Spancirety
 import Rules.Diagonal
 
+-- | Request for new game creation
 data NewGameRq = NewGameRq {
-    rqRules :: String
-  , rqRulesParams :: Value
-  , rqBoard :: Maybe BoardRep
-  , rqFen :: Maybe T.Text
-  , rqPdn :: Maybe T.Text
+    rqRules :: String         -- ^ Rules identifier
+  , rqRulesParams :: Value    -- ^ Rules parameters (no rules support parameters atm)
+  , rqBoard :: Maybe BoardRep -- ^ Initial board, Nothing for default one
+  , rqFen :: Maybe T.Text     -- ^ Initial board in FEN notation
+  , rqPdn :: Maybe T.Text     -- ^ Initial board in PDN notation
   }
   deriving (Eq, Show, Generic)
 
--- data RegisterUserRq = RegisterUserRq String
---   deriving (Eq, Show, Generic)
-
+-- | Request for attaching AI to the game.
+-- Parameter is identifier of AI implementation.
+-- Currently there is only one, named 'default'.
 data AttachAiRq = AttachAiRq String Value
   deriving (Eq, Show, Generic)
 
-data SupervisorRs = SupervisorRs RsPayload [Notify]
+-- | Response to the client.
+-- Contains payload and list of notification messages.
+data Response = Response RsPayload [Notify]
   deriving (Eq, Show, Generic)
 
+-- | Response payload
 data RsPayload =
     NewGameRs GameId
   | RegisterUserRs
@@ -72,11 +81,13 @@ data RsPayload =
   | UndoRs BoardRep
   deriving (Eq, Show, Generic)
 
+-- | Create supervisor handle
 mkSupervisor :: IO SupervisorHandle
 mkSupervisor = do
   var <- atomically $ newTVar $ SupervisorState M.empty 0 M.empty
   return var
 
+-- | List of supported rules with their identifiers
 supportedRules :: [(String, SomeRules)]
 supportedRules =
   [("russian", SomeRules russian),
@@ -87,16 +98,19 @@ supportedRules =
    ("spancirety", SomeRules spancirety),
    ("diagonal", SomeRules diagonal)]
 
+-- | Select rules by client request.
 selectRules :: NewGameRq -> Maybe SomeRules
 selectRules (NewGameRq {rqRules=name, rqRulesParams=params, rqPdn=mbPdn}) =
     fromPdn mbPdn `mplus` go supportedRules
   where
+    -- extract rules from client request field
     go :: [(String, SomeRules)] -> Maybe SomeRules
     go [] = Nothing
     go ((key, (SomeRules rules)) : other)
       | key == name = Just $ SomeRules $ updateRules rules params
       | otherwise = go other
 
+    -- extract rules (GameType tag) from PDN
     fromPdn :: Maybe T.Text -> Maybe SomeRules
     fromPdn Nothing = Nothing
     fromPdn (Just text) =
@@ -104,9 +118,11 @@ selectRules (NewGameRq {rqRules=name, rqRulesParams=params, rqPdn=mbPdn}) =
         Left _ -> Nothing
         Right gr -> rulesFromTags (grTags gr)
 
+-- | List of supported AI implementations
 supportedAis :: [(String, SomeRules -> SomeAi)]
 supportedAis = [("default", \(SomeRules rules) -> SomeAi (AlphaBeta def rules))]
 
+-- | Select AI implementation by client request
 selectAi :: AttachAiRq -> SomeRules -> Maybe SomeAi
 selectAi (AttachAiRq name params) rules = go supportedAis
   where
@@ -116,6 +132,9 @@ selectAi (AttachAiRq name params) rules = go supportedAis
       | key == name = Just $ updateSomeAi (fn rules) params
       | otherwise = go other
 
+-- | Initialize AI storage.
+-- There should be exactly one AI storage instance running
+-- per (AI implementation, game rules) tuple, shared by all games running.
 initAiStorage :: SomeRules -> SomeAi -> Checkers ()
 initAiStorage (SomeRules rules) (SomeAi ai) = do
   var <- askSupervisor
@@ -128,6 +147,7 @@ initAiStorage (SomeRules rules) (SomeAi ai) = do
           st {ssAiStorages = M.insert key (toDyn storage) (ssAiStorages st)}
     Just _ -> return ()
 
+-- | Create a game in the New state
 newGame :: SomeRules -> Maybe BoardRep -> Checkers GameId
 newGame r@(SomeRules rules) mbBoardRep = do
   var <- askSupervisor
@@ -139,6 +159,7 @@ newGame r@(SomeRules rules) mbBoardRep = do
     modifyTVar var $ \st -> st {ssGames = M.insert (show gameId) game (ssGames st)}
     return $ show gameId
 
+-- | Register a user in the game
 registerUser :: GameId -> Side -> String -> Checkers ()
 registerUser gameId side name = do
     var <- askSupervisor
@@ -168,6 +189,7 @@ registerUser gameId side name = do
         (Just p1, Just p2) -> isUser name p1 || isUser name p2
         _ -> False
 
+-- | Attach AI to the game
 attachAi :: GameId -> Side -> SomeAi -> Checkers ()
 attachAi gameId side (SomeAi ai) = do
     var <- askSupervisor
@@ -177,6 +199,8 @@ attachAi gameId side (SomeAi ai) = do
       | side == First = game {gPlayer1 = Just $ AI ai}
       | otherwise     = game {gPlayer2 = Just $ AI ai}
 
+-- | Switch game to the running state.
+-- If the first player is AI, let it make a turn.
 runGame :: GameId -> Checkers ()
 runGame gameId = do
     var <- askSupervisor
@@ -187,6 +211,7 @@ runGame gameId = do
   where
     update game = game {gStatus = Running}
 
+-- | Execute actions within GameM monad
 withGame :: GameId -> (SomeRules -> GameM a) -> Checkers a
 withGame gameId action = do
   var <- askSupervisor
@@ -206,6 +231,7 @@ withGame gameId action = do
     Right result -> return result
     Left err -> throwError err
 
+-- | Get game by Id
 getGame :: GameId -> Checkers Game
 getGame gameId = do
   var <- askSupervisor
@@ -214,11 +240,14 @@ getGame gameId = do
     Just game -> return game
     Nothing -> throwError $ NoSuchGame gameId
 
+-- | Get game rules by game Id
 getRules :: GameId -> Checkers SomeRules
 getRules gameId = do
   game <- getGame gameId
   return $ gRules game
 
+-- | Find a game by participating user name.
+-- Returns Just game if there is exactly one such game.
 getGameByUser :: String -> Checkers (Maybe Game)
 getGameByUser name = do
   var <- askSupervisor
@@ -227,6 +256,8 @@ getGameByUser name = do
     [game] -> return (Just game)
     _ -> return Nothing
 
+-- | Get all messages pending for specified user.
+-- Remove that messages from mailboxes.
 getMessages :: String -> Checkers [Notify]
 getMessages name = do
   var <- askSupervisor
@@ -249,6 +280,8 @@ getMessages name = do
         Just First -> gMsgbox1 game
         Just Second -> gMsgbox2 game
     
+-- | Get moves that are possible currently
+-- in the specified game for specified side.
 getPossibleMoves :: GameId -> Side -> Checkers [MoveRep]
 getPossibleMoves gameId side = do
     withGame gameId $ \(SomeRules rules) -> do
@@ -256,6 +289,7 @@ getPossibleMoves gameId side = do
       moves <- gamePossibleMoves
       return $ map (moveRep rules side) moves
 
+-- | Execute specified move in specified game and return a new board.
 doMove :: GameId -> String -> MoveRep -> Checkers BoardRep
 doMove gameId name moveRq = do
   game <- getGame gameId
@@ -265,6 +299,7 @@ doMove gameId name moveRq = do
   letAiMove gameId (opposite side) (Just board')
   return $ boardRep board'
 
+-- | Undo last pair of moves in the specified game.
 doUndo :: GameId -> String -> Checkers BoardRep
 doUndo gameId name = do
   game <- getGame gameId
@@ -274,6 +309,8 @@ doUndo gameId name = do
   letAiMove gameId side (Just board')
   return $ boardRep board'
 
+-- | Execute actions with AI storage instance.
+-- AI storage instance must be initialized beforeahead.
 withAiStorage :: GameAi ai
               => SomeRules
               -> ai
@@ -292,6 +329,7 @@ withAiStorage (SomeRules rules) ai fn = do
               result <- fn storage
               return result
 
+-- | Let AI make it's turn.
 letAiMove :: GameId -> Side -> Maybe Board -> Checkers Board
 letAiMove gameId side mbBoard = do
   board <- case mbBoard of
@@ -323,21 +361,26 @@ letAiMove gameId side mbBoard = do
 
     _ -> return board
 
+-- | Get current game state
 getState :: GameId -> Checkers RsPayload
 getState gameId = do
   (side, status, board) <- withGame gameId $ \_ -> gameState
   return $ StateRs (boardRep board) status side
 
+-- | Get current position in specified game in FEN notation
 getFen :: GameId -> Checkers T.Text
 getFen gameId = do
   (side, _, board) <- withGame gameId $ \_ -> gameState
   return $ showFen (bSize board) $ boardToFen side board
 
+-- | Get specified game record in PDN format
 getPdn :: GameId -> Checkers T.Text
 getPdn gameId = do
   game <- getGame gameId
   return $ showPdn (gRules game) $ gameToPdn game
 
+-- | Get list of running games with specified rules
+-- (Nothing - any rules)
 getGames :: Maybe String -> Checkers [Game]
 getGames mbRulesId = do
   var <- askSupervisor
@@ -349,6 +392,7 @@ getGames mbRulesId = do
           Just rulesId -> rulesName rules == rulesId
   return [game | game <- games, good (gRules game)]
 
+-- | Get list of fields notation by rules name.
 getNotation :: String -> Checkers (BoardSize, [(Label, Notation)])
 getNotation rname = do
     let Just someRules = select supportedRules
@@ -399,6 +443,7 @@ getSideByUser gameId name = do
   game <- getGame gameId
   sideByUser game name
 
+-- | Put notification messages in corresponding mailboxes.
 queueNotifications :: GameId -> [Notify] -> Checkers ()
 queueNotifications gameId messages = do
     var <- askSupervisor

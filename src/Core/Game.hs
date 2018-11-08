@@ -1,6 +1,15 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE ExistentialQuantification #-}
 
+{- 
+ - Game is a record for interaction between two players.
+ - It is created in New status, and there are no players in the game at that moment.
+ - Then two players are attached to the game (in any order). Each player can be a 
+ - human user or an AI (NB: having two AI players in one game is not supported
+ - currently by Supervisor).
+ - After both players are attached, the game can be switched to Running state.
+ -}
+
 module Core.Game where
 
 import Control.Monad.State
@@ -9,10 +18,10 @@ import Control.Monad.Except
 import Core.Types
 import Core.Board
 
--- import Debug.Trace
-
+-- | A monad to track game's state
 type GameM a = ExceptT Error (State Game) a
 
+-- | Initialize Game instance
 mkGame :: GameRules rules => rules -> Int -> Maybe BoardRep -> Game
 mkGame rules id mbBoardRep =
     let board = case mbBoardRep of
@@ -30,6 +39,7 @@ mkGame rules id mbBoardRep =
           gMsgbox2 = []
         }
 
+-- | get currently possible moves in this game
 gamePossibleMoves :: GameM [Move]
 gamePossibleMoves = do
   SomeRules rules <- gets gRules
@@ -37,14 +47,17 @@ gamePossibleMoves = do
   currentSide <- gets (gsSide . gState)
   return $ map pmMove $ possibleMoves rules currentSide board
 
+-- | get current state of the game
 gameState :: GameM (Side, GameStatus, Board)
 gameState = do
   st <- gets gState
   status <- gets gStatus
   return (gsSide st, status, gsCurrentBoard st)
 
+-- | Move result. Contains resulting board and a list of notification messages.
 data GMoveRs = GMoveRs Board [Notify]
 
+-- | Perform specified move
 doMoveRq :: Side -> Move -> GameM GMoveRs
 doMoveRq side move = do
   currentSide <- gets (gsSide . gState)
@@ -70,6 +83,7 @@ doMoveRq side move = do
                   _ -> return ()
                 return $ GMoveRs board' messages
 
+-- | Perform specified move, parsing it from MoveRep
 doMoveRepRq :: Side -> MoveRep -> GameM GMoveRs
 doMoveRepRq side mRep = do
   SomeRules rules <- gets gRules
@@ -79,8 +93,10 @@ doMoveRepRq side mRep = do
     AmbigousMove moves -> throwError $ AmbigousMoveError $ map (moveRep rules side . pmMove) moves
     Parsed move -> doMoveRq side move
 
+-- | Undo result
 data GUndoRs = GUndoRs Board [Notify]
 
+-- | Execute undo
 doUndoRq :: Side -> GameM GUndoRs
 doUndoRq side = do
   currentSide <- gets (gsSide . gState)

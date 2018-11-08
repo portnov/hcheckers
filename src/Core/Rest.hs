@@ -72,7 +72,7 @@ restServer = do
           Right board -> do
             gameId <- liftCheckers $ newGame rules board
             liftCheckers $ $info "Created new game #{} with board: {}" (gameId, show board)
-            json $ SupervisorRs (NewGameRs gameId) []
+            json $ Response (NewGameRs gameId) []
 
   post "/game/:id/attach/ai/:side" $ do
     gameId <- param "id"
@@ -85,24 +85,24 @@ restServer = do
         liftCheckers $ $info "Attached AI: {} to game #{}" (show ai, gameId)
         liftCheckers $ initAiStorage rules ai
         liftCheckers $ attachAi gameId side ai
-        json $ SupervisorRs AttachAiRs []
+        json $ Response AttachAiRs []
 
   post "/game/:id/attach/:name/:side" $ do
     gameId <- param "id"
     name <- param "name"
     side <- param "side"
     liftCheckers $ registerUser gameId side name
-    json $ SupervisorRs RegisterUserRs []
+    json $ Response RegisterUserRs []
 
   post "/game/:id/run" $ do
     gameId <- param "id"
     liftCheckers $ runGame gameId
-    json $ SupervisorRs RunGameRs []
+    json $ Response RunGameRs []
 
   get "/game/:id/state" $ do
     gameId <- param "id"
     rs <- liftCheckers $ getState gameId
-    json $ SupervisorRs rs []
+    json $ Response rs []
 
   get "/game/:id/fen" $ do
     gameId <- param "id"
@@ -120,7 +120,7 @@ restServer = do
     moveRq <- jsonData
     board <- liftCheckers $ doMove gameId name moveRq
     messages <- liftCheckers $ getMessages name
-    json $ SupervisorRs (MoveRs board) messages
+    json $ Response (MoveRs board) messages
 
   get "/game/:id/moves/:name" $ do
     gameId <- param "id"
@@ -128,33 +128,33 @@ restServer = do
     side <- liftCheckers $ getSideByUser gameId name
     moves <- liftCheckers $ getPossibleMoves gameId side
     messages <- liftCheckers $ getMessages name
-    json $ SupervisorRs (PossibleMovesRs moves) messages
+    json $ Response (PossibleMovesRs moves) messages
 
   post "/game/:id/undo/:name" $ do
     gameId <- param "id"
     name <- param "name"
     board <- liftCheckers $ doUndo gameId name
     messages <- liftCheckers $ getMessages name
-    json $ SupervisorRs (UndoRs board) messages
+    json $ Response (UndoRs board) messages
 
   get "/poll/:name" $ do
     name <- param "name"
     messages <- liftCheckers $ getMessages name
-    json $ SupervisorRs (PollRs messages) []
+    json $ Response (PollRs messages) []
 
   get "/lobby/:rules" $ do
     rules <- param "rules"
     games <- liftCheckers $ getGames (Just rules)
-    json $ SupervisorRs (LobbyRs games) []
+    json $ Response (LobbyRs games) []
 
   get "/lobby" $ do
     games <- liftCheckers $ getGames Nothing
-    json $ SupervisorRs (LobbyRs games) []
+    json $ Response (LobbyRs games) []
 
   get "/notation/:rules" $ do
     rules <- param "rules"
     (size, notation) <- liftCheckers $ getNotation rules
-    json $ SupervisorRs (NotationRs size notation) []
+    json $ Response (NotationRs size notation) []
     
 runRestServer :: Checkers ()
 runRestServer = do

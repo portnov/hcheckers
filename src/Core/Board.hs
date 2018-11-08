@@ -595,13 +595,6 @@ parseBoardKey rules bk = foldr set (buildBoard orient bsize) list
            [(lbl, Piece King Second) | lbl <- labelSetToList (bkSecondKings bk)]
     set (label, piece) board = setPiece' label piece board
 
-boardLineCounts :: Board -> BoardLineCounts
-boardLineCounts board =
-  let (nrows,ncols) = bSize board
-      go row = fromIntegral $ length [col | col <- [0..ncols-1], not (isFree' (Label col row) board)]
-      counts = map go [0..nrows-1]
-  in  BoardLineCounts $ counts ++ replicate (16 - fromIntegral nrows) 0
-
 -- | Generic implementation of @getGameResult@, which suits most rules.
 -- This can not, however, recognize draws.
 genericGameResult :: GameRules rules => rules -> Board -> Maybe GameResult

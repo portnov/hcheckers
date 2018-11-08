@@ -36,6 +36,7 @@ import System.Clock
 
 import Debug.Trace (traceEventIO)
 
+-- | Label is a coordinate of field on the board.
 data Label = Label {
     labelColumn :: ! Line,
     labelRow :: ! Line
@@ -60,6 +61,7 @@ instance Hashable Label where
   hashWithSalt salt (Label col row) =
     salt `hashWithSalt` col `hashWithSalt` row
 
+-- | Field notation.
 type Notation = T.Text
 
 letters :: [Char]
@@ -77,9 +79,17 @@ instance Show PieceKind where
   show Man = "M"
   show King = "K"
 
+-- | There are two places at the board for players: top and bottom.
 data BoardSide = Top | Bottom
   deriving (Eq, Ord, Show, Generic, Typeable)
 
+-- | Playing side. First is one who moves first.
+-- Mapping of First\/Second to white\/black or to
+-- top\/bottom depends on game rules.
+-- Actually, we do not care at all about colors:
+-- for example, in english draughts black are usually red;
+-- but why should we care? it is only important that black
+-- (well, red) move first.
 data Side = First | Second
   deriving (Eq, Ord, Generic, Typeable)
 
@@ -89,6 +99,9 @@ instance Show Side where
 
 instance Store Side
 
+-- | In most game rules, the side who moves first starts
+-- from the bottom of board; but there are some (well,
+-- english), in which first side starts from top.
 data BoardOrientation = FirstAtBottom | SecondAtBottom
   deriving (Eq, Ord, Show, Generic, Typeable)
 
@@ -117,6 +130,7 @@ instance Show Address where
 instance Ord Address where  
   compare a1 a2 = compare (aLabel a1) (aLabel a2)
 
+-- | Number of row / column of the board
 type Line = Word8
 
 type BoardSize = (Line, Line)
@@ -129,6 +143,7 @@ type LabelMap a = IM.IntMap a
 
 type LabelSet = IS.IntSet
 
+-- | Board describes current position on the board.
 data Board = Board {
     bFirstMen :: LabelSet,
     bSecondMen :: LabelSet,
@@ -142,6 +157,8 @@ data Board = Board {
   }
   deriving (Typeable)
 
+-- | Statistic information about the board.
+-- Can be used as a part of key in some caches.
 data BoardCounts = BoardCounts {
     bcFirstMen :: ! Int
   , bcSecondMen :: ! Int
@@ -168,30 +185,10 @@ data BoardKey = BoardKey {
 
 instance Binary BoardKey
 
-data BoardLineCounts = BoardLineCounts [Word8]
-  deriving (Show)
-
-instance Eq BoardLineCounts where
-  (BoardLineCounts list1) == (BoardLineCounts list2) =
-    let list1' = list1 ++ replicate (16 - length list1) 0
-        list2' = list2 ++ replicate (16 - length list2) 0
-    in  list1' == list2'
-
-instance Data.Store.Store BoardLineCounts where
-  size = ConstSize 16
-
-  poke (BoardLineCounts list) =
-    forM_ [0..15] $ \i ->
-      if i > length list - 1
-        then poke (0 :: Word8)
-        else poke (fromIntegral (list !! i) :: Word8)
-
-  peek = do
-    bytes <- replicateM 16 (peek :: Peek Word8)
-    return $ BoardLineCounts $ map fromIntegral bytes
-
 type BoardMap a = M.Map BoardCounts (H.HashMap BoardKey a)
 
+-- | Direction on the board.
+-- For example, B2 is at UpRight of A1.
 data BoardDirection =
     UpLeft | UpRight 
   | DownLeft | DownRight
@@ -203,6 +200,9 @@ instance Show BoardDirection where
   show DownLeft = "DL"
   show DownRight = "DR"
 
+-- | Direction from a point of view of a player.
+-- For example, for white, B2 is at ForwardRight of A1;
+-- for black, B2 is at BackwardLeft of A1.
 data PlayerDirection =
     ForwardLeft | ForwardRight
   | BackwardLeft | BackwardRight
@@ -214,6 +214,10 @@ instance Show PlayerDirection where
   show BackwardLeft = "BL"
   show BackwardRight = "BR"
 
+-- | One step of the move is a movement of piece
+-- from one field to it's neighbour. At that moment
+-- there can take place a capturing of another piece
+-- or current piece promotion to king.
 data Step = Step {
     sDirection :: ! PlayerDirection,
     sCapture :: ! Bool,
@@ -232,6 +236,8 @@ instance Show Step where
         | sPromote step = "[K]"
         | otherwise = ""
 
+-- | Move (or should we say half-move? because it's about one player's move) is
+-- a series of steps from one field to neighbour, and to neighbour...
 data Move = Move {
     moveBegin :: ! Address,
     moveSteps :: ! [Step]
@@ -241,6 +247,7 @@ data Move = Move {
 instance Show Move where
   show move = "[" ++ show (moveBegin move) ++ "] " ++ (intercalate "." $ map show (moveSteps move))
 
+-- | Representation of Step for JSON
 data StepRep = StepRep {
     srField :: Label,
     srCapture :: Bool,
@@ -263,9 +270,10 @@ instance Show StepRep where
         | srPromote step = "[K]"
         | otherwise = ""
 
+-- | Representation of Move for JSON.
 data MoveRep =
-    ShortMoveRep Label Label
-  | FullMoveRep Label [StepRep]
+    ShortMoveRep Label Label -- ^ Just start and end field specified
+  | FullMoveRep Label [StepRep] -- ^ Full list of steps specified
   deriving (Eq, Typeable, Generic)
 
 instance Binary MoveRep
@@ -276,6 +284,7 @@ instance Show MoveRep where
   show (ShortMoveRep from to) = show from ++ " > " ++ show to
   show (FullMoveRep from steps) = "[" ++ show from ++ "] " ++ (intercalate "." $ map show steps)
 
+-- | Result of parsing MoveRep into Move
 data MoveParseResult =
     Parsed Move
   | NoSuchMove
@@ -296,15 +305,18 @@ data MoveCheckResult =
   | InvalidStep Step StepCheckResult
   deriving (Eq, Show)
 
+-- | Representation of Board for JSON
 data BoardRep = BoardRep [(Label, Piece)]
   deriving (Eq, Ord, Show, Typeable)
 
+-- | More convinient format for game rules to specify
+-- which moves are possible
 data PossibleMove = PossibleMove {
     pmBegin :: Address
   , pmEnd :: Address
-  , pmVictims :: [Address]
+  , pmVictims :: [Address] -- ^ list of captured fields
   , pmMove :: Move
-  , pmPromote :: Bool
+  , pmPromote :: Bool      -- ^ is there any promotion in the move
   , pmResult :: [MoveAction]
   }
   deriving (Typeable)
@@ -317,18 +329,22 @@ instance Eq PossibleMove where
 instance Show PossibleMove where
   show pm = show (pmMove pm)
 
+-- | The primitive action that can take place during the move
 data MoveAction =
-    Take Address
-  | RemoveCaptured Address
-  | Put Address Piece
+    Take Address            -- ^ Lift the piece from the board (at the beginning of the move)
+  | RemoveCaptured Address  -- ^ Remove the piece that was captured (should be performed at the end of the move)
+  | Put Address Piece       -- ^ Put the piece to the board (at the end of the move)
   deriving (Eq, Ord, Show, Typeable)
 
 class HasBoardOrientation a where
   boardOrientation :: a -> BoardOrientation
   boardOrientation _ = FirstAtBottom
 
+-- | Interface of game rules
 class (Typeable g, Show g, Evaluator g, HasBoardOrientation g) => GameRules g where
+  -- | Initial board with initial pieces position
   initBoard :: g -> Board
+  -- | Size of board used
   boardSize :: g -> BoardSize
 
   boardNotation :: g -> Label -> Notation
