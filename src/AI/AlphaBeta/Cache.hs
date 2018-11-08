@@ -111,11 +111,8 @@ loadAiCache scoreMove (AlphaBeta params rules) = do
   when (abSaveCache params && isJust indexFile && not exist) $ do
      runStorage handle $ initFile
   when (abSaveCache params) $ do
-    liftIO $ forkIO $
-      runCheckersT (cacheDumper rules params handle) st
-    return ()
-  liftIO $ forkIO $
-      runCheckersT (cacheCleaner handle) st
+    forkCheckers $ cacheDumper rules params handle
+  forkCheckers $ cacheCleaner handle
 
   return handle
 

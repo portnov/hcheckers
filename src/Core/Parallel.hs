@@ -5,6 +5,7 @@
 module Core.Parallel where
 
 import Control.Monad
+import Control.Monad.Except
 import Control.Monad.Reader
 import Control.Concurrent
 import Data.Maybe
@@ -13,7 +14,7 @@ import System.Log.Heavy
 
 import Core.Types
 
-data Processor key input output = Processor (input -> key) (Chan input) (Chan (key, output))
+data Processor key input output = Processor (input -> key) (Chan input) (Chan (key, Either Error output))
 
 runProcessor :: Int -> (input -> key) -> (input -> Checkers output) -> Checkers (Processor key input output)
 runProcessor nThreads getKey fn = do
@@ -37,7 +38,8 @@ process (Processor getKey inChan outChan) inputs = do
       liftIO $ writeChan inChan input
     results <- replicateM n $ liftIO $ readChan outChan
     let m = M.fromList results
-    forM inputs $ \input -> do
-      let output = fromJust $ M.lookup (getKey input) m
-      return output
+    let results = [fromJust $ M.lookup (getKey input) m | input <- inputs]
+    case sequence results of
+      Right outputs -> return outputs
+      Left err -> throwError err
 

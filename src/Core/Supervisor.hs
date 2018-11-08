@@ -142,11 +142,31 @@ newGame r@(SomeRules rules) mbBoardRep = do
 registerUser :: GameId -> Side -> String -> Checkers ()
 registerUser gameId side name = do
     var <- askSupervisor
-    liftIO $ atomically $ modifyTVar var $ \st -> st {ssGames = M.update (Just . update name) gameId (ssGames st)}
+    res <- liftIO $ atomically $ do
+      st <- readTVar var
+      case M.lookup gameId (ssGames st) of
+        Nothing -> return $ Left $ NoSuchGame gameId
+        Just game -> do
+          if exists name game
+            then return $ Left UserNameAlreadyUsed
+            else do
+              modifyTVar var $ \st ->
+                    st {ssGames = M.update (Just . update name) gameId (ssGames st)}
+              return $ Right ()
+    case res of
+      Right _ -> return ()
+      Left err -> throwError err
   where
     update name game
       | side == First = game {gPlayer1 = Just (User name)}
       | otherwise     = game {gPlayer2 = Just (User name)}
+
+    exists name game =
+      case (gPlayer1 game, gPlayer2 game) of
+        (Just p, Nothing) -> isUser name p
+        (Nothing, Just p) -> isUser name p
+        (Just p1, Just p2) -> isUser name p1 || isUser name p2
+        _ -> False
 
 attachAi :: GameId -> Side -> SomeAi -> Checkers ()
 attachAi gameId side (SomeAi ai) = do
@@ -161,8 +181,7 @@ runGame :: GameId -> Checkers ()
 runGame gameId = do
     var <- askSupervisor
     liftIO $ atomically $ modifyTVar var $ \st -> st {ssGames = M.update (Just . update) gameId (ssGames st)}
-    mbGame <- getGame gameId
-    let game = fromJust mbGame
+    game <- getGame gameId
     letAiMove gameId First Nothing
     return ()
   where
@@ -170,38 +189,41 @@ runGame gameId = do
 
 withGame :: GameId -> (SomeRules -> GameM a) -> Checkers a
 withGame gameId action = do
-    var <- askSupervisor
-    liftIO $ atomically $ do
-      st <- readTVar var
-      case M.lookup gameId (ssGames st) of
-        Nothing -> fail $ "No such game: " ++ gameId
-        Just game -> do
-          let rules = gRules game
-          let (r, game') = runState (runExceptT $ action rules) game
-          case r of
-            Left err -> fail err
-            Right result -> do
-              writeTVar var $ st {ssGames = M.insert gameId game' (ssGames st)}
-              return result
+  var <- askSupervisor
+  res <- liftIO $ atomically $ do
+    st <- readTVar var
+    case M.lookup gameId (ssGames st) of
+      Nothing -> return $ Left $ NoSuchGame gameId
+      Just game -> do
+        let rules = gRules game
+        let (r, game') = runState (runExceptT $ action rules) game
+        case r of
+          Left err -> return $ Left err
+          Right result -> do
+            writeTVar var $ st {ssGames = M.insert gameId game' (ssGames st)}
+            return $ Right result
+  case res of
+    Right result -> return result
+    Left err -> throwError err
 
-getGame :: GameId -> Checkers (Maybe Game)
+getGame :: GameId -> Checkers Game
 getGame gameId = do
   var <- askSupervisor
   st <- liftIO $ atomically $ readTVar var
-  return $ M.lookup gameId (ssGames st)
+  case M.lookup gameId (ssGames st) of
+    Just game -> return game
+    Nothing -> throwError $ NoSuchGame gameId
 
-getRules :: GameId -> Checkers (Maybe SomeRules)
+getRules :: GameId -> Checkers SomeRules
 getRules gameId = do
-  mbGame <- getGame gameId
-  case mbGame of
-    Nothing -> return Nothing
-    Just game -> return $ Just $ gRules game
+  game <- getGame gameId
+  return $ gRules game
 
 getGameByUser :: String -> Checkers (Maybe Game)
 getGameByUser name = do
   var <- askSupervisor
   st <- liftIO $ atomically $ readTVar var
-  case filter (\g -> isJust (sideByUser g name)) (M.elems $ ssGames st) of
+  case filter (\g -> isJust (sideByUser' g name)) (M.elems $ ssGames st) of
     [game] -> return (Just game)
     _ -> return Nothing
 
@@ -216,13 +238,13 @@ getMessages name = do
     return messages
   where
     updateGame game =
-      case sideByUser game name of
+      case sideByUser' game name of
         Nothing -> game
         Just First -> game {gMsgbox1 = []}
         Just Second -> game {gMsgbox2 = []}
 
-    getM game = 
-      case sideByUser game name of
+    getM game = do
+      case sideByUser' game name of
         Nothing -> []
         Just First -> gMsgbox1 game
         Just Second -> gMsgbox2 game
@@ -236,9 +258,8 @@ getPossibleMoves gameId side = do
 
 doMove :: GameId -> String -> MoveRep -> Checkers BoardRep
 doMove gameId name moveRq = do
-  mbGame <- getGame gameId
-  let game = fromJust mbGame
-  let side = fromJust $ sideByUser game name
+  game <- getGame gameId
+  side <- sideByUser game name
   GMoveRs board' messages <- withGame gameId $ \_ -> doMoveRepRq side moveRq
   queueNotifications gameId messages
   letAiMove gameId (opposite side) (Just board')
@@ -246,9 +267,8 @@ doMove gameId name moveRq = do
 
 doUndo :: GameId -> String -> Checkers BoardRep
 doUndo gameId name = do
-  mbGame <- getGame gameId
-  let game = fromJust mbGame
-  let side = fromJust $ sideByUser game name
+  game <- getGame gameId
+  side <- sideByUser game name
   GUndoRs board' messages <- withGame gameId $ \_ -> doUndoRq side
   queueNotifications gameId messages
   letAiMove gameId side (Just board')
@@ -280,12 +300,11 @@ letAiMove gameId side mbBoard = do
                (_, _, b) <- withGame gameId $ \_ -> gameState
                return b
 
-  mbGame <- getGame gameId
-  let game = fromJust mbGame
+  game <- getGame gameId
   case getPlayer game side of
     AI ai -> do
 
-      Just rules <- getRules gameId
+      rules <- getRules gameId
       withAiStorage rules ai $ \storage -> do
         timed "Selecting AI move" $ do
             aiMoves <- chooseMove ai storage side board
@@ -316,8 +335,7 @@ getFen gameId = do
 
 getPdn :: GameId -> Checkers T.Text
 getPdn gameId = do
-  mbGame <- getGame gameId
-  let game = fromJust mbGame
+  game <- getGame gameId
   return $ showPdn (gRules game) $ gameToPdn game
 
 getGames :: Maybe String -> Checkers [Game]
@@ -363,19 +381,23 @@ isAI game Second = case gPlayer2 game of
                      Just (AI _) -> True
                      _ -> False
 
-sideByUser :: Game -> String -> Maybe Side
-sideByUser game name =
+sideByUser' :: Game -> String -> Maybe Side
+sideByUser' game name =
   case (gPlayer1 game, gPlayer2 game) of
     (Just (User name1), _) | name1 == name -> Just First
     (_, Just (User name2)) | name2 == name -> Just Second
     _ -> Nothing
 
-getSideByUser :: GameId -> String -> Checkers (Maybe Side)
+sideByUser :: Game -> String -> Checkers Side
+sideByUser game name =
+  case sideByUser' game name of
+    Just side -> return side
+    Nothing -> throwError NoSuchUserInGame
+
+getSideByUser :: GameId -> String -> Checkers Side
 getSideByUser gameId name = do
-  mbGame <- getGame gameId
-  case mbGame of
-    Nothing -> return Nothing
-    Just game -> return $ sideByUser game name
+  game <- getGame gameId
+  sideByUser game name
 
 queueNotifications :: GameId -> [Notify] -> Checkers ()
 queueNotifications gameId messages = do

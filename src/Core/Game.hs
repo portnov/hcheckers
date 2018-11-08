@@ -11,7 +11,7 @@ import Core.Board
 
 -- import Debug.Trace
 
-type GameM a = ExceptT String (State Game) a
+type GameM a = ExceptT Error (State Game) a
 
 mkGame :: GameRules rules => rules -> Int -> Maybe BoardRep -> Game
 mkGame rules id mbBoardRep =
@@ -51,9 +51,9 @@ doMoveRq side move = do
   SomeRules rules <- gets gRules
   board <- gets (gsCurrentBoard . gState)
   if side /= currentSide
-    then throwError "Not your turn"
+    then throwError NotYourTurn
     else if move `notElem` (map pmMove $ possibleMoves rules side board)
-           then throwError "Not allowed move"
+           then throwError NotAllowedMove
            else do
                 let (board', _, _) = applyMove rules side move board
                     moveMsg = MoveNotify (opposite side) side (moveRep rules side move) (boardRep board')
@@ -71,12 +71,12 @@ doMoveRq side move = do
                 return $ GMoveRs board' messages
 
 doMoveRepRq :: Side -> MoveRep -> GameM GMoveRs
-doMoveRepRq side moveRep = do
+doMoveRepRq side mRep = do
   SomeRules rules <- gets gRules
   board <- gets (gsCurrentBoard . gState)
-  case parseMoveRep rules side board moveRep of
-    NoSuchMove -> throwError "No such move"
-    AmbigousMove moves -> throwError $ "Move specification is ambigous. Possible moves: " ++ show moves
+  case parseMoveRep rules side board mRep of
+    NoSuchMove -> throwError NoSuchMoveError
+    AmbigousMove moves -> throwError $ AmbigousMoveError $ map (moveRep rules side . pmMove) moves
     Parsed move -> doMoveRq side move
 
 data GUndoRs = GUndoRs Board [Notify]
@@ -86,9 +86,9 @@ doUndoRq side = do
   currentSide <- gets (gsSide . gState)
   st <- gets gState
   if side /= currentSide
-    then throwError "Not your turn"
+    then throwError NotYourTurn
     else case popMove st of
-           Nothing -> throwError "Nothing to undo"
+           Nothing -> throwError NothingToUndo
            Just (prevBoard, prevSt) -> do
              let push = UndoNotify (opposite side) side (boardRep prevBoard)
              modify $ \game -> game {gState = prevSt}

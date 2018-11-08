@@ -24,11 +24,14 @@ withCheckers (LoggingSettings settings) supervisor actions = do
   let store = metrics ^. Metrics.metricsStore
   EKG.registerGcMetrics store
   EKG.forkServerWith store "localhost" 8000
-  withLoggingB settings $ \backend ->
+  withLoggingB settings $ \backend -> do
     let logger = makeLogger backend
         logging = LoggingTState logger (AnyLogBackend backend) []
         cs = CheckersState logging supervisor metrics
-    in  runCheckersT actions cs
+    res <- runCheckersT actions cs
+    case res of
+      Right result -> return result
+      Left err -> fail $ show err
 
 main :: IO ()
 main = do

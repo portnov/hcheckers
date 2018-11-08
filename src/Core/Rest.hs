@@ -19,15 +19,30 @@ import Core.Json () -- import instances only
 import Formats.Fen
 import Formats.Pdn
 
-error400 :: T.Text -> ActionT TL.Text Checkers ()
+error400 :: T.Text -> ActionT Error Checkers ()
 error400 message = do
   json $ object ["error" .= message]
   status status400
+
+transformError :: Error -> ActionT Error Checkers ()
+transformError err = do
+  error400 $ T.pack $ show err
 
 instance Parsable Side where
   parseParam "1" = Right First
   parseParam "2" = Right Second
   parseParam text = Left $ "unknown side"
+
+instance ScottyError Error where
+  stringError str = Unhandled str
+  showError err = TL.pack $ show err
+
+liftCheckers :: Checkers a -> ActionT Error Checkers a
+liftCheckers actions = do
+  res <- lift $ tryC actions
+  case res of
+    Right result -> return result
+    Left err -> raise err
 
 boardRq :: SomeRules -> Maybe BoardRep -> Maybe T.Text -> Maybe T.Text -> Either T.Text (Maybe BoardRep)
 boardRq _ (Just br) Nothing Nothing = Right $ Just br
@@ -42,8 +57,11 @@ boardRq rules Nothing Nothing (Just pdn) =
 boardRq _ Nothing Nothing Nothing = Right Nothing
 boardRq _ _ _ _ = Left "only one of fields must be filled: board, fen, pdn"
 
-restServer :: ScottyT TL.Text Checkers ()
+restServer :: ScottyT Error Checkers ()
 restServer = do
+  
+  defaultHandler transformError
+
   post "/game/new" $ do
     rq@(NewGameRq {rqBoard=mbBoard, rqFen=mbFen, rqPdn=mbPdn}) <- jsonData
     case selectRules rq of
@@ -52,101 +70,99 @@ restServer = do
         case boardRq rules mbBoard mbFen mbPdn of
           Left err -> error400 err
           Right board -> do
-            gameId <- lift $ newGame rules board
-            lift $ $info "Created new game #{} with board: {}" (gameId, show board)
+            gameId <- liftCheckers $ newGame rules board
+            liftCheckers $ $info "Created new game #{} with board: {}" (gameId, show board)
             json $ SupervisorRs (NewGameRs gameId) []
 
   post "/game/:id/attach/ai/:side" $ do
     gameId <- param "id"
     side <- param "side"
-    mbRules <- lift $ getRules gameId
-    case mbRules of
-      Nothing -> error400 "no such game"
-      Just rules -> do
-          rq <- jsonData
-          case selectAi rq rules of
-            Nothing -> error400 "invalid ai settings"
-            Just ai -> do
-              lift $ $info "Attached AI: {} to game #{}" (show ai, gameId)
-              lift $ initAiStorage rules ai
-              lift $ attachAi gameId side ai
-              json $ SupervisorRs AttachAiRs []
+    rules <- liftCheckers $ getRules gameId
+    rq <- jsonData
+    case selectAi rq rules of
+      Nothing -> error400 "invalid ai settings"
+      Just ai -> do
+        liftCheckers $ $info "Attached AI: {} to game #{}" (show ai, gameId)
+        liftCheckers $ initAiStorage rules ai
+        liftCheckers $ attachAi gameId side ai
+        json $ SupervisorRs AttachAiRs []
 
   post "/game/:id/attach/:name/:side" $ do
     gameId <- param "id"
     name <- param "name"
     side <- param "side"
-    lift $ registerUser gameId side name
+    liftCheckers $ registerUser gameId side name
     json $ SupervisorRs RegisterUserRs []
 
   post "/game/:id/run" $ do
     gameId <- param "id"
-    lift $ runGame gameId
+    liftCheckers $ runGame gameId
     json $ SupervisorRs RunGameRs []
 
   get "/game/:id/state" $ do
     gameId <- param "id"
-    rs <- lift $ getState gameId
+    rs <- liftCheckers $ getState gameId
     json $ SupervisorRs rs []
 
   get "/game/:id/fen" $ do
     gameId <- param "id"
-    rs <- lift $ getFen gameId
+    rs <- liftCheckers $ getFen gameId
     Web.Scotty.Trans.text $ TL.fromStrict rs
 
   get "/game/:id/pdn" $ do
     gameId <- param "id"
-    rs <- lift $ getPdn gameId
+    rs <- liftCheckers $ getPdn gameId
     Web.Scotty.Trans.text $ TL.fromStrict rs
 
   post "/game/:id/move/:name" $ do
     gameId <- param "id"
     name <- param "name"
     moveRq <- jsonData
-    board <- lift $ doMove gameId name moveRq
-    messages <- lift $ getMessages name
+    board <- liftCheckers $ doMove gameId name moveRq
+    messages <- liftCheckers $ getMessages name
     json $ SupervisorRs (MoveRs board) messages
 
   get "/game/:id/moves/:name" $ do
     gameId <- param "id"
     name <- param "name"
-    mbSide <- lift $ getSideByUser gameId name
-    case mbSide of
-      Nothing -> error400 "no such user in this game"
-      Just side -> do
-        moves <- lift $ getPossibleMoves gameId side
-        messages <- lift $ getMessages name
-        json $ SupervisorRs (PossibleMovesRs moves) messages
+    side <- liftCheckers $ getSideByUser gameId name
+    moves <- liftCheckers $ getPossibleMoves gameId side
+    messages <- liftCheckers $ getMessages name
+    json $ SupervisorRs (PossibleMovesRs moves) messages
 
   post "/game/:id/undo/:name" $ do
     gameId <- param "id"
     name <- param "name"
-    board <- lift $ doUndo gameId name
-    messages <- lift $ getMessages name
+    board <- liftCheckers $ doUndo gameId name
+    messages <- liftCheckers $ getMessages name
     json $ SupervisorRs (UndoRs board) messages
 
   get "/poll/:name" $ do
     name <- param "name"
-    messages <- lift $ getMessages name
+    messages <- liftCheckers $ getMessages name
     json $ SupervisorRs (PollRs messages) []
 
   get "/lobby/:rules" $ do
     rules <- param "rules"
-    games <- lift $ getGames (Just rules)
+    games <- liftCheckers $ getGames (Just rules)
     json $ SupervisorRs (LobbyRs games) []
 
   get "/lobby" $ do
-    games <- lift $ getGames Nothing
+    games <- liftCheckers $ getGames Nothing
     json $ SupervisorRs (LobbyRs games) []
 
   get "/notation/:rules" $ do
     rules <- param "rules"
-    (size, notation) <- lift $ getNotation rules
+    (size, notation) <- liftCheckers $ getNotation rules
     json $ SupervisorRs (NotationRs size notation) []
     
 runRestServer :: Checkers ()
 runRestServer = do
   cs <- ask
-  let getResponse m = runCheckersT m cs
+  let getResponse m = do
+        res <- runCheckersT m cs
+        case res of
+          Right response -> return response
+          Left err -> fail $ show err
   scottyT 3000 getResponse restServer
 

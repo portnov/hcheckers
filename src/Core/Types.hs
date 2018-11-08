@@ -11,7 +11,9 @@ module Core.Types where
 
 import Control.Monad.Reader
 import Control.Monad.Catch
+import Control.Monad.Except
 import Control.Monad.Metrics as Metrics
+import Control.Concurrent
 import Control.Concurrent.STM
 import Data.List
 import qualified Data.Map as M
@@ -393,6 +395,10 @@ instance Show Player where
   show (User name) = name
   show (AI ai) = aiName ai
 
+isUser :: String -> Player -> Bool
+isUser name (User n) = n == name
+isUser _ _ = False
+
 data GameStatus = New | Running | Ended GameResult
   deriving (Eq, Show, Generic)
 
@@ -461,13 +467,41 @@ data CheckersState = CheckersState {
   , csMetrics :: Metrics.Metrics
   }
 
-newtype Checkers a = Checkers {
-    runCheckers :: ReaderT CheckersState IO a
-  }
-  deriving (Applicative, Functor, Monad, MonadIO, MonadReader CheckersState, MonadThrow, MonadCatch, MonadMask)
+data Error =
+    NotYourTurn
+  | NotAllowedMove
+  | NoSuchMoveError
+  | AmbigousMoveError [MoveRep]
+  | NothingToUndo
+  | NoSuchGame GameId
+  | NoSuchUserInGame
+  | UserNameAlreadyUsed
+  | Unhandled String
+  deriving (Eq, Show, Typeable, Generic)
 
-runCheckersT :: Checkers a -> CheckersState -> IO a
-runCheckersT actions st = runReaderT (runCheckers actions) st
+newtype Checkers a = Checkers {
+    runCheckers :: ExceptT Error (ReaderT CheckersState IO) a
+  }
+  deriving (Applicative, Functor, Monad, MonadIO, MonadReader CheckersState, MonadError Error, MonadThrow, MonadCatch, MonadMask)
+
+runCheckersT :: Checkers a -> CheckersState -> IO (Either Error a)
+runCheckersT actions st = runReaderT (runExceptT $ runCheckers actions) st
+
+forkCheckers :: Checkers () -> Checkers ()
+forkCheckers actions = do
+  st <- ask
+  liftIO $ forkIO $ do
+    res <- runCheckersT actions st
+    case res of
+      Right _ -> return ()
+      Left err -> fail $ show err
+  return ()
+
+tryC :: Checkers a -> Checkers (Either Error a)
+tryC actions =
+  (do
+   r <- actions
+   return $ Right r) `catchError` (\e -> return $ Left e)
 
 askSupervisor :: Checkers SupervisorHandle
 askSupervisor = asks csSupervisor
@@ -479,19 +513,19 @@ instance HasLogContext Checkers where
   getLogContext = asks (ltsContext . csLogging)
 
   withLogContext frame actions =
-    Checkers $ ReaderT $ \cs ->
+    Checkers $ ExceptT $ ReaderT $ \cs ->
       let logging = csLogging cs
           logging' = logging {ltsContext = frame : ltsContext logging} 
-      in runReaderT (runCheckers actions) $ cs {csLogging = logging'}
+      in runReaderT (runExceptT $ runCheckers actions) $ cs {csLogging = logging'}
 
 instance HasLogger Checkers where
   getLogger = asks (ltsLogger . csLogging)
 
   localLogger logger actions =
-    Checkers $ ReaderT $ \cs ->
+    Checkers $ ExceptT $ ReaderT $ \cs ->
       let logging = csLogging cs
           logging' = logging {ltsLogger = logger}
-      in runReaderT (runCheckers actions) $ cs {csLogging = logging'}
+      in runReaderT (runExceptT $ runCheckers actions) $ cs {csLogging = logging'}
 
 instance MonadMetrics Checkers where
   getMetrics = asks csMetrics
