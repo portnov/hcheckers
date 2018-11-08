@@ -36,7 +36,8 @@ to implement them soon.
 
 ## (Planned) features
 
-The code is general enough to implement a wide range of checkers variants:
+The code is general enough to implement a wide range of checkers variants.
+The following are implemented at the moment:
 
 * Russian
 * Simple russian (russian draughts without kings)
@@ -45,7 +46,6 @@ The code is general enough to implement a wide range of checkers variants:
 * English
 * International draughts (10x10)
 * Canadian draughts (12x12)
-* ...
 
 It is possible to implement different AI algorithms; currently there is only
 one, based on standard alpha-beta pruning. The algorithm has some number of
