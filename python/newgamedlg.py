@@ -41,9 +41,10 @@ class FileSelectWidget(QWidget):
         return self.textbox.text()
 
 class NewGameDialog(QDialog):
-    def __init__(self, settings, parent=None):
+    def __init__(self, settings, game, parent=None):
         QDialog.__init__(self, parent)
         self.settings = settings
+        self.game = game
 
         widget = QWidget()
         layout = QFormLayout()
@@ -98,7 +99,7 @@ class NewGameDialog(QDialog):
             self.ai.setCurrentIndex(idx)
         layout.addRow(_("AI"), self.ai)
 
-        self.lobby = LobbyWidget(parent=self)
+        self.lobby = LobbyWidget(client=game, parent=self)
         self.lobby.hide()
         vbox.addWidget(self.lobby)
 

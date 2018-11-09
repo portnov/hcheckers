@@ -7,9 +7,10 @@ from common import *
 from game import Game
 
 class LobbyWidget(QWidget):
-    def __init__(self, rules=None, parent=None):
+    def __init__(self, client, rules=None, parent=None):
         QWidget.__init__(self, parent)
         self.rules = rules
+        self.client = client
 
         layout = QVBoxLayout()
 
@@ -41,8 +42,7 @@ class LobbyWidget(QWidget):
             self.table.setItem(row, 3, make_item(game, "second", selectable))
             self.table.setItem(row, 4, make_item(game, "status", selectable))
 
-        client = Game()
-        games = client.get_games(self.rules)
+        games = self.client.get_games(self.rules)
         self.table.setRowCount(len(games))
         for row, game in enumerate(games):
             fill_row(row, game)

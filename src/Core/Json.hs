@@ -5,6 +5,8 @@ import Control.Concurrent
 import Data.Aeson
 import Data.Aeson.Types
 import qualified Data.Text as T
+import Data.Default
+import System.Log.Heavy
 
 import Core.Types
 import Core.Supervisor
@@ -129,4 +131,36 @@ instance ToJSON RsPayload where
 
 instance ToJSON Response where
   toJSON (Response payload messages) = object ["response" .= payload, "messages" .= messages]
+
+instance FromJSON AiConfig where
+  parseJSON = withObject "AiConfig" $ \v -> AiConfig
+      <$> v .:? "threads" .!= (aiThreads def)
+      <*> v .:? "load" .!= (aiLoadCache def)
+      <*> v .:? "store" .!= (aiStoreCache def)
+      <*> v .:? "use_cache_max_depth" .!= (aiUseCacheMaxDepth def)
+      <*> v .:? "use_cache_max_pieces" .!= (aiUseCacheMaxPieces def)
+      <*> v .:? "use_cache_max_depth_plus" .!= (aiUseCacheMaxDepthPlus def)
+      <*> v .:? "use_cache_max_depth_minus" .!= (aiUseCacheMaxDepthMinus def)
+      <*> v .:? "update_cache_max_depth" .!= (aiUpdateCacheMaxDepth def)
+      <*> v .:? "update_cache_max_pieces" .!= (aiUpdateCacheMaxPieces def)
+
+instance FromJSON GeneralConfig where
+  parseJSON = withObject "GeneralConfig" $ \v -> GeneralConfig
+    <$> v .:? "host" .!= (gcHost def)
+    <*> v .:? "port" .!= (gcPort def)
+    <*> v .:? "enable_metrics" .!= (gcEnableMetrics def)
+    <*> v .:? "metrics_port" .!= (gcMetricsPort def)
+    <*> v .:? "log_path" .!= (gcLogFile def)
+    <*> v .:? "log_level" .!= (gcLogLevel def)
+    <*> v .:? "ai" .!= (gcAiConfig def)
+
+instance FromJSON Level where
+  parseJSON (String "debug") = return debug_level
+  parseJSON (String "trace") = return trace_level
+  parseJSON (String "info") = return info_level
+  parseJSON (String "warning") = return warn_level
+  parseJSON (String "error") = return error_level
+  parseJSON (String "fatal") = return fatal_level
+  parseJSON (String "disable") = return disable_logging
+  parseJSON invalid = typeMismatch "logging level" invalid
 

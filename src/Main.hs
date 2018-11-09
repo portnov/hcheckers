@@ -1,8 +1,10 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Main where
 
+import Control.Monad.Reader
 import qualified Control.Monad.Metrics as Metrics
 import Data.Default
+import qualified Data.Text.Encoding as TE
 import System.Environment
 import System.Log.Heavy
 import qualified System.Metrics as EKG
@@ -13,21 +15,24 @@ import Core.Types
 import AI.AlphaBeta.Types
 import AI.AlphaBeta.Persistent
 import Core.Rest
+import Core.Config
 import Core.Supervisor
 
 import Learn
 import Rules.Russian
 
-withCheckers :: LoggingSettings -> SupervisorHandle -> Checkers a -> IO a
-withCheckers (LoggingSettings settings) supervisor actions = do
+withCheckers :: SupervisorHandle -> Checkers a -> IO a
+withCheckers supervisor actions = do
+  cfg <- loadConfig
   metrics <- Metrics.initialize
   let store = metrics ^. Metrics.metricsStore
   EKG.registerGcMetrics store
-  EKG.forkServerWith store "localhost" 8000
-  withLoggingB settings $ \backend -> do
+  EKG.forkServerWith store (TE.encodeUtf8 $ gcHost cfg) (gcMetricsPort cfg)
+  let logSettings = (defFileSettings (gcLogFile cfg))
+  withLoggingB logSettings $ \backend -> do
     let logger = makeLogger backend
         logging = LoggingTState logger (AnyLogBackend backend) []
-        cs = CheckersState logging supervisor metrics
+        cs = CheckersState logging supervisor metrics cfg
     res <- runCheckersT actions cs
     case res of
       Right result -> return result
@@ -36,10 +41,9 @@ withCheckers (LoggingSettings settings) supervisor actions = do
 main :: IO ()
 main = do
   args <- getArgs
-  let -- stdout = LoggingSettings $ filtering defaultLogFilter defStdoutSettings
+  -- let stdout = LoggingSettings $ filtering defaultLogFilter defStdoutSettings
       -- debug = LoggingSettings $ Filtering (\m -> lmLevel m == trace_level) ((defFileSettings "trace.log") {lsFormat = "{time} {source} [{thread}]: {message}\n"})
       -- settings = LoggingSettings $ ParallelLogSettings [stdout, debug]
-      settings = LoggingSettings defStdoutSettings
   supervisor <- mkSupervisor
   case args of
     ["learn", path] -> do
@@ -49,21 +53,19 @@ main = do
           params = def {
                      abDepth = depth
                    , abCombinationDepth = 4
-                   , abLoadCache = True
-                   , abSaveCache = True
-                   , abUpdateCacheMaxPieces = 24
-                   , abUpdateCacheMaxDepth = 0
                    }
           ai = AlphaBeta params rules
-      withCheckers settings supervisor $
+      withCheckers supervisor $
           withLogContext (LogContextFrame [] (include defaultLogFilter)) $
             learnPdn ai path depth
 
     ["dump", path] -> checkDataFile path
     
     _ ->
-      withCheckers settings supervisor $
-          withLogContext (LogContextFrame [] (include defaultLogFilter)) $
+      withCheckers supervisor $ do
+          cfg <- asks csConfig
+          let fltr = [([], gcLogLevel cfg)]
+          withLogContext (LogContextFrame [] (include fltr)) $
               runRestServer
 
 

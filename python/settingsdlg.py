@@ -79,14 +79,6 @@ class AiEditorWidget(QWidget):
         self.max_combination_depth.setRange(0, 9)
         self.max_combination_depth.valueChanged.connect(self.edited)
         layout.addRow(_("Combination depth"), self.max_combination_depth)
-        self.load = QCheckBox(self)
-        self.load.setTristate(False)
-        self.load.stateChanged.connect(self.edited)
-        layout.addRow("Load cache", self.load)
-        self.store = QCheckBox(self)
-        self.store.setTristate(False)
-        self.store.stateChanged.connect(self.edited)
-        layout.addRow("Save cache", self.store)
         self.setLayout(layout)
 
     def set_ai(self, ai):
@@ -95,8 +87,6 @@ class AiEditorWidget(QWidget):
         if ai.start_depth is not None:
             self.start_depth.setValue(ai.start_depth)
         self.max_combination_depth.setValue(ai.max_combination_depth)
-        self.load.setCheckState(Qt.Checked if ai.load else Qt.Unchecked)
-        self.store.setCheckState(Qt.Checked if ai.store else Qt.Unchecked)
 
     def get_ai(self):
         ai = AI()
@@ -104,8 +94,6 @@ class AiEditorWidget(QWidget):
         ai.depth = self.depth.value()
         ai.start_depth = self.start_depth.value()
         ai.max_combination_depth = self.max_combination_depth.value()
-        ai.load = self.load.checkState() == Qt.Checked
-        ai.store = self.store.checkState() == Qt.Checked
         return ai
 
 class AiPresetsPage(QWidget):

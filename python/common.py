@@ -5,7 +5,7 @@ KING = 2
 FIRST = 1
 SECOND = 2
 
-DEFAULT_SERVER_URL = "http://localhost:3000"
+DEFAULT_SERVER_URL = "http://localhost:8864"
 
 class Piece(object):
     def __init__(self, kind, side):

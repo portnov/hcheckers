@@ -164,5 +164,6 @@ runRestServer = do
         case res of
           Right response -> return response
           Left err -> fail $ show err
-  scottyT 3000 getResponse restServer
+  port <- asks (gcPort . csConfig)
+  scottyT (fromIntegral port) getResponse restServer
 

@@ -65,7 +65,8 @@ class Checkers(QMainWindow):
             raise Exception("Cant locate share directory")
         theme_name = self.settings.value("theme", "default")
         self.theme = Theme(join(self.share_dir, "themes", theme_name), None)
-        self.game = Game(self.settings.value("server_url", DEFAULT_SERVER_URL))
+        self.server_url = self.settings.value("server_url", DEFAULT_SERVER_URL)
+        self.game = Game(self.server_url)
         self.poll_timer = self.startTimer(500)
         self.do_poll = False
 
@@ -172,7 +173,7 @@ class Checkers(QMainWindow):
         self._on_new_game()
 
     def _on_new_game(self):
-        dialog = NewGameDialog(self.settings, self)
+        dialog = NewGameDialog(self.settings, self.game, self)
         result = dialog.exec_()
         if result == QDialog.Accepted:
             self.game_active = True

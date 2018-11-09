@@ -27,6 +27,7 @@ import Data.Int
 import Data.Word
 import Data.Binary
 import Data.Store
+import Data.Default
 import Data.Hashable
 import Text.Printf
 import GHC.Generics
@@ -469,20 +470,74 @@ data Notify =
   }
   deriving (Eq, Show, Generic)
 
+-- | State of supervisor singleton
 data SupervisorState = SupervisorState {
-    ssGames :: M.Map GameId Game
-  , ssLastGameId :: Int
-  , ssAiStorages :: M.Map (String,String) Dynamic
+    ssGames :: M.Map GameId Game                  -- ^ Set of games running
+  , ssLastGameId :: Int                           -- ^ ID of last created game
+  , ssAiStorages :: M.Map (String,String) Dynamic -- ^ AI storage instance per (AI engine; game rules) tuple
   }
 
+-- | Since many threads of REST server will refer
+-- to supervisor's state, we have to put it into TVar
 type SupervisorHandle = TVar SupervisorState
 
+data AiConfig = AiConfig {
+    aiThreads :: Int
+  , aiLoadCache :: Bool
+  , aiStoreCache :: Bool
+  , aiUseCacheMaxDepth :: Int
+  , aiUseCacheMaxPieces :: Int
+  , aiUseCacheMaxDepthPlus :: Int
+  , aiUseCacheMaxDepthMinus :: Int
+  , aiUpdateCacheMaxDepth :: Int
+  , aiUpdateCacheMaxPieces :: Int
+  }
+  deriving (Show, Typeable, Generic)
+
+instance Default AiConfig where
+  def = AiConfig {
+          aiThreads = 4
+        , aiLoadCache = True
+        , aiStoreCache = False
+        , aiUseCacheMaxDepth = 8
+        , aiUseCacheMaxPieces = 24
+        , aiUseCacheMaxDepthPlus = 0
+        , aiUseCacheMaxDepthMinus = 0
+        , aiUpdateCacheMaxDepth = 6
+        , aiUpdateCacheMaxPieces = 8
+      }
+
+data GeneralConfig = GeneralConfig {
+    gcHost :: T.Text
+  , gcPort :: Int
+  , gcEnableMetrics :: Bool
+  , gcMetricsPort :: Int
+  , gcLogFile :: FilePath
+  , gcLogLevel :: Level
+  , gcAiConfig :: AiConfig
+  }
+  deriving (Show, Typeable, Generic)
+
+instance Default GeneralConfig where
+  def = GeneralConfig {
+    gcHost = "localhost",
+    gcPort = 8864,
+    gcEnableMetrics = True,
+    gcMetricsPort = 8000,
+    gcLogFile = "hcheckers.log",
+    gcLogLevel = info_level,
+    gcAiConfig = def
+  }
+
+-- | Commonly used data
 data CheckersState = CheckersState {
     csLogging :: LoggingTState
   , csSupervisor :: SupervisorHandle
   , csMetrics :: Metrics.Metrics
+  , csConfig :: GeneralConfig
   }
 
+-- | Recognized exception types
 data Error =
     NotYourTurn
   | NotAllowedMove
@@ -495,6 +550,7 @@ data Error =
   | Unhandled String
   deriving (Eq, Show, Typeable, Generic)
 
+-- | Checkers monad
 newtype Checkers a = Checkers {
     runCheckers :: ExceptT Error (ReaderT CheckersState IO) a
   }

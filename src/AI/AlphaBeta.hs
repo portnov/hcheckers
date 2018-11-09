@@ -30,15 +30,6 @@ instance FromJSON AlphaBetaParams where
       <$> v .: "depth"
       <*> v .:? "start_depth"
       <*> v .:? "max_combination_depth" .!= 8
-      <*> v .:? "threads" .!= 4
-      <*> v .:? "load" .!= True
-      <*> v .:? "store" .!= False
-      <*> v .:? "use_cache_max_depth" .!= 8
-      <*> v .:? "use_cache_max_pieces" .!= 24
-      <*> v .:? "use_cache_max_depth_plus" .!= 2
-      <*> v .:? "use_cache_max_depth_minus" .!= 0
-      <*> v .:? "update_cache_max_depth" .!= 6
-      <*> v .:? "update_cache_max_pieces" .!= 8
 
 instance (GameRules rules) => GameAi (AlphaBeta rules) where
 

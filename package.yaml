@@ -27,6 +27,7 @@ dependencies:
 - concurrent-extra
 - psqueues
 - aeson
+- yaml
 - stm
 - exceptions
 - bytestring

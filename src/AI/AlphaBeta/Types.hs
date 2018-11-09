@@ -37,15 +37,6 @@ data AlphaBetaParams = AlphaBetaParams {
     abDepth :: Int
   , abStartDepth :: Maybe Int
   , abCombinationDepth :: Int
-  , abThreads :: Int
-  , abLoadCache :: Bool
-  , abSaveCache :: Bool
-  , abUseCacheMaxDepth :: Int
-  , abUseCacheMaxPieces :: Int
-  , abUseCacheMaxDepthPlus :: Int
-  , abUseCacheMaxDepthMinus :: Int
-  , abUpdateCacheMaxDepth :: Int
-  , abUpdateCacheMaxPieces :: Int
   }
   deriving (Eq, Ord, Show)
 
@@ -54,15 +45,6 @@ instance Default AlphaBetaParams where
           abDepth = 2
         , abStartDepth = Nothing
         , abCombinationDepth = 8
-        , abThreads = 4
-        , abLoadCache = True
-        , abSaveCache = False
-        , abUseCacheMaxDepth = 8
-        , abUseCacheMaxPieces = 24
-        , abUseCacheMaxDepthPlus = 0
-        , abUseCacheMaxDepthMinus = 0
-        , abUpdateCacheMaxDepth = 6
-        , abUpdateCacheMaxPieces = 8
         }
 
 data DepthParams = DepthParams {

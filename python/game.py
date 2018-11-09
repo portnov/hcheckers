@@ -34,13 +34,6 @@ class AI(object):
         self.depth = 2
         self.max_combination_depth = 6
         self.start_depth = None
-        self.load = True
-        self.store = False
-        self.threads = 4
-        self.update_cache_max_depth = 10
-        self.update_cache_max_pieces = 0
-        self.use_cache_max_depth = 10
-        self.use_cache_max_pieces = 0
 
         for key in kwargs:
             setattr(self, key, kwargs[key])
@@ -52,9 +45,6 @@ class AI(object):
         ai.depth = settings.value("depth", type=int)
         ai.max_combination_depth = settings.value("max_combination_depth", type=int)
         ai.start_depth = settings.value("start_depth", type=int)
-        ai.threads = settings.value("threads", type=int)
-        ai.load = settings.value("load", type=bool)
-        ai.store = settings.value("store", type=bool)
         return ai
     
     @classmethod
@@ -77,22 +67,12 @@ class AI(object):
         settings.setValue("depth", self.depth)
         settings.setValue("max_combination_depth", self.max_combination_depth)
         settings.setValue("start_depth", self.start_depth)
-        settings.setValue("threads", self.threads)
-        settings.setValue("load", self.load)
-        settings.setValue("store", self.store)
 
     def params(self):
         return {
             "depth": self.depth,
             "start_depth": self.start_depth,
-            "max_combination_depth" : self.max_combination_depth,
-            "load": self.load,
-            "store" : self.store,
-            "threads": self.threads,
-            "update_cache_max_depth": self.update_cache_max_depth,
-            "update_cache_max_pieces": self.update_cache_max_pieces,
-            "use_cache_max_depth": self.use_cache_max_depth,
-            "use_cache_max_pieces": self.use_cache_max_pieces
+            "max_combination_depth" : self.max_combination_depth
         }
 
 class GameSettings(object):
