@@ -24,6 +24,7 @@ import Rules.Russian
 withCheckers :: SupervisorHandle -> Checkers a -> IO a
 withCheckers supervisor actions = do
   cfg <- loadConfig
+  -- print cfg
   metrics <- Metrics.initialize
   let store = metrics ^. Metrics.metricsStore
   EKG.registerGcMetrics store

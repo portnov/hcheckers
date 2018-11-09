@@ -153,8 +153,8 @@ restServer = do
 
   get "/notation/:rules" $ do
     rules <- param "rules"
-    (size, notation) <- liftCheckers $ getNotation rules
-    json $ Response (NotationRs size notation) []
+    (size, orientation, notation) <- liftCheckers $ getNotation rules
+    json $ Response (NotationRs size orientation notation) []
     
 runRestServer :: Checkers ()
 runRestServer = do

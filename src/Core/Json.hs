@@ -23,6 +23,8 @@ instance FromJSON Side
 
 instance ToJSON GameResult
 
+instance ToJSON BoardOrientation
+
 instance ToJSON Label where
   toJSON (Label col row) = toJSON (col, row)
 
@@ -127,7 +129,8 @@ instance ToJSON RsPayload where
   toJSON (MoveRs board) = toJSON board
   toJSON (UndoRs board) = toJSON board
   toJSON (LobbyRs games) = toJSON games
-  toJSON (NotationRs size list) = object ["size" .= size, "notation" .= list]
+  toJSON (NotationRs size orientation list) =
+      object ["size" .= size, "orientation" .= orientation, "notation" .= list]
 
 instance ToJSON Response where
   toJSON (Response payload messages) = object ["response" .= payload, "messages" .= messages]

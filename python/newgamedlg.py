@@ -41,10 +41,10 @@ class FileSelectWidget(QWidget):
         return self.textbox.text()
 
 class NewGameDialog(QDialog):
-    def __init__(self, settings, game, parent=None):
+    def __init__(self, settings, client, parent=None):
         QDialog.__init__(self, parent)
         self.settings = settings
-        self.game = game
+        self.client = client
 
         widget = QWidget()
         layout = QFormLayout()
@@ -99,7 +99,7 @@ class NewGameDialog(QDialog):
             self.ai.setCurrentIndex(idx)
         layout.addRow(_("AI"), self.ai)
 
-        self.lobby = LobbyWidget(client=game, parent=self)
+        self.lobby = LobbyWidget(client=client, parent=self)
         self.lobby.hide()
         vbox.addWidget(self.lobby)
 
@@ -154,6 +154,8 @@ class NewGameDialog(QDialog):
         game.run_now = action != START_HUMAN_GAME
         side = self.user_side.currentData()
         game.user_turn_first = side == FIRST
+        if self.client.get_invert_colors(game.rules):
+            game.user_turn_first = not game.user_turn_first
         game.action = action
         game.board_setup = self.board_type.currentData() == MANUAL_BOARD
         if self.board_type.currentData() == LOAD_FEN:

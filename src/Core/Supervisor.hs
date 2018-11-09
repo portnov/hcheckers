@@ -74,7 +74,7 @@ data RsPayload =
   | RunGameRs
   | PollRs [Notify]
   | LobbyRs [Game]
-  | NotationRs BoardSize [(Label, Notation)]
+  | NotationRs BoardSize BoardOrientation [(Label, Notation)]
   | StateRs BoardRep GameStatus Side
   | PossibleMovesRs [MoveRep]
   | MoveRs BoardRep
@@ -393,7 +393,7 @@ getGames mbRulesId = do
   return [game | game <- games, good (gRules game)]
 
 -- | Get list of fields notation by rules name.
-getNotation :: String -> Checkers (BoardSize, [(Label, Notation)])
+getNotation :: String -> Checkers (BoardSize, BoardOrientation, [(Label, Notation)])
 getNotation rname = do
     let Just someRules = select supportedRules
         result = process someRules
@@ -410,7 +410,8 @@ getNotation rname = do
           labels = labelMapKeys (bAddresses board)
           notation = [(label, boardNotation rules label) | label <- labels]
           size = boardSize rules
-      in  (size, notation)
+          orientation = boardOrientation rules
+      in  (size, orientation, notation)
     
 
 getPlayer :: Game -> Side -> Player

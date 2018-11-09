@@ -95,9 +95,11 @@ class Theme(object):
         else:
             return self.get_pattern2()
 
-    def get_piece(self, piece):
+    def get_piece(self, piece, invert=False):
         if piece is None:
             return None
+        if invert:
+            piece = piece.inverted()
         if piece.kind == MAN and piece.side == FIRST:
             return self.man_white.get(self.size)
         elif piece.kind == MAN and piece.side == SECOND:

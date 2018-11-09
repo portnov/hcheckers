@@ -208,7 +208,8 @@ class Checkers(QMainWindow):
                 self.my_turn = side == FIRST
                 self.status_info.setText(_("Rules: {}").format(game.rules))
 
-            size, notation = self.game.get_notation(game.rules)
+            size, invert, notation = self.game.get_notation(game.rules)
+            self.board.invert_colors = invert
             self.board.set_notation(size, notation)
 
             self.board.repaint()

@@ -139,7 +139,24 @@ class Game(object):
         rs = requests.get(url)
         self.process_response(rs)
         result = rs.json()["response"]
-        return result["size"], result["notation"]
+        invert = result["orientation"] == 'SecondAtBottom'
+        return result["size"], invert, result["notation"]
+    
+    def get_invert_colors(self, rules):
+        _size, invert, _notation = self.get_notation(rules)
+        return invert
+
+    def get_color_mapping(self, rules):
+        """
+        Return a tuple (side1, side2), where
+        side1 is one who uses white pieces, and
+        side2 is one who uses black pieces.
+        """
+        _size, invert, _notation = self.get_notation(rules)
+        if invert:
+            return SECOND, FIRST
+        else:
+            return FIRST, SECOND
 
     def register_user(self, name, side):
         self.user_name = name

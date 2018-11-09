@@ -20,6 +20,7 @@ class Field(object):
         self._theme = None
         self._hide_piece = False
         self._captured = False
+        self.invert_colors = False
 
     def get_captured(self):
         return self._captured
@@ -127,8 +128,8 @@ class Field(object):
         return self._rect
 
     def _draw_piece(self, painter):
-        piece = self._theme.get_piece(self.piece)
-        possible_piece = self._theme.get_piece(self.possible_piece)
+        piece = self._theme.get_piece(self.piece, invert=self.invert_colors)
+        possible_piece = self._theme.get_piece(self.possible_piece, invert=self.invert_colors)
         if piece is not None and not self.hide_piece:
             painter.drawPixmap(0, 0, piece)
         elif possible_piece is not None:

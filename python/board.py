@@ -104,6 +104,7 @@ class Board(QWidget):
         self.settings = settings
         self._show_notation = settings.value("show_notation", type=bool)
         self.show_possible_moves = settings.value("show_possible_moves", type=bool)
+        self.invert_colors = False
 
         self._init_fields(8, 8)
 
@@ -248,6 +249,7 @@ class Board(QWidget):
 
             for label in self.field_by_label:
                 field = self.field_by_label[label]
+                field.invert_colors = self.invert_colors
                 if label in board:
                     field.piece = board[label]
                 else:
@@ -389,6 +391,8 @@ class Board(QWidget):
                     move = self._valid_target_fields[field.label]
                     start_position = self.get_field_center(self.index_by_label[src_field])
                     piece = self.fields[self.selected_field].piece
+                    if self.invert_colors:
+                        piece = piece.inverted()
                     self.move_animation.start(self.selected_field, (row, col), move, start_position, piece, process_result=True)
                     self._valid_target_fields = None
                     self.repaint()
@@ -420,6 +424,8 @@ class Board(QWidget):
             dst_field = self.get_move_end_field(move)
             start_position = self.get_field_center(src_field)
             piece = self.fields[src_field].piece
+            if self.invert_colors:
+                piece = piece.inverted()
             self.move_animation.start(src_field, dst_field, move, start_position, piece, process_result = False)
             my_side = 'First' if self.game.user_side == FIRST else 'Second'
             self.my_turn = True

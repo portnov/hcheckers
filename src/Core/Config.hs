@@ -30,6 +30,7 @@ loadConfig = do
   case mbPath of
     Nothing -> return def
     Just path -> do
+      putStrLn $ "Using config: " ++ path
       r <- decodeFileEither path
       case r of
         Left err -> fail $ show err

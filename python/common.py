@@ -14,6 +14,10 @@ class Piece(object):
 
     def __str__(self):
         return "<{} {}>".format(self.kind, self.side)
+    
+    def inverted(self):
+        piece = Piece(self.kind, (FIRST+SECOND) - self.side)
+        return piece
 
     def json(self):
         kind = 'Man' if self.kind == MAN else 'King'
