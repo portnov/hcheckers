@@ -96,12 +96,14 @@ class MoveAnimation(QObject):
         return True
 
 class Board(QWidget):
-    def __init__(self, theme, show_notation, game, parent=None):
+    def __init__(self, theme, settings, game, parent=None):
         QWidget.__init__(self, parent)
 
         self.game = game
         self._theme = theme
-        self._show_notation = show_notation
+        self.settings = settings
+        self._show_notation = settings.value("show_notation", type=bool)
+        self.show_possible_moves = settings.value("show_possible_moves", type=bool)
 
         self._init_fields(8, 8)
 
@@ -269,8 +271,9 @@ class Board(QWidget):
 
         prev_possible_piece = field.possible_piece
         label = self.fields[(row,col)].label
-        if self._selected_field is not None and self._valid_target_fields is not None and label in self._valid_target_fields:
-            field.possible_piece = self.fields[self._selected_field].piece
+        if self.show_possible_moves:
+            if self._selected_field is not None and self._valid_target_fields is not None and label in self._valid_target_fields:
+                field.possible_piece = self.fields[self._selected_field].piece
 
         prev_captured = field.captured
         if self.move_animation.is_active() and label in self.move_animation.captured_fields:

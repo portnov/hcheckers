@@ -73,8 +73,7 @@ class Checkers(QMainWindow):
     def _gui_setup(self):
         widget = QWidget(self)
         layout = QVBoxLayout()
-        show_notation = self.settings.value("show_notation", type=bool)
-        self.board = Board(self.theme, show_notation, self.game)
+        self.board = Board(self.theme, self.settings, self.game)
         self.board.message.connect(self._on_board_message)
         self.board.field_clicked.connect(self._on_field_clicked)
         #self.board.show()
@@ -246,6 +245,7 @@ class Checkers(QMainWindow):
         dialog = SettingsDialog(self.settings, self.share_dir, self)
         result = dialog.exec_()
         if result == QDialog.Accepted:
+            self.board.show_possible_moves = dialog.get_show_possible_moves()
             self.board.show_notation = dialog.get_show_notation()
             self.board.theme = dialog.get_theme()
             print("ok")

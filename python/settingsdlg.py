@@ -148,6 +148,8 @@ class ViewSettingsPage(QWidget):
         layout = QFormLayout()
         self.show_notation = QCheckBox(self)
         layout.addRow(_("Show fields notation"), self.show_notation)
+        self.show_possible_moves = QCheckBox(self)
+        layout.addRow(_("Show possible moves"), self.show_possible_moves)
         self.theme = QComboBox(self)
         self.themes = dict()
         for theme in Theme.list_themes(share_dir):
@@ -163,6 +165,8 @@ class ViewSettingsPage(QWidget):
     def load(self, settings):
         show_notation = settings.value("show_notation", type=bool)
         self.show_notation.setCheckState(Qt.Checked if show_notation else Qt.Unchecked)
+        show_possible_moves = settings.value("show_possible_moves", type=bool)
+        self.show_possible_moves.setCheckState(Qt.Checked if show_possible_moves else Qt.Unchecked)
         theme = settings.value("theme")
         theme_idx = self.theme.findData(theme)
         if theme_idx < 0:
@@ -172,6 +176,7 @@ class ViewSettingsPage(QWidget):
 
     def save(self, settings):
         settings.setValue("show_notation", self.show_notation.checkState() == Qt.Checked)
+        settings.setValue("show_possible_moves", self.show_possible_moves.checkState() == Qt.Checked)
         settings.setValue("theme", self.theme.currentData())
 
 class GeneralPage(QWidget):
@@ -217,6 +222,9 @@ class SettingsDialog(QDialog):
 
     def get_show_notation(self):
         return self.view.show_notation.checkState() == Qt.Checked
+
+    def get_show_possible_moves(self):
+        return self.view.show_possible_moves.checkState() == Qt.Checked
 
     def get_theme(self):
         return self.view.get_theme()
