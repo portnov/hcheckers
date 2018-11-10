@@ -131,6 +131,10 @@ class Checkers(QMainWindow):
 
         self.run_action = self._create_action(None, _("Start &Game"), menu, self._on_run_game, key="Ctrl+R")
         menu.addSeparator()
+        self.flip_action = self._create_action(None, _("&Flip board"), menu, self._on_flip_board, toggle=True, key="Ctrl+T")
+        flip = self.settings.value("flip_board", False, type=bool)
+        self.flip_action.setChecked(flip)
+        self._set_flip_board(flip)
         self._create_action(None, _("Se&ttings"), menu, self._on_settings, toolbar=False)
         self.board_setup_mode = False
 
@@ -241,6 +245,13 @@ class Checkers(QMainWindow):
             self.my_turn = True
         elif isinstance(message, WaitingMove):
             self.statusBar().showMessage(unicode(message))
+
+    def _set_flip_board(self, value):
+        self.board.flip = value
+        self.settings.setValue("flip_board", self.board.flip)
+
+    def _on_flip_board(self):
+        self._set_flip_board(self.flip_action.isChecked())
 
     def _on_settings(self):
         dialog = SettingsDialog(self.settings, self.share_dir, self)

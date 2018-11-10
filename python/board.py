@@ -105,6 +105,7 @@ class Board(QWidget):
         self._show_notation = settings.value("show_notation", type=bool)
         self.show_possible_moves = settings.value("show_possible_moves", type=bool)
         self.invert_colors = False
+        self._flip = False
 
         self._init_fields(8, 8)
 
@@ -205,6 +206,16 @@ class Board(QWidget):
 
     show_notation = property(get_show_notation, set_show_notation)
 
+    def get_flip(self):
+        return self._flip
+
+    def set_flip(self, value):
+        self._flip = value
+        self.invalidate()
+        self.repaint()
+
+    flip = property(get_flip, set_flip)
+
     def set_notation(self, size, pairs):
         (rows, cols) = size
         self._init_fields(rows, cols)
@@ -281,7 +292,13 @@ class Board(QWidget):
         if self.move_animation.is_active() and label in self.move_animation.captured_fields:
             field.captured = True
 
-        field.draw(painter, QRect(col * size, (self.n_rows-1-row) * size, size, size))
+        if self.flip:
+            x = (self.n_cols-1-col) * size
+            y = row * size
+        else:
+            x = col * size
+            y = (self.n_rows-1-row) * size
+        field.draw(painter, QRect(x, y, size, size))
         if hide:
             field.hide_piece = prev_hide_piece
         field.possible_piece = prev_possible_piece
@@ -350,8 +367,12 @@ class Board(QWidget):
     def get_field_center(self, idx):
         row, col = idx
         (width, height) = self.get_size()
-        x = (col + 0.5) / self.n_cols
-        y = (self.n_rows - 1 - row + 0.5) / self.n_rows
+        if self.flip:
+            x = (self.n_cols - 1 - col + 0.5) / self.n_cols
+            y = (row + 0.5) / self.n_rows
+        else:
+            x = (col + 0.5) / self.n_cols
+            y = (self.n_rows - 1 - row + 0.5) / self.n_rows
         #print("{} => {}".format(idx, (x,y)))
         return (x*width, y*height)
 
