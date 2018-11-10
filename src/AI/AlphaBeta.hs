@@ -36,6 +36,7 @@ instance FromJSON AlphaBetaParams where
       <$> v .: "depth"
       <*> v .:? "start_depth"
       <*> v .:? "max_combination_depth" .!= 8
+      <*> v .:? "use_positional_score" .!= True
 
 instance (GameRules rules) => GameAi (AlphaBeta rules) where
 
@@ -66,7 +67,7 @@ scoreMove (ai@(AlphaBeta params rules), var, side, dp, board, pm) = do
      score <- Metrics.timed "ai.score.move" $ do
                 let board' = applyMoveActions (pmResult pm) board
                 score <- doScore rules ai var params (opposite side) dp board'
-                $info "Check: {} (depth {}) => {}" (show pm, dpTarget dp, score)
+                $info "Check: {} (depth {}) => {}" (show pm, dpTarget dp, show score)
                 return score
      
      return (pmMove pm, score)
@@ -110,9 +111,9 @@ putMoves Second board moves memo =
 -- | Calculate score of the board
 doScore :: (GameRules rules, Evaluator eval) => rules -> eval -> AICacheHandle rules -> AlphaBetaParams -> Side -> DepthParams -> Board -> Checkers Score
 doScore rules eval var params side dp board =
-    fixSign <$> evalStateT (cachedScoreAB var params side dp (-max_score) max_score board) initState
+    fixSign <$> evalStateT (cachedScoreAB var params side dp loose win board) initState
   where
-    initState = ScoreState rules eval [StackItem Nothing (-max_score)] emptyMemo
+    initState = ScoreState rules eval [StackItem Nothing loose] emptyMemo
     emptyMemo = MovesMemo emptyBoardMap emptyBoardMap
 
     fixSign s = s
@@ -225,17 +226,17 @@ scoreAB var params side dp alpha beta board
       -- target depth is achieved, calculate score of current board directly
       evaluator <- gets ssEvaluator
       let score0 = evalBoard evaluator First side board
-      $trace "    X Side: {}, A = {}, B = {}, score0 = {}" (show side, alpha, beta, score0)
+      $trace "    X Side: {}, A = {}, B = {}, score0 = {}" (show side, show alpha, show beta, show score0)
       return (score0, [])
   | otherwise = do
       rules <- gets ssRules
       setBest $ if maximize then alpha else beta -- we assume alpha <= beta
-      $trace "{}V Side: {}, A = {}, B = {}" (indent, show side, alpha, beta)
+      $trace "{}V Side: {}, A = {}, B = {}" (indent, show side, show alpha, show beta)
       moves <- possibleMoves' board
 
       -- this actually means that corresponding side lost.
       when (null moves) $
-        $trace "{}| No moves left." (Single indent)
+        $trace "{}`—No moves left." (Single indent)
 
       dp' <- updateDepth (length moves) dp
       iterateMoves moves dp'
@@ -265,7 +266,7 @@ scoreAB var params side dp alpha beta board
     
     push :: PossibleMove -> ScoreM rules eval ()
     push move =
-      modify $ \st -> st {ssStack = (StackItem (Just move) (-max_score)) : (ssStack st)}
+      modify $ \st -> st {ssStack = (StackItem (Just move) loose) : (ssStack st)}
 
     pop = 
       modify $ \st -> st {ssStack = tail (ssStack st)}
@@ -284,7 +285,7 @@ scoreAB var params side dp alpha beta board
     setBest :: Score -> ScoreM rules eval ()
     setBest best = do
       oldBest <- getBest
-      $trace "{}| {} for depth {} : {} => {}" (indent, bestStr, dpCurrent dp, oldBest, best)
+      $trace "{}| {} for depth {} : {} => {}" (indent, bestStr, dpCurrent dp, show oldBest, show best)
       modify $ \st -> st {ssStack = update (head $ ssStack st) : tail (ssStack st)}
         where
           update item = item {siScoreBest = best}
@@ -292,7 +293,7 @@ scoreAB var params side dp alpha beta board
     iterateMoves :: [PossibleMove] -> DepthParams -> ScoreM rules eval (Score, [Move])
     iterateMoves [] _ = do
       best <- getBest
-      $trace "{}|—All moves considered at this level, return best = {}" (indent, best)
+      $trace "{}`—All moves considered at this level, return best = {}" (indent, show best)
       return (best, [])
     iterateMoves (move : moves) dp' = do
       $trace "{}|+Check move of side {}: {}" (indent, show side, show move)
@@ -309,7 +310,7 @@ scoreAB var params side dp alpha beta board
                      then beta
                      else min beta best
       score <- cachedScoreAB var params (opposite side) dp' alpha' beta' board'
-      $trace "{}| score for side {}: {}" (indent, show side, score)
+      $trace "{}| score for side {}: {}" (indent, show side, show score)
       pop
       best <- getBest
 
@@ -319,7 +320,7 @@ scoreAB var params side dp alpha beta board
              if score >= beta
                then do
                     best <- getBest
-                    $trace "{}| Return {} for depth {} = {}" (indent, bestStr, dpCurrent dp, best)
+                    $trace "{}`—Return {} for depth {} = {}" (indent, bestStr, dpCurrent dp, show best)
                     return (best, [])
                     
                else iterateMoves moves dp'
@@ -328,5 +329,9 @@ scoreAB var params side dp alpha beta board
         
 instance Evaluator rules => Evaluator (AlphaBeta rules) where
   evaluatorName (AlphaBeta _ rules) = evaluatorName rules
-  evalBoard (AlphaBeta _ rules) = evalBoard rules
+  evalBoard (AlphaBeta params rules) whoAsks whoMovesNext board =
+    let score = evalBoard rules whoAsks whoMovesNext board
+    in  if abUsePositionalScore params
+          then score
+          else score {sPositional = 0}
 

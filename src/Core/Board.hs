@@ -186,9 +186,22 @@ allMyLabels First board =
 allMyLabels Second board =
   labelSetToList (bSecondMen board) ++ labelSetToList (bSecondKings board)
 
+myMen :: Side -> Board -> [Label]
+myMen First board = labelSetToList (bFirstMen board)
+myMen Second board = labelSetToList (bSecondMen board)
+
+myKings :: Side -> Board -> [Label]
+myKings First board = labelSetToList (bFirstKings board)
+myKings Second board = labelSetToList (bSecondKings board)
+
 allMyAddresses :: Side -> Board -> [Address]
 allMyAddresses side board =
   map (\l -> resolve l board) $ allMyLabels side board
+
+myLabelsCount :: Side -> Board -> (Label -> Bool) -> (Int, Int)
+myLabelsCount side board p =
+  (length $ filter p $ myMen side board,
+   length $ filter p $ myKings side board)
 
 myCounts :: Side -> Board -> (Int, Int)
 myCounts side board =

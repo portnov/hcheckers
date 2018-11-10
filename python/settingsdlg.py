@@ -79,6 +79,9 @@ class AiEditorWidget(QWidget):
         self.max_combination_depth.setRange(0, 9)
         self.max_combination_depth.valueChanged.connect(self.edited)
         layout.addRow(_("Combination depth"), self.max_combination_depth)
+        self.use_positional_score = QCheckBox(self)
+        layout.addRow(_("Use positional score"), self.use_positional_score)
+        self.use_positional_score.stateChanged.connect(self.edited)
         self.setLayout(layout)
 
     def set_ai(self, ai):
@@ -87,6 +90,7 @@ class AiEditorWidget(QWidget):
         if ai.start_depth is not None:
             self.start_depth.setValue(ai.start_depth)
         self.max_combination_depth.setValue(ai.max_combination_depth)
+        self.use_positional_score.setCheckState(Qt.Checked if ai.use_positional_score else Qt.Unchecked)
 
     def get_ai(self):
         ai = AI()
@@ -94,6 +98,7 @@ class AiEditorWidget(QWidget):
         ai.depth = self.depth.value()
         ai.start_depth = self.start_depth.value()
         ai.max_combination_depth = self.max_combination_depth.value()
+        ai.use_positional_score = self.use_positional_score.checkState() == Qt.Checked
         return ai
 
 class AiPresetsPage(QWidget):

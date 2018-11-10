@@ -38,7 +38,7 @@ processMove :: (GameRules rules, Evaluator eval) => rules -> eval -> AICacheHand
 processMove rules eval var params side depth move board = do
   let ai = AlphaBeta params rules
   (moves, score) <- runAI ai var side board
-  $info "Processed: side {}, move: {}, depth: {} => score {}; we think next best moves are: {}" (show side, show move, depth, score, show moves)
+  $info "Processed: side {}, move: {}, depth: {} => score {}; we think next best moves are: {}" (show side, show move, depth, show score, show moves)
   return ()
 
 learnPdn :: (GameRules rules) => AlphaBeta rules -> FilePath -> Int -> Checkers ()

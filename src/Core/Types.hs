@@ -370,7 +370,17 @@ data SomeRules = forall g. GameRules g => SomeRules g
 instance Show SomeRules where
   show (SomeRules rules) = rulesName rules
 
-type Score = Int16
+data Score = Score {
+    sNumerical :: Int8
+  , sPositional :: Int8
+  }
+  deriving (Eq, Ord, Typeable, Generic)
+
+instance Show Score where
+  show s = printf "%d/%d" (sNumerical s) (sPositional s)
+
+instance Store Score
+instance Binary Score
 
 data GameResult =
     FirstWin

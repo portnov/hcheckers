@@ -1,17 +1,22 @@
 
 module Core.Evaluator where
 
+import Data.Int
+
 import Core.Types
 import Core.Board
 
 win :: Score
-win = max_score
+win = Score maxBound maxBound
 
-max_score :: Score
-max_score = maxBound
+loose :: Score
+loose = Score (-maxBound) (-maxBound)
+
+sub :: Score -> Score -> Score
+sub s1 s2 = Score (sNumerical s1 - sNumerical s2) (sPositional s1 - sPositional s2)
 
 data SimpleEvaluator = SimpleEvaluator {
-    seKingCoef :: Score
+    seKingCoef :: Int8
   }
   deriving (Eq, Show)
 
@@ -22,15 +27,35 @@ instance Evaluator SimpleEvaluator where
   evaluatorName _ = "simple"
 
   evalBoard (SimpleEvaluator {seKingCoef=kingCoef}) whoAsks whoMovesNext board =
-    let (myMen, myKings) = myCounts whoAsks board
-        (opponentMen, opponentKings) = myCounts (opposite whoAsks) board
-        myScore = kingCoef * fromIntegral myKings + fromIntegral myMen
-        opponentScore = kingCoef * fromIntegral opponentKings + fromIntegral opponentMen
-    in  if myMen == 0 && myKings == 0
-          then -win
-          else if opponentMen == 0 && opponentKings == 0
+    let numericScore side =
+          let (myMen, myKings) = myCounts side board
+          in  kingCoef * fromIntegral myKings + fromIntegral myMen
+
+        myNumeric = numericScore whoAsks
+        opponentNumeric = numericScore (opposite whoAsks)
+
+        (nrows,ncols) = bSize board
+        crow = nrows `div` 2
+        ccol = ncols `div` 2
+        halfCol = ccol `div` 2
+        halfRow = crow `div` 2
+
+        isCenter (Label col row) =
+            (col >= ccol - halfCol && col < ccol + halfCol) &&
+            (row >= crow - halfRow && row < crow + halfRow)
+
+        positionalScore side =
+          let (men, kings) = myLabelsCount side board isCenter
+          in  kingCoef * fromIntegral kings + fromIntegral men
+
+        myScore = Score myNumeric (positionalScore whoAsks)
+        opponentScore = Score opponentNumeric $ positionalScore (opposite whoAsks)
+
+    in  if myNumeric == 0
+          then loose
+          else if opponentNumeric == 0
                  then win
-                 else (myScore - opponentScore)
+                 else (myScore `sub` opponentScore)
 
 -- data ComplexEvaluator rules = ComplexEvaluator {
 --     ceRules :: rules

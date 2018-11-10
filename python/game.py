@@ -34,6 +34,7 @@ class AI(object):
         self.depth = 2
         self.max_combination_depth = 6
         self.start_depth = None
+        self.use_positional_score = True
 
         for key in kwargs:
             setattr(self, key, kwargs[key])
@@ -45,6 +46,7 @@ class AI(object):
         ai.depth = settings.value("depth", type=int)
         ai.max_combination_depth = settings.value("max_combination_depth", type=int)
         ai.start_depth = settings.value("start_depth", type=int)
+        ai.use_positional_score = settings.value("use_positional_score", type=bool)
         return ai
     
     @classmethod
@@ -67,12 +69,14 @@ class AI(object):
         settings.setValue("depth", self.depth)
         settings.setValue("max_combination_depth", self.max_combination_depth)
         settings.setValue("start_depth", self.start_depth)
+        settings.setValue("use_positional_score", self.use_positional_score)
 
     def params(self):
         return {
             "depth": self.depth,
             "start_depth": self.start_depth,
-            "max_combination_depth" : self.max_combination_depth
+            "max_combination_depth": self.max_combination_depth,
+            "use_positional_score": self.use_positional_score
         }
 
 class GameSettings(object):
