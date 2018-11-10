@@ -47,11 +47,12 @@ instance Default AlphaBetaParams where
         , abCombinationDepth = 8
         }
 
+-- Calculation depth parameters
 data DepthParams = DepthParams {
-    dpTarget :: Int
-  , dpCurrent :: Int
-  , dpMax :: Int
-  , dpMin :: Int
+    dpTarget :: Int     -- ^ Target depth: how deep we currently want to calculate the tree
+  , dpCurrent :: Int    -- ^ Currently achieved depth
+  , dpMax :: Int        -- ^ Maximum allowed depth
+  , dpMin :: Int        -- ^ Minimum allowed depth
   }
   deriving (Eq, Show)
 
@@ -104,6 +105,8 @@ data Locks = Locks {
   , lBlockLocks :: TVar (M.Map IndexBlockNumber RWL.RWLock)
   }
 
+-- | Handle to the instance of AI storage
+-- and related structures
 data AICacheHandle rules = AICacheHandle {
     aichRules :: rules
   , aichData :: TVar (AICache rules)
@@ -118,6 +121,7 @@ type WriteQueue = TChan (BoardKey, Int, Side, StorageValue)
 
 type CleanupQueue = TVar (PQ.HashPSQ QueueKey TimeSpec ())
 
+-- | File handle
 data FHandle = FHandle {
     fhOffset :: FileOffset
   , fhHandle :: Fd

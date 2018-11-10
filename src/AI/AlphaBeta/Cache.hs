@@ -33,6 +33,8 @@ import Core.Parallel
 import AI.AlphaBeta.Types
 import AI.AlphaBeta.Persistent
 
+-- | Prepare AI storage instance.
+-- This also contains Processor instance with several threads.
 loadAiCache :: GameRules rules
             => (ScoreMoveInput rules -> Checkers (Move, Score))
             -> AlphaBeta rules
@@ -164,6 +166,8 @@ normalize bsize (bc,bk,side) =
         then (bc', bk', opposite side)
         else (bc, bk, side)
 
+-- | Look up for item in the cache. First lookup in the memory,
+-- then in the file (if it is open).
 lookupAiCache :: GameRules rules => AlphaBetaParams -> Board -> Int -> Side -> AICacheHandle rules -> Checkers (Maybe CacheItemSide)
 lookupAiCache params board depth side handle = do
     -- let bsize = boardSize (aichRules handle)
@@ -215,6 +219,9 @@ lookupAiCache params board depth side handle = do
                                  Second -> return $ ciSecond item
         else return Nothing
 
+-- | Put an item to the cache.
+-- It is always writen to the memory,
+-- and it is writen to the file if it is open.
 putAiCache' :: GameRules rules => AlphaBetaParams -> (BoardCounts,BoardKey) -> Int -> Side -> StorageValue -> AICacheHandle rules -> Checkers ()
 putAiCache' params (bc,bk) depth side sideItem handle = do
   let bsize = boardSize (aichRules handle)

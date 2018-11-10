@@ -4,6 +4,12 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE FlexibleInstances #-}
+
+{-
+ - This module contains an implementation of alpha-beta-pruning algorithm
+ - with small improvements.
+ -}
+
 module AI.AlphaBeta where
 
 import Control.Monad
@@ -101,6 +107,7 @@ putMoves First board moves memo =
 putMoves Second board moves memo =
   memo {mmSecond = putBoardMap board moves (mmSecond memo)}
 
+-- | Calculate score of the board
 doScore :: (GameRules rules, Evaluator eval) => rules -> eval -> AICacheHandle rules -> AlphaBetaParams -> Side -> DepthParams -> Board -> Checkers Score
 doScore rules eval var params side dp board =
     fixSign <$> evalStateT (cachedScoreAB var params side dp (-max_score) max_score board) initState
@@ -150,13 +157,15 @@ instance HasLogContext (StateT (ScoreState rules eval) Checkers) where
     put st'
     return result
 
+-- | Calculate score of the board. 
+-- This uses the cache. It is called in the recursive call also.
 cachedScoreAB :: forall rules eval. (GameRules rules, Evaluator eval)
               => AICacheHandle rules
               -> AlphaBetaParams
               -> Side
               -> DepthParams
-              -> Score
-              -> Score
+              -> Score        -- ^ Alpha
+              -> Score        -- ^ Beta
               -> Board
               -> ScoreM rules eval Score
 cachedScoreAB var params side dp alpha beta board = do
@@ -179,6 +188,12 @@ cachedScoreAB var params side dp alpha beta board = do
 isTargetDepth :: DepthParams -> Bool
 isTargetDepth dp = dpCurrent dp >= dpTarget dp
 
+-- | Increase current depth as necessary.
+-- If there is only 1 move currently possible, this can increase
+-- the target depth, up to dpMax.
+-- If there are a lot of moves possible, this can decrease the
+-- target depth, down to dpMin.
+-- Otherwise, this just increases dpCurrent by 1.
 updateDepth :: (Monad m, HasLogging m, MonadIO m) => Int -> DepthParams -> m DepthParams
 updateDepth nMoves dp
   | nMoves == 1 = do
@@ -195,17 +210,19 @@ updateDepth nMoves dp
                 return $ dp {dpCurrent = dpCurrent dp + 1, dpTarget = target}
   | otherwise = return $ dp {dpCurrent = dpCurrent dp + 1}
 
+-- | Calculate score for the board
 scoreAB :: forall rules eval. (GameRules rules, Evaluator eval)
         => AICacheHandle rules
         -> AlphaBetaParams
         -> Side
         -> DepthParams
-        -> Score
-        -> Score
+        -> Score        -- ^ Alpha
+        -> Score        -- ^ Beta
         -> Board
         -> ScoreM rules eval (Score, [Move])
 scoreAB var params side dp alpha beta board
   | isTargetDepth dp = do
+      -- target depth is achieved, calculate score of current board directly
       evaluator <- gets ssEvaluator
       let score0 = evalBoard evaluator First side board
       $trace "    X Side: {}, A = {}, B = {}, score0 = {}" (show side, alpha, beta, score0)
@@ -216,6 +233,7 @@ scoreAB var params side dp alpha beta board
       $trace "{}V Side: {}, A = {}, B = {}" (indent, show side, alpha, beta)
       moves <- possibleMoves' board
 
+      -- this actually means that corresponding side lost.
       when (null moves) $
         $trace "{}| No moves left." (Single indent)
 
