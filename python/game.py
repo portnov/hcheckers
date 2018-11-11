@@ -102,6 +102,7 @@ class Game(object):
         self.user_side = None
         self.ai_side = None
         self.last_move_result = None
+        self.rules = None
         self.move_thread = None
         self.move_lock = Lock()
 
@@ -136,6 +137,7 @@ class Game(object):
         self.process_response(rs)
         result = rs.json()
         self.game_id = result["response"]["id"]
+        self.rules = rules
         return self.game_id
 
     def get_notation(self, rules):
@@ -161,6 +163,13 @@ class Game(object):
             return SECOND, FIRST
         else:
             return FIRST, SECOND
+
+    def get_colors(self, rules):
+        invert = self.get_invert_colors(rules)
+        if invert:
+            return _("Black"), _("White")
+        else:
+            return _("White"), _("Black")
 
     def register_user(self, name, side):
         self.user_name = name

@@ -5,7 +5,7 @@ import os
 
 from PyQt5.QtGui import QPainter, QPixmap
 from PyQt5.QtCore import QRect, QSize, Qt, QObject, QTimer, pyqtSignal, QSettings
-from PyQt5.QtWidgets import QApplication, QWidget, QToolBar, QMainWindow, QDialog, QVBoxLayout, QAction, QActionGroup, QLabel, QFileDialog
+from PyQt5.QtWidgets import QApplication, QWidget, QToolBar, QMainWindow, QDialog, QVBoxLayout, QAction, QActionGroup, QLabel, QFileDialog, QFrame
 
 from field import Field
 from game import Game, AI, RequestError
@@ -87,6 +87,14 @@ class Checkers(QMainWindow):
 
         self.status_info = QLabel(self)
         self.statusBar().addPermanentWidget(self.status_info)
+        self.rules_info = QLabel(self)
+        self.rules_info.setFrameStyle(QFrame.Sunken | QFrame.Panel)
+        #self.rules_info.setLineWidth(3)
+        self.statusBar().addPermanentWidget(self.rules_info)
+        self.opponent_info = QLabel(self)
+        self.opponent_info.setFrameStyle(QFrame.Sunken | QFrame.Panel)
+        #self.opponent_info.setLineWidth(3)
+        self.statusBar().addPermanentWidget(self.opponent_info)
 
         geometry = self.settings.value("geometry")
         if geometry is not None:
@@ -191,7 +199,9 @@ class Checkers(QMainWindow):
                     state = self.game.get_state()
                     my_side = 'First' if self.game.user_side == FIRST else 'Second'
                     self.my_turn = state["side"] == my_side
-                    self.status_info.setText(_("Rules: {}; AI: {}").format(game.rules, game.ai.title))
+                    self.rules_info.setText(_("Rules: {}").format(rules_dict[game.rules]))
+                    self.opponent_info.setText(_("AI: {}").format(game.ai.title))
+                    self.status_info.setText("")
             elif game.action == START_HUMAN_GAME:
                 game_id = self.game.new_game(game.rules)
                 print(game_id)
@@ -200,7 +210,9 @@ class Checkers(QMainWindow):
                 else:
                     self.game.register_user(game.user_name, SECOND)
                 self.do_poll = True
-                self.status_info.setText(_("Rules: {}").format(game.rules))
+                self.rules_info.setText(_("Rules: {}").format(game.rules))
+                self.opponent_info.setText("")
+                self.status_info.setText("")
                 self.game_active = False
                 self.statusBar().showMessage(_("Waiting for another side to join the game."))
             elif game.action == JOIN_HUMAN_GAME:
@@ -210,7 +222,9 @@ class Checkers(QMainWindow):
                 self.game.run_game()
                 self.do_poll = True
                 self.my_turn = side == FIRST
-                self.status_info.setText(_("Rules: {}").format(game.rules))
+                self.rules_info.setText(_("Rules: {}").format(game.rules))
+                self.opponent_info.setText("")
+                self.status_info.setText("")
 
             size, invert, notation = self.game.get_notation(game.rules)
             self.board.invert_colors = invert
@@ -235,11 +249,22 @@ class Checkers(QMainWindow):
         self.board.fields_setup(prev_board)
         self.board.repaint()
 
+    def get_result_str(self, result):
+        first, second = self.game.get_colors(self.game.rules)
+        if result == 'FirstWin':
+            return _("{} win").format(first)
+        elif result == 'SecondWin':
+            return _("{} win").format(second)
+        else:
+            return _("Draw")
+
     def _on_board_message(self, message):
         if isinstance(message, GameResultMessage):
             self.game_active = False
-            self.status_info.setText(unicode(message))
+            result = self.get_result_str(message.result)
+            self.status_info.setText(_("Game result: {}").format(result))
             self.board.setCursor(Qt.ArrowCursor)
+            self.statusBar().showMessage(_("Game over."))
         elif isinstance(message, OtherSideMove):
             self.message.setText(unicode(message))
             self.my_turn = True

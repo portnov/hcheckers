@@ -138,7 +138,7 @@ class GameResultMessage(Message):
         self.result = result
 
     def __unicode__(self):
-        return _("Game result: {}").format(self.result)
+        return "Game result: {}".format(self.result)
 
 class WaitingMove(Message):
     def __unicode__(self):
@@ -153,4 +153,6 @@ supported_rules = [
         ("spancirety", _("Spancirety draughts")), 
         ("diagonal", _("Diagonal draughts"))
     ]
+
+rules_dict = dict(supported_rules)
 
