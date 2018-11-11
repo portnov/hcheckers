@@ -114,7 +114,7 @@ selectRules (NewGameRq {rqRules=name, rqRulesParams=params, rqPdn=mbPdn}) =
     fromPdn :: Maybe T.Text -> Maybe SomeRules
     fromPdn Nothing = Nothing
     fromPdn (Just text) =
-      case parsePdn text of
+      case parsePdn Nothing text of
         Left _ -> Nothing
         Right gr -> rulesFromTags (grTags gr)
 

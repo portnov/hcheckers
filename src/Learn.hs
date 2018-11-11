@@ -44,7 +44,7 @@ processMove rules eval var params side depth move board = do
 learnPdn :: (GameRules rules) => AlphaBeta rules -> FilePath -> Int -> Checkers ()
 learnPdn ai@(AlphaBeta params rules) path depth = do
   cache <- loadAiCache scoreMove ai
-  pdn <- liftIO $ parsePdnFile path
+  pdn <- liftIO $ parsePdnFile (Just $ SomeRules rules) path
   forM_ pdn $ \gameRec -> do
     doLearn rules ai cache params gameRec depth
     -- saveAiCache rules params cache

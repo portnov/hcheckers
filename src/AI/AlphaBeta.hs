@@ -171,7 +171,7 @@ cachedScoreAB :: forall rules eval. (GameRules rules, Evaluator eval)
               -> ScoreM rules eval Score
 cachedScoreAB var params side dp alpha beta board = do
   let depth = dpCurrent dp
-  mbItem <- lift $ lookupAiCache params board depth side var
+  mbItem <- lift $ lookupAiCache params board dp side var
   case mbItem of
     Just item -> do
       $trace "Cache hit" ()
@@ -181,9 +181,10 @@ cachedScoreAB var params side dp alpha beta board = do
         else if score > beta
                then return beta
                else return score
+
     Nothing -> do
       (score, moves) <- Metrics.timed "ai.score.board" $ scoreAB var params side dp alpha beta board
-      lift $ putAiCache params board depth side score moves var
+      lift $ putAiCache params board dp side score moves var
       return score
 
 isTargetDepth :: DepthParams -> Bool
@@ -309,7 +310,7 @@ scoreAB var params side dp alpha beta board
           beta'  = if maximize
                      then beta
                      else min beta best
-      score <- cachedScoreAB var params (opposite side) dp' alpha' beta' board'
+      (score,_) <- scoreAB var params (opposite side) dp' alpha' beta' board'
       $trace "{}| score for side {}: {}" (indent, show side, show score)
       pop
       best <- getBest

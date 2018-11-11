@@ -168,7 +168,7 @@ normalize bsize (bc,bk,side) =
 
 -- | Look up for item in the cache. First lookup in the memory,
 -- then in the file (if it is open).
-lookupAiCache :: GameRules rules => AlphaBetaParams -> Board -> Int -> Side -> AICacheHandle rules -> Checkers (Maybe CacheItemSide)
+lookupAiCache :: GameRules rules => AlphaBetaParams -> Board -> DepthParams -> Side -> AICacheHandle rules -> Checkers (Maybe CacheItemSide)
 lookupAiCache params board depth side handle = do
     -- let bsize = boardSize (aichRules handle)
     -- let (bc, bk, side') = normalize bsize (boardCounts board, boardKey board, side)
@@ -183,14 +183,14 @@ lookupAiCache params board depth side handle = do
         return cached
 --         return $ Just $ CacheItemSide $ fixSign $ cisScore result
       Nothing -> do
-        mbValue <- runStorage handle $ event "file lookup" $ lookupFile bk depth side
+        mbValue <- runStorage handle $ event "file lookup" $ lookupFile board depth side
         case mbValue of
           Nothing -> do
             Metrics.increment "cache.miss"
             return Nothing
           Just value -> do
             Metrics.increment "cache.hit.file"
-            putAiCache' params (bc,bk) depth side value handle
+            putAiCache' params board depth side value handle
             return mbValue
 
   where 
@@ -204,14 +204,15 @@ lookupAiCache params board depth side handle = do
     lookupMemory (bc, bk) side = Metrics.timed "cache.lookup.memory" $ do
       let total = bcFirstMen bc + bcSecondMen bc + bcFirstKings bc + bcSecondKings bc
       cfg <- asks (gcAiConfig . csConfig)
-      if total <= aiUseCacheMaxPieces cfg && depth >= aiUseCacheMaxDepth cfg
+      if total <= aiUseCacheMaxPieces cfg && dpCurrent depth >= aiUseCacheMaxDepth cfg
         then do
             AICache _ _ cache <- liftIO $ atomically $ readTVar (aichData handle)
             case lookupBoardMap (bc,bk) cache of
               Nothing -> return Nothing
               Just byDepth -> do
-                let depths = [depth .. depth + aiUseCacheMaxDepthPlus cfg] ++
-                             [depth - aiUseCacheMaxDepthMinus cfg .. depth-1] 
+                let ds = [dpCurrent depth .. dpCurrent depth + aiUseCacheMaxDepthPlus cfg] ++
+                             [dpCurrent depth - aiUseCacheMaxDepthMinus cfg .. dpCurrent depth-1] 
+                    depths = [depth {dpCurrent = d} | d <- ds]
                 case foldl mplus Nothing [M.lookup d byDepth | d <- depths ] of
                   Nothing -> return Nothing
                   Just item -> case side of
@@ -222,13 +223,15 @@ lookupAiCache params board depth side handle = do
 -- | Put an item to the cache.
 -- It is always writen to the memory,
 -- and it is writen to the file if it is open.
-putAiCache' :: GameRules rules => AlphaBetaParams -> (BoardCounts,BoardKey) -> Int -> Side -> StorageValue -> AICacheHandle rules -> Checkers ()
-putAiCache' params (bc,bk) depth side sideItem handle = do
+putAiCache' :: GameRules rules => AlphaBetaParams -> Board -> DepthParams -> Side -> StorageValue -> AICacheHandle rules -> Checkers ()
+putAiCache' params board depth side sideItem handle = do
+  let bc = boardCounts board
+      bk = boardKey board
   let bsize = boardSize (aichRules handle)
   --let (bc', bk', side') = normalize bsize (bc, bk, side)
   let total = bcFirstMen bc + bcSecondMen bc + bcFirstKings bc + bcSecondKings bc
   cfg <- asks (gcAiConfig . csConfig)
-  when (total <= aiUpdateCacheMaxPieces cfg && depth > aiUpdateCacheMaxDepth cfg) $ Metrics.timed "cache.put.memory" $ do
+  when (total <= aiUpdateCacheMaxPieces cfg && dpCurrent depth > aiUpdateCacheMaxDepth cfg) $ Metrics.timed "cache.put.memory" $ do
       now <- liftIO $ getTime Monotonic
       Metrics.increment "cache.records.put"
       store <- asks (aiStoreCache . gcAiConfig . csConfig)
@@ -254,12 +257,12 @@ putAiCache' params (bc,bk) depth side sideItem handle = do
 
         writeTVar (aichData handle) aic'
         when (store) $
-            putWriteQueue (aichWriteQueue handle) (bk, depth, side, sideItem)
+            putWriteQueue (aichWriteQueue handle) (board, depth, side, sideItem)
         putCleanupQueue (aichCleanupQueue handle) (bc, bk) now
 
 
-putAiCache :: GameRules rules => AlphaBetaParams -> Board -> Int -> Side -> Score -> [Move] -> AICacheHandle rules -> Checkers ()
+putAiCache :: GameRules rules => AlphaBetaParams -> Board -> DepthParams -> Side -> Score -> [Move] -> AICacheHandle rules -> Checkers ()
 putAiCache params board depth side score moves handle = do
   let sideItem = CacheItemSide {cisScore = score}
-  putAiCache' params (boardCounts board, boardKey board) depth side sideItem handle
+  putAiCache' params board depth side sideItem handle
 

@@ -56,7 +56,9 @@ data DepthParams = DepthParams {
   , dpMax :: Int        -- ^ Maximum allowed depth
   , dpMin :: Int        -- ^ Minimum allowed depth
   }
-  deriving (Eq, Show)
+  deriving (Eq, Ord, Show, Typeable, Generic)
+
+instance Store DepthParams
 
 data CacheItemSide = CacheItemSide {
     cisScore :: ! Score
@@ -77,11 +79,11 @@ instance Binary CacheItem
 
 instance Store CacheItem
 
-type PerBoardData = M.Map Int CacheItem
+type PerBoardData = M.Map DepthParams CacheItem
 
 type AIData = BoardMap PerBoardData
 
-type StorageKey = (Int, BoardKey)
+type StorageKey = (DepthParams, BoardKey)
 
 type StorageValue = CacheItemSide
 
@@ -119,7 +121,7 @@ data AICacheHandle rules = AICacheHandle {
   , aichDataFile :: Maybe FHandle
   }
 
-type WriteQueue = TChan (BoardKey, Int, Side, StorageValue)
+type WriteQueue = TChan (Board, DepthParams, Side, StorageValue)
 
 type CleanupQueue = TVar (PQ.HashPSQ QueueKey TimeSpec ())
 

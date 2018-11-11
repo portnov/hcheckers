@@ -4,6 +4,7 @@
 
 module Formats.Pdn where
 
+import Control.Monad
 import Data.Char
 import qualified Data.Text as T
 import Text.Megaparsec hiding (Label)
@@ -120,10 +121,10 @@ rulesFromTags [] = Nothing
 rulesFromTags (GameType r:_) = Just r
 rulesFromTags (_:rest) = rulesFromTags rest
 
-pGame :: Parser GameRecord
-pGame = do
+pGame :: Maybe SomeRules -> Parser GameRecord
+pGame dfltRules = do
   tags <- some (try pTag)
-  case rulesFromTags tags of
+  case rulesFromTags tags `mplus` dfltRules of
     Nothing -> fail "Rules are not defined"
     Just rules -> do
       eol
@@ -131,16 +132,16 @@ pGame = do
       result <- pResult
       return $ GameRecord tags moves result
 
-parsePdn :: T.Text -> Either String GameRecord
-parsePdn text =
-  case parse pGame "<PDN>" text of
+parsePdn :: Maybe SomeRules -> T.Text -> Either String GameRecord
+parsePdn dfltRules text =
+  case parse (pGame dfltRules) "<PDN>" text of
     Left err -> Left $ parseErrorPretty err
     Right pdn -> Right pdn
 
-parsePdnFile :: FilePath -> IO [GameRecord]
-parsePdnFile path = do
+parsePdnFile :: Maybe SomeRules -> FilePath -> IO [GameRecord]
+parsePdnFile dfltRules path = do
   text <- TIO.readFile path
-  case parse (pGame `sepEndBy` space1) path text of
+  case parse ((pGame dfltRules) `sepEndBy` space1) path text of
     Left err -> fail $ parseErrorPretty err
     Right pdn -> return pdn
 

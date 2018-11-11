@@ -12,32 +12,18 @@ import qualified System.Remote.Monitoring as EKG
 import Lens.Micro ((^.))
 
 import Core.Types
+import Core.Board
 import AI.AlphaBeta.Types
+import AI.AlphaBeta.Cache
 import AI.AlphaBeta.Persistent
+import AI.AlphaBeta
 import Core.Rest
 import Core.Config
 import Core.Supervisor
+import Core.Checkers
 
 import Learn
 import Rules.Russian
-
-withCheckers :: SupervisorHandle -> Checkers a -> IO a
-withCheckers supervisor actions = do
-  cfg <- loadConfig
-  -- print cfg
-  metrics <- Metrics.initialize
-  let store = metrics ^. Metrics.metricsStore
-  EKG.registerGcMetrics store
-  EKG.forkServerWith store (TE.encodeUtf8 $ gcHost cfg) (gcMetricsPort cfg)
-  let logSettings = (defFileSettings (gcLogFile cfg))
-  withLoggingB logSettings $ \backend -> do
-    let logger = makeLogger backend
-        logging = LoggingTState logger (AnyLogBackend backend) []
-        cs = CheckersState logging supervisor metrics cfg
-    res <- runCheckersT actions cs
-    case res of
-      Right result -> return result
-      Left err -> fail $ show err
 
 main :: IO ()
 main = do
@@ -45,7 +31,6 @@ main = do
   -- let stdout = LoggingSettings $ filtering defaultLogFilter defStdoutSettings
       -- debug = LoggingSettings $ Filtering (\m -> lmLevel m == trace_level) ((defFileSettings "trace.log") {lsFormat = "{time} {source} [{thread}]: {message}\n"})
       -- settings = LoggingSettings $ ParallelLogSettings [stdout, debug]
-  supervisor <- mkSupervisor
   case args of
     ["learn", path] -> do
       let rules = russian
@@ -56,14 +41,31 @@ main = do
                    , abCombinationDepth = 4
                    }
           ai = AlphaBeta params rules
-      withCheckers supervisor $
+      withCheckers $
           withLogContext (LogContextFrame [] (include defaultLogFilter)) $
             learnPdn ai path depth
 
     ["dump", path] -> checkDataFile path
+
+--     ["test"] -> do
+--       let rules = russian
+--           eval = ai
+--           depth = 2
+--           params = def {
+--                      abDepth = depth
+--                    , abCombinationDepth = 0
+--                    }
+--           ai = AlphaBeta params rules
+--       withCheckers $ do
+--         aich <- loadAiCache scoreMove ai
+--         let score0 = Score 5 2
+--         let board = board8
+--         putAiCache params board 2 Second score0 [] aich
+--         res <- lookupAiCache params board 2 Second aich
+--         liftIO $ print res
     
     _ ->
-      withCheckers supervisor $ do
+      withCheckers $ do
           cfg <- asks csConfig
           let fltr = [([], gcLogLevel cfg)]
           withLogContext (LogContextFrame [] (include fltr)) $

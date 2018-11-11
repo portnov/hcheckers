@@ -51,7 +51,7 @@ boardRq rules Nothing (Just fen) Nothing =
     Left err -> Left $ T.pack err
     Right br -> Right $ Just br
 boardRq rules Nothing Nothing (Just pdn) =
-  case parsePdn pdn of
+  case parsePdn (Just rules) pdn of
     Left err -> Left $ T.pack err
     Right gr -> Right $ Just $ boardRep $ loadPdn gr
 boardRq _ Nothing Nothing Nothing = Right Nothing

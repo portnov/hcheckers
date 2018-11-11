@@ -8,6 +8,8 @@ import Data.List
 import Data.String
 import Data.Char (isDigit, toLower, toUpper)
 import qualified Data.Map as M
+import qualified Data.IntMap.Strict as IM
+import qualified Data.IntSet as IS
 import qualified Data.Text as T
 import Text.Printf
 
@@ -47,6 +49,19 @@ isKing (Piece kind _) = kind == King
 promotePiece :: Piece -> Piece
 promotePiece (Piece Man side) = Piece King side
 promotePiece p = p
+
+allFields :: Board -> [FieldIndex]
+allFields b = IM.keys (bAddresses b)
+
+allPieces :: Board -> [Maybe Piece]
+allPieces b = map check (allFields b)
+  where
+    check field
+      | field `IS.member` bFirstMen b = Just (Piece Man First)
+      | field `IS.member` bSecondMen b = Just (Piece Man Second)
+      | field `IS.member` bFirstKings b = Just (Piece King First)
+      | field `IS.member` bSecondKings b = Just (Piece King Second)
+      | otherwise = Nothing
 
 boardDirection :: BoardSide -> PlayerDirection -> BoardDirection
 boardDirection Bottom ForwardLeft = UpLeft

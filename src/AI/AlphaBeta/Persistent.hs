@@ -25,6 +25,9 @@ import Data.Word
 import qualified Data.Binary
 import qualified Data.Binary.Put
 import Data.Store
+import Data.Bits.Coded
+import Data.Bits.Coding
+import Data.Bytes.Put
 import System.Clock
 import System.IO 
 import Text.Printf
@@ -35,60 +38,38 @@ import System.Log.Heavy
 import System.Log.Heavy.TH
 
 import Core.Types
+import Core.Board
 import Core.BoardMap
 import AI.AlphaBeta.Types
-
-{-
- - File structure description.
- -
- - First, goes one number: the total number of data blocks.
- - Then goes @hashIndiciesCount@ of hash-indicies.
- - The hash-index is an array of @hashesCount@ of BlockNumber numbers.
- -
- - The number of hash-index to which the board belongs is defined by converting
- - board's BoardCounts to number (see boardCountsIdx).
- -
- - The number of record in the hash-index to which the board belongs is defined
- - by hashing the BoardKey of that board.
- -
- - The BlockNumber in the hash-index is the number of *last* data block in the
- - chain of blocks, which contain data about similar boards. maxBound here
- - means that there are no blocks with such data.
- -
- - After hash-indicies, there go some (variable) number of data blocks.
- - Size of blocks is constant and hardcoded.
- - Each block starts with a block header:
- - * a number of previous block in the chain. maxBound here means that this block is
- -   the first in the chain (there is no previous one).
- - * a number of data records in this block
- - * offset of first free byte in the block w.r.t. block start
- - After such block header, there go records themselve, in a format defined by
- - Data.Store.Store instance. There may be some free space (probably filled with
- - garbage) left between the end of last record in the block and the end of the block.
- -}
 
 maxPieces :: Integer
 maxPieces = 30
 
-encodeBoard :: BoardSize -> BoardKey -> B.ByteString
-encodeBoard (nrows, ncols) board = BL.toStrict $ Data.Binary.Put.runPut (encodeBk board)
+encodeBoard :: Board -> B.ByteString
+encodeBoard board = runPutS $ runEncode $ encodeB board
   where
 
-    encodeLabel (Label col row) = do
-      let half = ncols `div` 2
-          row' = nrows - row - 1
-          n = row' * half + (col `div` 2)
-      Data.Binary.put (n :: Word8)
+    encodePiece Nothing =
+      putBit False
+    encodePiece (Just (Piece Man First)) = do
+      putBit True
+      putBit False
+      putBit False
+    encodePiece (Just (Piece Man Second)) = do
+      putBit True
+      putBit False
+      putBit True
+    encodePiece (Just (Piece King First)) = do
+      putBit True
+      putBit True
+      putBit False
+    encodePiece (Just (Piece King Second)) = do
+      putBit True
+      putBit True
+      putBit True
 
-    encodeBk bk = do
-      Data.Binary.put (fromIntegral (IS.size (bkFirstMen bk)) :: Word8)
-      Data.Binary.put (fromIntegral (IS.size (bkSecondMen bk)) :: Word8)
-      Data.Binary.put (fromIntegral (IS.size (bkFirstKings bk)) :: Word8)
-      Data.Binary.put (fromIntegral (IS.size (bkSecondKings bk)) :: Word8)
-      forM_ (labelSetToList $ bkFirstMen bk) encodeLabel
-      forM_ (labelSetToList $ bkSecondMen bk) encodeLabel
-      forM_ (labelSetToList $ bkFirstKings bk) encodeLabel
-      forM_ (labelSetToList $ bkSecondKings bk) encodeLabel
+    encodeB b = do
+      forM_ (allPieces b) encodePiece
       
 
 sizeOf :: Data.Store.Store a => a -> ByteCount
@@ -117,10 +98,10 @@ checkCleanupQueue var now = do
           return $ Just key
         else return Nothing
 
-putWriteQueue :: WriteQueue -> (BoardKey, Int, Side, StorageValue) -> STM ()
+putWriteQueue :: WriteQueue -> (Board, DepthParams, Side, StorageValue) -> STM ()
 putWriteQueue = writeTChan
 
-checkWriteQueue :: WriteQueue -> STM (Maybe (BoardKey, Int, Side, StorageValue))
+checkWriteQueue :: WriteQueue -> STM (Maybe (Board, DepthParams, Side, StorageValue))
 checkWriteQueue = tryReadTChan
 
 data AccessType = ReadAccess | WriteAccess
@@ -265,10 +246,10 @@ indexRecordSize :: FileOffset
 indexRecordSize = fromIntegral (sizeOf (0 :: DataBlockNumber) + sizeOf (0 :: IndexBlockNumber))
 
 indexBlockSize :: BoardSize -> FileOffset
-indexBlockSize (nrows, ncols) = fromIntegral (nrows * ncols `div` 2) * indexRecordSize
+indexBlockSize (nrows, ncols) = 256 * indexRecordSize
 
 dataBlockSize :: FileOffset
-dataBlockSize = 2048
+dataBlockSize = 512
 
 calcIndexBlockOffset :: BoardSize -> IndexBlockNumber -> FileOffset
 calcIndexBlockOffset bsize n = indexHeaderSize + indexBlockSize bsize * fromIntegral n
@@ -328,7 +309,7 @@ instance Store IndexRecord where
     dataBlock <- peek
     return $ IndexRecord idxBlock dataBlock
 
-lookupFileB :: B.ByteString -> Storage (Maybe (M.Map Int CacheItem))
+lookupFileB :: B.ByteString -> Storage (Maybe (M.Map DepthParams CacheItem))
 lookupFileB bstr = do
     st <- get
     case ssData st of
@@ -360,10 +341,9 @@ lookupFileB bstr = do
             else loop nextBlockNumber (B.tail bstr)
           
 
-lookupFile :: BoardKey -> Int -> Side -> Storage (Maybe CacheItemSide)
+lookupFile :: Board -> DepthParams -> Side -> Storage (Maybe CacheItemSide)
 lookupFile board depth side = Metrics.timed "cache.lookup.file" $ do
-  bsize <- gets ssBoardSize
-  mbItem <- lookupFileB (encodeBoard bsize board)
+  mbItem <- lookupFileB (encodeBoard board)
   case mbItem of
     Nothing -> return Nothing
     Just item -> case M.lookup depth item of
@@ -372,7 +352,7 @@ lookupFile board depth side = Metrics.timed "cache.lookup.file" $ do
                                 First -> return $ ciFirst ci
                                 Second -> return $ ciSecond ci
 
-putRecordFileB :: B.ByteString -> Int -> Side -> StorageValue -> Storage ()
+putRecordFileB :: B.ByteString -> DepthParams -> Side -> StorageValue -> Storage ()
 putRecordFileB bstr depth side value = do
     st <- get
     case ssData st of
@@ -456,10 +436,9 @@ putRecordFileB bstr depth side value = do
                 First -> item1 {ciFirst = ciFirst item2 `mplus` ciFirst item1}
                 Second -> item2 {ciSecond = ciSecond item2 `mplus` ciSecond item1}
 
-putRecordFile :: BoardKey -> Int -> Side -> StorageValue -> Storage ()
+putRecordFile :: Board -> DepthParams -> Side -> StorageValue -> Storage ()
 putRecordFile board depth side value = Metrics.timed "cache.put.file" $ do
-  bsize <- gets ssBoardSize
-  let bstr = encodeBoard bsize board
+  let bstr = encodeBoard board
   putRecordFileB bstr depth side value
 
 initFile :: Storage ()
