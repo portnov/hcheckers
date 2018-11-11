@@ -5,6 +5,7 @@ module Learn where
 
 import Control.Monad
 import Control.Monad.State
+import qualified Control.Monad.Metrics as Metrics
 import System.Log.Heavy
 import System.Log.Heavy.TH
 
@@ -16,37 +17,43 @@ import AI.AlphaBeta.Cache
 import Formats.Types
 import Formats.Pdn
 
-doLearn :: (GameRules rules, Evaluator eval) => rules -> eval -> AICacheHandle rules -> AlphaBetaParams -> GameRecord -> Int -> Checkers ()
-doLearn rules eval var params gameRec depth = do
+doLearn :: (GameRules rules, Evaluator eval) => rules -> eval -> AICacheHandle rules -> AlphaBetaParams -> GameRecord -> Checkers ()
+doLearn rules eval var params gameRec = do
     let board = initBoard rules
-    go board $ grMoves gameRec
+    go board [] $ grMoves gameRec
   where
-    go _ [] = return ()
-    go board0 (moveRec : rest) = do
+    go _ _ [] = return ()
+    go board0 predicted (moveRec : rest) = do
       let move1 = parseMoveRec rules First board0 (mrFirst moveRec)
+      if move1 `elem` predicted
+        then Metrics.increment "learn.hit"
+        else Metrics.increment "learn.miss"
       let (board1, _,_) = applyMove rules First move1 board0
-      processMove rules eval var params Second depth move1 board1
+      predict2 <- processMove rules eval var params Second move1 board1
       case mrSecond moveRec of
         Nothing -> return ()
         Just rec -> do
           let move2 = parseMoveRec rules Second board1 rec
+          if move2 `elem` predict2
+            then Metrics.increment "learn.hit"
+            else Metrics.increment "learn.miss"
           let (board2, _, _) = applyMove rules Second move2 board1
-          processMove rules eval var params First depth move2 board2
-          go board2 rest
+          predict1 <- processMove rules eval var params First move2 board2
+          go board2 predict1 rest
 
-processMove :: (GameRules rules, Evaluator eval) => rules -> eval -> AICacheHandle rules -> AlphaBetaParams -> Side -> Int -> Move -> Board -> Checkers ()
-processMove rules eval var params side depth move board = do
+processMove :: (GameRules rules, Evaluator eval) => rules -> eval -> AICacheHandle rules -> AlphaBetaParams -> Side -> Move -> Board -> Checkers [Move]
+processMove rules eval var params side move board = do
   let ai = AlphaBeta params rules
   (moves, score) <- runAI ai var side board
-  $info "Processed: side {}, move: {}, depth: {} => score {}; we think next best moves are: {}" (show side, show move, depth, show score, show moves)
-  return ()
+  $info "Processed: side {}, move: {}, depth: {} => score {}; we think next best moves are: {}" (show side, show move, abDepth params, show score, show moves)
+  return moves
 
-learnPdn :: (GameRules rules) => AlphaBeta rules -> FilePath -> Int -> Checkers ()
-learnPdn ai@(AlphaBeta params rules) path depth = do
+learnPdn :: (GameRules rules) => AlphaBeta rules -> FilePath -> Checkers ()
+learnPdn ai@(AlphaBeta params rules) path = do
   cache <- loadAiCache scoreMove ai
   pdn <- liftIO $ parsePdnFile (Just $ SomeRules rules) path
   forM_ pdn $ \gameRec -> do
-    doLearn rules ai cache params gameRec depth
+    doLearn rules ai cache params gameRec
     -- saveAiCache rules params cache
     return ()
 

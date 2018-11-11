@@ -204,15 +204,15 @@ lookupAiCache params board depth side handle = do
     lookupMemory (bc, bk) side = Metrics.timed "cache.lookup.memory" $ do
       let total = bcFirstMen bc + bcSecondMen bc + bcFirstKings bc + bcSecondKings bc
       cfg <- asks (gcAiConfig . csConfig)
-      if total <= aiUseCacheMaxPieces cfg && dpCurrent depth >= aiUseCacheMaxDepth cfg
+      if total <= aiUseCacheMaxPieces cfg && dpTarget depth >= aiUseCacheMaxDepth cfg
         then do
             AICache _ _ cache <- liftIO $ atomically $ readTVar (aichData handle)
             case lookupBoardMap (bc,bk) cache of
               Nothing -> return Nothing
               Just byDepth -> do
-                let ds = [dpCurrent depth .. dpCurrent depth + aiUseCacheMaxDepthPlus cfg] ++
-                             [dpCurrent depth - aiUseCacheMaxDepthMinus cfg .. dpCurrent depth-1] 
-                    depths = [depth {dpCurrent = d} | d <- ds]
+                let ds = [dpTarget depth .. dpTarget depth + aiUseCacheMaxDepthPlus cfg] ++
+                             [dpTarget depth - aiUseCacheMaxDepthMinus cfg .. dpTarget depth-1] 
+                    depths = [depth {dpTarget = d} | d <- ds]
                 case foldl mplus Nothing [M.lookup d byDepth | d <- depths ] of
                   Nothing -> return Nothing
                   Just item -> case side of
@@ -231,7 +231,7 @@ putAiCache' params board depth side sideItem handle = do
   --let (bc', bk', side') = normalize bsize (bc, bk, side)
   let total = bcFirstMen bc + bcSecondMen bc + bcFirstKings bc + bcSecondKings bc
   cfg <- asks (gcAiConfig . csConfig)
-  when (total <= aiUpdateCacheMaxPieces cfg && dpCurrent depth > aiUpdateCacheMaxDepth cfg) $ Metrics.timed "cache.put.memory" $ do
+  when (total <= aiUpdateCacheMaxPieces cfg && dpTarget depth > aiUpdateCacheMaxDepth cfg) $ Metrics.timed "cache.put.memory" $ do
       now <- liftIO $ getTime Monotonic
       Metrics.increment "cache.records.put"
       store <- asks (aiStoreCache . gcAiConfig . csConfig)

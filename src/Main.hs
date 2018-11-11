@@ -35,15 +35,14 @@ main = do
     ["learn", path] -> do
       let rules = russian
           eval = ai
-          depth = 6
           params = def {
-                     abDepth = depth
-                   , abCombinationDepth = 4
+                     abDepth = 6
+                   , abCombinationDepth = 9
                    }
           ai = AlphaBeta params rules
       withCheckers $
           withLogContext (LogContextFrame [] (include defaultLogFilter)) $
-            learnPdn ai path depth
+            learnPdn ai path
 
     ["dump", path] -> checkDataFile path
 
