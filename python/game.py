@@ -212,6 +212,13 @@ class Game(object):
         result = rs.json()
         return result["response"]
     
+    def get_history(self):
+        url = join(self.base_url, "game", self.game_id, "history")
+        rs = requests.get(url)
+        self.process_response(rs)
+        result = rs.json()
+        return result["response"]
+    
     def poll(self):
         url = join(self.base_url, "poll", self.user_name)
         rs = requests.get(url)

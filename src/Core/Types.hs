@@ -461,6 +461,12 @@ data HistoryRecord = HistoryRecord {
   , hrPrevBoard :: Board
   }
 
+data HistoryRecordRep = HistoryRecordRep {
+    hrrSide :: Side
+  , hrrMove :: MoveRep
+  }
+  deriving (Eq, Show, Typeable)
+
 data Notify =
     MoveNotify {
       nDestination :: Side

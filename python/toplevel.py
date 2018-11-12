@@ -5,12 +5,13 @@ import os
 
 from PyQt5.QtGui import QPainter, QPixmap
 from PyQt5.QtCore import QRect, QSize, Qt, QObject, QTimer, pyqtSignal, QSettings
-from PyQt5.QtWidgets import QApplication, QWidget, QToolBar, QMainWindow, QDialog, QVBoxLayout, QAction, QActionGroup, QLabel, QFileDialog, QFrame
+from PyQt5.QtWidgets import QApplication, QWidget, QToolBar, QMainWindow, QDialog, QVBoxLayout, QAction, QActionGroup, QLabel, QFileDialog, QFrame, QDockWidget
 
 from field import Field
 from game import Game, AI, RequestError
 from board import Board
 from theme import Theme
+from history import HistoryWidget
 from newgamedlg import *
 from settingsdlg import SettingsDialog
 
@@ -96,6 +97,13 @@ class Checkers(QMainWindow):
         #self.opponent_info.setLineWidth(3)
         self.statusBar().addPermanentWidget(self.opponent_info)
 
+        self.history = HistoryWidget(self.game, self.board, self)
+        self.history_dock = QDockWidget(_("History"), self)
+        self.history_dock.setAllowedAreas(Qt.AllDockWidgetAreas)
+        self.history_dock.setWidget(self.history)
+        self.history_dock.setObjectName("history")
+        self.addDockWidget(Qt.RightDockWidgetArea, self.history_dock)
+
         geometry = self.settings.value("geometry")
         if geometry is not None:
             self.restoreGeometry(geometry)
@@ -129,22 +137,26 @@ class Checkers(QMainWindow):
         menu.addSeparator()
         self.toolbar.addSeparator()
 
+        self.run_action = self._create_action(None, _("Start &Game"), menu, self._on_run_game, key="Ctrl+R")
+        menu.addSeparator()
+        self._create_action(None, _("Se&ttings"), menu, self._on_settings, toolbar=False)
+
+        menu = self.menuBar().addMenu(_("&Position"))
         setup = QActionGroup(self)
         setup.setExclusive(True)
         self.put_first_action = self._create_action(None, _("Put &white piece"), menu, group=setup, toggle=True)
         self.put_second_action = self._create_action(None, _("Put &black piece"), menu, group=setup, toggle=True)
         self.erase_action = self._create_action(None, _("&Remove piece"), menu, group=setup, toggle=True)
+        self.board_setup_mode = False
         menu.addSeparator()
         self.toolbar.addSeparator()
 
-        self.run_action = self._create_action(None, _("Start &Game"), menu, self._on_run_game, key="Ctrl+R")
-        menu.addSeparator()
+        menu = self.menuBar().addMenu(_("&View"))
         self.flip_action = self._create_action(None, _("&Flip board"), menu, self._on_flip_board, toggle=True, key="Ctrl+T")
         flip = self.settings.value("flip_board", False, type=bool)
         self.flip_action.setChecked(flip)
         self._set_flip_board(flip)
-        self._create_action(None, _("Se&ttings"), menu, self._on_settings, toolbar=False)
-        self.board_setup_mode = False
+        menu.addAction(self.history_dock.toggleViewAction())
 
     def _on_run_game(self):
         self.board_setup_mode = False
@@ -231,6 +243,7 @@ class Checkers(QMainWindow):
             self.board.set_notation(size, notation)
 
             self.board.repaint()
+            self.history.fill()
 
     def _on_save_game(self):
         (path,mask) = QFileDialog.getSaveFileName(self.board, _("Save file"), ".", FEN_MASK + ";;" + PDN_MASK)
@@ -248,6 +261,7 @@ class Checkers(QMainWindow):
         prev_board = self.game.undo()
         self.board.fields_setup(prev_board)
         self.board.repaint()
+        self.history.fill()
 
     def get_result_str(self, result):
         first, second = self.game.get_colors(self.game.rules)
@@ -265,8 +279,10 @@ class Checkers(QMainWindow):
             self.status_info.setText(_("Game result: {}").format(result))
             self.board.setCursor(Qt.ArrowCursor)
             self.statusBar().showMessage(_("Game over."))
+            self.history.fill()
         elif isinstance(message, OtherSideMove):
             self.message.setText(unicode(message))
+            self.history.fill()
             self.my_turn = True
         elif isinstance(message, WaitingMove):
             self.statusBar().showMessage(unicode(message))

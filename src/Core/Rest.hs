@@ -114,6 +114,11 @@ restServer = do
     rs <- liftCheckers $ getPdn gameId
     Web.Scotty.Trans.text $ TL.fromStrict rs
 
+  get "/game/:id/history" $ do
+    gameId <- param "id"
+    rs <- liftCheckers $ getHistory gameId
+    json $ Response (HistoryRs rs) []
+
   post "/game/:id/move/:name" $ do
     gameId <- param "id"
     name <- param "name"

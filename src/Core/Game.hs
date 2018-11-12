@@ -54,6 +54,17 @@ gameState = do
   status <- gets gStatus
   return (gsSide st, status, gsCurrentBoard st)
 
+-- | Get game's history
+gameHistory :: GameM [HistoryRecordRep]
+gameHistory = do
+    history <- gets (gsHistory . gState)
+    some <- gets gRules
+    return $ map (rep some) history
+  where
+    rep (SomeRules rules) r =
+      let side = hrSide r
+      in  HistoryRecordRep side (moveRep rules side $ hrMove r)
+
 -- | Move result. Contains resulting board and a list of notification messages.
 data GMoveRs = GMoveRs Board [Notify]
 

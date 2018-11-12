@@ -52,6 +52,9 @@ instance FromJSON MoveRep where
     <*> v .: "to"
   parseJSON invalid = typeMismatch "MoveRep" invalid
 
+instance ToJSON HistoryRecordRep where
+  toJSON r = object ["side" .= hrrSide r, "move" .= hrrMove r]
+
 instance ToJSON Piece where
   toJSON (Piece kind side) = object ["kind" .= kind, "side" .= side]
 
@@ -125,6 +128,7 @@ instance ToJSON RsPayload where
   toJSON RunGameRs = object ["run_game" .= ("ok" :: T.Text)]
   toJSON (PollRs messages) = toJSON messages
   toJSON (StateRs board status side) = object ["board" .= board, "side" .= side, "status" .= status]
+  toJSON (HistoryRs records) = toJSON records
   toJSON (PossibleMovesRs moves) = toJSON moves
   toJSON (MoveRs board) = toJSON board
   toJSON (UndoRs board) = toJSON board

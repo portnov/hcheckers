@@ -76,6 +76,7 @@ data RsPayload =
   | LobbyRs [Game]
   | NotationRs BoardSize BoardOrientation [(Label, Notation)]
   | StateRs BoardRep GameStatus Side
+  | HistoryRs [HistoryRecordRep]
   | PossibleMovesRs [MoveRep]
   | MoveRs BoardRep
   | UndoRs BoardRep
@@ -366,6 +367,11 @@ getState :: GameId -> Checkers RsPayload
 getState gameId = do
   (side, status, board) <- withGame gameId $ \_ -> gameState
   return $ StateRs (boardRep board) status side
+
+-- | Get game history
+getHistory :: GameId -> Checkers [HistoryRecordRep]
+getHistory gameId = do
+  withGame gameId $ \_ -> gameHistory
 
 -- | Get current position in specified game in FEN notation
 getFen :: GameId -> Checkers T.Text
