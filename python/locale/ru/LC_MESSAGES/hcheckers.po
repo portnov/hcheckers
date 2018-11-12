@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: 0.1.0.0\n"
-"POT-Creation-Date: 2018-11-11 21:32+YEKT\n"
+"POT-Creation-Date: 2018-11-12 23:36+YEKT\n"
 "PO-Revision-Date: 2018-11-07 22:30+5\n"
 "Last-Translator: Ilya Portnov <portnov84@rambler.ru>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -55,11 +55,11 @@ msgstr "Шашки Спанцирети"
 msgid "Diagonal draughts"
 msgstr "Диагональные шашки"
 
-#: game.py:170 game.py:172 lobby.py:19 newgamedlg.py:66
+#: game.py:170 game.py:172 lobby.py:19 newgamedlg.py:72
 msgid "White"
 msgstr "Белые"
 
-#: game.py:170 game.py:172 lobby.py:19 newgamedlg.py:67
+#: game.py:170 game.py:172 lobby.py:19 newgamedlg.py:73
 msgid "Black"
 msgstr "Черные"
 
@@ -71,7 +71,7 @@ msgstr "Ид"
 msgid "Status"
 msgstr "Статус"
 
-#: lobby.py:19 newgamedlg.py:59
+#: lobby.py:19 newgamedlg.py:65
 msgid "Rules"
 msgstr "Правила"
 
@@ -83,29 +83,29 @@ msgstr "Обзор..."
 msgid "Open file"
 msgstr "Открыть файл"
 
-#: newgamedlg.py:63
-msgid "User name"
-msgstr "Имя пользователя"
-
-#: newgamedlg.py:68
-msgid "User plays"
-msgstr "Пользователь играет"
-
-#: newgamedlg.py:71
+#: newgamedlg.py:53
 msgid "Start a game against computer"
 msgstr "Начать игру против компьютера"
 
-#: newgamedlg.py:72
+#: newgamedlg.py:54
 msgid "Start a game against human"
 msgstr "Начать игру против человека"
 
-#: newgamedlg.py:73
+#: newgamedlg.py:55
 msgid "Join a game against human"
 msgstr "Присоединиться к игре против человека"
 
-#: newgamedlg.py:74
+#: newgamedlg.py:56
 msgid "Action"
 msgstr "Действие"
+
+#: newgamedlg.py:69
+msgid "User name"
+msgstr "Имя пользователя"
+
+#: newgamedlg.py:74
+msgid "User plays"
+msgstr "Пользователь играет"
 
 #: newgamedlg.py:77
 msgid "Use default initial position"
@@ -191,87 +191,99 @@ msgstr "Настройки внешнего вида"
 msgid "AI Presets"
 msgstr "Настройки ИИ"
 
-#: toplevel.py:21
+#: toplevel.py:22
 msgid "HCheckers client"
 msgstr "Клиент HCheckers"
 
-#: toplevel.py:48
+#: toplevel.py:49
 msgid "Your turn."
 msgstr "Ваш ход."
 
-#: toplevel.py:50
+#: toplevel.py:51
 msgid "Awaiting a turn from another side."
 msgstr "Ожидаем хода другой стороны."
 
-#: toplevel.py:124
+#: toplevel.py:101
+msgid "History"
+msgstr "История"
+
+#: toplevel.py:132
 msgid "&Game"
 msgstr "&Игра"
 
-#: toplevel.py:125
+#: toplevel.py:133
 msgid "&New Game"
 msgstr "&Новая игра"
 
-#: toplevel.py:126
+#: toplevel.py:134
 msgid "Save Position"
 msgstr "Сохранить позицию"
 
-#: toplevel.py:127
+#: toplevel.py:135
 msgid "&Undo"
 msgstr "&Отменить"
-
-#: toplevel.py:134
-msgid "Put &white piece"
-msgstr "Установить &белую шашку"
-
-#: toplevel.py:135
-msgid "Put &black piece"
-msgstr "Установить &черную шашку"
-
-#: toplevel.py:136
-msgid "&Remove piece"
-msgstr "&Удалить шашку"
 
 #: toplevel.py:140
 msgid "Start &Game"
 msgstr "Начать &игру"
 
 #: toplevel.py:142
-msgid "&Flip board"
-msgstr "&Перевернуть доску"
-
-#: toplevel.py:146
 msgid "Se&ttings"
 msgstr "Нас&тройки"
 
-#: toplevel.py:202 toplevel.py:213 toplevel.py:225
+#: toplevel.py:144
+msgid "&Position"
+msgstr "&Позиция"
+
+#: toplevel.py:147
+msgid "Put &white piece"
+msgstr "Установить &белую шашку"
+
+#: toplevel.py:148
+msgid "Put &black piece"
+msgstr "Установить &черную шашку"
+
+#: toplevel.py:149
+msgid "&Remove piece"
+msgstr "&Удалить шашку"
+
+#: toplevel.py:154
+msgid "&View"
+msgstr "&Вид"
+
+#: toplevel.py:155
+msgid "&Flip board"
+msgstr "&Перевернуть доску"
+
+#: toplevel.py:214 toplevel.py:225 toplevel.py:237
 msgid "Rules: {}"
 msgstr "Правила: {}"
 
-#: toplevel.py:203
+#: toplevel.py:215
 msgid "AI: {}"
 msgstr "ИИ: {}"
 
-#: toplevel.py:217
+#: toplevel.py:229
 msgid "Waiting for another side to join the game."
 msgstr "Ожидаем подключения второй стороны к игре"
 
-#: toplevel.py:236
+#: toplevel.py:249
 msgid "Save file"
 msgstr "Сохранить файл"
 
-#: toplevel.py:255 toplevel.py:257
+#: toplevel.py:269 toplevel.py:271
 msgid "{} win"
 msgstr "{} выиграли"
 
-#: toplevel.py:259
+#: toplevel.py:273
 msgid "Draw"
 msgstr "Ничья"
 
-#: toplevel.py:265
+#: toplevel.py:279
 msgid "Game result: {}"
 msgstr "Результат игры: {}"
 
-#: toplevel.py:267
+#: toplevel.py:281
 msgid "Game over."
 msgstr "Игра окончена."
 
