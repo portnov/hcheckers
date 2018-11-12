@@ -49,6 +49,12 @@ class NewGameDialog(QDialog):
         widget = QWidget()
         layout = QFormLayout()
 
+        self.game_type = QComboBox(self)
+        self.game_type.addItem(_("Start a game against computer"), START_AI_GAME)
+        self.game_type.addItem(_("Start a game against human"), START_HUMAN_GAME)
+        self.game_type.addItem(_("Join a game against human"), JOIN_HUMAN_GAME)
+        layout.addRow(_("Action"), self.game_type)
+
         self.rules = QComboBox()
         for name, title in supported_rules:
             self.rules.addItem(title, name)
@@ -66,12 +72,6 @@ class NewGameDialog(QDialog):
         self.user_side.addItem(_("White"), FIRST)
         self.user_side.addItem(_("Black"), SECOND)
         layout.addRow(_("User plays"), self.user_side)
-
-        self.game_type = QComboBox(self)
-        self.game_type.addItem(_("Start a game against computer"), START_AI_GAME)
-        self.game_type.addItem(_("Start a game against human"), START_HUMAN_GAME)
-        self.game_type.addItem(_("Join a game against human"), JOIN_HUMAN_GAME)
-        layout.addRow(_("Action"), self.game_type)
 
         self.board_type = QComboBox(self)
         self.board_type.addItem(_("Use default initial position"), DEFAULT_BOARD)
