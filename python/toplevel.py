@@ -235,6 +235,8 @@ class Checkers(QMainWindow):
             elif game.action == JOIN_HUMAN_GAME:
                 self.game.game_id = dialog.lobby.get_game_id()
                 self.game.user_side = side = dialog.lobby.get_free_side()
+                self.game.rules = dialog.lobby.get_rules()
+                #used_name = dialog.lobby.get_used_name()
                 self.game.register_user(game.user_name, side)
                 self.game.run_game()
                 self.do_poll = True

@@ -6,6 +6,21 @@ from PyQt5.QtWidgets import QWidget, QDialog, QVBoxLayout, QFormLayout, QLineEdi
 from common import *
 from game import Game
 
+class SelectedGame(object):
+    def __init__(self):
+        self.id = None
+        self.rules = None
+        self.first = None
+        self.second = None
+        self.status = None
+
+    def get_used_name(self):
+        if self.first is not None:
+            return self.first
+        if self.second is not None:
+            return self.second
+        return None
+
 class LobbyWidget(QWidget):
     def __init__(self, client, rules=None, parent=None):
         QWidget.__init__(self, parent)
@@ -17,12 +32,15 @@ class LobbyWidget(QWidget):
         self.table = QTableWidget(self)
         self.table.setColumnCount(5)
         self.table.setHorizontalHeaderLabels([_("ID"), _("Rules"), _("White"), _("Black"), _("Status")])
+        self.table.currentCellChanged.connect(self._on_select)
 
         layout.addWidget(self.table)
 
         self.setLayout(layout)
 
         self.fill()
+
+    selected = pyqtSignal(object)
 
     def fill(self):
         def make_item(game, key, selectable=True):
@@ -51,12 +69,29 @@ class LobbyWidget(QWidget):
         self.table.setSelectionBehavior(QTableView.SelectRows)
         self.table.resizeColumnsToContents()
 
+    def _on_select(self, row, col, prev_row, prev_col):
+        if row != prev_row:
+            game = SelectedGame()
+            game.id = self.table.item(row, 0).text()
+            game.rules = self.table.item(row, 1).text()
+            game.first = self.table.item(row, 2).text()
+            game.second = self.table.item(row, 3).text()
+            game.status = self.table.item(row, 4).text()
+            self.selected.emit(game)
+
     def get_game_id(self):
         row = self.table.currentRow()
         if row is None:
             return None
         game_id = self.table.item(row, 0).text()
         return game_id
+    
+    def get_rules(self):
+        row = self.table.currentRow()
+        if row is None:
+            return None
+        rules = self.table.item(row, 1).text()
+        return rules
     
     def get_free_side(self):
         row = self.table.currentRow()
@@ -69,5 +104,18 @@ class LobbyWidget(QWidget):
         user = self.table.item(row, 3).text()
         if not user:
             return SECOND
+        return None
+    
+    def get_used_name(self):
+        row = self.table.currentRow()
+        if row is None:
+            return None
+
+        user = self.table.item(row, 2).text()
+        if user:
+            return user
+        user = self.table.item(row, 3).text()
+        if user:
+            return user
         return None
 

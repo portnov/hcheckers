@@ -1,7 +1,7 @@
 
 import getpass
 
-from PyQt5.QtGui import QPainter, QPixmap
+from PyQt5.QtGui import QPainter, QPixmap, QValidator
 from PyQt5.QtCore import QRect, QSize, Qt, QObject, QTimer, pyqtSignal, QSettings
 from PyQt5.QtWidgets import QWidget, QDialog, QPushButton, QVBoxLayout, QHBoxLayout, QFormLayout, QLineEdit, QComboBox, QGroupBox, QCheckBox, QDialogButtonBox, QFileDialog
 
@@ -40,6 +40,23 @@ class FileSelectWidget(QWidget):
     def path(self):
         return self.textbox.text()
 
+class NameValidator(QValidator):
+    def __init__(self, used_name, parent=None):
+        QValidator.__init__(self, parent)
+        self.used_name = used_name
+
+    def validate(self, name, pos):
+        if name == self.used_name:
+            return (QValidator.Invalid, name, pos)
+        else:
+            return (QValidator.Acceptable, name, pos)
+
+    def fixup(self, name):
+        if name == self.used_name:
+            return name + "_2"
+        else:
+            return name
+
 class NewGameDialog(QDialog):
     def __init__(self, settings, client, parent=None):
         QDialog.__init__(self, parent)
@@ -66,6 +83,8 @@ class NewGameDialog(QDialog):
 
         self.user_name = QLineEdit(self)
         self.user_name.setText(getpass.getuser())
+        self.user_name_validator = NameValidator(self)
+        self.user_name.setValidator(self.user_name_validator)
         layout.addRow(_("User name"), self.user_name)
 
         self.user_side = QComboBox(self)
@@ -100,6 +119,7 @@ class NewGameDialog(QDialog):
         layout.addRow(_("AI"), self.ai)
 
         self.lobby = LobbyWidget(client=client, parent=self)
+        self.lobby.selected.connect(self._on_game_selected)
         self.lobby.hide()
         vbox.addWidget(self.lobby)
 
@@ -140,6 +160,14 @@ class NewGameDialog(QDialog):
             self.file_path.mask = FEN_MASK
         elif action == LOAD_PDN:
             self.file_path.mask = PDN_MASK
+
+    def _on_game_selected(self, game):
+        used_name = game.get_used_name()
+        if used_name is None:
+            return
+        self.user_name_validator.used_name = used_name
+        name = self.user_name.text()
+        self.user_name.setText(self.user_name_validator.fixup(name))
 
     def _on_accept(self):
         self.settings.setValue("ai", self.ai.currentText())
