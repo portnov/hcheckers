@@ -96,9 +96,10 @@ class MoveAnimation(QObject):
         return True
 
 class Board(QWidget):
-    def __init__(self, theme, settings, game, parent=None):
-        QWidget.__init__(self, parent)
+    def __init__(self, theme, settings, game, toplevel):
+        QWidget.__init__(self, toplevel)
 
+        self.toplevel = toplevel
         self.game = game
         self._theme = theme
         self.settings = settings
@@ -248,27 +249,25 @@ class Board(QWidget):
             field.invalidate()
         self._pixmap = None
 
+    @handling_error
     def fields_setup(self, board=None):
-        try:
-            if board is None:
-                if self.game.game_id is None:
-                    board = dict()
-                else:
-                    board = self.game.get_board()
+        if board is None:
+            if self.game.game_id is None:
+                board = dict()
+            else:
+                board = self.game.get_board()
 
-            self._board = board
+        self._board = board
 
-            for label in self.field_by_label:
-                field = self.field_by_label[label]
-                field.invert_colors = self.invert_colors
-                if label in board:
-                    field.piece = board[label]
-                else:
-                    field.piece = None
+        for label in self.field_by_label:
+            field = self.field_by_label[label]
+            field.invert_colors = self.invert_colors
+            if label in board:
+                field.piece = board[label]
+            else:
+                field.piece = None
 
-            self.invalidate()
-        except RequestError as e:
-            print(e)
+        self.invalidate()
 
     def draw_field(self, painter, field, row, col, hide=False):
         width = self.size().width()
@@ -385,43 +384,41 @@ class Board(QWidget):
             self._pixmap = None
             self.repaint()
 
+    @handling_error
     def process_click(self, row, col):
         self.field_clicked.emit(row, col)
 
-        try:
-            field = self.fields[(row, col)]
-            piece = self._board.get(field.label)
-            if piece is not None and piece.side == self.game.user_side:
-                moves = self.game.get_possible_moves(field.label)
-                #print(moves)
-                if not moves:
-                    print("Piece at {} does not have moves".format(field.label))
-                else:
-                    self._valid_target_fields = dict((move.steps[-1].field, move) for move in moves)
-                    print("Valid target fields: {}".format(self._valid_target_fields.keys()))
-                    self.selected_field = (row, col)
-                    self.repaint()
-            elif piece is None and self.selected_field is not None and self._valid_target_fields is not None:
-                if field.label in self._valid_target_fields:
-                    src_field = self.fields[self.selected_field].label
-                    dst_field = field.label
-                    self.game.begin_move(src_field, dst_field)
-                    self.my_turn = False
-                    self.message.emit(WaitingMove())
-
-                    move = self._valid_target_fields[field.label]
-                    start_position = self.get_field_center(self.index_by_label[src_field])
-                    piece = self.fields[self.selected_field].piece
-                    if self.invert_colors:
-                        piece = piece.inverted()
-                    self.move_animation.start(self.selected_field, (row, col), move, start_position, piece, process_result=True)
-                    self._valid_target_fields = None
-                    self.repaint()
-
+        field = self.fields[(row, col)]
+        piece = self._board.get(field.label)
+        if piece is not None and piece.side == self.game.user_side:
+            moves = self.game.get_possible_moves(field.label)
+            #print(moves)
+            if not moves:
+                print("Piece at {} does not have moves".format(field.label))
             else:
-                print("Field {} is not yours".format(field.label))
-        except RequestError as e:
-            print(e)
+                self._valid_target_fields = dict((move.steps[-1].field, move) for move in moves)
+                print("Valid target fields: {}".format(self._valid_target_fields.keys()))
+                self.selected_field = (row, col)
+                self.repaint()
+        elif piece is None and self.selected_field is not None and self._valid_target_fields is not None:
+            if field.label in self._valid_target_fields:
+                src_field = self.fields[self.selected_field].label
+                dst_field = field.label
+                self.game.begin_move(src_field, dst_field)
+                self.my_turn = False
+                self.message.emit(WaitingMove())
+
+                move = self._valid_target_fields[field.label]
+                start_position = self.get_field_center(self.index_by_label[src_field])
+                piece = self.fields[self.selected_field].piece
+                if self.invert_colors:
+                    piece = piece.inverted()
+                self.move_animation.start(self.selected_field, (row, col), move, start_position, piece, process_result=True)
+                self._valid_target_fields = None
+                self.repaint()
+
+        else:
+            print("Field {} is not yours".format(field.label))
 
     def get_notation(self, label):
         idx = self.index_by_label[label]
@@ -458,19 +455,24 @@ class Board(QWidget):
             result = message["result"]
             self.message.emit(GameResultMessage(result))
 
+    @handling_error
     def on_animation_finished(self, process_result):
-        if process_result:
-            board, messages = self.game.get_move_result()
-            self._board = board
-            for message in messages:
-                self.process_message(message)
-            self.selected_field = None
-        elif self._new_board is not None:
-            self._board = self._new_board
-            self._new_board = None
-        self.fields_setup(self._board)
-        self.repaint()
+        try:
+            if process_result:
+                board, messages = self.game.get_move_result()
+                self._board = board
+                for message in messages:
+                    self.process_message(message)
+                self.selected_field = None
+            elif self._new_board is not None:
+                self._board = self._new_board
+                self._new_board = None
+            self.fields_setup(self._board)
+            self.repaint()
+        except RequestError as e:
+            print(e)
 
+    @handling_error
     def mousePressEvent(self, me):
         if me.button() != Qt.LeftButton:
             return
@@ -480,7 +482,6 @@ class Board(QWidget):
         
         if not self.my_turn:
             return
-        print(self.locked)
         if self.locked:
             return
         
@@ -491,4 +492,10 @@ class Board(QWidget):
                 self.update()
                 self.process_click(row, col)
                 return
+
+    def _handle_connection_error(self, url, e):
+        self.toplevel._handle_connection_error(url, e)
+
+    def _handle_game_error(self, rs):
+        self.toplevel._handle_game_error(rs)
 

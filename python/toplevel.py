@@ -5,7 +5,7 @@ import os
 
 from PyQt5.QtGui import QPainter, QPixmap
 from PyQt5.QtCore import QRect, QSize, Qt, QObject, QTimer, pyqtSignal, QSettings
-from PyQt5.QtWidgets import QApplication, QWidget, QToolBar, QMainWindow, QDialog, QVBoxLayout, QAction, QActionGroup, QLabel, QFileDialog, QFrame, QDockWidget
+from PyQt5.QtWidgets import QApplication, QWidget, QToolBar, QMainWindow, QDialog, QVBoxLayout, QAction, QActionGroup, QLabel, QFileDialog, QFrame, QDockWidget, QMessageBox
 
 from field import Field
 from game import Game, AI, RequestError
@@ -71,10 +71,11 @@ class Checkers(QMainWindow):
         self.poll_timer = self.startTimer(500)
         self.do_poll = False
 
+    @handling_error
     def _gui_setup(self):
         widget = QWidget(self)
         layout = QVBoxLayout()
-        self.board = Board(self.theme, self.settings, self.game)
+        self.board = Board(self.theme, self.settings, self.game, self)
         self.board.message.connect(self._on_board_message)
         self.board.field_clicked.connect(self._on_field_clicked)
         #self.board.show()
@@ -158,12 +159,14 @@ class Checkers(QMainWindow):
         self._set_flip_board(flip)
         menu.addAction(self.history_dock.toggleViewAction())
 
+    @handling_error
     def _on_run_game(self):
         self.board_setup_mode = False
         board = self.board.json()
         self.game.start_new_game(self.game_settings.user_name, rules=self.game_settings.rules, user_turn_first=self.game_settings.user_turn_first, ai=self.game_settings.ai, board=board)
         self.board.fields_setup()
 
+    @handling_error
     def _on_field_clicked(self, row, col):
         if not self.board_setup_mode:
             return
@@ -192,10 +195,12 @@ class Checkers(QMainWindow):
             piece = None
         self.board.fields[(row,col)].piece = piece
 
+    @handling_error
     def _default_new_game(self):
         self._on_new_game()
 
-    def _on_new_game(self):
+    @handling_error
+    def _on_new_game(self, checked=None):
         dialog = NewGameDialog(self.settings, self.game, self)
         result = dialog.exec_()
         if result == QDialog.Accepted:
@@ -245,7 +250,8 @@ class Checkers(QMainWindow):
             self.board.repaint()
             self.history.fill()
 
-    def _on_save_game(self):
+    @handling_error
+    def _on_save_game(self, checked=None):
         (path,mask) = QFileDialog.getSaveFileName(self.board, _("Save file"), ".", FEN_MASK + ";;" + PDN_MASK)
         if path:
             if mask == FEN_MASK:
@@ -257,12 +263,14 @@ class Checkers(QMainWindow):
                 with open(path, 'w') as f:
                     f.write(pdn)
 
-    def _on_undo(self):
+    @handling_error
+    def _on_undo(self, checked=None):
         prev_board = self.game.undo()
         self.board.fields_setup(prev_board)
         self.board.repaint()
         self.history.fill()
 
+    @handling_error
     def get_result_str(self, result):
         first, second = self.game.get_colors(self.game.rules)
         if result == 'FirstWin':
@@ -303,11 +311,20 @@ class Checkers(QMainWindow):
             self.board.theme = dialog.get_theme()
             print("ok")
 
+    def _handle_game_error(self, rs):
+        message = _("Unexpected response received from the server.\nRequest URL: {}\nResponse code: {}\nResponse message: {}").format(rs.url, rs.status_code, rs.text)
+        QMessageBox.critical(self, _("Exception"), message)
+
+    def _handle_connection_error(self, url, e):
+        message = _("An exception occured while connecting to the server.\nRequest URL: {}\nException text: {}").format(url, unicode(e))
+        QMessageBox.critical(self, _("Exception"), message)
+
     def closeEvent(self, ev):
         self.settings.setValue("geometry", self.saveGeometry())
         self.settings.setValue("windowState", self.saveState())
         QMainWindow.closeEvent(self, ev)
 
+    @handling_error
     def timerEvent(self, e):
         if e.timerId() != self.poll_timer:
             return

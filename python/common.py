@@ -1,4 +1,6 @@
 
+from requests.exceptions import ConnectionError
+
 MAN = 1
 KING = 2
 
@@ -143,6 +145,22 @@ class GameResultMessage(Message):
 class WaitingMove(Message):
     def __unicode__(self):
         return _("Wating for another side turn")
+
+class RequestError(Exception):
+    def __init__(self, rs):
+        Exception.__init__(self, unicode(rs))
+        self.rs = rs
+
+def handling_error(method):
+    def wrapped(self, *args, **kwargs):
+        try:
+            result = method(self, *args, **kwargs)
+        except RequestError as e:
+            self._handle_game_error(e.rs)
+        except ConnectionError as e:
+            self._handle_connection_error(e.request.url, e)
+    wrapped.__name__ = method.__name__
+    return wrapped
 
 supported_rules = [
         ("russian", _("Russian draughts")),
