@@ -64,8 +64,11 @@ pResult :: Parser (Maybe GameResult)
 pResult =
       (try $ string "*" >> return Nothing)
   <|> (try $ string "1-0" >> return (Just FirstWin))
-  <|> (try $ string "0-1" >> return (Just SecondWin))
+  <|> (try $ string "2-0" >> return (Just FirstWin))
+  <|> (try $ string "2-0" >> return (Just FirstWin))
+  <|> (try $ string "0-2" >> return (Just SecondWin))
   <|> (try $ string "1/2-1/2" >> return (Just Draw))
+  <|> (try $ string "1-1" >> return (Just Draw))
 
 pText :: Parser T.Text
 pText = between (char '"') (char '"') $ do
@@ -128,6 +131,7 @@ pGame dfltRules = do
     Nothing -> fail "Rules are not defined"
     Just rules -> do
       eol
+      optional whitespace
       moves <- try (pMove rules) `sepEndBy` whitespace
       result <- pResult
       return $ GameRecord tags moves result
