@@ -54,6 +54,7 @@ dependencies:
 - ekg-core
 - monad-metrics
 - microlens
+- random-access-file
 
 executables:
   hcheckers-exe:

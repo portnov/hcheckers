@@ -22,9 +22,8 @@ import Data.Typeable
 import Data.Default
 import GHC.Generics
 import System.Clock
--- import System.IO
 import System.Posix.Types
--- import "unix-bytestring" System.Posix.IO.ByteString
+import System.IO.RandomAccessFile
 import System.Log.Heavy
 
 import Core.Types
@@ -125,11 +124,12 @@ type WriteQueue = TChan (Board, DepthParams, Side, StorageValue)
 
 type CleanupQueue = TVar (PQ.HashPSQ QueueKey TimeSpec ())
 
+type FileDescriptor = Cached MMaped
+
 -- | File handle
 data FHandle = FHandle {
     fhOffset :: FileOffset
-  , fhHandle :: Fd
-  , fhLocks :: Locks
+  , fhHandle :: FileDescriptor
   }
 
 data StorageState = StorageState {

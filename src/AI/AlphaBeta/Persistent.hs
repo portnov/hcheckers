@@ -33,7 +33,7 @@ import System.IO
 import Text.Printf
 import GHC.Generics
 import System.Posix.Types
-import "unix-bytestring" System.Posix.IO.ByteString
+import qualified System.IO.RandomAccessFile as File
 import System.Log.Heavy
 import System.Log.Heavy.TH
 
@@ -104,41 +104,7 @@ putWriteQueue = writeTChan
 checkWriteQueue :: WriteQueue -> STM (Maybe (Board, DepthParams, Side, StorageValue))
 checkWriteQueue = tryReadTChan
 
-data AccessType = ReadAccess | WriteAccess
-
-withLock :: RWL.RWLock -> AccessType -> Storage a -> Storage a
-withLock lock ReadAccess action =
-  bracket_
-    (liftIO $ RWL.acquireRead lock)
-    (liftIO $ RWL.releaseRead lock)
-    action
-withLock lock WriteAccess action =
-  bracket_
-    (liftIO $ RWL.acquireWrite lock)
-    (liftIO $ RWL.releaseWrite lock)
-    action
-
-underBlockLock :: FileType -> AccessType -> IndexBlockNumber -> Storage a -> Storage a
-underBlockLock file access n action = do
-  fh <- getFh file
-  let locksVar = lBlockLocks $ fhLocks fh
-  newLock <- liftIO RWL.new
-  lock <- liftIO $ atomically $ do
-            locks <- readTVar locksVar
-            case M.lookup n locks of
-              Just lock -> return lock
-              Nothing -> do
-                writeTVar locksVar $ M.insert n newLock locks
-                return newLock
-  withLock lock access action
-
-underGeneralLock :: FileType -> AccessType -> Storage a -> Storage a
-underGeneralLock file access action = do
-  fh <- getFh file
-  let lock = lBlocksCount $ fhLocks fh
-  withLock lock access action
-
-getFd :: FileType -> Storage Fd
+getFd :: FileType -> Storage FileDescriptor
 getFd file = do
   fh <- getFh file
   return $ fhHandle fh
@@ -178,18 +144,17 @@ readBytes :: FileType -> ByteCount -> Storage B.ByteString
 readBytes file size = do
   fd <- getFd file
   currentOffset <- tell file
-  result <- liftIO $ fdPread fd (fromIntegral size) currentOffset
+  result <- liftIO $ File.readBytes fd (fromIntegral currentOffset) (fromIntegral size)
   seek file $ fromIntegral size + currentOffset
   return result
   
-writeBytes :: FileType -> B.ByteString -> Storage ByteCount
+writeBytes :: FileType -> B.ByteString -> Storage ()
 writeBytes file bstr = do
   fd <- getFd file
   currentOffset <- tell file
-  result <- liftIO $ fdPwrite fd bstr currentOffset
+  result <- liftIO $ File.writeBytes fd (fromIntegral currentOffset) bstr
   let size = B.length bstr
   seek file $ fromIntegral size + currentOffset
-  return $ fromIntegral result
 
 flush :: Storage ()
 flush = return ()
@@ -213,7 +178,7 @@ readData file = do
     fail $ "readData: unexpected EOF, offset " ++ show offset
   liftIO $ Data.Store.decodeIO bstr
 
-writeData :: forall a. Data.Store.Store a => FileType -> a -> Storage ByteCount
+writeData :: forall a. Data.Store.Store a => FileType -> a -> Storage ()
 writeData file a = do
   let bstr = Data.Store.encode a
   writeBytes file bstr
@@ -229,7 +194,7 @@ readDataSized file = do
     fail $ "readDataSized: unexpected EOF, offset " ++ show offset
   liftIO $ Data.Store.decodeIO bstr
 
-writeDataSized :: forall a. Data.Store.Store a => FileType -> a -> Storage ByteCount
+writeDataSized :: forall a. Data.Store.Store a => FileType -> a -> Storage ()
 writeDataSized file a = do
   let bstr = Data.Store.encode a
   let size = (fromIntegral $ B.length bstr) :: Word16
@@ -317,7 +282,7 @@ lookupFileB bstr = do
       Just _ -> loop 0 bstr
   where
     loop blockNumber bstr
-      | B.length bstr == 1 = underBlockLock IndexFile ReadAccess blockNumber $ do
+      | B.length bstr == 1 = do
           bsize <- gets ssBoardSize
           let idxOffset = calcIndexOffset bsize blockNumber (B.head bstr)
           seek IndexFile idxOffset
@@ -325,12 +290,12 @@ lookupFileB bstr = do
           let dataBlockNumber = irDataBlock record
           if dataBlockNumber == unexistingBlock
             then return Nothing
-            else underBlockLock DataFile ReadAccess dataBlockNumber $ do
+            else do
                    let dataOffset = calcDataBlockOffset dataBlockNumber
                    seek DataFile dataOffset
                    value <- readDataSized DataFile
                    return $ Just value
-      | otherwise = underBlockLock IndexFile ReadAccess blockNumber $ do
+      | otherwise = do
           bsize <- gets ssBoardSize
           let idxOffset = calcIndexOffset bsize blockNumber (B.head bstr)
           seek IndexFile idxOffset
@@ -360,7 +325,7 @@ putRecordFileB bstr depth side value = do
       Just _ -> tryBlock 0 bstr
   where
     tryBlock blockNumber bstr
-      | B.length bstr == 1 = underBlockLock IndexFile WriteAccess blockNumber $ do
+      | B.length bstr == 1 = do
           bsize <- gets ssBoardSize
           let idxOffset = calcIndexOffset bsize blockNumber (B.head bstr)
           seek IndexFile idxOffset
@@ -376,7 +341,7 @@ putRecordFileB bstr depth side value = do
                  let newData = M.singleton depth newItem
                  writeDataSized DataFile newData
                  return ()
-            else underBlockLock DataFile WriteAccess dataBlockNumber $ do
+            else do
                    let dataOffset = calcDataBlockOffset dataBlockNumber
                    seek DataFile dataOffset
                    oldData <- readDataSized DataFile
@@ -384,7 +349,7 @@ putRecordFileB bstr depth side value = do
                    seek DataFile dataOffset
                    writeDataSized DataFile newData
                    return ()
-      | otherwise = underBlockLock IndexFile WriteAccess blockNumber $ do
+      | otherwise = do
           bsize <- gets ssBoardSize
           let idxOffset = calcIndexOffset bsize blockNumber (B.head bstr)
           seek IndexFile idxOffset
@@ -399,7 +364,7 @@ putRecordFileB bstr depth side value = do
                  tryBlock newIndexBlock (B.tail bstr)
             else tryBlock nextBlockNumber (B.tail bstr)
     
-    createIndexBlock = underGeneralLock IndexFile WriteAccess $ do
+    createIndexBlock = do
       seek IndexFile 0
       header <- readData IndexFile
       let newBlockNumber = ihBlocksCount header + 1
@@ -412,7 +377,7 @@ putRecordFileB bstr depth side value = do
       writeBytes IndexFile empty
       return newBlockNumber
 
-    createDataBlock = underGeneralLock DataFile WriteAccess $ do
+    createDataBlock = do
       seek DataFile 0
       header <- readData DataFile
       let newBlockNumber = dhBlocksCount header + 1

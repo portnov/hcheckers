@@ -65,7 +65,7 @@ pResult =
       (try $ string "*" >> return Nothing)
   <|> (try $ string "1-0" >> return (Just FirstWin))
   <|> (try $ string "2-0" >> return (Just FirstWin))
-  <|> (try $ string "2-0" >> return (Just FirstWin))
+  <|> (try $ string "0-1" >> return (Just SecondWin))
   <|> (try $ string "0-2" >> return (Just SecondWin))
   <|> (try $ string "1/2-1/2" >> return (Just Draw))
   <|> (try $ string "1-1" >> return (Just Draw))

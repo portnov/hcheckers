@@ -22,6 +22,7 @@ import System.FilePath
 import System.Environment
 import System.Directory
 import System.Posix.IO
+import qualified System.IO.RandomAccessFile as File
 import System.Clock
 import System.Log.Heavy
 import System.Log.Heavy.TH
@@ -69,10 +70,10 @@ loadAiCache scoreMove (AlphaBeta params rules) = do
                       if load && not store && not exist
                         then return (Nothing, Nothing, exist)
                         else liftIO $ do
-                          let fileMode = Just 0o644
-                          let flags = defaultFileFlags
-                          indexFd <- openFd indexPath mode fileMode flags
-                          dataFd <- openFd dataPath mode fileMode flags
+                          let page = 1024*1024
+                              params = (File.dfltCached $ File.MMapedParams page) {File.cachePageSize = page}
+                          indexFd <- File.initFile params indexPath
+                          dataFd <- File.initFile params dataPath
                           return (Just indexFd, Just dataFd, exist)
   when (isJust mbMode) $
       $info "Opened cache: {}" (Single cachePath)
@@ -87,21 +88,13 @@ loadAiCache scoreMove (AlphaBeta params rules) = do
         Nothing -> Nothing
         Just fd -> Just $ FHandle {
                      fhOffset = 0,
-                     fhHandle = fd,
-                     fhLocks = Locks {
-                         lBlocksCount = indexLock,
-                         lBlockLocks = indexBlockLocks
-                     }
+                     fhHandle = fd
                    }
   let dataHandle = case dataFile of
         Nothing -> Nothing
         Just fd -> Just $ FHandle {
                      fhOffset = 0,
-                     fhHandle = fd,
-                     fhLocks = Locks {
-                         lBlocksCount = dataLock,
-                         lBlockLocks = dataBlockLocks
-                     }
+                     fhHandle = fd
                    }
   counts <- liftIO $ atomically $ newTVar $ BoardCounts 50 50 50 50
   let handle = AICacheHandle {
