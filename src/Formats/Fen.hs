@@ -4,6 +4,7 @@
 
 module Formats.Fen where
 
+import Control.Monad.State
 import qualified Data.Text as T
 import Data.Monoid ((<>))
 import Text.Megaparsec hiding (Label)
@@ -64,7 +65,7 @@ fenToBoardRep fen =
 
 parseFen :: SomeRules -> T.Text -> Either String BoardRep
 parseFen rules text =
-  case parse (pFen rules) "FEN" text of
+  case evalState (runParserT (pFen rules) "FEN" text) Nothing of
     Left err -> Left $ parseErrorPretty err
     Right fen -> Right $ fenToBoardRep fen
 

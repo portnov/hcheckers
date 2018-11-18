@@ -4,14 +4,15 @@
 
 module Formats.Types where
 
+import Control.Monad.State
 import qualified Data.Text as T
 import Data.Typeable
-import Text.Megaparsec hiding (Label)
+import Text.Megaparsec hiding (Label, State)
 import Data.Void
 
 import Core.Types
 
-type Parser a = Parsec Void T.Text a
+type Parser a = ParsecT Void T.Text (State (Maybe SomeRules)) a
 
 data Tag =
     Event T.Text
@@ -33,17 +34,38 @@ data SemiMoveRec = SemiMoveRec {
   , smrTo :: Label
   , smrCapture :: Bool
   }
-  deriving (Eq, Show, Typeable)
+  deriving (Eq, Typeable)
+
+instance Show SemiMoveRec where
+  show r
+    | smrCapture r = show (smrFrom r) ++ "x" ++ show (smrTo r)
+    | otherwise = show (smrFrom r) ++ "-" ++ show (smrTo r)
 
 data MoveRec = MoveRec {
-    mrFirst :: SemiMoveRec
+    mrFirst :: Maybe SemiMoveRec
   , mrSecond :: Maybe SemiMoveRec
   }
-  deriving (Eq, Show, Typeable)
+  deriving (Eq, Typeable)
+
+instance Show MoveRec where
+  show r = show (mrFirst r) ++ ", " ++ show (mrSecond r)
+
+data Instruction =
+      SetMoveNumber Int
+    | SetSecondMoveNumber Int
+    | SemiMove SemiMoveRec
+    | Variant [Instruction]
+  deriving (Typeable)
+
+instance Show Instruction where
+  show (SetMoveNumber n) = show n ++ "."
+  show (SetSecondMoveNumber n) = show n ++ "..."
+  show (SemiMove rec) = show rec
+  show (Variant list) = show list
 
 data GameRecord = GameRecord {
     grTags :: [Tag]
-  , grMoves :: [MoveRec]
+  , grMoves :: [Instruction]
   , grResult :: Maybe GameResult
   }
   deriving (Show, Typeable)

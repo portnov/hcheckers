@@ -5,9 +5,12 @@
 module Formats.Pdn where
 
 import Control.Monad
+import Control.Monad.State
 import Data.Char
+import Data.Maybe
+import qualified Data.Map as M
 import qualified Data.Text as T
-import Text.Megaparsec hiding (Label)
+import Text.Megaparsec hiding (Label, State)
 import Text.Megaparsec.Char
 import Text.Megaparsec.Error (parseErrorPretty)
 import qualified Data.Text.IO as TIO
@@ -34,16 +37,30 @@ pLabel (SomeRules rules) = do
     Right label -> return label
 
 pSemiMove :: SomeRules -> Parser SemiMoveRec
-pSemiMove rules = do
-  from <- pLabel rules
-  x <- oneOf ['-', 'x']
-  let capture = (x == 'x')
-  to <- pLabel rules
-  return $ SemiMoveRec from to capture
+pSemiMove rules = try full <|> try short
+  where
+    short = do
+      from <- pLabel rules
+      x <- oneOf ['-', 'x']
+      let capture = (x == 'x')
+      to <- pLabel rules
+      return $ SemiMoveRec from to capture
+
+    full = do
+      from <- pLabel rules
+      char 'x'
+      labels <- pLabel rules `sepBy1` char 'x'
+      return $ SemiMoveRec from (last labels) True
 
 whitespace :: Parser ()
 whitespace = label "white space or comment" $ do
-  some $ try pComment <|> space1
+  some $ try pComment <|> try pNag <|> space1
+  return ()
+
+pNag :: Parser ()
+pNag = label "NAG" $ do
+  char '$'
+  some digitChar
   return ()
 
 pComment :: Parser ()
@@ -58,7 +75,32 @@ pMove rules = do
   first <- pSemiMove rules
   whitespace
   second <- optional $ try (pSemiMove rules)
-  return $ MoveRec first second
+  return $ MoveRec (Just first) second
+
+pInstruction :: SomeRules -> Parser Instruction
+pInstruction rules =
+    (try pSetSecondMoveNr) <|> (try pSetMoveNr) <|>
+    (try $ SemiMove `fmap` pSemiMove rules) <|> (try $ pVariant rules)
+
+pSetMoveNr :: Parser Instruction
+pSetMoveNr = do
+  n <- some digitChar
+  char '.'
+  return $ SetMoveNumber (read n)
+
+pSetSecondMoveNr :: Parser Instruction
+pSetSecondMoveNr = do
+  n <- some digitChar
+  char '.'
+  char '.'
+  char '.'
+  return $ SetSecondMoveNumber (read n)
+
+pVariant :: SomeRules -> Parser Instruction
+pVariant rules = between (char '(') (char ')') $ do
+    optional whitespace
+    instructions <- try (pInstruction rules) `sepEndBy` whitespace
+    return $ Variant instructions
 
 pResult :: Parser (Maybe GameResult)
 pResult =
@@ -96,8 +138,16 @@ pTag = do
     pWhite = textTag White "White"
     pBlack = textTag Black "Black"
     pResultTag = pTag Result "Result" $ between (char '"') (char '"') pResult
-    pFenTag = pTag FEN "FEN" (pFen (SomeRules international))
-    pGameTypeTag = pTag GameType "GameType" $ between (char '"') (char '"') pGameType
+    pFenTag = do
+      mbRules <- lift get
+      case mbRules of
+        Nothing -> fail "cant apply FEN: rules are not defined"
+        Just rules -> pTag FEN "FEN" $ between (char '"') (char '"') (pFen rules)
+    pGameTypeTag = do
+      tag@(GameType rules) <- pTag GameType "GameType" $ between (char '"') (char '"') pGameType
+      lift $ put $ Just rules
+      return tag
+
     pOpening = textTag Opening "Opening"
 
     pUnknown = between (char '[') (char ']') $ do
@@ -132,20 +182,20 @@ pGame dfltRules = do
     Just rules -> do
       eol
       optional whitespace
-      moves <- try (pMove rules) `sepEndBy` whitespace
+      moves <- try (pInstruction rules) `sepEndBy` whitespace
       result <- pResult
       return $ GameRecord tags moves result
 
 parsePdn :: Maybe SomeRules -> T.Text -> Either String GameRecord
 parsePdn dfltRules text =
-  case parse (pGame dfltRules) "<PDN>" text of
+  case evalState (runParserT (pGame dfltRules) "<PDN>" text) dfltRules of
     Left err -> Left $ parseErrorPretty err
     Right pdn -> Right pdn
 
 parsePdnFile :: Maybe SomeRules -> FilePath -> IO [GameRecord]
 parsePdnFile dfltRules path = do
   text <- TIO.readFile path
-  case parse ((pGame dfltRules) `sepEndBy` space1) path text of
+  case evalState (runParserT ((pGame dfltRules) `sepEndBy` space1) path text) dfltRules of
     Left err -> fail $ parseErrorPretty err
     Right pdn -> return pdn
 
@@ -157,7 +207,7 @@ parseMoveRec rules side board rec =
                 (not $ null $ pmVictims m) == smrCapture rec
   in case filter suits moves of
     [m] -> pmMove m
-    [] -> error $ "no such move: " ++ show rec
+    [] -> error $ printf "no such move: %s; side: %s; board: %s" (show rec) (show side) (show board)
     ms -> error $ "ambigous move: " ++ show ms
 
 fenFromTags :: [Tag] -> Maybe Fen
@@ -171,6 +221,65 @@ initBoardFromTags (SomeRules rules) tags =
     Nothing -> initBoard rules
     Just fen -> parseBoardRep rules $ fenToBoardRep fen
 
+data InterpreterState = InterpreterState {
+    isCurrentVariant :: Int
+  , isLastVariant :: Int
+  , isCurrentMove :: Int
+  , isCurrentSide :: Side
+  , isVariants :: M.Map Int (M.Map Int MoveRec)
+  }
+
+type Interpreter a = State InterpreterState a
+
+interpret :: Instruction -> Interpreter ()
+interpret (SetMoveNumber n) =
+  modify $ \st -> st {isCurrentMove = n, isCurrentSide = First}
+interpret (SetSecondMoveNumber n) =
+  modify $ \st -> st {isCurrentMove = n, isCurrentSide = Second}
+interpret (SemiMove rec) = do
+  side <- gets isCurrentSide
+  variant <- gets isCurrentVariant
+  moveNr <- gets isCurrentMove
+  modify $ \st ->
+    let updateVariant (Just moves) = Just $ M.alter setMove moveNr moves
+        updateVariant Nothing = Just $ M.singleton moveNr singleMove
+
+        singleMove :: MoveRec
+        singleMove =
+          case side of
+            First -> MoveRec (Just rec) Nothing
+            Second -> MoveRec Nothing (Just rec)
+
+        setMove :: Maybe MoveRec -> Maybe MoveRec
+        setMove Nothing = Just singleMove
+        setMove (Just old) =
+          case side of
+            First -> Just $ old {mrFirst = Just rec}
+            Second -> Just $ old {mrSecond = Just rec}
+
+    in  st {isVariants = M.alter updateVariant variant (isVariants st)}
+  when (side == First) $
+    modify $ \st -> st {isCurrentSide = Second}
+interpret (Variant instructions) = do
+  src <- gets isCurrentVariant
+  v <- gets isLastVariant
+  init <- gets (fromJust . M.lookup src . isVariants)
+  modify $ \st -> st {
+      isLastVariant = v+1,
+      isCurrentVariant = v+1,
+      isVariants = M.insert (v+1) init (isVariants st)
+    }
+
+  forM_ instructions interpret
+
+  modify $ \st -> st {isCurrentVariant = src}
+
+instructionsToMoves :: [Instruction] -> [[MoveRec]]
+instructionsToMoves instructions =
+  let initState = InterpreterState 0 0 0 First M.empty
+      state = execState (forM_ instructions interpret) initState
+  in  map M.elems $ M.elems $ isVariants state
+
 loadPdn :: GameRecord -> Board
 loadPdn r =
     let findRules [] = Nothing
@@ -183,8 +292,11 @@ loadPdn r =
                 
                 go board [] = board
                 go board0 (moveRec : rest) =
-                  let move1 = parseMoveRec rules First board0 (mrFirst moveRec)
-                      (board1,_,_) = applyMove rules First move1 board0
+                  let board1 = case mrFirst moveRec of
+                                 Just rec -> let move1 = parseMoveRec rules First board0 rec
+                                                 (board1,_,_) = applyMove rules First move1 board0
+                                                 in board1
+                                 Nothing -> board0
                   in  case mrSecond moveRec of
                         Nothing -> board1
                         Just rec ->
@@ -192,7 +304,9 @@ loadPdn r =
                               (board2,_,_) = applyMove rules Second move2 board1
                           in  go board2 rest
 
-            in  go board0 (grMoves r)
+            in  case instructionsToMoves (grMoves r) of
+                  [moves] -> go board0 moves
+                  vars -> error $ "multiple variants: " ++ show vars
 
     in  case findRules (grTags r) of
           Nothing -> error "rules are not specified"
@@ -212,20 +326,30 @@ gameToPdn game =
 
     tags = [Event "HCheckers game", GameType (gRules game)]
 
-    moves = translate (gRules game) board0 (reverse $ gsHistory $ gState game)
+    moves = fromMoves $ translate (gRules game) board0 (reverse $ gsHistory $ gState game)
+
+    fromMoves moves = concat $ zipWith fromMove [1..] moves
+    
+    fromMove n move = [SetMoveNumber n]
+              ++ case mrFirst move of
+                   Nothing -> []
+                   Just rec -> [SemiMove rec]
+              ++ case mrSecond move of
+                   Nothing -> []
+                   Just rec -> [SemiMove rec]
 
     board0 = case gRules game of
                SomeRules rules -> initBoard rules
 
     translate :: SomeRules -> Board -> [HistoryRecord] -> [MoveRec]
     translate _ _ [] = []
-    translate rules board [r] = [MoveRec (translateMove rules First board $ hrMove r) Nothing]
+    translate rules board [r] = [MoveRec (Just $ translateMove rules First board $ hrMove r) Nothing]
     translate some@(SomeRules rules) board0 (r1:r2:rest) =
       let m1 = translateMove some First board0 $ hrMove r1
           (board1,_,_) = applyMove rules First (hrMove r1) board0
           m2 = translateMove some Second board1 $ hrMove r2
           (board2,_,_) = applyMove rules Second (hrMove r2) board1
-          rec = MoveRec m1 (Just m2)
+          rec = MoveRec (Just m1) (Just m2)
       in  rec : translate some board2 rest
 
     translateMove :: SomeRules -> Side -> Board -> Move -> SemiMoveRec
@@ -239,7 +363,7 @@ gameToPdn game =
 showPdn :: SomeRules -> GameRecord -> T.Text
 showPdn (SomeRules rules) gr =
     T.unlines (map showTag $ grTags gr) <> "\n" <>
-    T.unlines (zipWith showMove [1..] (grMoves gr)) <> "\n" <>
+    T.unlines (zipWith showMove [1..] (head $ instructionsToMoves $ grMoves gr)) <> "\n" <>
     showResult (grResult gr)
   where
     showResult Nothing = "*"
@@ -247,8 +371,8 @@ showPdn (SomeRules rules) gr =
     showResult (Just SecondWin) = "0-1"
     showResult (Just Draw) = "1/2-1/2"
 
-    showMove n (MoveRec s1 Nothing) = T.pack (show n) <> ". " <> showSemiMove s1
-    showMove n (MoveRec s1 (Just s2)) = T.pack (show n) <> ". " <> showSemiMove s1 <> " " <> showSemiMove s2
+    showMove n (MoveRec (Just s1) Nothing) = T.pack (show n) <> ". " <> showSemiMove s1
+    showMove n (MoveRec (Just s1) (Just s2)) = T.pack (show n) <> ". " <> showSemiMove s1 <> " " <> showSemiMove s2
 
     showSemiMove (SemiMoveRec from to False) =
       boardNotation rules from <> "-" <> boardNotation rules to

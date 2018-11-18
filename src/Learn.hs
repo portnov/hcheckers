@@ -6,6 +6,8 @@ module Learn where
 import Control.Monad
 import Control.Monad.State
 import qualified Control.Monad.Metrics as Metrics
+import Data.Maybe
+import Data.Text.Format.Heavy
 import System.Log.Heavy
 import System.Log.Heavy.TH
 
@@ -19,17 +21,25 @@ import Formats.Pdn
 
 doLearn :: (GameRules rules, Evaluator eval) => rules -> eval -> AICacheHandle rules -> AlphaBetaParams -> GameRecord -> Checkers ()
 doLearn rules eval var params gameRec = do
-    let board = initBoard rules
-    go board [] $ grMoves gameRec
+    let board = initBoardFromTags (SomeRules rules) (grTags gameRec)
+    $info "Initial board: {}; tags: {}" (show board, show $ grTags gameRec)
+    forM_ (instructionsToMoves $ grMoves gameRec) $ \moves -> do
+      -- liftIO $ print moves
+      go board [] moves
   where
     go _ _ [] = return ()
     go board0 predicted (moveRec : rest) = do
-      let move1 = parseMoveRec rules First board0 (mrFirst moveRec)
-      if move1 `elem` predicted
-        then Metrics.increment "learn.hit"
-        else Metrics.increment "learn.miss"
-      let (board1, _,_) = applyMove rules First move1 board0
-      predict2 <- processMove rules eval var params Second move1 board1
+      (board1, predict2) <- do
+        case mrFirst moveRec of
+          Nothing -> return (board0, [])
+          Just rec -> do
+            let move1 = parseMoveRec rules First board0 rec
+            if move1 `elem` predicted
+              then Metrics.increment "learn.hit"
+              else Metrics.increment "learn.miss"
+            let (board1, _,_) = applyMove rules First move1 board0
+            predict2 <- processMove rules eval var params Second move1 board1
+            return (board1, predict2)
       case mrSecond moveRec of
         Nothing -> return ()
         Just rec -> do
@@ -52,7 +62,10 @@ learnPdn :: (GameRules rules) => AlphaBeta rules -> FilePath -> Checkers ()
 learnPdn ai@(AlphaBeta params rules) path = do
   cache <- loadAiCache scoreMove ai
   pdn <- liftIO $ parsePdnFile (Just $ SomeRules rules) path
-  forM_ pdn $ \gameRec -> do
+  let n = length pdn
+  forM_ (zip [1.. ] pdn) $ \(i, gameRec) -> do
+    -- liftIO $ print pdn
+    $info "Processing game {}/{}..." (i :: Int, n)
     doLearn rules ai cache params gameRec
     -- saveAiCache rules params cache
     return ()
