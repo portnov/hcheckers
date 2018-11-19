@@ -124,7 +124,7 @@ type WriteQueue = TChan (Board, DepthParams, Side, StorageValue)
 
 type CleanupQueue = TVar (PQ.HashPSQ QueueKey TimeSpec ())
 
-type FileDescriptor = Cached MMaped
+type FileDescriptor = MMaped
 
 -- | File handle
 data FHandle = FHandle {

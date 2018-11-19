@@ -71,7 +71,7 @@ loadAiCache scoreMove (AlphaBeta params rules) = do
                         then return (Nothing, Nothing, exist)
                         else liftIO $ do
                           let page = 1024*1024
-                              params = (File.dfltCached $ File.MMapedParams page) {File.cachePageSize = page}
+                              params = File.MMapedParams page True
                           indexFd <- File.initFile params indexPath
                           dataFd <- File.initFile params dataPath
                           return (Just indexFd, Just dataFd, exist)
