@@ -160,7 +160,7 @@ class Checkers(QMainWindow):
         menu.addAction(self.history_dock.toggleViewAction())
 
     @handling_error
-    def _on_run_game(self):
+    def _on_run_game(self, checked=None):
         self.board_setup_mode = False
         board = self.board.json()
         self.game.start_new_game(self.game_settings.user_name, rules=self.game_settings.rules, user_turn_first=self.game_settings.user_turn_first, ai=self.game_settings.ai, board=board)
@@ -211,6 +211,7 @@ class Checkers(QMainWindow):
                 if game.board_setup:
                     self.board.empty()
                     self.board_setup_mode = True
+                    self.game.rules = game.rules
                 else:
                     self.game.start_new_game(game.user_name, rules=game.rules, user_turn_first=game.user_turn_first, ai=game.ai, fen_path=game.fen_path, pdn_path=game.pdn_path)
                     state = self.game.get_state()

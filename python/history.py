@@ -26,6 +26,8 @@ class HistoryWidget(QTableWidget):
         self.setHorizontalHeaderLabels([first, second])
 
         history = self.client.get_history()
+        if history is None:
+            return
         self.setRowCount((len(history) / 2) + 1)
         row = 0
         for record in reversed(history):

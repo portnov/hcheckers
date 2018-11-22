@@ -214,6 +214,8 @@ class Game(object):
         return result["response"]
     
     def get_history(self):
+        if self.game_id is None:
+            return None
         url = join(self.base_url, "game", self.game_id, "history")
         rs = self.get(url)
         result = rs.json()
