@@ -1,4 +1,5 @@
 {-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE OverloadedStrings #-}
 module Rules.International (International, international, internationalBase) where
@@ -69,35 +70,39 @@ international = International $
   let rules = internationalBase rules
   in  rules
 
-manCaptures :: GenericRules -> Maybe PlayerDirection -> LabelSet -> Piece -> Board -> Address -> [PossibleMove]
-manCaptures rules mbPrevDir captured piece@(Piece _ side) board src =
-  let captures = manCaptures1 rules mbPrevDir captured piece board src
-      nextMoves pm = manCaptures rules (Just $ firstMoveDirection m) captured' piece b (pmEnd pm)
+manCaptures :: GenericRules -> CaptureState -> [PossibleMove]
+manCaptures rules ct@(CaptureState {..}) =
+  let side = pieceSide ctPiece
+      captures = manCaptures1 rules ct
+      nextMoves pm = manCaptures rules $ CaptureState
+                                          (Just $ firstMoveDirection m)
+                                          captured' ctPiece b (pmEnd pm)
                       where
                         m = pmMove pm
-                        b = setPiece (pmEnd pm) piece board
-                        captured' = foldr insertLabelSet captured (map aLabel $ pmVictims pm)
+                        b = setPiece (pmEnd pm) ctPiece ctBoard
+                        captured' = foldr insertLabelSet ctCaptured (map aLabel $ pmVictims pm)
   in concat $ flip map captures $ \capture ->
-       let [move1] = translateCapture piece capture
+       let [move1] = translateCapture ctPiece capture
            moves2 = nextMoves move1
        in  if null moves2
              then [move1]
              else [catPMoves move1 move2 | move2 <- moves2]
 
-manCaptures1 :: GenericRules -> Maybe PlayerDirection -> LabelSet -> Piece -> Board -> Address -> [Capture]
-manCaptures1 rules mbPrevDir captured piece@(Piece _ side) board src =
-    concatMap (check src) $ filter allowedDir (gManCaptureDirections rules)
+manCaptures1 :: GenericRules -> CaptureState -> [Capture]
+manCaptures1 rules ct@(CaptureState {..}) =
+    concatMap (check ctSource) $ filter allowedDir (gManCaptureDirections rules)
   where
+    side = pieceSide ctPiece
 
     allowedDir dir =
-      case mbPrevDir of
+      case ctPrevDirection of
         Nothing -> True
         Just prevDir -> oppositeDirection prevDir /= dir
 
     check a dir =
       case myNeighbour rules side dir a of
-        Just victimAddr | not (aLabel victimAddr `labelSetMember` captured) ->
-          case getPiece victimAddr board of
+        Just victimAddr | not (aLabel victimAddr `labelSetMember` ctCaptured) ->
+          case getPiece victimAddr ctBoard of
             Nothing -> []
             Just victim ->
               if isMyPiece side victim
@@ -105,8 +110,13 @@ manCaptures1 rules mbPrevDir captured piece@(Piece _ side) board src =
                 else case myNeighbour rules side dir victimAddr of
                        Nothing -> []
                        Just freeAddr ->
-                        if isFree freeAddr board
-                          then let captured' = insertLabelSet (aLabel victimAddr) captured
+                        if isFree freeAddr ctBoard
+                          then let captured' = insertLabelSet (aLabel victimAddr) ctCaptured
+                                   next = ct {
+                                            ctPrevDirection = Just dir,
+                                            ctCaptured = captured',
+                                            ctSource = freeAddr
+                                          }
                                in [Capture {
                                   cSrc = a,
                                   cDirection = dir,
@@ -115,7 +125,7 @@ manCaptures1 rules mbPrevDir captured piece@(Piece _ side) board src =
                                   cVictim = victimAddr,
                                   cDst = freeAddr,
                                   cPromote = isLastHorizontal side freeAddr &&
-                                             not (gCanCaptureFrom rules (Just dir) captured' piece board freeAddr)
+                                             not (gCanCaptureFrom rules next)
                                 }]
                           else []
         _ -> []

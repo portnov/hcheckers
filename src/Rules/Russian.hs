@@ -1,4 +1,5 @@
 {-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 module Rules.Russian (
         Russian, russian, russianBase
@@ -55,16 +56,18 @@ russian = Russian $
   let rules = russianBase rules
   in  rules
 
-manCaptures :: GenericRules -> Maybe PlayerDirection -> LabelSet -> Piece -> Board -> Address -> [PossibleMove]
-manCaptures rules mbPrevDir captured piece@(Piece _ side) board src =
-  let captures = gPieceCaptures1 rules mbPrevDir captured piece board src
-      nextMoves pm = gPieceCaptures rules (Just $ firstMoveDirection m) captured' p' b (pmEnd pm)
-                        where p' = if pmPromote pm then promotePiece piece else piece
-                              b = setPiece (pmEnd pm) p' board
+manCaptures :: GenericRules -> CaptureState -> [PossibleMove]
+manCaptures rules ct@(CaptureState {..}) =
+  let captures = gPieceCaptures1 rules ct
+      nextMoves pm = gPieceCaptures rules $ CaptureState
+                                              (Just $ firstMoveDirection m)
+                                              captured' p' b (pmEnd pm)
+                        where p' = if pmPromote pm then promotePiece ctPiece else ctPiece
+                              b = setPiece (pmEnd pm) p' ctBoard
                               m = pmMove pm
-                              captured' = foldr insertLabelSet captured (map aLabel $ pmVictims pm)
+                              captured' = foldr insertLabelSet ctCaptured (map aLabel $ pmVictims pm)
   in concat $ flip map captures $ \capture ->
-       let [move1] = translateCapture piece capture
+       let [move1] = translateCapture ctPiece capture
            moves2 = nextMoves move1
        in  if null moves2
              then [move1]

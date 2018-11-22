@@ -1,3 +1,4 @@
+{-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 module Rules.English (English (..), english) where
@@ -73,27 +74,28 @@ kingSimpleMoves rules piece@(Piece _ side) board src =
                             }]
                       else []
 
-captures1 :: GenericRules -> Maybe PlayerDirection -> LabelSet -> Piece -> Board -> Address -> [PlayerDirection] -> [Capture]
-captures1 rules mbPrevDir captured piece@(Piece _ side) board src dirs =
-    concatMap (check src) $ filter allowedDir dirs
+captures1 :: GenericRules -> CaptureState -> [PlayerDirection] -> [Capture]
+captures1 rules ct@(CaptureState {..}) dirs =
+    concatMap (check ctSource) $ filter allowedDir dirs
   where
+    side = pieceSide ctPiece
 
     allowedDir dir =
-      case mbPrevDir of
+      case ctPrevDirection of
         Nothing -> True
         Just prevDir -> oppositeDirection prevDir /= dir
 
     check a dir =
       case neighbour (myDirection rules side dir) a of
-        Just victimAddr | not (aLabel victimAddr `labelSetMember` captured) ->
-          case getPiece victimAddr board of
+        Just victimAddr | not (aLabel victimAddr `labelSetMember` ctCaptured) ->
+          case getPiece victimAddr ctBoard of
             Nothing -> []
             Just victim ->
               if isMyPiece side victim
                 then []
                 else case neighbour (myDirection rules side dir) victimAddr of
                        Nothing -> []
-                       Just freeAddr -> if isFree freeAddr board
+                       Just freeAddr -> if isFree freeAddr ctBoard
                                           then [Capture {
                                                   cSrc = a,
                                                   cDirection = dir,
@@ -106,36 +108,41 @@ captures1 rules mbPrevDir captured piece@(Piece _ side) board src dirs =
                                           else []
         _ -> []
 
-manCaptures :: GenericRules -> Maybe PlayerDirection -> LabelSet -> Piece -> Board -> Address -> [PossibleMove]
-manCaptures rules mbPrevDir captured piece@(Piece _ side) board src =
-  let captures = gManCaptures1 rules mbPrevDir captured piece board src
-      nextMoves pm = gManCaptures rules (Just $ firstMoveDirection m) captured piece b (pmEnd pm)
+manCaptures :: GenericRules -> CaptureState -> [PossibleMove]
+manCaptures rules ct@(CaptureState {..}) =
+  let side = pieceSide ctPiece
+      captures = gManCaptures1 rules ct
+      nextMoves pm = gManCaptures rules $ CaptureState
+                                            (Just $ firstMoveDirection m)
+                                            captured' ctPiece b (pmEnd pm)
                       where
                         m = pmMove pm
-                        piece' = if pmPromote pm then promotePiece piece else piece
-                        b = setPiece (pmEnd pm) piece' board
-                        captured' = foldr insertLabelSet captured (map aLabel $ pmVictims pm)
+                        piece' = if pmPromote pm then promotePiece ctPiece else ctPiece
+                        b = setPiece (pmEnd pm) piece' ctBoard
+                        captured' = foldr insertLabelSet ctCaptured (map aLabel $ pmVictims pm)
   in concat $ flip map captures $ \capture ->
-       let [move1] = translateCapture piece capture
+       let [move1] = translateCapture ctPiece capture
            moves2 = nextMoves move1
        in  if null moves2
              then [move1]
              else [catPMoves move1 move2 | move2 <- moves2]
 
-kingCaptures1 :: GenericRules -> Maybe PlayerDirection -> LabelSet -> Piece -> Board -> Address -> [Capture]
-kingCaptures1 rules mbPrevDir captured piece board src =
-  captures1 rules mbPrevDir captured piece board src (gKingCaptureDirections rules)
+kingCaptures1 :: GenericRules -> CaptureState -> [Capture]
+kingCaptures1 rules ct =
+  captures1 rules ct (gKingCaptureDirections rules)
 
-kingCaptures :: GenericRules -> Maybe PlayerDirection -> LabelSet -> Piece -> Board -> Address -> [PossibleMove]
-kingCaptures rules mbPrevDir captured piece@(Piece _ side) board src =
-  let captures = gKingCaptures1 rules mbPrevDir captured piece board src
-      nextMoves pm = gKingCaptures rules (Just $ firstMoveDirection m) captured' piece b (pmEnd pm)
+kingCaptures :: GenericRules -> CaptureState -> [PossibleMove]
+kingCaptures rules ct@(CaptureState {..}) =
+  let captures = gKingCaptures1 rules ct
+      nextMoves pm = gKingCaptures rules $ CaptureState
+                                             (Just $ firstMoveDirection m)
+                                             captured' ctPiece b (pmEnd pm)
                       where
                         m = pmMove pm
-                        b = setPiece (pmEnd pm) piece board
-                        captured' = foldr insertLabelSet captured (map aLabel $ pmVictims pm)
+                        b = setPiece (pmEnd pm) ctPiece ctBoard
+                        captured' = foldr insertLabelSet ctCaptured (map aLabel $ pmVictims pm)
   in nub $ concat $ flip map captures $ \capture1 ->
-            let moves1 = translateCapture piece capture1
+            let moves1 = translateCapture ctPiece capture1
                 allNext = map nextMoves moves1
                 isLast = all null allNext
             in  if isLast

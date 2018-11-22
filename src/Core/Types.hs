@@ -106,7 +106,10 @@ instance Store Side
 data BoardOrientation = FirstAtBottom | SecondAtBottom
   deriving (Eq, Ord, Show, Generic, Typeable)
 
-data Piece = Piece PieceKind Side
+data Piece = Piece {
+    pieceKind :: PieceKind
+  , pieceSide :: Side
+  }
   deriving (Eq, Ord, Typeable)
 
 instance Show Piece where

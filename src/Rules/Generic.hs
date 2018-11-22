@@ -1,4 +1,5 @@
 {-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE RecordWildCards #-}
 module Rules.Generic where
 
 import Data.List
@@ -17,19 +18,30 @@ data Capture = Capture {
     cPromote :: Bool
   }
 
+data CaptureState = CaptureState {
+    ctPrevDirection :: Maybe PlayerDirection
+  , ctCaptured :: LabelSet
+  , ctPiece :: Piece
+  , ctBoard :: Board
+  , ctSource :: Address
+  }
+
+initState :: Piece -> Board -> Address -> CaptureState
+initState piece board src = CaptureState Nothing emptyLabelSet piece board src
+
 data GenericRules = GenericRules {
     gPossibleMoves :: Side -> Board -> [PossibleMove]
   , gPossibleSimpleMoves1 :: Board -> Address -> [PossibleMove]
   , gPossibleCaptures1 :: Board -> Address -> [PossibleMove]
   , gManSimpleMoves :: Piece -> Board -> Address -> [PossibleMove]
   , gKingSimpleMoves :: Piece -> Board -> Address -> [PossibleMove]
-  , gManCaptures :: Maybe PlayerDirection -> LabelSet -> Piece -> Board -> Address -> [PossibleMove]
-  , gKingCaptures ::  Maybe PlayerDirection -> LabelSet -> Piece -> Board -> Address -> [PossibleMove]
-  , gPieceCaptures1 :: Maybe PlayerDirection -> LabelSet -> Piece -> Board -> Address -> [Capture] 
-  , gPieceCaptures :: Maybe PlayerDirection -> LabelSet -> Piece -> Board -> Address -> [PossibleMove] 
-  , gManCaptures1 :: Maybe PlayerDirection -> LabelSet -> Piece -> Board -> Address -> [Capture]
-  , gKingCaptures1 :: Maybe PlayerDirection -> LabelSet -> Piece -> Board -> Address -> [Capture]
-  , gCanCaptureFrom :: Maybe PlayerDirection -> LabelSet -> Piece -> Board -> Address -> Bool
+  , gManCaptures :: CaptureState -> [PossibleMove]
+  , gKingCaptures ::  CaptureState -> [PossibleMove]
+  , gPieceCaptures1 :: CaptureState -> [Capture] 
+  , gPieceCaptures :: CaptureState -> [PossibleMove] 
+  , gManCaptures1 :: CaptureState -> [Capture]
+  , gKingCaptures1 :: CaptureState -> [Capture]
+  , gCanCaptureFrom :: CaptureState -> Bool
   , gManSimpleMoveDirections :: [PlayerDirection]
   , gKingSimpleMoveDirections :: [PlayerDirection]
   , gManCaptureDirections :: [PlayerDirection]
@@ -100,13 +112,13 @@ abstractRules =
     possibleCaptures1 rules board src =
       case getPiece src board of
         Nothing -> error $ "possibleCaptures: not my field"
-        Just piece@(Piece Man _) -> gManCaptures rules Nothing emptyLabelSet piece board src
-        Just piece@(Piece King _) -> gKingCaptures rules Nothing emptyLabelSet piece board src
+        Just piece@(Piece Man _) -> gManCaptures rules $ initState piece board src
+        Just piece@(Piece King _) -> gKingCaptures rules $ initState piece board src
 
-    pieceCaptures rules mbPrevDir captured piece board src =
-      case piece of
-        (Piece Man _) -> gManCaptures rules mbPrevDir captured piece board src
-        (Piece King _) -> gKingCaptures rules mbPrevDir captured piece board src
+    pieceCaptures rules ct@(CaptureState {..}) =
+      case ctPiece of
+        (Piece Man _) -> gManCaptures rules ct
+        (Piece King _) -> gKingCaptures rules ct
 
     manSimpleMoves rules piece@(Piece _ side) board src =
         concatMap check (gManSimpleMoveDirections rules)
@@ -129,31 +141,32 @@ abstractRules =
                           
                           else []
 
-    pieceCaptures1 rules mbPrevDir captured piece board src =
-      case piece of
-        (Piece Man _) -> gManCaptures1 rules mbPrevDir captured piece board src
-        (Piece King _) -> gKingCaptures1 rules mbPrevDir captured piece board src
+    pieceCaptures1 rules ct@(CaptureState {..}) =
+      case ctPiece of
+        (Piece Man _) -> gManCaptures1 rules ct
+        (Piece King _) -> gKingCaptures1 rules ct
 
-    manCaptures1 rules mbPrevDir captured piece@(Piece _ side) board src =
-        concatMap (check src) $ filter allowedDir (gManCaptureDirections rules)
+    manCaptures1 rules (CaptureState {..}) =
+        concatMap (check ctSource) $ filter allowedDir (gManCaptureDirections rules)
       where
+        side = pieceSide ctPiece
 
         allowedDir dir =
-          case mbPrevDir of
+          case ctPrevDirection of
             Nothing -> True
             Just prevDir -> oppositeDirection prevDir /= dir
 
         check a dir =
           case myNeighbour rules side dir a of
-            Just victimAddr | not (aLabel victimAddr `labelSetMember` captured) ->
-              case getPiece victimAddr board of
+            Just victimAddr | not (aLabel victimAddr `labelSetMember` ctCaptured) ->
+              case getPiece victimAddr ctBoard of
                 Nothing -> []
                 Just victim ->
                   if isMyPiece side victim
                     then []
                     else case myNeighbour rules side dir victimAddr of
                            Nothing -> []
-                           Just freeAddr -> if isFree freeAddr board
+                           Just freeAddr -> if isFree freeAddr ctBoard
                                               then [Capture {
                                                       cSrc = a,
                                                       cDirection = dir,
@@ -168,27 +181,28 @@ abstractRules =
 
     -- This is a most popular implementation, which fits most rules
     -- except for english / checkers.
-    kingCaptures1 rules mbPrevDir captured piece@(Piece _ side) board src =
+    kingCaptures1 rules (CaptureState {..}) =
         concatMap check $ filter allowedDir (gKingCaptureDirections rules)
       where
+        side = pieceSide ctPiece
         
         allowedDir dir =
-          case mbPrevDir of
+          case ctPrevDirection of
             Nothing -> True
             Just prevDir -> oppositeDirection prevDir /= dir
 
         check dir =
-          case search dir src of
+          case search dir ctSource of
             Nothing -> []
             Just (victimAddr, initSteps) ->
-              case freeFields rules side dir victimAddr board of
+              case freeFields rules side dir victimAddr ctBoard of
                 (0,_) -> []
                 (nFree, fields) -> 
                     [mkCapture dir initSteps victimAddr freeSteps (fields !! (freeSteps-1)) | freeSteps <- [1 .. nFree]]
 
         mkCapture dir init victim free dst =
           Capture {
-            cSrc = src,
+            cSrc = ctSource,
             cDirection = dir,
             cInitSteps = init,
             cVictim = victim,
@@ -201,27 +215,30 @@ abstractRules =
         search dir a =
           case myNeighbour rules side dir a of
             Nothing -> Nothing
-            Just a' -> case getPiece a' board of
+            Just a' -> case getPiece a' ctBoard of
                          Nothing -> case search dir a' of
                                       Nothing -> Nothing
                                       Just (victimAddr, steps) -> Just (victimAddr, steps + 1)
-                         Just p -> if isOpponentPiece side p && not (aLabel a' `labelSetMember` captured)
+                         Just p -> if isOpponentPiece side p && not (aLabel a' `labelSetMember` ctCaptured)
                                      then Just (a', 0)
                                      else Nothing
 
     -- This is most popular implementation, which fits most rules
     -- except for english / checkers
-    kingCaptures rules mbPrevDir captured piece@(Piece _ side) board src =
-      let captures = gPieceCaptures1 rules mbPrevDir captured piece board src
+    kingCaptures rules ct@(CaptureState {..}) =
+      let side = pieceSide ctPiece
+          captures = gPieceCaptures1 rules ct
           grouped = groupBy (\c1 c2 -> cDirection c1 == cDirection c2) $ sortOn cDirection captures
           capturesByDirection = [(cDirection (head cs), cs) | cs <- grouped]
-          nextMoves pm = gPieceCaptures rules (Just $ firstMoveDirection m) captured' piece b (pmEnd pm)
+          nextMoves pm = gPieceCaptures rules $ CaptureState
+                                                  (Just $ firstMoveDirection m)
+                                                  captured' ctPiece b (pmEnd pm)
                            where
                             m = pmMove pm
-                            b = setPiece (pmEnd pm) piece board
-                            captured' = foldr insertLabelSet captured (map aLabel $ pmVictims pm)
+                            b = setPiece (pmEnd pm) ctPiece ctBoard
+                            captured' = foldr insertLabelSet ctCaptured (map aLabel $ pmVictims pm)
       in nub $ concat $ flip map capturesByDirection $ \(dir, captures) ->
-                let moves1 c = translateCapture piece c
+                let moves1 c = translateCapture ctPiece c
                     allNext c = map nextMoves (moves1 c)
                     isLast c = all null (allNext c)
                 in  if all isLast captures
@@ -244,10 +261,10 @@ abstractRules =
                 pmResult = [Take src, Put (free !! (n-1)) piece]
               } | n <- [1..nFree]]
 
-    canCaptureFrom rules mbPrevDir captured piece@(Piece Man side) board src =
-        not $ null (gManCaptures1 rules mbPrevDir captured piece board src)
-    canCaptureFrom rules mbPrevDir captured piece@(Piece King side) board src =
-        not $ null (gKingCaptures1 rules mbPrevDir captured piece board src)
+    canCaptureFrom rules ct@(CaptureState {ctPiece = Piece Man side}) =
+        not $ null (gManCaptures1 rules ct)
+    canCaptureFrom rules ct@(CaptureState {ctPiece = Piece King side}) =
+        not $ null (gKingCaptures1 rules ct)
 
     manSimpleMoveDirections rules = [ForwardLeft, ForwardRight]
 
