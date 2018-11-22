@@ -59,17 +59,10 @@ russian = Russian $
 manCaptures :: GenericRules -> CaptureState -> [PossibleMove]
 manCaptures rules ct@(CaptureState {..}) =
   let captures = gPieceCaptures1 rules ct
-      nextMoves pm = gPieceCaptures rules $ ct {
-                                              ctPrevDirection = Just (firstMoveDirection m),
-                                              ctCaptured = captured',
-                                              ctPiece = p',
-                                              ctBoard = b,
-                                              ctCurrent = pmEnd pm
-                                            }
-                        where p' = if pmPromote pm then promotePiece ctPiece else ctPiece
-                              b = setPiece (pmEnd pm) p' ctBoard
-                              m = pmMove pm
-                              captured' = foldr insertLabelSet ctCaptured (map aLabel $ pmVictims pm)
+      -- when last horizontal reached, pass promoted piece to 
+      -- next moves check; so it will continue capture as a king
+      -- if it can
+      nextMoves pm = genericNextMoves rules ct True pm
   in concat $ flip map captures $ \capture ->
        let [move1] = translateCapture ctPiece capture
            moves2 = nextMoves move1

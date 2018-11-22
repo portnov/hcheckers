@@ -74,16 +74,10 @@ manCaptures :: GenericRules -> CaptureState -> [PossibleMove]
 manCaptures rules ct@(CaptureState {..}) =
   let side = pieceSide ctPiece
       captures = manCaptures1 rules ct
-      nextMoves pm = manCaptures rules $ ct {
-                                           ctPrevDirection = Just (firstMoveDirection m),
-                                           ctCaptured = captured',
-                                           ctBoard = b,
-                                           ctCurrent = pmEnd pm
-                                         }
-                      where
-                        m = pmMove pm
-                        b = setPiece (pmEnd pm) ctPiece ctBoard
-                        captured' = foldr insertLabelSet ctCaptured (map aLabel $ pmVictims pm)
+      -- when last horizontal reached, pass non-promoted piece to
+      -- next moves check; man can capture backward, so it will
+      -- continue capture as a man if it can.
+      nextMoves pm = genericNextMoves rules ct False pm
   in concat $ flip map captures $ \capture ->
        let [move1] = translateCapture ctPiece capture
            moves2 = nextMoves move1

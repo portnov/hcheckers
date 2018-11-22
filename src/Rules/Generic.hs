@@ -86,6 +86,26 @@ freeFields rules side dir addr board =
                       in  (n+1, a' : prev)
                  else (0, [])
 
+genericNextMoves :: GenericRules -> CaptureState -> Bool -> PossibleMove -> [PossibleMove]
+genericNextMoves rules ct@(CaptureState {..}) continuePromoted pm =
+    gPieceCaptures rules $ ct {
+                             ctPrevDirection = Just (firstMoveDirection m),
+                             ctCaptured = captured',
+                             ctPiece = piece',
+                             ctBoard = b,
+                             ctCurrent = pmEnd pm
+                           }
+  where
+    m = pmMove pm
+    promoted = if pmPromote pm
+                 then promotePiece ctPiece
+                 else ctPiece
+    piece' = if continuePromoted
+               then promoted
+               else ctPiece
+    b = setPiece (pmEnd pm) piece' ctBoard
+    captured' = foldr insertLabelSet ctCaptured (map aLabel $ pmVictims pm)
+
 abstractRules :: GenericRules -> GenericRules
 abstractRules =
   let
@@ -231,16 +251,7 @@ abstractRules =
           captures = gPieceCaptures1 rules ct
           grouped = groupBy (\c1 c2 -> cDirection c1 == cDirection c2) $ sortOn cDirection captures
           capturesByDirection = [(cDirection (head cs), cs) | cs <- grouped]
-          nextMoves pm = gPieceCaptures rules $ ct {
-                                                  ctPrevDirection = Just (firstMoveDirection m),
-                                                  ctCaptured = captured',
-                                                  ctBoard = b,
-                                                  ctCurrent = pmEnd pm
-                                                }
-                           where
-                            m = pmMove pm
-                            b = setPiece (pmEnd pm) ctPiece ctBoard
-                            captured' = foldr insertLabelSet ctCaptured (map aLabel $ pmVictims pm)
+          nextMoves pm = genericNextMoves rules ct False pm 
       in nub $ concat $ flip map capturesByDirection $ \(dir, captures) ->
                 let moves1 c = translateCapture ctPiece c
                     allNext c = map nextMoves (moves1 c)

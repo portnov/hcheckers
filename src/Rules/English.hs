@@ -112,17 +112,10 @@ manCaptures :: GenericRules -> CaptureState -> [PossibleMove]
 manCaptures rules ct@(CaptureState {..}) =
   let side = pieceSide ctPiece
       captures = gManCaptures1 rules ct
-      nextMoves pm = gManCaptures rules $ ct {
-                                            ctPrevDirection = Just (firstMoveDirection m),
-                                            ctCaptured = captured',
-                                            ctBoard = b,
-                                            ctCurrent = pmEnd pm
-                                          }
-                      where
-                        m = pmMove pm
-                        piece' = if pmPromote pm then promotePiece ctPiece else ctPiece
-                        b = setPiece (pmEnd pm) piece' ctBoard
-                        captured' = foldr insertLabelSet ctCaptured (map aLabel $ pmVictims pm)
+      -- when last horizontal reached, pass non-promoted piece
+      -- to next moves check; man cant capture backwards, so
+      -- the piece will stop there.
+      nextMoves pm = genericNextMoves rules ct False pm
   in concat $ flip map captures $ \capture ->
        let [move1] = translateCapture ctPiece capture
            moves2 = nextMoves move1
@@ -137,16 +130,8 @@ kingCaptures1 rules ct =
 kingCaptures :: GenericRules -> CaptureState -> [PossibleMove]
 kingCaptures rules ct@(CaptureState {..}) =
   let captures = gKingCaptures1 rules ct
-      nextMoves pm = gKingCaptures rules $ ct {
-                                             ctPrevDirection = Just (firstMoveDirection m),
-                                             ctCaptured = captured',
-                                             ctBoard = b,
-                                             ctCurrent = pmEnd pm
-                                            }
-                      where
-                        m = pmMove pm
-                        b = setPiece (pmEnd pm) ctPiece ctBoard
-                        captured' = foldr insertLabelSet ctCaptured (map aLabel $ pmVictims pm)
+      -- king cant be promoted anyway
+      nextMoves pm = genericNextMoves rules ct False pm
   in nub $ concat $ flip map captures $ \capture1 ->
             let moves1 = translateCapture ctPiece capture1
                 allNext = map nextMoves moves1
