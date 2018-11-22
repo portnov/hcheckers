@@ -23,7 +23,7 @@ data CaptureState = CaptureState {
   , ctCaptured :: LabelSet
   , ctPiece :: Piece
   , ctBoard :: Board
-  , ctSource :: Address
+  , ctCurrent :: Address
   }
 
 initState :: Piece -> Board -> Address -> CaptureState
@@ -147,7 +147,7 @@ abstractRules =
         (Piece King _) -> gKingCaptures1 rules ct
 
     manCaptures1 rules (CaptureState {..}) =
-        concatMap (check ctSource) $ filter allowedDir (gManCaptureDirections rules)
+        concatMap (check ctCurrent) $ filter allowedDir (gManCaptureDirections rules)
       where
         side = pieceSide ctPiece
 
@@ -192,7 +192,7 @@ abstractRules =
             Just prevDir -> oppositeDirection prevDir /= dir
 
         check dir =
-          case search dir ctSource of
+          case search dir ctCurrent of
             Nothing -> []
             Just (victimAddr, initSteps) ->
               case freeFields rules side dir victimAddr ctBoard of
@@ -202,7 +202,7 @@ abstractRules =
 
         mkCapture dir init victim free dst =
           Capture {
-            cSrc = ctSource,
+            cSrc = ctCurrent,
             cDirection = dir,
             cInitSteps = init,
             cVictim = victim,

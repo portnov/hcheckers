@@ -86,7 +86,7 @@ manCaptures rules ct@(CaptureState {..}) =
 
 manCaptures1 :: GenericRules -> CaptureState -> [Capture]
 manCaptures1 rules ct@(CaptureState {..}) =
-    concatMap (check ctSource) $ filter allowedDir (gManCaptureDirections rules)
+    concatMap (check ctCurrent) $ filter allowedDir (gManCaptureDirections rules)
   where
     side = pieceSide ctPiece
 

@@ -76,7 +76,7 @@ kingSimpleMoves rules piece@(Piece _ side) board src =
 
 captures1 :: GenericRules -> CaptureState -> [PlayerDirection] -> [Capture]
 captures1 rules ct@(CaptureState {..}) dirs =
-    concatMap (check ctSource) $ filter allowedDir dirs
+    concatMap (check ctCurrent) $ filter allowedDir dirs
   where
     side = pieceSide ctPiece
 
