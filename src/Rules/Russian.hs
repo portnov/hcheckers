@@ -59,9 +59,13 @@ russian = Russian $
 manCaptures :: GenericRules -> CaptureState -> [PossibleMove]
 manCaptures rules ct@(CaptureState {..}) =
   let captures = gPieceCaptures1 rules ct
-      nextMoves pm = gPieceCaptures rules $ CaptureState
-                                              (Just $ firstMoveDirection m)
-                                              captured' p' b (pmEnd pm)
+      nextMoves pm = gPieceCaptures rules $ ct {
+                                              ctPrevDirection = Just (firstMoveDirection m),
+                                              ctCaptured = captured',
+                                              ctPiece = p',
+                                              ctBoard = b,
+                                              ctCurrent = pmEnd pm
+                                            }
                         where p' = if pmPromote pm then promotePiece ctPiece else ctPiece
                               b = setPiece (pmEnd pm) p' ctBoard
                               m = pmMove pm

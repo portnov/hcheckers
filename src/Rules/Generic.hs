@@ -24,10 +24,11 @@ data CaptureState = CaptureState {
   , ctPiece :: Piece
   , ctBoard :: Board
   , ctCurrent :: Address
+  , ctSource :: Address
   }
 
 initState :: Piece -> Board -> Address -> CaptureState
-initState piece board src = CaptureState Nothing emptyLabelSet piece board src
+initState piece board src = CaptureState Nothing emptyLabelSet piece board src src
 
 data GenericRules = GenericRules {
     gPossibleMoves :: Side -> Board -> [PossibleMove]
@@ -230,9 +231,12 @@ abstractRules =
           captures = gPieceCaptures1 rules ct
           grouped = groupBy (\c1 c2 -> cDirection c1 == cDirection c2) $ sortOn cDirection captures
           capturesByDirection = [(cDirection (head cs), cs) | cs <- grouped]
-          nextMoves pm = gPieceCaptures rules $ CaptureState
-                                                  (Just $ firstMoveDirection m)
-                                                  captured' ctPiece b (pmEnd pm)
+          nextMoves pm = gPieceCaptures rules $ ct {
+                                                  ctPrevDirection = Just (firstMoveDirection m),
+                                                  ctCaptured = captured',
+                                                  ctBoard = b,
+                                                  ctCurrent = pmEnd pm
+                                                }
                            where
                             m = pmMove pm
                             b = setPiece (pmEnd pm) ctPiece ctBoard

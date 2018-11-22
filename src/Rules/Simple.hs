@@ -70,9 +70,12 @@ manSimpleMoves rules piece@(Piece _ side) board src =
 manCaptures :: GenericRules -> CaptureState -> [PossibleMove]
 manCaptures rules ct@(CaptureState {..}) =
   let captures = gManCaptures1 rules ct
-      nextMoves pm = gManCaptures rules $ CaptureState
-                                            (Just $ firstMoveDirection m)
-                                            captured' ctPiece b (pmEnd pm)
+      nextMoves pm = gManCaptures rules $ ct {
+                                            ctPrevDirection = Just (firstMoveDirection m),
+                                            ctCaptured = captured',
+                                            ctBoard = b,
+                                            ctCurrent = pmEnd pm
+                                          }
                       where
                         m = pmMove pm
                         b = setPiece (pmEnd pm) ctPiece ctBoard
