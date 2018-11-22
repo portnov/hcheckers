@@ -103,7 +103,7 @@ genericNextMoves rules ct@(CaptureState {..}) continuePromoted pm =
     piece' = if continuePromoted
                then promoted
                else ctPiece
-    b = setPiece (pmEnd pm) piece' ctBoard
+    b = setPiece (pmEnd pm) piece' $ removePiece ctCurrent ctBoard
     captured' = foldr insertLabelSet ctCaptured (map aLabel $ pmVictims pm)
 
 abstractRules :: GenericRules -> GenericRules
