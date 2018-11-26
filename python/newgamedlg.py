@@ -57,14 +57,14 @@ class NameValidator(QValidator):
         else:
             return name
 
-class NewGameDialog(QDialog):
+class NewGameDialog(DialogBase):
     def __init__(self, settings, client, parent=None):
-        QDialog.__init__(self, parent)
+        DialogBase.__init__(self, parent)
         self.settings = settings
         self.client = client
 
         widget = QWidget()
-        layout = QFormLayout()
+        self.form_layout = layout = QFormLayout()
 
         self.game_type = QComboBox(self)
         self.game_type.addItem(_("Start a game against computer"), START_AI_GAME)
@@ -81,11 +81,11 @@ class NewGameDialog(QDialog):
             self.rules.setCurrentIndex(idx)
         layout.addRow(_("Rules"), self.rules)
 
-        self.user_name = QLineEdit(self)
-        self.user_name.setText(getpass.getuser())
+        self.user_name = MandatoryField(_("User name"), QLineEdit(self))
+        self.user_name.widget.setText(getpass.getuser())
         self.user_name_validator = NameValidator(self)
-        self.user_name.setValidator(self.user_name_validator)
-        layout.addRow(_("User name"), self.user_name)
+        self.user_name.widget.setValidator(self.user_name_validator)
+        self.user_name.add_to_form(layout)
 
         self.user_side = QComboBox(self)
         self.user_side.addItem(_("White"), FIRST)
@@ -133,7 +133,14 @@ class NewGameDialog(QDialog):
                     Qt.Horizontal, self)
         buttons.accepted.connect(self._on_accept)
         buttons.rejected.connect(self.reject)
+        self.ok_button = buttons.button(QDialogButtonBox.Ok)
         vbox.addWidget(buttons)
+
+    def get_ok_button(self):
+        return self.ok_button
+
+    def get_form_layout(self):
+        return self.form_layout
 
     def _on_action_changed(self, idx):
         action = self.game_type.itemData(idx)
@@ -166,8 +173,8 @@ class NewGameDialog(QDialog):
         if used_name is None:
             return
         self.user_name_validator.used_name = used_name
-        name = self.user_name.text()
-        self.user_name.setText(self.user_name_validator.fixup(name))
+        name = self.user_name.widget.text()
+        self.user_name.widget.setText(self.user_name_validator.fixup(name))
 
     def _on_accept(self):
         self.settings.setValue("ai", self.ai.currentText())
@@ -176,7 +183,7 @@ class NewGameDialog(QDialog):
 
     def get_settings(self):
         game = GameSettings()
-        game.user_name = self.user_name.text()
+        game.user_name = self.user_name.widget.text()
         game.rules = self.rules.currentData()
         action = self.game_type.currentData()
         game.run_now = action != START_HUMAN_GAME

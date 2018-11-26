@@ -64,9 +64,9 @@ class AiEditorWidget(QWidget):
 
     def _setup(self):
         layout = QFormLayout()
-        self.title = QLineEdit(self)
-        self.title.editingFinished.connect(self.edited)
-        layout.addRow(_("Title"), self.title)
+        self.title = MandatoryField(_("Title"), QLineEdit(self))
+        self.title.add_to_form(layout)
+        self.title.widget.editingFinished.connect(self.edited)
         self.depth = QSpinBox(self)
         self.depth.setRange(0, 20)
         self.depth.valueChanged.connect(self.edited)
@@ -82,23 +82,40 @@ class AiEditorWidget(QWidget):
         self.use_positional_score = QCheckBox(self)
         layout.addRow(_("Use positional score"), self.use_positional_score)
         self.use_positional_score.stateChanged.connect(self.edited)
+        self.use_timeout = QCheckBox(self)
+        layout.addRow(_("Continue thinking while there is time"), self.use_timeout)
+        self.use_timeout.stateChanged.connect(self.edited)
+        self.use_timeout.stateChanged.connect(self._on_use_timeout)
+        self.timeout = QSpinBox(self)
+        self.timeout.setRange(1, 120)
+        self.timeout.setEnabled(False)
+        self.timeout.valueChanged.connect(self.edited)
+        layout.addRow(_("Timeout (seconds)"), self.timeout)
         self.setLayout(layout)
 
+    def _on_use_timeout(self):
+        use = self.use_timeout.checkState() == Qt.Checked
+        self.timeout.setEnabled(use)
+
     def set_ai(self, ai):
-        self.title.setText(ai.title)
+        self.title.widget.setText(ai.title)
         self.depth.setValue(ai.depth)
         if ai.start_depth is not None:
             self.start_depth.setValue(ai.start_depth)
         self.max_combination_depth.setValue(ai.max_combination_depth)
         self.use_positional_score.setCheckState(Qt.Checked if ai.use_positional_score else Qt.Unchecked)
+        self.use_timeout.setCheckState(Qt.Checked if ai.use_timeout else Qt.Unchecked)
+        self.timeout.setValue(1 if ai.timeout is None else ai.timeout)
 
     def get_ai(self):
         ai = AI()
-        ai.title = self.title.text()
+        ai.title = self.title.widget.text()
         ai.depth = self.depth.value()
         ai.start_depth = self.start_depth.value()
         ai.max_combination_depth = self.max_combination_depth.value()
         ai.use_positional_score = self.use_positional_score.checkState() == Qt.Checked
+        ai.use_timeout = self.use_timeout.checkState() == Qt.Checked
+        ai.timeout = self.timeout.value()
         return ai
 
 class AiPresetsPage(QWidget):
@@ -188,19 +205,19 @@ class GeneralPage(QWidget):
     def __init__(self, parent=None):
         QWidget.__init__(self, parent)
         layout = QFormLayout()
-        self.server_url = QLineEdit(self)
-        layout.addRow(_("Server URL"), self.server_url)
+        self.server_url = MandatoryField(_("Server URL"), QLineEdit(self))
+        self.server_url.add_to_form(layout)
         self.setLayout(layout)
 
     def load(self, settings):
         url = settings.value("server_url", DEFAULT_SERVER_URL)
-        self.server_url.setText(url)
+        self.server_url.widget.setText(url)
 
     def save(self, settings):
-        settings.setValue("server_url", self.server_url.text())
+        settings.setValue("server_url", self.server_url.widget.text())
 
 
-class SettingsDialog(QDialog):
+class SettingsDialog(DialogBase):
     def __init__(self, settings, share_dir, parent=None):
         QDialog.__init__(self, parent)
         self.settings = settings
@@ -219,11 +236,15 @@ class SettingsDialog(QDialog):
                     Qt.Horizontal, self)
         buttons.accepted.connect(self._on_accept)
         buttons.rejected.connect(self.reject)
+        self.ok_button = buttons.button(QDialogButtonBox.Ok)
         layout.addWidget(buttons)
         self.setLayout(layout)
         self.general.load(settings)
         self.view.load(settings)
         self.ais.load(settings)
+
+    def get_ok_button(self):
+        return self.ok_button
 
     def get_show_notation(self):
         return self.view.show_notation.checkState() == Qt.Checked

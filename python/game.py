@@ -32,6 +32,7 @@ class AI(object):
         self.start_depth = None
         self.use_positional_score = True
         self.timeout = None
+        self.use_timeout = False
 
         for key in kwargs:
             setattr(self, key, kwargs[key])
@@ -44,6 +45,8 @@ class AI(object):
         ai.max_combination_depth = settings.value("max_combination_depth", type=int)
         ai.start_depth = settings.value("start_depth", type=int)
         ai.use_positional_score = settings.value("use_positional_score", type=bool)
+        ai.use_timeout = settings.value("use_timeout", type=bool)
+        ai.timeout = settings.value("timeout", type=int)
         return ai
     
     @classmethod
@@ -67,6 +70,8 @@ class AI(object):
         settings.setValue("max_combination_depth", self.max_combination_depth)
         settings.setValue("start_depth", self.start_depth)
         settings.setValue("use_positional_score", self.use_positional_score)
+        settings.setValue("use_timeout", self.use_timeout)
+        settings.setValue("timeout", self.timeout)
 
     def params(self):
         return {
@@ -74,7 +79,7 @@ class AI(object):
             "start_depth": self.start_depth,
             "max_combination_depth": self.max_combination_depth,
             "use_positional_score": self.use_positional_score,
-            "time": self.timeout
+            "time": self.timeout if self.use_timeout else None
         }
 
 class GameSettings(object):

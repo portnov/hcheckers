@@ -1,5 +1,6 @@
 
 from requests.exceptions import ConnectionError
+from PyQt5.QtWidgets import QDialog, QLineEdit
 
 MAN = 1
 KING = 2
@@ -161,6 +162,51 @@ def handling_error(method):
             self._handle_connection_error(e.request.url, e)
     wrapped.__name__ = method.__name__
     return wrapped
+
+class MandatoryField(object):
+    def __init__(self, label, widget):
+        self.widget = widget
+        self.label = label
+        self._is_mandatory = True
+        self._dialog = DialogBase.find(widget)
+        self.layout = None
+        if isinstance(widget, QLineEdit):
+            widget.textEdited.connect(self._on_edit)
+
+    def _on_edit(self, text):
+        empty = text is None or text == ""
+        self._dialog.get_ok_button().setEnabled(not empty)
+        self.layout.labelForField(self.widget).font().setBold(empty)
+
+    def add_to_form(self, layout):
+        layout.addRow(self.label, self.widget)
+        self.layout = layout
+
+    def get_is_mandatory(self):
+        return self._is_mandatory
+
+    def set_is_mandatory(self, value):
+        self._is_mandatory = value
+
+    is_mandatory = property(get_is_mandatory, set_is_mandatory)
+
+class DialogBase(QDialog):
+    def __init__(self, parent=None):
+        QDialog.__init__(self, parent)
+
+    @classmethod
+    def find(cls, widget):
+        if widget is None:
+            return None
+        if isinstance(widget, DialogBase):
+            return widget
+        return DialogBase.find(widget.parentWidget())
+
+    def get_form_layout(self):
+        raise Exception("the method is to be implemented")
+
+    def get_ok_button(self):
+        raise Exception("the method is to be implemented")
 
 supported_rules = [
         ("russian", _("Russian draughts")),
