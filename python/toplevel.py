@@ -3,7 +3,7 @@ import sys
 from os.path import join, exists, dirname
 import os
 
-from PyQt5.QtGui import QPainter, QPixmap
+from PyQt5.QtGui import QPainter, QPixmap, QIcon
 from PyQt5.QtCore import QRect, QSize, Qt, QObject, QTimer, pyqtSignal, QSettings
 from PyQt5.QtWidgets import QApplication, QWidget, QToolBar, QMainWindow, QDialog, QVBoxLayout, QAction, QActionGroup, QLabel, QFileDialog, QFrame, QDockWidget, QMessageBox
 
@@ -118,6 +118,8 @@ class Checkers(QMainWindow):
         else:
             parent = group
         action = QAction(title, parent)
+        if icon is not None:
+            action.setIcon(icon)
         if key is not None:
             action.setShortcut(key)
         if toggle:
@@ -131,29 +133,29 @@ class Checkers(QMainWindow):
 
     def _setup_actions(self):
         menu = self.menuBar().addMenu(_("&Game"))
-        self._create_action(None, _("&New Game"), menu, self._on_new_game, key="Ctrl+N")
-        self._create_action(None, _("Save Position"), menu, self._on_save_game, key="Ctrl+S")
-        self._create_action(None, _("&Undo"), menu, self._on_undo, key="Ctrl+Z")
+        self._create_action(QIcon.fromTheme("document-new"), _("&New Game"), menu, self._on_new_game, key="Ctrl+N")
+        self._create_action(QIcon.fromTheme("document-save"), _("Save Position"), menu, self._on_save_game, key="Ctrl+S")
+        self._create_action(QIcon.fromTheme("edit-undo"), _("&Undo"), menu, self._on_undo, key="Ctrl+Z")
 
         menu.addSeparator()
         self.toolbar.addSeparator()
 
-        self.run_action = self._create_action(None, _("Start &Game"), menu, self._on_run_game, key="Ctrl+R")
+        self.run_action = self._create_action(QIcon.fromTheme("media-playback-start"), _("Start &Game"), menu, self._on_run_game, key="Ctrl+R")
         menu.addSeparator()
-        self._create_action(None, _("Se&ttings"), menu, self._on_settings, toolbar=False)
+        self._create_action(QIcon.fromTheme("preferences-system"), _("Se&ttings"), menu, self._on_settings, toolbar=False)
 
         menu = self.menuBar().addMenu(_("&Position"))
         setup = QActionGroup(self)
         setup.setExclusive(True)
         self.put_first_action = self._create_action(None, _("Put &white piece"), menu, group=setup, toggle=True)
         self.put_second_action = self._create_action(None, _("Put &black piece"), menu, group=setup, toggle=True)
-        self.erase_action = self._create_action(None, _("&Remove piece"), menu, group=setup, toggle=True)
+        self.erase_action = self._create_action(QIcon.fromTheme("list-remove"), _("&Remove piece"), menu, group=setup, toggle=True)
         self.board_setup_mode = False
         menu.addSeparator()
         self.toolbar.addSeparator()
 
         menu = self.menuBar().addMenu(_("&View"))
-        self.flip_action = self._create_action(None, _("&Flip board"), menu, self._on_flip_board, toggle=True, key="Ctrl+T")
+        self.flip_action = self._create_action(QIcon.fromTheme("object-flip-vertical"), _("&Flip board"), menu, self._on_flip_board, toggle=True, key="Ctrl+T")
         flip = self.settings.value("flip_board", False, type=bool)
         self.flip_action.setChecked(flip)
         self._set_flip_board(flip)

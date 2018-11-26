@@ -1,5 +1,5 @@
 
-from PyQt5.QtGui import QPainter, QPixmap
+from PyQt5.QtGui import QPainter, QPixmap, QIcon
 from PyQt5.QtCore import QRect, QSize, Qt, QObject, QTimer, pyqtSignal, QSettings
 from PyQt5.QtWidgets import QWidget, QDialog, QPushButton, QVBoxLayout, QHBoxLayout, QFormLayout, QLineEdit, QComboBox, QGroupBox, QCheckBox, QDialogButtonBox, QFileDialog, QListWidget, QListWidgetItem, QSpinBox, QToolBar, QAction, QTabWidget
 
@@ -127,9 +127,11 @@ class AiPresetsPage(QWidget):
         vbox = QVBoxLayout()
         self.toolbar = QToolBar(self)
         self.add_ai = QAction(_("Add AI preset"), self)
+        self.add_ai.setIcon(QIcon.fromTheme("list-add"))
         self.add_ai.triggered.connect(self._on_add)
         self.toolbar.addAction(self.add_ai)
         self.del_ai = QAction(_("Delete AI preset"), self)
+        self.del_ai.setIcon(QIcon.fromTheme("list-remove"))
         self.del_ai.triggered.connect(self._on_del)
         self.toolbar.addAction(self.del_ai)
         vbox.addWidget(self.toolbar)
