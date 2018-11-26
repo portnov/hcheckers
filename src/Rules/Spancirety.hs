@@ -19,7 +19,7 @@ instance Show Spancirety where
 
 instance Evaluator Spancirety where
   evaluatorName _ = "spancirety"
-  evalBoard _ = evalBoard defaultEvaluator
+  evalBoard rules = evalBoard (defaultEvaluator rules)
 
 instance GameRules Spancirety where
   initBoard r =

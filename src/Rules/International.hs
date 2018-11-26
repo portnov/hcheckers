@@ -23,7 +23,7 @@ instance Show International where
 instance Evaluator International where
   evaluatorName _ = "international"
   -- TODO: I suspect in international draughts a king has much more weight
-  evalBoard _ = evalBoard defaultEvaluator
+  evalBoard rules = evalBoard (defaultEvaluator rules)
 
 instance GameRules International where
   boardSize _ = (10, 10)

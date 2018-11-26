@@ -37,6 +37,7 @@ data AlphaBetaParams = AlphaBetaParams {
   , abStartDepth :: Maybe Int
   , abCombinationDepth :: Int
   , abUsePositionalScore :: Bool
+  , abBaseTime :: Maybe Int
   }
   deriving (Eq, Ord, Show)
 
@@ -46,6 +47,7 @@ instance Default AlphaBetaParams where
         , abStartDepth = Nothing
         , abCombinationDepth = 8
         , abUsePositionalScore = True
+        , abBaseTime = Nothing
         }
 
 -- Calculation depth parameters

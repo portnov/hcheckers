@@ -17,7 +17,7 @@ newtype Simple = Simple GenericRules
 
 instance Evaluator Simple where
   evaluatorName _ = "simple"
-  evalBoard _ = evalBoard defaultEvaluator
+  evalBoard rules = evalBoard (defaultEvaluator rules)
 
 instance Show Simple where
   show = rulesName

@@ -417,23 +417,6 @@ initFile = do
   writeData DataFile $ DataHeader 0
   return ()
 
-repeatTimed :: forall m. (MonadIO m, HasLogging m) => String -> Int -> m Bool -> m ()
-repeatTimed label seconds action = do
-    start <- liftIO $ getTime Monotonic
-    run 0 start
-  where
-    run :: Int -> TimeSpec -> m ()
-    run i start = do
-      continue <- action
-      if continue
-        then do
-            time2 <- liftIO $ getTime Monotonic
-            let delta = time2 - start
-            if sec delta >= fromIntegral seconds
-              then $info "{}: timeout exhaused, done {} records" (label, i+1)
-              else run (i+1) start
-        else $info "{}: queue exhaused, done {} records" (label, i)
-  
 -- dumpFile :: FilePath -> IO ()
 -- dumpFile path = withFile path ReadMode $ \file -> do
 --       nBlocks <- readDataIO file :: IO Word16

@@ -1,4 +1,5 @@
 {-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE DeriveDataTypeable #-}
@@ -21,6 +22,7 @@ import qualified Data.IntMap.Strict as IM
 import qualified Data.IntSet as IS
 import qualified Data.Text as T
 import qualified Data.HashMap.Strict as H
+import Data.Function (on)
 import Data.Dynamic
 import Data.Aeson (Value)
 import Data.Int
@@ -377,7 +379,10 @@ data Score = Score {
     sNumerical :: Int8
   , sPositional :: Int8
   }
-  deriving (Eq, Ord, Typeable, Generic)
+  deriving (Eq, Typeable, Generic)
+
+instance Ord Score where
+  compare = compare `on` \s -> fromIntegral (sNumerical s) * 12 + fromIntegral (sPositional s) :: Int
 
 instance Show Score where
   show s = printf "%d/%d" (sNumerical s) (sPositional s)
@@ -566,6 +571,7 @@ data Error =
   | NoSuchGame GameId
   | NoSuchUserInGame
   | UserNameAlreadyUsed
+  | TimeExhaused
   | Unhandled String
   deriving (Eq, Show, Typeable, Generic)
 
@@ -635,4 +641,35 @@ event label actions =
   bracket_ (liftIO $ traceEventIO ("START " ++ label))
            (liftIO $ traceEventIO ("STOP " ++ label))
            actions
+
+repeatTimed :: forall m. (MonadIO m, HasLogging m) => String -> Int -> m Bool -> m ()
+repeatTimed label seconds action = repeatTimed' label seconds action' ()
+  where
+
+    action' _ = do
+      continue <- action
+      if continue
+        then return ((), Just ())
+        else return ((), Nothing)
+  
+repeatTimed' :: forall m a b. (MonadIO m, HasLogging m) => String -> Int -> (a -> m (b, Maybe a)) -> a -> m b
+repeatTimed' label seconds action x = do
+    start <- liftIO $ getTime Monotonic
+    run 0 x start
+  where
+    run :: Int -> a -> TimeSpec -> m b
+    run i x start = do
+      (result, mbX') <- action x
+      case mbX' of
+        Just x' -> do
+            time2 <- liftIO $ getTime Monotonic
+            let delta = time2 - start
+            if sec delta >= fromIntegral seconds
+              then do
+                  $info "{}: timeout exhaused, done {} iterations" (label, i+1)
+                  return result
+              else run (i+1) x' start
+        Nothing -> do
+            $info "{}: work done, in {} iterations" (label, i)
+            return result
 

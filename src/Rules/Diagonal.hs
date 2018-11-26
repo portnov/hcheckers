@@ -16,7 +16,7 @@ newtype Diagonal = Diagonal GenericRules
 
 instance Evaluator Diagonal where
   evaluatorName _ = "diagonal"
-  evalBoard _ = evalBoard defaultEvaluator
+  evalBoard rules = evalBoard (defaultEvaluator rules)
 
 instance Show Diagonal where
   show = rulesName

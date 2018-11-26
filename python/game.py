@@ -31,6 +31,7 @@ class AI(object):
         self.max_combination_depth = 6
         self.start_depth = None
         self.use_positional_score = True
+        self.timeout = None
 
         for key in kwargs:
             setattr(self, key, kwargs[key])
@@ -72,7 +73,8 @@ class AI(object):
             "depth": self.depth,
             "start_depth": self.start_depth,
             "max_combination_depth": self.max_combination_depth,
-            "use_positional_score": self.use_positional_score
+            "use_positional_score": self.use_positional_score,
+            "time": self.timeout
         }
 
 class GameSettings(object):

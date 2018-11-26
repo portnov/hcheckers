@@ -23,7 +23,7 @@ instance Show Russian where
 
 instance Evaluator Russian where
   evaluatorName _ = "russian"
-  evalBoard rules = evalBoard defaultEvaluator
+  evalBoard rules = evalBoard (defaultEvaluator rules)
 
 instance GameRules Russian where
   initBoard _ = board8

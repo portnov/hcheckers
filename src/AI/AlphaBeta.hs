@@ -14,6 +14,7 @@ module AI.AlphaBeta where
 
 import Control.Monad
 import Control.Monad.State
+import Control.Monad.Except
 import qualified Control.Monad.Metrics as Metrics
 import Control.Concurrent.STM
 import Data.Maybe
@@ -22,6 +23,7 @@ import Data.Aeson
 import Text.Printf
 import System.Log.Heavy
 import System.Log.Heavy.TH
+import System.Clock
 
 import Core.Types
 import Core.Board
@@ -37,6 +39,7 @@ instance FromJSON AlphaBetaParams where
       <*> v .:? "start_depth"
       <*> v .:? "max_combination_depth" .!= 8
       <*> v .:? "use_positional_score" .!= True
+      <*> v .:? "time"
 
 instance (GameRules rules) => GameAi (AlphaBeta rules) where
 
@@ -73,23 +76,59 @@ scoreMove (ai@(AlphaBeta params rules), var, side, dp, board, pm) = do
      return (pmMove pm, score)
 
 runAI :: GameRules rules => AlphaBeta rules -> AICacheHandle rules -> Side -> Board -> Checkers ([Move], Score)
-runAI ai@(AlphaBeta params rules) handle side board = do
-    let depth = abDepth params
-    let moves = possibleMoves rules side board
-    let var = aichData handle
-    AICache _ processor _ <- liftIO $ atomically $ readTVar var
-    dp <- updateDepth (length moves) $ DepthParams {
-               dpTarget = depth
-             , dpCurrent = -1
-             , dpMax = abCombinationDepth params + depth
-             , dpMin = fromMaybe depth (abStartDepth params)
-             }
-    let inputs = [(ai, handle, side, dp, board, move) | move <- moves]
-    scores <- process processor inputs
-    let select = if side == First then maximum else minimum
-        maxScore = select $ map snd scores
-        goodMoves = [move | (move, score) <- scores, score == maxScore]
-    return (goodMoves, maxScore)
+runAI ai@(AlphaBeta params rules) handle side board = iterator
+  where
+    iterator = case abBaseTime params of
+                 Nothing -> do
+                    (result, _) <- go (params, Nothing)
+                    return result
+                 Just time -> repeatTimed' "runAI" time goTimed (params, Nothing)
+  
+    goTimed :: (AlphaBetaParams, Maybe ([Move], Score))
+            -> Checkers (([Move], Score), Maybe (AlphaBetaParams, Maybe ([Move], Score)))
+    goTimed (params, prevResult) = do
+      ret <- tryC $ go (params, prevResult)
+      case ret of
+        Right result -> return result
+        Left TimeExhaused ->
+          case prevResult of
+            Just result -> return (result, Nothing)
+            Nothing -> do
+              let moves = map pmMove $ possibleMoves rules side board
+              return ((moves, Score 0 0), Nothing)
+        Left err -> throwError err
+
+    go :: (AlphaBetaParams, Maybe ([Move], Score))
+            -> Checkers (([Move], Score), Maybe (AlphaBetaParams, Maybe ([Move], Score)))
+    go (params, prevResult) = do
+      let depth = abDepth params
+      let moves = possibleMoves rules side board
+      if length moves <= 1 -- Just one move possible
+        then do
+          $info "There is only one move possible; just do it." ()
+          -- currently we do not use results of evaluating of all moves
+          -- when evaluating deeper parts of the tree (it is hard due to alpha-beta restrictions).
+          -- It means we are not going to use that Score value anyway.
+          return ((map pmMove moves, Score 0 0), Nothing) 
+                                                             
+        else do
+          let var = aichData handle
+          $info "Evaluating a board, side = {}, depth = {}, number of possible moves = {}" (show side, depth, length moves)
+          AICache _ processor _ <- liftIO $ atomically $ readTVar var
+          dp <- updateDepth (length moves) $ DepthParams {
+                     dpTarget = depth
+                   , dpCurrent = -1
+                   , dpMax = abCombinationDepth params + depth
+                   , dpMin = fromMaybe depth (abStartDepth params)
+                   }
+          let inputs = [(ai, handle, side, dp, board, move) | move <- moves]
+          scores <- process processor inputs
+          let select = if side == First then maximum else minimum
+              maxScore = select $ map snd scores
+              goodMoves = [move | (move, score) <- scores, score == maxScore]
+          let result = (goodMoves, maxScore)
+              params' = params {abDepth = depth + 1, abStartDepth = Nothing}
+          return (result, Just (params', Just result))
 
 -- type ScoreMemo = M.Map Side (M.Map Int (M.Map Score (M.Map Score Score)))
 
@@ -111,9 +150,14 @@ putMoves Second board moves memo =
 -- | Calculate score of the board
 doScore :: (GameRules rules, Evaluator eval) => rules -> eval -> AICacheHandle rules -> AlphaBetaParams -> Side -> DepthParams -> Board -> Checkers Score
 doScore rules eval var params side dp board =
-    fixSign <$> evalStateT (cachedScoreAB var params side dp loose win board) initState
+    fixSign <$> evalStateT (cachedScoreAB var params side dp loose win board) =<< initState
   where
-    initState = ScoreState rules eval [StackItem Nothing loose] emptyMemo
+    initState = do
+      now <- liftIO $ getTime Monotonic
+      let timeout = case abBaseTime params of
+                      Nothing -> Nothing
+                      Just sec -> Just $ TimeSpec (fromIntegral sec) 0
+      return $ ScoreState rules eval [StackItem Nothing loose] emptyMemo now timeout
     emptyMemo = MovesMemo emptyBoardMap emptyBoardMap
 
     fixSign s = s
@@ -125,6 +169,8 @@ data ScoreState rules eval = ScoreState {
   , ssEvaluator :: eval
   , ssStack :: ! [StackItem]
   , ssMemo :: ! MovesMemo
+  , ssStartTime :: TimeSpec
+  , ssTimeout :: Maybe TimeSpec
   }
 
 data StackItem = StackItem {
@@ -191,15 +237,24 @@ isTargetDepth :: DepthParams -> Bool
 isTargetDepth dp = dpCurrent dp >= dpTarget dp
 
 -- | Increase current depth as necessary.
+--
 -- If there is only 1 move currently possible, this can increase
--- the target depth, up to dpMax.
+-- the target depth, up to dpMax. Such situations mean that there is
+-- probably a series of captures going on, which can change situation
+-- dramatically. So we want to know the result better (up to the end of
+-- the whole combination, if possible) to make our choice.
+--
 -- If there are a lot of moves possible, this can decrease the
--- target depth, down to dpMin.
+-- target depth, down to dpMin. This is done simply to decrease computation
+-- time. This is obviously going to lead to less strong play.
+--
 -- Otherwise, this just increases dpCurrent by 1.
+--
 updateDepth :: (Monad m, HasLogging m, MonadIO m) => Int -> DepthParams -> m DepthParams
 updateDepth nMoves dp
-  | nMoves == 1 = do
-                let target = min (dpTarget dp + 1) (dpMax dp)
+  | nMoves <= 4 = do
+                let delta = nMoves - 1
+                let target = min (dpTarget dp + 1) (dpMax dp - delta)
                 let indent = replicate (2*dpCurrent dp) ' '
                 $debug "{}| there is only one move, increase target depth to {}"
                         (indent, target)
@@ -211,6 +266,16 @@ updateDepth nMoves dp
                         (indent, target)
                 return $ dp {dpCurrent = dpCurrent dp + 1, dpTarget = target}
   | otherwise = return $ dp {dpCurrent = dpCurrent dp + 1}
+
+isTimeExhaused :: ScoreM rules eval Bool
+isTimeExhaused = do
+  check <- gets ssTimeout
+  case check of
+    Nothing -> return False
+    Just delta -> do
+      start <- gets ssStartTime
+      now <- liftIO $ getTime Monotonic
+      return $ start + delta <= now
 
 -- | Calculate score for the board
 scoreAB :: forall rules eval. (GameRules rules, Evaluator eval)
@@ -274,6 +339,7 @@ scoreAB var params side dp alpha beta board
 
     showStack s = unwords $ map show s
 
+    printStack :: ScoreM rules eval ()
     printStack = do
       stack <- gets (reverse . ssStack)
       $trace "{}| side {}: {}" (indent, show side, showStack stack)
@@ -297,13 +363,17 @@ scoreAB var params side dp alpha beta board
       $trace "{}`—All moves considered at this level, return best = {}" (indent, show best)
       return (best, [])
     iterateMoves (move : moves) dp' = do
+      timeout <- isTimeExhaused
+      when timeout $ do
+        $info "Timeout exhaused for depth {}." (Single $ dpCurrent dp)
+        throwError TimeExhaused
       $trace "{}|+Check move of side {}: {}" (indent, show side, show move)
       evaluator <- gets ssEvaluator
       rules <- gets ssRules
       let board' = applyMoveActions (pmResult move) board
       best <- getBest
       push move 
-      printStack
+      -- printStack
       let alpha' = if maximize
                      then max alpha best
                      else alpha

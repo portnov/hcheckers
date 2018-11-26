@@ -16,20 +16,28 @@ sub :: Score -> Score -> Score
 sub s1 s2 = Score (sNumerical s1 - sNumerical s2) (sPositional s1 - sPositional s2)
 
 data SimpleEvaluator = SimpleEvaluator {
+    seRules :: SomeRules,
     seKingCoef :: Int8
   }
-  deriving (Eq, Show)
+  deriving (Show)
 
-defaultEvaluator :: SimpleEvaluator
-defaultEvaluator = SimpleEvaluator 5
+defaultEvaluator :: GameRules rules => rules -> SimpleEvaluator
+defaultEvaluator rules = SimpleEvaluator (SomeRules rules) 3
 
 instance Evaluator SimpleEvaluator where
   evaluatorName _ = "simple"
 
-  evalBoard (SimpleEvaluator {seKingCoef=kingCoef}) whoAsks whoMovesNext board =
-    let numericScore side =
+  evalBoard (SimpleEvaluator {seKingCoef=k, seRules=SomeRules rules}) whoAsks whoMovesNext board =
+    let kingCoef side =
+          -- King is much more useful when there are enough men to help it
+          let (men, _) = myCounts side board
+          in  if men > 3
+                then k+2
+                else k
+        
+        numericScore side =
           let (myMen, myKings) = myCounts side board
-          in  kingCoef * fromIntegral myKings + fromIntegral myMen
+          in  kingCoef side * fromIntegral myKings + fromIntegral myMen
 
         myNumeric = numericScore whoAsks
         opponentNumeric = numericScore (opposite whoAsks)
@@ -44,9 +52,40 @@ instance Evaluator SimpleEvaluator where
             (col >= ccol - halfCol && col < ccol + halfCol) &&
             (row >= crow - halfRow && row < crow + halfRow)
 
+        isLeftHalf (Label col _) = col >= ccol
+
+        asymetry side =
+          let (leftMen, leftKings) = myLabelsCount side board isLeftHalf
+              (rightMen, rightKings) = myLabelsCount side board (not . isLeftHalf)
+          in  abs $ (leftMen + leftKings) - (rightMen + rightKings)
+
+        isBackedAt addr side dir =
+          case getNeighbourPiece (myDirection rules side dir) addr board of
+            Nothing -> False
+            Just p -> pieceSide p == side
+
+        backedScoreOf side addr = 
+          length $ filter (isBackedAt addr side) [BackwardLeft, BackwardRight]
+
+        backedScore side =
+          sum $ map (backedScoreOf side) $ allMyAddresses side board
+
+        isAtOpponentHalf side (Label _ row) =
+          case boardSide (boardOrientation rules) side of
+            Top -> row < crow
+            Bottom -> row >= crow
+
+        opponentSideCount :: Side -> Int
+        opponentSideCount side =
+          let (men, kings) = myLabelsCount side board (isAtOpponentHalf side)
+          in  men
+
         positionalScore side =
           let (men, kings) = myLabelsCount side board isCenter
-          in  kingCoef * fromIntegral kings + fromIntegral men
+          in  2 * (kingCoef side * fromIntegral kings + fromIntegral men) +
+              fromIntegral (opponentSideCount side) +
+              fromIntegral (3 * backedScore side) -
+              fromIntegral (asymetry side)
 
         myScore = Score myNumeric (positionalScore whoAsks)
         opponentScore = Score opponentNumeric $ positionalScore (opposite whoAsks)
