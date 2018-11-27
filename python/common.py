@@ -156,6 +156,7 @@ def handling_error(method):
     def wrapped(self, *args, **kwargs):
         try:
             result = method(self, *args, **kwargs)
+            return result
         except RequestError as e:
             self._handle_game_error(e.rs)
         except ConnectionError as e:
