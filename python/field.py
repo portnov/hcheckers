@@ -8,6 +8,7 @@ import common
 class Field(object):
     def __init__(self):
         self._show_frame = False
+        self._moveable = False
         self._show_label = False
         self._pattern_id = None
         self._piece = None
@@ -57,6 +58,15 @@ class Field(object):
         self.invalidate()
 
     show_frame = property(get_show_frame, set_show_frame)
+
+    def get_moveable(self):
+        return self._moveable
+
+    def set_moveable(self, value):
+        self._moveable = value
+        self.invalidate()
+
+    moveable = property(get_moveable, set_moveable)
 
     def get_theme(self):
         return self._theme
@@ -150,6 +160,14 @@ class Field(object):
             pattern = self._theme.get_pattern(self._pattern_id)
             painter.drawPixmap(0, 0, pattern)
 
+        if self.show_frame:
+            frame = self._theme.get_frame()
+            painter.drawPixmap(0, 0, frame)
+        elif self.moveable:
+            frame = self._theme.get_moveable()
+            if frame:
+                painter.drawPixmap(0, 0, frame)
+
         # notation
         painter.setPen(Qt.white)
         notation_rect = painter.boundingRect(2, 2, 0, 0, Qt.AlignLeft, self.notation)
@@ -162,10 +180,6 @@ class Field(object):
             if self.show_label:
                 painter.drawText(notation_rect, Qt.AlignTop | Qt.AlignLeft, self.notation)
             self._draw_piece(painter)
-
-        if self.show_frame:
-            frame = self._theme.get_frame()
-            painter.drawPixmap(0, 0, frame)
 
         if self.captured:
             captured = self._theme.get_captured()

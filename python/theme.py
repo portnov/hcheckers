@@ -1,6 +1,6 @@
 
 import os
-from os.path import join, basename, isdir
+from os.path import join, basename, isdir, exists
 
 from PyQt5.QtCore import Qt, QSettings
 from PyQt5.QtGui import QPixmap, QPainter
@@ -13,12 +13,15 @@ class CachedPixmap(object):
         self.path = path
         self.size = None
         self._pixmap = None
+        self.defined = exists(path)
 
     def invalidate(self):
         self.size = None
         self._pixmap = None
 
     def get(self, size):
+        if not self.defined:
+            return None
         if self.size == size and self._pixmap is not None:
             #print("{}: already rendered".format(self.path))
             return self._pixmap
@@ -55,6 +58,7 @@ class Theme(object):
         self.pattern1 = CachedPixmap(join(path, settings.value("tile1", "tile1.svg")))
         self.pattern2 = CachedPixmap(join(path, settings.value("tile2", "tile2.svg")))
         self.frame = CachedPixmap(join(path, settings.value("frame", "frame.svg")))
+        self.moveable = CachedPixmap(join(path, settings.value("moveable", "moveable.svg")))
         self.captured = CachedPixmap(join(path, settings.value("captured", "captured.svg")))
 
         self.man_black = CachedPixmap(join(path, settings.value("man_black", "manblack.svg")))
@@ -66,6 +70,7 @@ class Theme(object):
         self.pattern1.invalidate()
         self.pattern2.invalidate()
         self.frame.invalidate()
+        self.moveable.invalidate()
         self.captured.invalidate()
         self.man_black.invalidate()
         self.man_white.invalidate()
@@ -79,6 +84,9 @@ class Theme(object):
 
     def get_frame(self):
         return self.frame.get(self.size)
+
+    def get_moveable(self):
+        return self.moveable.get(self.size)
     
     def get_captured(self):
         return self.captured.get(self.size)

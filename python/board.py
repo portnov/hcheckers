@@ -114,6 +114,7 @@ class Board(QWidget):
 
         self._selected_field = None
         self._valid_target_fields = None
+        self._moveable_fields = None
         self._board = dict()
         self._new_board = None
 
@@ -152,8 +153,11 @@ class Board(QWidget):
         self._my_turn = value
         if value:
             self.setCursor(Qt.ArrowCursor)
+            moves = self.game.get_possible_moves()
+            self._moveable_fields = set(move.from_field for move in moves)
         else:
             self.setCursor(Qt.WaitCursor)
+            self._moveable_fields = None
 
     my_turn = property(get_my_turn, set_my_turn)
 
@@ -286,6 +290,8 @@ class Board(QWidget):
         if self.show_possible_moves:
             if self._selected_field is not None and self._valid_target_fields is not None and label in self._valid_target_fields:
                 field.possible_piece = self.fields[self._selected_field].piece
+            if self._moveable_fields is not None:
+                field.moveable = label in self._moveable_fields
 
         prev_captured = field.captured
         if self.move_animation.is_active() and label in self.move_animation.captured_fields:
