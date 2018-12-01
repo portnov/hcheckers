@@ -35,7 +35,7 @@ resolver: lts-12.11
 #  - wai
 packages:
 - .
-- /home/portnov/src/progs/haskell/random-access-file
+- ../random-access-file
 
 # Dependency packages to be pulled from upstream that are not in the resolver
 # using the same syntax as the packages field.

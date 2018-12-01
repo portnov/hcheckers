@@ -54,7 +54,7 @@ class AI(object):
         result = []
         size = settings.beginReadArray("AI")
         if size is None or size == 0:
-            result = [AI()]
+            result = default_ais
         else:
             for idx in range(size):
                 settings.setArrayIndex(idx)
@@ -81,6 +81,14 @@ class AI(object):
             "use_positional_score": self.use_positional_score,
             "time": self.timeout if self.use_timeout else None
         }
+
+default_ais = [
+        AI(title=_("Beginner"), depth=2, max_combination_depth=6),
+        AI(title=_("Novice"), depth=4, max_combination_depth=4),
+        AI(title=_("Average"), depth=6, max_combination_depth=4),
+        AI(title=_("Good"), depth=6, max_combination_depth=9),
+        AI(title=_("Master"), depth=7, max_combination_depth=9)
+    ]
 
 class GameSettings(object):
     def __init__(self):
