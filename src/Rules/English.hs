@@ -16,11 +16,6 @@ import Rules.Generic
 newtype English = English GenericRules
   deriving (Typeable, HasBoardOrientation)
 
-instance Evaluator English where
-  evaluatorName _ = "english"
-  -- evalBoard rules = evalBoard $ ComplexEvaluator {ceRules = rules, ceCaptureManCoef = 10, ceCaptureKingCoef = 20}
-  evalBoard rules = evalBoard $ (defaultEvaluator rules) {seKingCoef = 2}
-
 instance Show English where
   show = rulesName
 
@@ -35,6 +30,8 @@ instance GameRules English where
 
   boardNotation r = numericNotation (boardSize r)
   parseNotation r = parseNumericNotation (boardSize r)
+
+  dfltEvaluator r = SomeEval $ (defaultEvaluator r) {seKingCoef = 2}
 
   rulesName _ = "english"
   updateRules r _ = r

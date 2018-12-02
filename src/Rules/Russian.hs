@@ -21,16 +21,14 @@ newtype Russian = Russian GenericRules
 instance Show Russian where
   show = rulesName
 
-instance Evaluator Russian where
-  evaluatorName _ = "russian"
-  evalBoard rules = evalBoard (defaultEvaluator rules)
-
 instance GameRules Russian where
   initBoard _ = board8
 
   boardSize _ = (8, 8)
 
   boardNotation _ = chessNotation
+
+  dfltEvaluator r = SomeEval $ defaultEvaluator r
 
   parseNotation _ = parseChessNotation
 

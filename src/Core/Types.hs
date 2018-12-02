@@ -347,11 +347,13 @@ class HasBoardOrientation a where
   boardOrientation _ = FirstAtBottom
 
 -- | Interface of game rules
-class (Typeable g, Show g, Evaluator g, HasBoardOrientation g) => GameRules g where
+class (Typeable g, Show g, HasBoardOrientation g) => GameRules g where
   -- | Initial board with initial pieces position
   initBoard :: g -> Board
   -- | Size of board used
   boardSize :: g -> BoardSize
+
+  dfltEvaluator :: g -> SomeEval
 
   boardNotation :: g -> Label -> Notation
   parseNotation :: g -> Notation -> Either String Label
@@ -375,20 +377,7 @@ data SomeRules = forall g. GameRules g => SomeRules g
 instance Show SomeRules where
   show (SomeRules rules) = rulesName rules
 
-data Score = Score {
-    sNumerical :: Int8
-  , sPositional :: Int8
-  }
-  deriving (Eq, Typeable, Generic)
-
-instance Ord Score where
-  compare = compare `on` \s -> fromIntegral (sNumerical s) * 12 + fromIntegral (sPositional s) :: Int
-
-instance Show Score where
-  show s = printf "%d/%d" (sNumerical s) (sPositional s)
-
-instance Store Score
-instance Binary Score
+type Score = Int16
 
 data GameResult =
     FirstWin
@@ -396,11 +385,25 @@ data GameResult =
   | Draw
   deriving (Eq, Show, Ord, Typeable, Generic)
 
-class Evaluator e where
+class (Show e, Typeable e) => Evaluator e where
   evalBoard :: e -> Side -> Side -> Board -> Score
   evaluatorName :: e -> String
 
-class (Typeable ai, Show ai, Typeable (AiStorage ai)) => GameAi ai where
+  updateEval :: e -> Value -> e
+  updateEval e _ = e
+
+data SomeEval = forall e. Evaluator e => SomeEval e
+  deriving (Typeable)
+
+instance Show SomeEval where
+  show (SomeEval e) = show e
+
+instance Evaluator SomeEval where
+  evalBoard (SomeEval e) s1 s2 b = evalBoard e s1 s2 b
+  evaluatorName (SomeEval e) = evaluatorName e
+  updateEval (SomeEval e) v = SomeEval (updateEval e v)
+
+class (Show ai, Typeable (AiStorage ai)) => GameAi ai where
   type AiStorage ai
 
   createAiStorage :: ai -> Checkers (AiStorage ai)

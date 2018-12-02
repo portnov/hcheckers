@@ -38,18 +38,17 @@ instance FromJSON AlphaBetaParams where
       <$> v .: "depth"
       <*> v .:? "start_depth"
       <*> v .:? "max_combination_depth" .!= 8
-      <*> v .:? "use_positional_score" .!= True
       <*> v .:? "time"
 
-instance (GameRules rules) => GameAi (AlphaBeta rules) where
+instance (GameRules rules, Evaluator eval) => GameAi (AlphaBeta rules eval) where
 
-  type AiStorage (AlphaBeta rules) = AICacheHandle rules
+  type AiStorage (AlphaBeta rules eval) = AICacheHandle rules eval
 
   createAiStorage ai = do
     cache <- loadAiCache scoreMove ai
     return cache
 
-  saveAiStorage (AlphaBeta params rules) cache = do
+  saveAiStorage (AlphaBeta params rules _) cache = do
       -- saveAiCache rules params cache
       return ()
 
@@ -58,25 +57,25 @@ instance (GameRules rules) => GameAi (AlphaBeta rules) where
     liftIO $ atomically $ writeTVar (aichCurrentCounts storage) $ boardCounts board
     return moves
 
-  updateAi ai@(AlphaBeta _ rules) json =
+  updateAi ai@(AlphaBeta _ rules eval) json =
     case fromJSON json of
       Error _ -> ai
-      Success params -> AlphaBeta params rules
+      Success params -> AlphaBeta params rules (updateEval eval json)
 
   aiName _ = "default"
 
-scoreMove :: (GameRules rules) => ScoreMoveInput rules -> Checkers (Move, Score)
-scoreMove (ai@(AlphaBeta params rules), var, side, dp, board, pm) = do
+scoreMove :: (GameRules rules, Evaluator eval) => ScoreMoveInput rules eval -> Checkers (Move, Score)
+scoreMove (ai@(AlphaBeta params rules eval), var, side, dp, board, pm) = do
      score <- Metrics.timed "ai.score.move" $ do
                 let board' = applyMoveActions (pmResult pm) board
-                score <- doScore rules ai var params (opposite side) dp board'
+                score <- doScore rules eval var params (opposite side) dp board'
                 $info "Check: {} (depth {}) => {}" (show pm, dpTarget dp, show score)
                 return score
      
      return (pmMove pm, score)
 
-runAI :: GameRules rules => AlphaBeta rules -> AICacheHandle rules -> Side -> Board -> Checkers ([Move], Score)
-runAI ai@(AlphaBeta params rules) handle side board = iterator
+runAI :: (GameRules rules, Evaluator eval) => AlphaBeta rules eval -> AICacheHandle rules eval -> Side -> Board -> Checkers ([Move], Score)
+runAI ai@(AlphaBeta params rules eval) handle side board = iterator
   where
     iterator = case abBaseTime params of
                  Nothing -> do
@@ -95,7 +94,7 @@ runAI ai@(AlphaBeta params rules) handle side board = iterator
             Just result -> return (result, Nothing)
             Nothing -> do
               let moves = map pmMove $ possibleMoves rules side board
-              return ((moves, Score 0 0), Nothing)
+              return ((moves, 0), Nothing)
         Left err -> throwError err
 
     go :: (AlphaBetaParams, Maybe ([Move], Score))
@@ -109,7 +108,7 @@ runAI ai@(AlphaBeta params rules) handle side board = iterator
           -- currently we do not use results of evaluating of all moves
           -- when evaluating deeper parts of the tree (it is hard due to alpha-beta restrictions).
           -- It means we are not going to use that Score value anyway.
-          return ((map pmMove moves, Score 0 0), Nothing) 
+          return ((map pmMove moves, 0), Nothing) 
                                                              
         else do
           let var = aichData handle
@@ -148,7 +147,7 @@ putMoves Second board moves memo =
   memo {mmSecond = putBoardMap board moves (mmSecond memo)}
 
 -- | Calculate score of the board
-doScore :: (GameRules rules, Evaluator eval) => rules -> eval -> AICacheHandle rules -> AlphaBetaParams -> Side -> DepthParams -> Board -> Checkers Score
+doScore :: (GameRules rules, Evaluator eval) => rules -> eval -> AICacheHandle rules eval -> AlphaBetaParams -> Side -> DepthParams -> Board -> Checkers Score
 doScore rules eval var params side dp board =
     fixSign <$> evalStateT (cachedScoreAB var params side dp loose win board) =<< initState
   where
@@ -207,7 +206,7 @@ instance HasLogContext (StateT (ScoreState rules eval) Checkers) where
 -- | Calculate score of the board. 
 -- This uses the cache. It is called in the recursive call also.
 cachedScoreAB :: forall rules eval. (GameRules rules, Evaluator eval)
-              => AICacheHandle rules
+              => AICacheHandle rules eval
               -> AlphaBetaParams
               -> Side
               -> DepthParams
@@ -279,7 +278,7 @@ isTimeExhaused = do
 
 -- | Calculate score for the board
 scoreAB :: forall rules eval. (GameRules rules, Evaluator eval)
-        => AICacheHandle rules
+        => AICacheHandle rules eval
         -> AlphaBetaParams
         -> Side
         -> DepthParams
@@ -398,11 +397,8 @@ scoreAB var params side dp alpha beta board
         else do
              iterateMoves moves dp'
         
-instance Evaluator rules => Evaluator (AlphaBeta rules) where
-  evaluatorName (AlphaBeta _ rules) = evaluatorName rules
-  evalBoard (AlphaBeta params rules) whoAsks whoMovesNext board =
-    let score = evalBoard rules whoAsks whoMovesNext board
-    in  if abUsePositionalScore params
-          then score
-          else score {sPositional = 0}
+instance (Evaluator eval, GameRules rules) => Evaluator (AlphaBeta rules eval) where
+  evaluatorName (AlphaBeta _ _ eval) = evaluatorName eval
+  evalBoard (AlphaBeta params rules eval) whoAsks whoMovesNext board =
+    evalBoard eval whoAsks whoMovesNext board
 

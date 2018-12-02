@@ -1,33 +1,41 @@
-
+{-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE OverloadedStrings #-}
 module Core.Evaluator where
 
 import Data.Int
+import Data.Aeson
+import Data.Aeson.Types (parseMaybe)
 
 import Core.Types
 import Core.Board
 
 win :: Score
-win = Score maxBound maxBound
+win = maxBound
 
 loose :: Score
-loose = Score (-maxBound) (-maxBound)
-
-sub :: Score -> Score -> Score
-sub s1 s2 = Score (sNumerical s1 - sNumerical s2) (sPositional s1 - sPositional s2)
+loose = -maxBound
 
 data SimpleEvaluator = SimpleEvaluator {
     seRules :: SomeRules,
-    seKingCoef :: Int8
+    sePositionWeight :: Score,
+    seKingCoef :: Score
   }
   deriving (Show)
 
 defaultEvaluator :: GameRules rules => rules -> SimpleEvaluator
-defaultEvaluator rules = SimpleEvaluator (SomeRules rules) 3
+defaultEvaluator rules = SimpleEvaluator (SomeRules rules) 1 3
 
 instance Evaluator SimpleEvaluator where
   evaluatorName _ = "simple"
 
-  evalBoard (SimpleEvaluator {seKingCoef=k, seRules=SomeRules rules}) whoAsks whoMovesNext board =
+  updateEval e (Object v) =
+    case parseMaybe (.: "use_positional_score") v of
+      Nothing -> e
+      Just Nothing -> e
+      Just (Just True) -> e {sePositionWeight = 1}
+      Just (Just False) -> e {sePositionWeight = 0}
+
+  evalBoard (SimpleEvaluator {seKingCoef=k, sePositionWeight, seRules=SomeRules rules}) whoAsks whoMovesNext board =
     let kingCoef side =
           -- King is much more useful when there are enough men to help it
           let (men, _) = myCounts side board
@@ -87,14 +95,14 @@ instance Evaluator SimpleEvaluator where
               fromIntegral (3 * backedScore side) -
               fromIntegral (asymetry side)
 
-        myScore = Score myNumeric (positionalScore whoAsks)
-        opponentScore = Score opponentNumeric $ positionalScore (opposite whoAsks)
+        myScore = myNumeric * 12 + (positionalScore whoAsks) * sePositionWeight
+        opponentScore = opponentNumeric * 12 + positionalScore (opposite whoAsks) * sePositionWeight
 
     in  if myNumeric == 0
           then loose
           else if opponentNumeric == 0
                  then win
-                 else (myScore `sub` opponentScore)
+                 else (myScore - opponentScore)
 
 -- data ComplexEvaluator rules = ComplexEvaluator {
 --     ceRules :: rules

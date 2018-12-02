@@ -29,14 +29,13 @@ import System.Log.Heavy
 import Core.Types
 import Core.Parallel
 
-data AlphaBeta rules = AlphaBeta AlphaBetaParams rules
+data AlphaBeta rules eval = AlphaBeta AlphaBetaParams rules eval
   deriving (Eq, Ord, Show, Typeable)
 
 data AlphaBetaParams = AlphaBetaParams {
     abDepth :: Int
   , abStartDepth :: Maybe Int
   , abCombinationDepth :: Int
-  , abUsePositionalScore :: Bool
   , abBaseTime :: Maybe Int
   }
   deriving (Eq, Ord, Show)
@@ -46,7 +45,6 @@ instance Default AlphaBetaParams where
           abDepth = 2
         , abStartDepth = Nothing
         , abCombinationDepth = 8
-        , abUsePositionalScore = True
         , abBaseTime = Nothing
         }
 
@@ -88,12 +86,12 @@ type StorageKey = (DepthParams, BoardKey)
 
 type StorageValue = CacheItemSide
 
-type ScoreMoveInput rules =
-  (AlphaBeta rules, AICacheHandle rules, Side, DepthParams, Board, PossibleMove)
+type ScoreMoveInput rules eval = 
+  (AlphaBeta rules eval, AICacheHandle rules eval, Side, DepthParams, Board, PossibleMove)
 
-data AICache rules = AICache {
+data AICache rules eval = AICache {
     aicDirty :: Bool
-  , aicProcessor :: Processor Move (ScoreMoveInput rules) (Move, Score)
+  , aicProcessor :: Processor Move (ScoreMoveInput rules eval) (Move, Score)
   , aicData :: AIData
   }
 
@@ -112,9 +110,9 @@ data Locks = Locks {
 
 -- | Handle to the instance of AI storage
 -- and related structures
-data AICacheHandle rules = AICacheHandle {
+data AICacheHandle rules eval = AICacheHandle {
     aichRules :: rules
-  , aichData :: TVar (AICache rules)
+  , aichData :: TVar (AICache rules eval)
   , aichWriteQueue :: WriteQueue
   , aichCleanupQueue :: CleanupQueue
   , aichCurrentCounts :: TVar BoardCounts
@@ -169,7 +167,7 @@ instance HasLogger (StateT StorageState IO) where
 instance Metrics.MonadMetrics (StateT StorageState IO) where
   getMetrics = gets ssMetrics
 
-runStorage :: GameRules rules => AICacheHandle rules -> Storage a -> Checkers a
+runStorage :: (GameRules rules, Evaluator eval) => AICacheHandle rules eval -> Storage a -> Checkers a
 runStorage handle actions = do
   lts <- asks csLogging
   let indexHandle = aichIndexFile handle

@@ -20,11 +20,6 @@ newtype International = International GenericRules
 instance Show International where
   show = rulesName
 
-instance Evaluator International where
-  evaluatorName _ = "international"
-  -- TODO: I suspect in international draughts a king has much more weight
-  evalBoard rules = evalBoard (defaultEvaluator rules)
-
 instance GameRules International where
   boardSize _ = (10, 10)
 
@@ -43,6 +38,9 @@ instance GameRules International where
     in  setManyPieces' labels1 (Piece Man First) $ setManyPieces' labels2 (Piece Man Second) board
 
   boardNotation r = numericNotation (boardSize r)
+
+  -- TODO: I suspect in international draughts a king has much more weight
+  dfltEvaluator r = SomeEval $ defaultEvaluator r
 
   parseNotation r = parseNumericNotation (boardSize r)
 

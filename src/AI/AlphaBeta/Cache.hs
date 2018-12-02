@@ -36,11 +36,11 @@ import AI.AlphaBeta.Persistent
 
 -- | Prepare AI storage instance.
 -- This also contains Processor instance with several threads.
-loadAiCache :: GameRules rules
-            => (ScoreMoveInput rules -> Checkers (Move, Score))
-            -> AlphaBeta rules
-            -> Checkers (AICacheHandle rules)
-loadAiCache scoreMove (AlphaBeta params rules) = do
+loadAiCache :: (GameRules rules, Evaluator eval)
+            => (ScoreMoveInput rules eval -> Checkers (Move, Score))
+            -> AlphaBeta rules eval
+            -> Checkers (AICacheHandle rules eval)
+loadAiCache scoreMove (AlphaBeta params rules eval) = do
   let getKey (ai, handle, side, depth, board, pm) = pmMove pm
   aiCfg <- asks (gcAiConfig . csConfig)
   processor <- runProcessor (aiThreads aiCfg) getKey scoreMove
@@ -114,7 +114,7 @@ loadAiCache scoreMove (AlphaBeta params rules) = do
 
   return handle
 
-cacheDumper :: GameRules rules => rules -> AlphaBetaParams -> AICacheHandle rules -> Checkers ()
+cacheDumper :: (GameRules rules, Evaluator eval) => rules -> AlphaBetaParams -> AICacheHandle rules eval -> Checkers ()
 cacheDumper rules params handle = do
   store <- asks (aiStoreCache . gcAiConfig . csConfig)
   when (store) $ forever $ do
@@ -131,7 +131,7 @@ cacheDumper rules params handle = do
       
     liftIO $ threadDelay $ 30 * 1000 * 1000
 
-cacheCleaner :: AICacheHandle rules -> Checkers ()
+cacheCleaner :: AICacheHandle rules eval -> Checkers ()
 cacheCleaner handle = forever $ do
     delta <- liftIO $ atomically $ do
         aic <- readTVar (aichData handle)
@@ -161,7 +161,7 @@ normalize bsize (bc,bk,side) =
 
 -- | Look up for item in the cache. First lookup in the memory,
 -- then in the file (if it is open).
-lookupAiCache :: GameRules rules => AlphaBetaParams -> Board -> DepthParams -> Side -> AICacheHandle rules -> Checkers (Maybe CacheItemSide)
+lookupAiCache :: (GameRules rules, Evaluator eval) => AlphaBetaParams -> Board -> DepthParams -> Side -> AICacheHandle rules eval -> Checkers (Maybe CacheItemSide)
 lookupAiCache params board depth side handle = do
     -- let bsize = boardSize (aichRules handle)
     -- let (bc, bk, side') = normalize bsize (boardCounts board, boardKey board, side)
@@ -216,7 +216,7 @@ lookupAiCache params board depth side handle = do
 -- | Put an item to the cache.
 -- It is always writen to the memory,
 -- and it is writen to the file if it is open.
-putAiCache' :: GameRules rules => AlphaBetaParams -> Board -> DepthParams -> Side -> StorageValue -> AICacheHandle rules -> Checkers ()
+putAiCache' :: GameRules rules => AlphaBetaParams -> Board -> DepthParams -> Side -> StorageValue -> AICacheHandle rules eval -> Checkers ()
 putAiCache' params board depth side sideItem handle = do
   let bc = boardCounts board
       bk = boardKey board
@@ -254,7 +254,7 @@ putAiCache' params board depth side sideItem handle = do
         putCleanupQueue (aichCleanupQueue handle) (bc, bk) now
 
 
-putAiCache :: GameRules rules => AlphaBetaParams -> Board -> DepthParams -> Side -> Score -> [Move] -> AICacheHandle rules -> Checkers ()
+putAiCache :: GameRules rules => AlphaBetaParams -> Board -> DepthParams -> Side -> Score -> [Move] -> AICacheHandle rules eval -> Checkers ()
 putAiCache params board depth side score moves handle = do
   let sideItem = CacheItemSide {cisScore = score}
   putAiCache' params board depth side sideItem handle

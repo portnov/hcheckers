@@ -121,7 +121,7 @@ selectRules (NewGameRq {rqRules=name, rqRulesParams=params, rqPdn=mbPdn}) =
 
 -- | List of supported AI implementations
 supportedAis :: [(String, SomeRules -> SomeAi)]
-supportedAis = [("default", \(SomeRules rules) -> SomeAi (AlphaBeta def rules))]
+supportedAis = [("default", \(SomeRules rules) -> SomeAi (AlphaBeta def rules (dfltEvaluator rules)))]
 
 -- | Select AI implementation by client request
 selectAi :: AttachAiRq -> SomeRules -> Maybe SomeAi

@@ -17,11 +17,6 @@ newtype Canadian = Canadian GenericRules
 instance Show Canadian where
   show = rulesName
 
-instance Evaluator Canadian where
-  evaluatorName _ = "canadian"
-  -- TODO: I suspect in international draughts a king has much more weight
-  evalBoard rules = evalBoard (defaultEvaluator rules)
-
 instance GameRules Canadian where
   boardSize _ = (12, 12)
 
@@ -40,6 +35,8 @@ instance GameRules Canadian where
                    "b8", "d8", "f8", "h8", "j8", "l8"]
 
     in  setManyPieces' labels1 (Piece Man First) $ setManyPieces' labels2 (Piece Man Second) board
+
+  dfltEvaluator r = SomeEval $ defaultEvaluator r
 
   boardNotation r = numericNotation (boardSize r)
 

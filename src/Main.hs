@@ -39,7 +39,7 @@ main = do
                      abDepth = 6
                    , abCombinationDepth = 9
                    }
-          ai = AlphaBeta params rules
+          ai = AlphaBeta params rules (dfltEvaluator rules)
       withCheckers $
           withLogContext (LogContextFrame [] (include defaultLogFilter)) $
             learnPdn ai path

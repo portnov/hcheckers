@@ -15,10 +15,6 @@ import Rules.Generic
 newtype Simple = Simple GenericRules
   deriving (Typeable, HasBoardOrientation)
 
-instance Evaluator Simple where
-  evaluatorName _ = "simple"
-  evalBoard rules = evalBoard (defaultEvaluator rules)
-
 instance Show Simple where
   show = rulesName
 
@@ -29,6 +25,8 @@ instance GameRules Simple where
   boardNotation _ = boardNotation Russian.russian
 
   parseNotation _ = parseNotation Russian.russian
+
+  dfltEvaluator r = SomeEval $ defaultEvaluator r
 
   rulesName _ = "simple"
 

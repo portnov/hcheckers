@@ -17,10 +17,6 @@ newtype Spancirety = Spancirety GenericRules
 instance Show Spancirety where
   show = rulesName
 
-instance Evaluator Spancirety where
-  evaluatorName _ = "spancirety"
-  evalBoard rules = evalBoard (defaultEvaluator rules)
-
 instance GameRules Spancirety where
   initBoard r =
     let board = buildBoard (boardOrientation r) (8, 10)
@@ -35,6 +31,8 @@ instance GameRules Spancirety where
   boardSize _ = (8, 10)
 
   boardNotation _ = boardNotation russian
+
+  dfltEvaluator r = SomeEval $ defaultEvaluator r
 
   parseNotation _ = parseNotation russian
 

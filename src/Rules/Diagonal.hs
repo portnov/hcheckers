@@ -14,10 +14,6 @@ import Rules.Generic
 newtype Diagonal = Diagonal GenericRules
   deriving (Typeable, HasBoardOrientation)
 
-instance Evaluator Diagonal where
-  evaluatorName _ = "diagonal"
-  evalBoard rules = evalBoard (defaultEvaluator rules)
-
 instance Show Diagonal where
   show = rulesName
 
@@ -39,6 +35,8 @@ instance GameRules Diagonal where
     in  setManyPieces' labels1 (Piece Man First) $ setManyPieces' labels2 (Piece Man Second) board
 
   boardSize _ = (8, 8)
+
+  dfltEvaluator r = SomeEval $ defaultEvaluator r
 
   boardNotation _ = boardNotation russian
 
