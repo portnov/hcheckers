@@ -1,4 +1,5 @@
 {-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE OverloadedStrings #-}
 module Core.Evaluator where
 
@@ -17,13 +18,19 @@ loose = -maxBound
 
 data SimpleEvaluator = SimpleEvaluator {
     seRules :: SomeRules,
+    seNumericWeight :: Score,
     sePositionWeight :: Score,
-    seKingCoef :: Score
+    seCenterWeight :: Score,
+    seOppositeSideWeight :: Score,
+    seBackedWeight :: Score,
+    seAsymetryWeight :: Score,
+    seKingCoef :: Score,
+    seHelpedKingCoef :: Score
   }
   deriving (Show)
 
 defaultEvaluator :: GameRules rules => rules -> SimpleEvaluator
-defaultEvaluator rules = SimpleEvaluator (SomeRules rules) 1 3
+defaultEvaluator rules = SimpleEvaluator (SomeRules rules) 12 1 2 1 3 1 3 5
 
 instance Evaluator SimpleEvaluator where
   evaluatorName _ = "simple"
@@ -35,13 +42,13 @@ instance Evaluator SimpleEvaluator where
       Just (Just True) -> e {sePositionWeight = 1}
       Just (Just False) -> e {sePositionWeight = 0}
 
-  evalBoard (SimpleEvaluator {seKingCoef=k, sePositionWeight, seRules=SomeRules rules}) whoAsks whoMovesNext board =
+  evalBoard (SimpleEvaluator {seRules=SomeRules rules, ..}) whoAsks whoMovesNext board =
     let kingCoef side =
           -- King is much more useful when there are enough men to help it
           let (men, _) = myCounts side board
           in  if men > 3
-                then k+2
-                else k
+                then seHelpedKingCoef
+                else seKingCoef
         
         numericScore side =
           let (myMen, myKings) = myCounts side board
@@ -90,13 +97,13 @@ instance Evaluator SimpleEvaluator where
 
         positionalScore side =
           let (men, kings) = myLabelsCount side board isCenter
-          in  2 * (kingCoef side * fromIntegral kings + fromIntegral men) +
-              fromIntegral (opponentSideCount side) +
-              fromIntegral (3 * backedScore side) -
-              fromIntegral (asymetry side)
+          in  seCenterWeight * (kingCoef side * fromIntegral kings + fromIntegral men) +
+              seOppositeSideWeight * fromIntegral (opponentSideCount side) +
+              seBackedWeight * fromIntegral (backedScore side) -
+              seAsymetryWeight * fromIntegral (asymetry side)
 
-        myScore = myNumeric * 12 + (positionalScore whoAsks) * sePositionWeight
-        opponentScore = opponentNumeric * 12 + positionalScore (opposite whoAsks) * sePositionWeight
+        myScore = myNumeric * seNumericWeight + (positionalScore whoAsks) * sePositionWeight
+        opponentScore = opponentNumeric * seNumericWeight + positionalScore (opposite whoAsks) * sePositionWeight
 
     in  if myNumeric == 0
           then loose

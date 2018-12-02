@@ -31,7 +31,7 @@ instance GameRules English where
   boardNotation r = numericNotation (boardSize r)
   parseNotation r = parseNumericNotation (boardSize r)
 
-  dfltEvaluator r = SomeEval $ (defaultEvaluator r) {seKingCoef = 2}
+  dfltEvaluator r = SomeEval $ (defaultEvaluator r) {seKingCoef = 2, seHelpedKingCoef = 3}
 
   rulesName _ = "english"
   updateRules r _ = r
