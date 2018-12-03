@@ -202,7 +202,7 @@ lookupAiCache params board depth side handle = do
             AICache _ _ cache <- liftIO $ atomically $ readTVar (aichData handle)
             case lookupBoardMap (bc,bk) cache of
               Nothing -> return Nothing
-              Just byDepth -> do
+              Just (PerBoardData {boardScores = byDepth}) -> do
                 let ds = [dpTarget depth .. dpTarget depth + aiUseCacheMaxDepthPlus cfg] ++
                              [dpTarget depth - aiUseCacheMaxDepthMinus cfg .. dpTarget depth-1] 
                     depths = [depth {dpTarget = d} | d <- ds]
@@ -230,20 +230,13 @@ putAiCache' params board depth side sideItem handle = do
       store <- asks (aiStoreCache . gcAiConfig . csConfig)
       liftIO $ atomically $ do
         aic <- readTVar (aichData handle)
-        let updateItem item1 item2 =
-              case side of
-                First -> item1 {ciFirst = ciFirst item2 `mplus` ciFirst item1}
-                Second -> item2 {ciSecond = ciSecond item2 `mplus` ciSecond item1}
-
-            updateDepthMap m1 m2 = M.unionWith updateItem m1 m2
-
-            item = case side of
+        let item = case side of
                      First -> CacheItem {ciFirst = Just sideItem, ciSecond = Nothing}
                      Second -> CacheItem {ciFirst = Nothing, ciSecond = Just sideItem}
 
-            init = M.singleton depth item
+            init = PerBoardData (M.singleton depth item) Nothing
 
-            newAicData = putBoardMapWith updateDepthMap (bc,bk) init (aicData aic)
+            newAicData = putBoardMapWith (<>) (bc,bk) init (aicData aic)
             aic' = aic {aicDirty = True, aicData = newAicData}
 
             Just perBoard = lookupBoardMap (bc,bk) newAicData 

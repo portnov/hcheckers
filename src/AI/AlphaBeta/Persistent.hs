@@ -274,7 +274,7 @@ instance Store IndexRecord where
     dataBlock <- peek
     return $ IndexRecord idxBlock dataBlock
 
-lookupFileB :: B.ByteString -> Storage (Maybe (M.Map DepthParams CacheItem))
+lookupFileB :: B.ByteString -> Storage (Maybe PerBoardData)
 lookupFileB bstr = do
     st <- get
     case ssData st of
@@ -311,14 +311,19 @@ lookupFile board depth side = Metrics.timed "cache.lookup.file" $ do
   mbItem <- lookupFileB (encodeBoard board)
   case mbItem of
     Nothing -> return Nothing
-    Just item -> case M.lookup depth item of
+    Just item -> case M.lookup depth (boardScores item) of
                    Nothing -> return Nothing
                    Just ci -> case side of
                                 First -> return $ ciFirst ci
                                 Second -> return $ ciSecond ci
 
-putRecordFileB :: B.ByteString -> DepthParams -> Side -> StorageValue -> Storage ()
-putRecordFileB bstr depth side value = do
+lookupStatsFile :: Board -> Storage (Maybe Stats)
+lookupStatsFile board = Metrics.timed "stats.lookup.file" $ do
+  mbItem <- lookupFileB (encodeBoard board)
+  return $ join $ boardStats `fmap` mbItem
+
+putRecordFileB :: B.ByteString -> PerBoardData -> Storage ()
+putRecordFileB bstr newData = do
     st <- get
     case ssData st of
       Nothing -> return ()
@@ -338,17 +343,16 @@ putRecordFileB bstr depth side value = do
                  seek IndexFile idxOffset
                  writeData IndexFile record'
                  seek DataFile $ calcDataBlockOffset newDataBlock
-                 let newData = M.singleton depth newItem
                  writeDataSized DataFile newData
                  return ()
             else do
-                   let dataOffset = calcDataBlockOffset dataBlockNumber
-                   seek DataFile dataOffset
-                   oldData <- readDataSized DataFile
-                   let newData = updateData oldData
-                   seek DataFile dataOffset
-                   writeDataSized DataFile newData
-                   return ()
+                 let dataOffset = calcDataBlockOffset dataBlockNumber
+                 seek DataFile dataOffset
+                 oldData <- readDataSized DataFile
+                 let newData' = oldData <> newData
+                 seek DataFile dataOffset
+                 writeDataSized DataFile newData'
+                 return ()
       | otherwise = do
           bsize <- gets ssBoardSize
           let idxOffset = calcIndexOffset bsize blockNumber (B.head bstr)
@@ -389,22 +393,14 @@ putRecordFileB bstr depth side value = do
       writeBytes DataFile empty
       return newBlockNumber
 
-    updateData oldMap =
-      M.insertWith updateItem depth newItem oldMap
-
-    newItem = case side of
-                First -> CacheItem {ciFirst = Just value, ciSecond = Nothing}
-                Second -> CacheItem {ciFirst = Nothing, ciSecond = Just value}
-
-    updateItem item1 item2 =
-              case side of
-                First -> item1 {ciFirst = ciFirst item2 `mplus` ciFirst item1}
-                Second -> item2 {ciSecond = ciSecond item2 `mplus` ciSecond item1}
-
 putRecordFile :: Board -> DepthParams -> Side -> StorageValue -> Storage ()
 putRecordFile board depth side value = Metrics.timed "cache.put.file" $ do
   let bstr = encodeBoard board
-  putRecordFileB bstr depth side value
+      newData = PerBoardData (M.singleton depth item) Nothing
+      item = case side of
+               First -> CacheItem {ciFirst = Just value, ciSecond = Nothing}
+               Second -> CacheItem {ciFirst = Nothing, ciSecond = Just value}
+  putRecordFileB bstr newData
 
 initFile :: Storage ()
 initFile = do

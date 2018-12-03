@@ -15,6 +15,7 @@ import qualified Control.Concurrent.ReadWriteLock as RWL
 import Control.Concurrent.STM
 import qualified Data.Map as M
 import qualified Data.HashPSQ as PQ
+import Data.Int
 import Data.Word
 import Data.Binary
 import Data.Store
@@ -58,6 +59,28 @@ data DepthParams = DepthParams {
   deriving (Eq, Ord, Show, Typeable, Generic)
 
 instance Store DepthParams
+instance Binary DepthParams
+
+data Stats = Stats {
+    statsCount :: Int16
+  , statsMaxScore :: Score
+  , statsMinScore :: Score
+  , statsSumScore :: Score
+  }
+  deriving (Eq, Show, Generic, Typeable)
+
+instance Binary Stats
+instance Store Stats
+
+instance Semigroup Stats where
+  s1 <> s2 =
+    Stats (statsCount s1 + statsCount s2)
+          (max (statsMaxScore s1) (statsMaxScore s2))
+          (min (statsMinScore s1) (statsMinScore s2))
+          (statsSumScore s1 + statsSumScore s2)
+
+instance Monoid Stats where
+  mempty = Stats 0 0 0 0
 
 data CacheItemSide = CacheItemSide {
     cisScore :: ! Score
@@ -65,7 +88,6 @@ data CacheItemSide = CacheItemSide {
   deriving (Eq, Show, Generic, Typeable)
 
 instance Binary CacheItemSide
-
 instance Store CacheItemSide
 
 data CacheItem = CacheItem {
@@ -75,10 +97,34 @@ data CacheItem = CacheItem {
   deriving (Generic, Typeable, Show)
 
 instance Binary CacheItem
-
 instance Store CacheItem
 
-type PerBoardData = M.Map DepthParams CacheItem
+instance Semigroup CacheItem where
+  item1 <> item2 = CacheItem {
+    ciFirst = ciFirst item2 `mplus` ciFirst item1,
+    ciSecond = ciSecond item2 `mplus` ciSecond item1
+  }
+
+instance Monoid CacheItem where
+  mempty = CacheItem Nothing Nothing
+
+data PerBoardData = PerBoardData {
+    boardScores :: M.Map DepthParams CacheItem
+  , boardStats :: Maybe Stats
+  }
+  deriving (Generic, Typeable, Show)
+
+instance Semigroup PerBoardData where
+  d1 <> d2 = PerBoardData {
+    boardScores = M.unionWith (<>) (boardScores d1) (boardScores d2),
+    boardStats = liftM2 (<>) (boardStats d1) (boardStats d2)
+  }
+
+instance Monoid PerBoardData where
+  mempty = PerBoardData M.empty Nothing
+
+instance Binary PerBoardData
+instance Store PerBoardData
 
 type AIData = BoardMap PerBoardData
 
