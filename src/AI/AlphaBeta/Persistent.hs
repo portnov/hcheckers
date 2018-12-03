@@ -402,6 +402,12 @@ putRecordFile board depth side value = Metrics.timed "cache.put.file" $ do
                Second -> CacheItem {ciFirst = Nothing, ciSecond = Just value}
   putRecordFileB bstr newData
 
+putStatsFile :: Board -> Stats -> Storage ()
+putStatsFile board stats = do
+  let newData = PerBoardData M.empty (Just stats)
+      bstr = encodeBoard board
+  putRecordFileB bstr newData
+
 initFile :: Storage ()
 initFile = do
   seek IndexFile 0
