@@ -36,7 +36,7 @@ main = do
       let rules = russian
           eval = ai
           params = def {
-                     abDepth = 6
+                     abDepth = 4
                    , abCombinationDepth = 9
                    }
           ai = AlphaBeta params rules (dfltEvaluator rules)

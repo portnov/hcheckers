@@ -191,7 +191,7 @@ readDataSized file = do
   bstr <- readBytes file (fromIntegral size)
   when (B.null bstr) $ do
     offset <- tell file
-    fail $ "readDataSized: unexpected EOF, offset " ++ show offset
+    fail $ "readDataSized: zero data size, offset " ++ show offset
   liftIO $ Data.Store.decodeIO bstr
 
 writeDataSized :: forall a. Data.Store.Store a => FileType -> a -> Storage ()
@@ -338,6 +338,7 @@ putRecordFileB bstr newData = do
           let dataBlockNumber = irDataBlock record
           if dataBlockNumber == unexistingBlock 
             then do
+                 Metrics.increment "storage.data.block.created"
                  newDataBlock <- createDataBlock
                  let record' = record {irDataBlock = newDataBlock}
                  seek IndexFile idxOffset
@@ -346,6 +347,7 @@ putRecordFileB bstr newData = do
                  writeDataSized DataFile newData
                  return ()
             else do
+                 Metrics.increment "storage.data.block.reused"
                  let dataOffset = calcDataBlockOffset dataBlockNumber
                  seek DataFile dataOffset
                  oldData <- readDataSized DataFile
@@ -361,12 +363,15 @@ putRecordFileB bstr newData = do
           let nextBlockNumber = irIndexBlock record
           if nextBlockNumber == unexistingBlock
             then do
+                 Metrics.increment "storage.index.block.created"
                  newIndexBlock <- createIndexBlock
                  let record' = record {irIndexBlock = newIndexBlock}
                  seek IndexFile idxOffset
                  writeData IndexFile record'
                  tryBlock newIndexBlock (B.tail bstr)
-            else tryBlock nextBlockNumber (B.tail bstr)
+            else do
+                 Metrics.increment "storage.index.block.reused"
+                 tryBlock nextBlockNumber (B.tail bstr)
     
     createIndexBlock = do
       seek IndexFile 0
@@ -461,7 +466,7 @@ readDataSizedIO file = do
   bstr <- B.hGet file (fromIntegral size)
   when (B.null bstr) $ do
     offset <- hTell file
-    fail $ printf "readDataSized: unexpected EOF, offset %s, size %s" (show offset) (show size)
+    fail $ printf "readDataSizedIO: zero data size, offset %s, size %s" (show offset) (show size)
   Data.Store.decodeIO bstr
 
 dumpIndexBlock :: Handle -> BoardSize -> IndexBlockNumber -> IO ()
@@ -476,8 +481,11 @@ checkDataFile :: FilePath -> IO ()
 checkDataFile path = withFile path ReadMode $ \file -> do
   nBlocks <- readDataIO file :: IO DataBlockNumber
   forM_ [0 .. nBlocks - 1] $ \i -> do
-    let start = fromIntegral $ calcDataBlockOffset i
-    hSeek file AbsoluteSeek start
-    size <- readDataIO file :: IO Word16
-    printf "Block #%d: data size %d\n" i size
+      let start = fromIntegral $ calcDataBlockOffset i
+      hSeek file AbsoluteSeek start
+      size <- readDataIO file :: IO Word16
+      when (size > 0) $ do
+        bstr <- B.hGet file (fromIntegral size)
+        record <- Data.Store.decodeIO bstr :: IO PerBoardData
+        printf "Block #%d: data: %s\n" i (show record)
 
