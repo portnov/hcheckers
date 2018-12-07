@@ -229,7 +229,8 @@ cachedScoreAB var params side dp alpha beta board = do
 
     Nothing -> do
       (score, moves) <- Metrics.timed "ai.score.board" $ scoreAB var params side dp alpha beta board
-      lift $ putAiCache params board dp side score moves var
+      when (alpha == loose && beta == win) $
+          lift $ putAiCache params board dp side score moves var
       return score
 
 isTargetDepth :: DepthParams -> Bool
@@ -379,7 +380,7 @@ scoreAB var params side dp alpha beta board
           beta'  = if maximize
                      then beta
                      else min beta best
-      (score,_) <- scoreAB var params (opposite side) dp' alpha' beta' board'
+      score <- cachedScoreAB var params (opposite side) dp' alpha' beta' board'
       $trace "{}| score for side {}: {}" (indent, show side, show score)
       pop
       best <- getBest

@@ -115,7 +115,7 @@ learnPdn ai@(AlphaBeta params rules eval) path = do
   forM_ (zip [1.. ] pdn) $ \(i, gameRec) -> do
     -- liftIO $ print pdn
     $info "Processing game {}/{}..." (i :: Int, n)
-    doLearn' rules eval cache params gameRec
+    doLearn rules eval cache params gameRec
     -- saveAiCache rules params cache
     return ()
 

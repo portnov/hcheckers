@@ -306,16 +306,21 @@ lookupFileB bstr = do
             else loop nextBlockNumber (B.tail bstr)
           
 
-lookupFile :: Board -> DepthParams -> Side -> Storage (Maybe CacheItemSide)
+-- | Returns: (cached result, stats
+lookupFile :: Board -> DepthParams -> Side -> Storage (Maybe Score, Maybe Stats)
 lookupFile board depth side = Metrics.timed "cache.lookup.file" $ do
-  mbItem <- lookupFileB (encodeBoard board)
-  case mbItem of
-    Nothing -> return Nothing
-    Just item -> case M.lookup depth (boardScores item) of
-                   Nothing -> return Nothing
-                   Just ci -> case side of
-                                First -> return $ ciFirst ci
-                                Second -> return $ ciSecond ci
+  mbRecord <- lookupFileB (encodeBoard board)
+  case mbRecord of
+    Nothing -> return (Nothing, Nothing)
+    Just record -> do
+      let cached =
+            case M.lookup depth (boardScores record) of
+               Nothing -> Nothing
+               Just ci -> case side of
+                            First -> cisScore `fmap` ciFirst ci
+                            Second -> cisScore `fmap` ciSecond ci
+          stats = boardStats record
+      return (cached, stats)
 
 lookupStatsFile :: Board -> Storage (Maybe Stats)
 lookupStatsFile board = Metrics.timed "stats.lookup.file" $ do
@@ -488,4 +493,20 @@ checkDataFile path = withFile path ReadMode $ \file -> do
         bstr <- B.hGet file (fromIntegral size)
         record <- Data.Store.decodeIO bstr :: IO PerBoardData
         printf "Block #%d: data: %s\n" i (show record)
+
+checkDataFile' :: FilePath -> IO ()
+checkDataFile' path = withFile path ReadMode $ \file -> do
+  nBlocks <- readDataIO file :: IO DataBlockNumber
+  forM_ [0 .. nBlocks - 1] $ \i -> do
+      let start = fromIntegral $ calcDataBlockOffset i
+      hSeek file AbsoluteSeek start
+      size <- readDataIO file :: IO Word16
+      when (size > 0) $ do
+        bstr <- B.hGet file (fromIntegral size)
+        record <- Data.Store.decodeIO bstr :: IO PerBoardData
+        case boardStats record of
+          Nothing -> return ()
+          Just stats -> 
+            when (statsCount stats > 10) $
+              printf "Block #%d: data: %s\n" i (show record)
 

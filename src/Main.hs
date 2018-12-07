@@ -44,7 +44,7 @@ main = do
           withLogContext (LogContextFrame [] (include defaultLogFilter)) $
             learnPdn ai path
 
-    ["dump", path] -> checkDataFile path
+    ["dump", path] -> checkDataFile' path
 
 --     ["test"] -> do
 --       let rules = russian

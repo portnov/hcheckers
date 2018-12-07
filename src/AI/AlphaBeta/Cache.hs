@@ -176,15 +176,22 @@ lookupAiCache params board depth side handle = do
         return cached
 --         return $ Just $ CacheItemSide $ fixSign $ cisScore result
       Nothing -> do
-        mbValue <- runStorage handle $ event "file lookup" $ lookupFile board depth side
-        case mbValue of
-          Nothing -> do
+        (mbCached, mbStats) <- runStorage handle $ event "file lookup" $ lookupFile board depth side
+        let mbStats' = join $ checkStats `fmap` mbStats
+        case (mbCached, mbStats') of
+          (Nothing, Nothing) -> do
             Metrics.increment "cache.miss"
             return Nothing
-          Just value -> do
+          (Nothing, Just stats) -> do
+            Metrics.increment "cache.hit.stats"
+            return $ Just $ CacheItemSide $ avg stats
+          (Just score, Nothing) -> do
             Metrics.increment "cache.hit.file"
-            putAiCache' params board depth side value handle
-            return mbValue
+            putAiCache' params board depth side (CacheItemSide score) handle
+            return $ Just $ CacheItemSide score
+          (Just _, Just stats) -> do
+            Metrics.increment "cache.hit.stats"
+            return $ Just $ CacheItemSide $ avg stats
 
   where 
     queueCleanup bc bk = return ()
@@ -192,6 +199,14 @@ lookupAiCache params board depth side handle = do
 --       let key = (bc, bk)
 --       now <- liftIO $ getTime Monotonic
 --       liftIO $ atomically $ putCleanupQueue (aichCleanupQueue handle) key now
+
+    avg :: Stats -> Score
+    avg s = statsSumScore s `div` statsCount s
+
+    checkStats :: Stats -> Maybe Stats
+    checkStats s
+      | statsCount s < 10 = Nothing
+      | otherwise = Just s
     
     lookupMemory :: (BoardCounts, BoardKey) -> Side -> Checkers (Maybe CacheItemSide)
     lookupMemory (bc, bk) side = Metrics.timed "cache.lookup.memory" $ do
