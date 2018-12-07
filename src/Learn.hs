@@ -13,12 +13,48 @@ import System.Log.Heavy.TH
 
 import Core.Types
 import Core.Board
+import Core.Evaluator (win, loose)
 import AI.AlphaBeta
 import AI.AlphaBeta.Types
 import AI.AlphaBeta.Cache
 import AI.AlphaBeta.Persistent
 import Formats.Types
 import Formats.Pdn
+
+doLearn' :: (GameRules rules, Evaluator eval) => rules -> eval -> AICacheHandle rules eval -> AlphaBetaParams -> GameRecord -> Checkers ()
+doLearn' rules eval var params gameRec = do
+    let startBoard = initBoardFromTags (SomeRules rules) (grTags gameRec)
+    let result = resultFromTags $ grTags gameRec
+    $info "Initial board: {}; result: {}" (show startBoard, show result)
+    forM_ (instructionsToMoves $ grMoves gameRec) $ \moves -> do
+      let (endScore, allBoards) = go [] startBoard result moves
+      $info "End score: {}" (Single endScore)
+      runStorage var $ forM_ allBoards $ \board -> do
+        let stats = Stats 1 endScore endScore endScore
+        putStatsFile board stats
+  where
+    go boards lastBoard (Just result) [] = (resultToScore result, lastBoard : boards)
+    go boards lastBoard Nothing [] =
+      let score = evalBoard eval First First lastBoard
+      in  (score, lastBoard : boards)
+    go boards board0 mbResult (moveRec : rest) =
+      let board1 = case mrFirst moveRec of
+                     Nothing -> board0
+                     Just rec ->
+                      let move1 = parseMoveRec rules First board0 rec
+                          (board1, _, _) = applyMove rules First move1 board0
+                      in board1
+          board2 = case mrSecond moveRec of
+                     Nothing -> board1
+                     Just rec ->
+                      let move2 = parseMoveRec rules Second board1 rec
+                          (board2, _, _) = applyMove rules Second move2 board1
+                      in board2
+      in  go (board1 : boards) board2 mbResult rest
+
+    resultToScore FirstWin = win
+    resultToScore SecondWin = loose
+    resultToScore Draw = 0
 
 doLearn :: (GameRules rules, Evaluator eval) => rules -> eval -> AICacheHandle rules eval -> AlphaBetaParams -> GameRecord -> Checkers ()
 doLearn rules eval var params gameRec = do
@@ -79,7 +115,7 @@ learnPdn ai@(AlphaBeta params rules eval) path = do
   forM_ (zip [1.. ] pdn) $ \(i, gameRec) -> do
     -- liftIO $ print pdn
     $info "Processing game {}/{}..." (i :: Int, n)
-    doLearn rules eval cache params gameRec
+    doLearn' rules eval cache params gameRec
     -- saveAiCache rules params cache
     return ()
 

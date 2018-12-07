@@ -221,6 +221,11 @@ initBoardFromTags (SomeRules rules) tags =
     Nothing -> initBoard rules
     Just fen -> parseBoardRep rules $ fenToBoardRep fen
 
+resultFromTags :: [Tag] -> Maybe GameResult
+resultFromTags [] = Nothing
+resultFromTags (Result result : _) = result
+resultFromTags (_ : rest) = resultFromTags rest
+
 data InterpreterState = InterpreterState {
     isCurrentVariant :: Int
   , isLastVariant :: Int
