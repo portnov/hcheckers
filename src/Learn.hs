@@ -1,11 +1,13 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 module Learn where
 
 import Control.Monad
 import Control.Monad.State
 import qualified Control.Monad.Metrics as Metrics
+import Control.Monad.Catch
 import Data.Maybe
 import Data.Text.Format.Heavy
 import System.Log.Heavy
@@ -26,12 +28,15 @@ doLearn' rules eval var params gameRec = do
     let startBoard = initBoardFromTags (SomeRules rules) (grTags gameRec)
     let result = resultFromTags $ grTags gameRec
     $info "Initial board: {}; result: {}" (show startBoard, show result)
-    forM_ (instructionsToMoves $ grMoves gameRec) $ \moves -> do
-      let (endScore, allBoards) = go [] startBoard result moves
-      $info "End score: {}" (Single endScore)
-      runStorage var $ forM_ allBoards $ \board -> do
-        let stats = Stats 1 endScore endScore endScore
-        putStatsFile board stats
+    forM_ (instructionsToMoves $ grMoves gameRec) $ \moves -> (do
+        let (endScore, allBoards) = go [] startBoard result moves
+        $info "End score: {}" (Single endScore)
+        runStorage var $ forM_ allBoards $ \board -> do
+          let stats = Stats 1 endScore endScore endScore
+          putStatsFile board stats
+        )
+          `catch`
+            (\(e :: SomeException) -> $reportError "Exception: {}" (Single $ show e))
   where
     go boards lastBoard (Just result) [] = (resultToScore result, lastBoard : boards)
     go boards lastBoard Nothing [] =

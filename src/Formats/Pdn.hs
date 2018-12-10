@@ -1,6 +1,7 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE RecordWildCards #-}
 
 module Formats.Pdn where
 
@@ -8,6 +9,7 @@ import Control.Monad
 import Control.Monad.State
 import Data.Char
 import Data.Maybe
+import Data.List
 import qualified Data.Map as M
 import qualified Data.Text as T
 import Text.Megaparsec hiding (Label, State)
@@ -44,13 +46,15 @@ pSemiMove rules = try full <|> try short
       x <- oneOf ['-', 'x']
       let capture = (x == 'x')
       to <- pLabel rules
-      return $ SemiMoveRec from to capture
+      return $ ShortSemiMoveRec from to capture
 
     full = do
-      from <- pLabel rules
+      first <- pLabel rules
       char 'x'
-      labels <- pLabel rules `sepBy1` char 'x'
-      return $ SemiMoveRec from (last labels) True
+      second <- pLabel rules
+      char 'x'
+      rest <- pLabel rules `sepBy1` char 'x'
+      return $ FullSemiMoveRec (first : second : rest)
 
 whitespace :: Parser ()
 whitespace = label "white space or comment" $ do
@@ -202,13 +206,22 @@ parsePdnFile dfltRules path = do
 parseMoveRec :: GameRules rules => rules -> Side -> Board -> SemiMoveRec -> Move
 parseMoveRec rules side board rec =
   let moves = possibleMoves rules side board
-      suits m = aLabel (pmBegin m) == smrFrom rec &&
-                aLabel (pmEnd m) == smrTo rec &&
-                (not $ null $ pmVictims m) == smrCapture rec
+      passedFields m = nonCaptureLabels rules side board (pmMove m) 
+      suits m =
+        case rec of
+          ShortSemiMoveRec {..} ->
+                aLabel (pmBegin m) == smrFrom &&
+                aLabel (pmEnd m) == smrTo &&
+                (not $ null $ pmVictims m) == smrCapture 
+          FullSemiMoveRec {..} ->
+                (not $ null $ pmVictims m) &&
+                smrLabels `isSubsequenceOf` passedFields m
   in case filter suits moves of
     [m] -> pmMove m
-    [] -> error $ printf "no such move: %s; side: %s; board: %s" (show rec) (show side) (show board)
-    ms -> error $ "ambigous move: " ++ show ms
+    [] -> error $ printf "no such move: %s; side: %s; board: %s; possible: %s"
+                    (show rec) (show side) (show board) (show $ map passedFields moves)
+    ms -> error $ printf "ambigous move: %s; candidates are: %s; board: %s"
+                    (show rec) (show ms) (show board)
 
 fenFromTags :: [Tag] -> Maybe Fen
 fenFromTags [] = Nothing
@@ -359,7 +372,7 @@ gameToPdn game =
 
     translateMove :: SomeRules -> Side -> Board -> Move -> SemiMoveRec
     translateMove (SomeRules rules) side board move = 
-      SemiMoveRec {
+      ShortSemiMoveRec {
           smrFrom = aLabel (moveBegin move)
         , smrTo = aLabel (moveEnd rules side board move)
         , smrCapture = isCapture move
@@ -379,9 +392,9 @@ showPdn (SomeRules rules) gr =
     showMove n (MoveRec (Just s1) Nothing) = T.pack (show n) <> ". " <> showSemiMove s1
     showMove n (MoveRec (Just s1) (Just s2)) = T.pack (show n) <> ". " <> showSemiMove s1 <> " " <> showSemiMove s2
 
-    showSemiMove (SemiMoveRec from to False) =
+    showSemiMove (ShortSemiMoveRec from to False) =
       boardNotation rules from <> "-" <> boardNotation rules to
-    showSemiMove (SemiMoveRec from to True) =
+    showSemiMove (ShortSemiMoveRec from to True) =
       boardNotation rules from <> "x" <> boardNotation rules to
 
     showTag (Event text) = T.pack (printf "[Event \"%s\"]" text)

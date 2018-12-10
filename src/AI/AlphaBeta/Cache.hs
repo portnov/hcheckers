@@ -4,14 +4,17 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 module AI.AlphaBeta.Cache where
 
 import Control.Monad
 import Control.Monad.State
 import Control.Monad.Reader
+import Control.Monad.Catch
 import Control.Concurrent
 import Control.Concurrent.STM
+import Control.Exception (SomeException)
 import qualified Control.Concurrent.ReadWriteLock as RWL
 import qualified Control.Monad.Metrics as Metrics
 import qualified Data.Map as M
@@ -176,7 +179,13 @@ lookupAiCache params board depth side handle = do
         return cached
 --         return $ Just $ CacheItemSide $ fixSign $ cisScore result
       Nothing -> do
-        (mbCached, mbStats) <- runStorage handle $ event "file lookup" $ lookupFile board depth side
+        (mbCached, mbStats) <-
+          (runStorage handle $ event "file lookup" $ lookupFile board depth side)
+            `catch`
+              (\(e :: SomeException) -> do
+                  $reportError "Exception: lookupFile: {}" (Single $ show e)
+                  return (Nothing, Nothing)
+              )
         let mbStats' = join $ checkStats `fmap` mbStats
         case (mbCached, mbStats') of
           (Nothing, Nothing) -> do

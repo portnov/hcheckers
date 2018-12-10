@@ -6,6 +6,7 @@ module Formats.Types where
 
 import Control.Monad.State
 import qualified Data.Text as T
+import Data.List (intercalate)
 import Data.Typeable
 import Text.Megaparsec hiding (Label, State)
 import Data.Void
@@ -29,17 +30,22 @@ data Tag =
   | Unknown T.Text T.Text
   deriving (Show, Typeable)
 
-data SemiMoveRec = SemiMoveRec {
-    smrFrom :: Label
-  , smrTo :: Label
-  , smrCapture :: Bool
-  }
+data SemiMoveRec =
+    FullSemiMoveRec {
+      smrLabels :: [Label]
+    }
+  | ShortSemiMoveRec {
+      smrFrom :: Label
+    , smrTo :: Label
+    , smrCapture :: Bool
+    }
   deriving (Eq, Typeable)
 
 instance Show SemiMoveRec where
-  show r
+  show (r@(ShortSemiMoveRec{}))
     | smrCapture r = show (smrFrom r) ++ "x" ++ show (smrTo r)
     | otherwise = show (smrFrom r) ++ "-" ++ show (smrTo r)
+  show r = intercalate "x" $ map show (smrLabels r)
 
 data MoveRec = MoveRec {
     mrFirst :: Maybe SemiMoveRec

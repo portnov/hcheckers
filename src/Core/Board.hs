@@ -157,13 +157,29 @@ isWithinBoard rules side board move = go (moveBegin move) (moveSteps move)
         Nothing -> False
 
 allPassedAddresses :: GameRules rules => rules -> Side -> Board -> Move -> [Address]
-allPassedAddresses rules side board move = reverse $ go [] (moveBegin move) (moveSteps move)
+allPassedAddresses rules side board move = moveBegin move : (reverse $ go [] (moveBegin move) (moveSteps move))
   where
     go acc _ [] = acc
     go acc addr (step : steps) =
       case neighbour (myDirection rules side (sDirection step)) addr of
         Just addr' -> go (addr' : acc) addr' steps
         Nothing -> error $ "allPassedAddresses: invalid step: " ++ show step
+
+allPassedLabels :: GameRules rules => rules -> Side -> Board -> Move -> [Label]
+allPassedLabels rules side board move = map aLabel $ allPassedAddresses rules side board move
+
+nonCaptureLabels :: GameRules rules => rules -> Side -> Board -> Move -> [Label]
+nonCaptureLabels rules side board move = map aLabel $
+    moveBegin move : (reverse $ go [] (moveBegin move) (moveSteps move))
+  where
+    go acc _ [] = acc
+    go acc addr (step : steps) =
+      case neighbour (myDirection rules side (sDirection step)) addr of
+        Just addr' ->
+          if sCapture step
+            then go acc addr' steps
+            else go (addr' : acc) addr' steps
+        Nothing -> error $ "nonCaptureLabels: invalid step: " ++ show step
 
 isMyPiece :: Side -> Piece -> Bool
 isMyPiece side (Piece _ s) = side == s

@@ -12,7 +12,7 @@ module AI.AlphaBeta.Persistent where
 
 import Control.Monad
 import Control.Monad.State
-import Control.Monad.Catch (bracket_)
+import Control.Monad.Catch (bracket_, catch, SomeException)
 import qualified Control.Monad.Metrics as Metrics
 import Control.Concurrent.STM
 import qualified Control.Concurrent.ReadWriteLock as RWL
@@ -24,6 +24,7 @@ import qualified Data.IntSet as IS
 import Data.Word
 import qualified Data.Binary
 import qualified Data.Binary.Put
+import Data.Text.Format.Heavy
 import Data.Store
 import Data.Bits.Coded
 import Data.Bits.Coding
@@ -214,7 +215,7 @@ indexBlockSize :: BoardSize -> FileOffset
 indexBlockSize (nrows, ncols) = 256 * indexRecordSize
 
 dataBlockSize :: FileOffset
-dataBlockSize = 512
+dataBlockSize = 128
 
 calcIndexBlockOffset :: BoardSize -> IndexBlockNumber -> FileOffset
 calcIndexBlockOffset bsize n = indexHeaderSize + indexBlockSize bsize * fromIntegral n
@@ -356,6 +357,11 @@ putRecordFileB bstr newData = do
                  let dataOffset = calcDataBlockOffset dataBlockNumber
                  seek DataFile dataOffset
                  oldData <- readDataSized DataFile
+                              `catch`
+                                (\(e :: SomeException) -> do
+                                    $reportError "putRecordFileB: {}" (Single $ show e)
+                                    return mempty
+                                )
                  let newData' = oldData <> newData
                  seek DataFile dataOffset
                  writeDataSized DataFile newData'
