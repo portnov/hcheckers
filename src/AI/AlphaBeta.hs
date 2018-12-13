@@ -15,6 +15,7 @@ module AI.AlphaBeta where
 import Control.Monad
 import Control.Monad.State
 import Control.Monad.Except
+import Control.Monad.Catch
 import qualified Control.Monad.Metrics as Metrics
 import Control.Concurrent.STM
 import Data.Maybe
@@ -69,22 +70,33 @@ scoreMove (ai@(AlphaBeta params rules eval), var, side, dp, board, pm) = do
      score <- Metrics.timed "ai.score.move" $ do
                 let board' = applyMoveActions (pmResult pm) board
                 score <- doScore rules eval var params (opposite side) dp board'
+                          `catchError` (\(e :: Error) -> do
+                                        $info "doScore: move {}, depth {}: {}" (show pm, dpTarget dp, show e)
+                                        throwError e
+                                  )
                 $info "Check: {} (depth {}) => {}" (show pm, dpTarget dp, show score)
                 return score
      
      return (pmMove pm, score)
 
-runAI :: (GameRules rules, Evaluator eval) => AlphaBeta rules eval -> AICacheHandle rules eval -> Side -> Board -> Checkers ([Move], Score)
-runAI ai@(AlphaBeta params rules eval) handle side board = iterator
+type AiIterationInput = (AlphaBetaParams, Maybe AiIterationOutput)
+type AiIterationOutput = [(Move, Score)]
+type AiOutput = ([Move], Score)
+
+runAI :: (GameRules rules, Evaluator eval) => AlphaBeta rules eval -> AICacheHandle rules eval -> Side -> Board -> Checkers AiOutput
+runAI ai@(AlphaBeta params rules eval) handle side board = do
+    options <- controller
+    select options
   where
-    iterator = case abBaseTime params of
+    controller :: Checkers AiIterationOutput
+    controller = case abBaseTime params of
                  Nothing -> do
                     (result, _) <- go (params, Nothing)
                     return result
                  Just time -> repeatTimed' "runAI" time goTimed (params, Nothing)
   
-    goTimed :: (AlphaBetaParams, Maybe ([Move], Score))
-            -> Checkers (([Move], Score), Maybe (AlphaBetaParams, Maybe ([Move], Score)))
+    goTimed :: AiIterationInput
+            -> Checkers (AiIterationOutput, Maybe AiIterationInput)
     goTimed (params, prevResult) = do
       ret <- tryC $ go (params, prevResult)
       case ret of
@@ -94,11 +106,11 @@ runAI ai@(AlphaBeta params rules eval) handle side board = iterator
             Just result -> return (result, Nothing)
             Nothing -> do
               let moves = map pmMove $ possibleMoves rules side board
-              return ((moves, 0), Nothing)
+              return ([(move, 0) | move <- moves], Nothing)
         Left err -> throwError err
 
-    go :: (AlphaBetaParams, Maybe ([Move], Score))
-            -> Checkers (([Move], Score), Maybe (AlphaBetaParams, Maybe ([Move], Score)))
+    go :: AiIterationInput
+            -> Checkers (AiIterationOutput, Maybe AiIterationInput)
     go (params, prevResult) = do
       let depth = abDepth params
       let moves = possibleMoves rules side board
@@ -108,7 +120,7 @@ runAI ai@(AlphaBeta params rules eval) handle side board = iterator
           -- currently we do not use results of evaluating of all moves
           -- when evaluating deeper parts of the tree (it is hard due to alpha-beta restrictions).
           -- It means we are not going to use that Score value anyway.
-          return ((map pmMove moves, 0), Nothing) 
+          return ([(pmMove move, 0) | move <- moves], Nothing)
                                                              
         else do
           let var = aichData handle
@@ -121,13 +133,31 @@ runAI ai@(AlphaBeta params rules eval) handle side board = iterator
                    , dpMin = fromMaybe depth (abStartDepth params)
                    }
           let inputs = [(ai, handle, side, dp, board, move) | move <- moves]
-          scores <- process processor inputs
-          let select = if side == First then maximum else minimum
-              maxScore = select $ map snd scores
-              goodMoves = [move | (move, score) <- scores, score == maxScore]
-          let result = (goodMoves, maxScore)
-              params' = params {abDepth = depth + 1, abStartDepth = Nothing}
-          return (result, Just (params', Just result))
+          results <- process' processor inputs
+          let params' = params {abDepth = depth + 1, abStartDepth = Nothing}
+          joined <- joinResults prevResult results
+          return (joined, Just (params', Just joined))
+
+    joinResults :: Maybe AiIterationOutput -> [Either Error (Move, Score)] -> Checkers AiIterationOutput
+    joinResults Nothing results =
+      case sequence results of
+        Right result -> return result
+        Left err -> throwError err
+    joinResults (Just prevResults) results = zipWithM joinResult prevResults results
+
+    joinResult :: (Move, Score) -> Either Error (Move, Score) -> Checkers (Move, Score)
+    joinResult prev@(move, score) (Left TimeExhaused) = do
+      $info "Time exhaused while checking move {}, use result from previous depth: {}" (show move, score)
+      return prev
+    joinResult _ (Left err) = throwError err
+    joinResult _ (Right result) = return result
+
+    select :: AiIterationOutput -> Checkers AiOutput
+    select pairs = do
+      let best = if side == First then maximum else minimum
+          maxScore = best $ map snd pairs
+          goodMoves = [move | (move, score) <- pairs, score == maxScore]
+      return (goodMoves, maxScore)
 
 -- type ScoreMemo = M.Map Side (M.Map Int (M.Map Score (M.Map Score Score)))
 
@@ -365,7 +395,7 @@ scoreAB var params side dp alpha beta board
     iterateMoves (move : moves) dp' = do
       timeout <- isTimeExhaused
       when timeout $ do
-        $info "Timeout exhaused for depth {}." (Single $ dpCurrent dp)
+        -- $info "Timeout exhaused for depth {}." (Single $ dpCurrent dp)
         throwError TimeExhaused
       $trace "{}|+Check move of side {}: {}" (indent, show side, show move)
       evaluator <- gets ssEvaluator
