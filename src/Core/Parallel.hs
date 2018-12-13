@@ -32,14 +32,19 @@ runProcessor nThreads getKey fn = do
       writeChan outChan (getKey input, output)
 
 process :: Ord key => Processor key input output -> [input] -> Checkers [output]
-process (Processor getKey inChan outChan) inputs = do
+process processor inputs = do
+    results <- process' processor inputs
+    case sequence results of
+      Right outputs -> return outputs
+      Left err -> throwError err
+
+process' :: Ord key => Processor key input output -> [input] -> Checkers [Either Error output]
+process' (Processor getKey inChan outChan) inputs = do
     let n = length inputs
     forM_ inputs $ \input ->
       liftIO $ writeChan inChan input
     results <- replicateM n $ liftIO $ readChan outChan
     let m = M.fromList results
     let results = [fromJust $ M.lookup (getKey input) m | input <- inputs]
-    case sequence results of
-      Right outputs -> return outputs
-      Left err -> throwError err
+    return results
 

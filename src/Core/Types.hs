@@ -578,6 +578,8 @@ data Error =
   | Unhandled String
   deriving (Eq, Show, Typeable, Generic)
 
+instance Exception Error
+
 -- | Checkers monad
 newtype Checkers a = Checkers {
     runCheckers :: ExceptT Error (ReaderT CheckersState IO) a
