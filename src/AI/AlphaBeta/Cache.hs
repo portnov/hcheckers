@@ -5,6 +5,7 @@
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE RecordWildCards #-}
 
 module AI.AlphaBeta.Cache where
 
@@ -171,14 +172,19 @@ lookupAiCache params board depth side handle = do
     -- let fixSign = if side' == side then id else negate
     let bc = boardCounts board
         bk = boardKey board
-    cached <- lookupMemory (bc, bk) side
-    case cached of
-      Just result -> do
+    (cachedScore, cachedStats) <- lookupMemory (bc, bk) side
+    case (cachedScore, cachedStats) of
+      (Just result, Nothing) -> do
         Metrics.increment "cache.hit.memory"
         queueCleanup bc bk
-        return cached
---         return $ Just $ CacheItemSide $ fixSign $ cisScore result
-      Nothing -> do
+        return cachedScore
+      (Nothing, Just stats) -> do
+        Metrics.increment "stats.hit.memory"
+        return $ Just $ CacheItemSide $ avg stats
+      (Just _, Just stats) -> do
+        Metrics.increment "stats.hit.memory"
+        return $ Just $ CacheItemSide $ avg stats
+      (Nothing, Nothing) -> do
         (mbCached, mbStats) <-
           (runStorage handle $ event "file lookup" $ lookupFile board depth side)
             `catch`
@@ -192,15 +198,19 @@ lookupAiCache params board depth side handle = do
             Metrics.increment "cache.miss"
             return Nothing
           (Nothing, Just stats) -> do
-            Metrics.increment "cache.hit.stats"
-            return $ Just $ CacheItemSide $ avg stats
+            Metrics.increment "stats.hit.file"
+            let score = avg stats
+            putAiCache' params board depth side (CacheItemSide score) handle
+            return $ Just $ CacheItemSide score
           (Just score, Nothing) -> do
             Metrics.increment "cache.hit.file"
             putAiCache' params board depth side (CacheItemSide score) handle
             return $ Just $ CacheItemSide score
           (Just _, Just stats) -> do
-            Metrics.increment "cache.hit.stats"
-            return $ Just $ CacheItemSide $ avg stats
+            Metrics.increment "stats.hit.file"
+            let score = avg stats
+            putAiCache' params board depth side (CacheItemSide score) handle
+            return $ Just $ CacheItemSide score
 
   where 
     queueCleanup bc bk = return ()
@@ -217,7 +227,7 @@ lookupAiCache params board depth side handle = do
       | statsCount s < 10 = Nothing
       | otherwise = Just s
     
-    lookupMemory :: (BoardCounts, BoardKey) -> Side -> Checkers (Maybe CacheItemSide)
+    lookupMemory :: (BoardCounts, BoardKey) -> Side -> Checkers (Maybe CacheItemSide, Maybe Stats)
     lookupMemory (bc, bk) side = Metrics.timed "cache.lookup.memory" $ do
       let total = bcFirstMen bc + bcSecondMen bc + bcFirstKings bc + bcSecondKings bc
       cfg <- asks (gcAiConfig . csConfig)
@@ -225,17 +235,17 @@ lookupAiCache params board depth side handle = do
         then do
             AICache _ _ cache <- liftIO $ atomically $ readTVar (aichData handle)
             case lookupBoardMap (bc,bk) cache of
-              Nothing -> return Nothing
-              Just (PerBoardData {boardScores = byDepth}) -> do
+              Nothing -> return (Nothing, Nothing)
+              Just (PerBoardData {..}) -> do
                 let ds = [dpTarget depth .. dpTarget depth + aiUseCacheMaxDepthPlus cfg] ++
                              [dpTarget depth - aiUseCacheMaxDepthMinus cfg .. dpTarget depth-1] 
                     depths = [depth {dpTarget = d} | d <- ds]
-                case foldl mplus Nothing [M.lookup d byDepth | d <- depths ] of
-                  Nothing -> return Nothing
+                case foldl mplus Nothing [M.lookup d boardScores | d <- depths ] of
+                  Nothing -> return (Nothing, boardStats)
                   Just item -> case side of
-                                 First -> return $ ciFirst item
-                                 Second -> return $ ciSecond item
-        else return Nothing
+                                 First -> return (ciFirst item, boardStats)
+                                 Second -> return (ciSecond item, boardStats)
+        else return (Nothing, Nothing)
 
 -- | Put an item to the cache.
 -- It is always writen to the memory,
