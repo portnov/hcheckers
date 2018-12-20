@@ -19,6 +19,7 @@ import Control.Monad.Catch
 import qualified Control.Monad.Metrics as Metrics
 import Control.Concurrent.STM
 import Data.Maybe
+import Data.List (sortOn)
 import Data.Text.Format.Heavy
 import Data.Aeson
 import Text.Printf
@@ -335,6 +336,7 @@ scoreAB var params side dp alpha beta board
         $trace "{}`—No moves left." (Single indent)
 
       dp' <- updateDepth (length moves) dp
+      prevMove <- getPrevMove
       iterateMoves moves dp'
 
   where
@@ -351,6 +353,16 @@ scoreAB var params side dp alpha beta board
           let moves = possibleMoves rules side board
           modify $ \st -> st {ssMemo = putMoves side board moves (ssMemo st)}
           return moves
+
+    sortMoves :: Maybe PossibleMove -> [PossibleMove] -> [PossibleMove]
+    sortMoves Nothing moves = moves
+    sortMoves (Just prev) moves = sortOn (distance prev) moves
+
+    distance :: PossibleMove -> PossibleMove -> Line
+    distance prev pm =
+      let Label col row = aLabel (pmEnd prev)
+          Label col' row' = aLabel (pmBegin pm)
+      in  abs (col' - col) `max` abs (row' - row)
 
     maximize = side == First
     minimize = not maximize
@@ -378,6 +390,10 @@ scoreAB var params side dp alpha beta board
 
     getBest =
       gets (siScoreBest . head . ssStack)
+
+    getPrevMove :: ScoreM rules eval (Maybe PossibleMove)
+    getPrevMove = 
+      gets (siMove . head . ssStack)
 
     setBest :: Score -> ScoreM rules eval ()
     setBest best = do
@@ -418,7 +434,7 @@ scoreAB var params side dp alpha beta board
       if (maximize && score > best) || (minimize && score < best)
         then do
              setBest score
-             if score >= beta
+             if (maximize && score >= beta) || (minimize && score <= alpha)
                then do
                     best <- getBest
                     $trace "{}`—Return {} for depth {} = {}" (indent, bestStr, dpCurrent dp, show best)
