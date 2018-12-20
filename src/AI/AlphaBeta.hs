@@ -67,10 +67,10 @@ instance (GameRules rules, Evaluator eval) => GameAi (AlphaBeta rules eval) wher
   aiName _ = "default"
 
 scoreMove :: (GameRules rules, Evaluator eval) => ScoreMoveInput rules eval -> Checkers (Move, Score)
-scoreMove (ai@(AlphaBeta params rules eval), var, side, dp, board, pm) = do
+scoreMove (ai@(AlphaBeta params rules eval), var, side, dp, board, pm, alpha, beta) = do
      score <- Metrics.timed "ai.score.move" $ do
                 let board' = applyMoveActions (pmResult pm) board
-                score <- doScore rules eval var params (opposite side) dp board'
+                score <- doScore rules eval var params (opposite side) dp board' alpha beta
                           `catchError` (\(e :: Error) -> do
                                         $info "doScore: move {}, depth {}: {}" (show pm, dpTarget dp, show e)
                                         throwError e
@@ -86,11 +86,11 @@ type AiOutput = ([Move], Score)
 
 runAI :: (GameRules rules, Evaluator eval) => AlphaBeta rules eval -> AICacheHandle rules eval -> Side -> Board -> Checkers AiOutput
 runAI ai@(AlphaBeta params rules eval) handle side board = do
-    options <- controller
+    options <- depthDriver
     select options
   where
-    controller :: Checkers AiIterationOutput
-    controller = case abBaseTime params of
+    depthDriver :: Checkers AiIterationOutput
+    depthDriver = case abBaseTime params of
                  Nothing -> do
                     (result, _) <- go (params, Nothing)
                     return result
@@ -126,18 +126,55 @@ runAI ai@(AlphaBeta params rules eval) handle side board = do
         else do
           let var = aichData handle
           $info "Evaluating a board, side = {}, depth = {}, number of possible moves = {}" (show side, depth, length moves)
-          AICache _ processor _ <- liftIO $ atomically $ readTVar var
           dp <- updateDepth (length moves) $ DepthParams {
                      dpTarget = depth
                    , dpCurrent = -1
                    , dpMax = abCombinationDepth params + depth
                    , dpMin = fromMaybe depth (abStartDepth params)
                    }
-          let inputs = [(ai, handle, side, dp, board, move) | move <- moves]
-          results <- process' processor inputs
+          joined <- widthController prevResult moves dp initInterval
           let params' = params {abDepth = depth + 1, abStartDepth = Nothing}
-          joined <- joinResults prevResult results
           return (joined, Just (params', Just joined))
+
+    initInterval =
+      let score0 = evalBoard eval First side board
+          delta = 24
+      in  (score0 - delta, score0 + delta)
+
+    nextInterval (alpha, beta) =
+      let width = beta - alpha
+          width' = 4 * width `div` 3
+      in  if side == First
+            then (beta, beta + width')
+            else (alpha - width', alpha)
+
+    prevInterval (alpha, beta) =
+      let width = beta - alpha
+          width' = 4 * width `div` 3
+      in  if side == Second
+            then (beta, beta + width')
+            else (alpha - width', alpha)
+
+    widthController prevResult moves dp interval@(alpha,beta) = do
+        results <- widthIteration prevResult moves dp interval
+        let (good, badMoves) = selectBestEdge interval moves results
+            (bestMoves, bestResults) = unzip good
+        $info "Score interval: [{} - {}]; number of `too good' moves: {}; number of `too bad' moves: {}" (alpha, beta, length bestMoves, length badMoves)
+        if length badMoves == length moves
+          then  widthController prevResult bestMoves dp (prevInterval interval)
+          else
+            case bestResults of
+              [] -> return results
+              [_] -> return bestResults
+              _ -> widthController prevResult bestMoves dp (nextInterval interval)
+
+    widthIteration prevResult moves dp (alpha, beta) = do
+      let var = aichData handle
+      AICache _ processor _ <- liftIO $ atomically $ readTVar var
+      let inputs = [(ai, handle, side, dp, board, move, alpha, beta) | move <- moves]
+      results <- process' processor inputs
+      joined <- joinResults prevResult results
+      return joined
 
     joinResults :: Maybe AiIterationOutput -> [Either Error (Move, Score)] -> Checkers AiIterationOutput
     joinResults Nothing results =
@@ -152,6 +189,12 @@ runAI ai@(AlphaBeta params rules eval) handle side board = do
       return prev
     joinResult _ (Left err) = throwError err
     joinResult _ (Right result) = return result
+
+    selectBestEdge (alpha, beta) moves results =
+      let (good, bad) = if side == First then (beta, alpha) else (alpha, beta)
+          goodResults = [(move, (goodMoves, score)) | (move, (goodMoves, score)) <- zip moves results, score == good]
+          badResults = [move | (move, (_, score)) <- zip moves results, score == bad]
+      in  (goodResults, badResults)
 
     select :: AiIterationOutput -> Checkers AiOutput
     select pairs = do
@@ -178,9 +221,19 @@ putMoves Second board moves memo =
   memo {mmSecond = putBoardMap board moves (mmSecond memo)}
 
 -- | Calculate score of the board
-doScore :: (GameRules rules, Evaluator eval) => rules -> eval -> AICacheHandle rules eval -> AlphaBetaParams -> Side -> DepthParams -> Board -> Checkers Score
-doScore rules eval var params side dp board =
-    fixSign <$> evalStateT (cachedScoreAB var params side dp loose win board) =<< initState
+doScore :: (GameRules rules, Evaluator eval)
+        => rules
+        -> eval
+        -> AICacheHandle rules eval
+        -> AlphaBetaParams
+        -> Side
+        -> DepthParams
+        -> Board
+        -> Score -- ^ Alpha
+        -> Score -- ^ Beta
+        -> Checkers Score
+doScore rules eval var params side dp board alpha beta =
+    evalStateT (cachedScoreAB var params side dp alpha beta board) =<< initState
   where
     initState = do
       now <- liftIO $ getTime Monotonic
@@ -189,10 +242,6 @@ doScore rules eval var params side dp board =
                       Just sec -> Just $ TimeSpec (fromIntegral sec) 0
       return $ ScoreState rules eval [StackItem Nothing loose] emptyMemo now timeout
     emptyMemo = MovesMemo emptyBoardMap emptyBoardMap
-
-    fixSign s = s
---       | side == First = s
---       | otherwise = negate s
 
 data ScoreState rules eval = ScoreState {
     ssRules :: rules

@@ -133,7 +133,7 @@ type StorageKey = (DepthParams, BoardKey)
 type StorageValue = CacheItemSide
 
 type ScoreMoveInput rules eval = 
-  (AlphaBeta rules eval, AICacheHandle rules eval, Side, DepthParams, Board, PossibleMove)
+  (AlphaBeta rules eval, AICacheHandle rules eval, Side, DepthParams, Board, PossibleMove, Score, Score)
 
 data AICache rules eval = AICache {
     aicDirty :: Bool
