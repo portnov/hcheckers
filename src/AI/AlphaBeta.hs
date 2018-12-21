@@ -309,7 +309,7 @@ cachedScoreAB var params side dp alpha beta board = do
 
     Nothing -> do
       (score, moves) <- Metrics.timed "ai.score.board" $ scoreAB var params side dp alpha beta board
-      when (alpha == loose && beta == win) $
+      when (alpha < score && score < beta) $
           lift $ putAiCache params board dp side score moves var
       return score
 
