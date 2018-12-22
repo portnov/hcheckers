@@ -19,6 +19,7 @@ import Control.Monad.Catch
 import qualified Control.Monad.Metrics as Metrics
 import Control.Concurrent.STM
 import Data.Maybe
+import Data.Int
 import Data.List (sortOn)
 import Data.Text.Format.Heavy
 import Data.Aeson
@@ -138,35 +139,48 @@ runAI ai@(AlphaBeta params rules eval) handle side board = do
 
     initInterval =
       let score0 = evalBoard eval First side board
-          delta = 24
+          delta = 18
       in  (score0 - delta, score0 + delta)
+
+    safePlus :: Score -> Score -> Score
+    safePlus x y =
+      let result = (fromIntegral x + fromIntegral y) :: Int32
+      in  fromIntegral $ min result (fromIntegral (maxBound :: Score))
+
+    safeMinus :: Score -> Score -> Score
+    safeMinus x y =
+      let result = (fromIntegral x - fromIntegral y) :: Int32
+      in  fromIntegral $ max result (fromIntegral (minBound :: Score))
 
     nextInterval (alpha, beta) =
       let width = beta - alpha
-          width' = 4 * width `div` 3
+          width' = 3 * width `div` 2
       in  if side == First
-            then (beta, beta + width')
-            else (alpha - width', alpha)
+            then (beta, beta `safePlus` width')
+            else (alpha `safeMinus` width', alpha)
 
     prevInterval (alpha, beta) =
       let width = beta - alpha
-          width' = 4 * width `div` 3
+          width' = 3 * width `div` 2
       in  if side == Second
-            then (beta, beta + width')
-            else (alpha - width', alpha)
+            then (beta, beta `safePlus` width')
+            else (alpha `safeMinus` width', alpha)
 
     widthController prevResult moves dp interval@(alpha,beta) = do
-        results <- widthIteration prevResult moves dp interval
-        let (good, badMoves) = selectBestEdge interval moves results
-            (bestMoves, bestResults) = unzip good
-        $info "Score interval: [{} - {}]; number of `too good' moves: {}; number of `too bad' moves: {}" (alpha, beta, length bestMoves, length badMoves)
-        if length badMoves == length moves
-          then  widthController prevResult bestMoves dp (prevInterval interval)
-          else
-            case bestResults of
-              [] -> return results
-              [_] -> return bestResults
-              _ -> widthController prevResult bestMoves dp (nextInterval interval)
+      if alpha == beta
+        then return [(pmMove move, alpha) | move <- moves]
+        else do
+            results <- widthIteration prevResult moves dp interval
+            let (good, badMoves) = selectBestEdge interval moves results
+                (bestMoves, bestResults) = unzip good
+            $info "Score interval: [{} - {}]; number of `too good' moves: {}; number of `too bad' moves: {}" (alpha, beta, length bestMoves, length badMoves)
+            if length badMoves == length moves
+              then  widthController prevResult badMoves dp (prevInterval interval)
+              else
+                case bestResults of
+                  [] -> return results
+                  [_] -> return bestResults
+                  _ -> widthController prevResult bestMoves dp (nextInterval interval)
 
     widthIteration prevResult moves dp (alpha, beta) = do
       let var = aichData handle
