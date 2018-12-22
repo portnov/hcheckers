@@ -126,7 +126,7 @@ runAI ai@(AlphaBeta params rules eval) handle side board = do
                                                              
         else do
           let var = aichData handle
-          $info "Evaluating a board, side = {}, depth = {}, number of possible moves = {}" (show side, depth, length moves)
+          $info "Selecting a move. Side = {}, depth = {}, number of possible moves = {}" (show side, depth, length moves)
           dp <- updateDepth (length moves) $ DepthParams {
                      dpTarget = depth
                    , dpCurrent = -1
@@ -140,7 +140,7 @@ runAI ai@(AlphaBeta params rules eval) handle side board = do
     initInterval =
       let score0 = evalBoard eval First side board
           delta = 18
-      in  (score0 - delta, score0 + delta)
+      in  (score0 `safeMinus` delta, score0 `safePlus` delta)
 
     safePlus :: Score -> Score -> Score
     safePlus x y =
@@ -156,33 +156,43 @@ runAI ai@(AlphaBeta params rules eval) handle side board = do
       let width = beta - alpha
           width' = 3 * width `div` 2
       in  if side == First
-            then (beta, beta `safePlus` width')
-            else (alpha `safeMinus` width', alpha)
+            then (beta `safePlus` 1, beta `safePlus` width')
+            else (alpha `safeMinus` width', alpha `safeMinus` 1)
 
     prevInterval (alpha, beta) =
       let width = beta - alpha
           width' = 3 * width `div` 2
       in  if side == Second
-            then (beta, beta `safePlus` width')
-            else (alpha `safeMinus` width', alpha)
+            then (beta `safePlus` 1, beta `safePlus` width')
+            else (alpha `safeMinus` width', alpha `safeMinus` 1)
 
     widthController prevResult moves dp interval@(alpha,beta) = do
       if alpha == beta
-        then return [(pmMove move, alpha) | move <- moves]
+        then do
+          $info "Empty scores interval: [{}]. We have to think that all moves have this score." (Single alpha)
+          return [(pmMove move, alpha) | move <- moves]
         else do
             results <- widthIteration prevResult moves dp interval
             let (good, badMoves) = selectBestEdge interval moves results
                 (bestMoves, bestResults) = unzip good
-            $info "Score interval: [{} - {}]; number of `too good' moves: {}; number of `too bad' moves: {}" (alpha, beta, length bestMoves, length badMoves)
             if length badMoves == length moves
-              then  widthController prevResult badMoves dp (prevInterval interval)
+              then do
+                let interval' = prevInterval interval
+                $info "All moves are `too bad'; consider worse scores interval: [{} - {}]" interval'
+                widthController prevResult badMoves dp interval'
               else
                 case bestResults of
                   [] -> return results
-                  [_] -> return bestResults
-                  _ -> widthController prevResult bestMoves dp (nextInterval interval)
+                  [_] -> do
+                    $info "Exactly one move is `too good'; do that move." ()
+                    return bestResults
+                  _ -> do
+                    let interval'@(alpha',beta') = nextInterval interval
+                    $info "Some moves ({} of them) are `too good'; consider better scores interval: [{} - {}]" (length bestMoves, alpha', beta')
+                    widthController prevResult bestMoves dp interval'
 
     widthIteration prevResult moves dp (alpha, beta) = do
+      $info "`- Considering scores interval: [{} - {}]" (alpha, beta)
       let var = aichData handle
       AICache _ processor _ <- liftIO $ atomically $ readTVar var
       let inputs = [(ai, handle, side, dp, board, move, alpha, beta) | move <- moves]
