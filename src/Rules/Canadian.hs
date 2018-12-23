@@ -36,7 +36,7 @@ instance GameRules Canadian where
 
     in  setManyPieces' labels1 (Piece Man First) $ setManyPieces' labels2 (Piece Man Second) board
 
-  dfltEvaluator r = SomeEval $ defaultEvaluator r
+  dfltEvaluator r = SomeEval $ (defaultEvaluator r) {seKingCoef = 5, seHelpedKingCoef = 6}
 
   boardNotation r = numericNotation (boardSize r)
 

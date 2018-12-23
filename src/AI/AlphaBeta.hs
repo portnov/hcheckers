@@ -142,25 +142,25 @@ runAI ai@(AlphaBeta params rules eval) handle side board = do
           delta = 18
       in  (score0 `safeMinus` delta, score0 `safePlus` delta)
 
-    safePlus :: Score -> Score -> Score
+    safePlus :: Integral a => Score -> a -> Score
     safePlus x y =
       let result = (fromIntegral x + fromIntegral y) :: Int32
       in  fromIntegral $ min result (fromIntegral (maxBound :: Score))
 
-    safeMinus :: Score -> Score -> Score
+    safeMinus :: Integral a => Score -> a -> Score
     safeMinus x y =
       let result = (fromIntegral x - fromIntegral y) :: Int32
       in  fromIntegral $ max result (fromIntegral (minBound :: Score))
 
     nextInterval (alpha, beta) =
-      let width = beta - alpha
+      let width = fromIntegral (beta - alpha) :: Int32
           width' = 3 * width `div` 2
       in  if side == First
             then (beta `safePlus` 1, beta `safePlus` width')
             else (alpha `safeMinus` width', alpha `safeMinus` 1)
 
     prevInterval (alpha, beta) =
-      let width = beta - alpha
+      let width = fromIntegral (beta - alpha) :: Int32
           width' = 3 * width `div` 2
       in  if side == Second
             then (beta `safePlus` 1, beta `safePlus` width')
