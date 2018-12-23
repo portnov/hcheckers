@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2018-11-12 23:36+YEKT\n"
+"POT-Creation-Date: 2018-12-23 21:53+YEKT\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -15,63 +15,83 @@ msgstr ""
 "Generated-By: pygettext.py 1.5\n"
 
 
-#: common.py:129
+#: common.py:135
 msgid "Other side move: {}"
 msgstr ""
 
-#: common.py:134
+#: common.py:140
 msgid "Other side requested undo"
 msgstr ""
 
-#: common.py:145
+#: common.py:151
 msgid "Wating for another side turn"
 msgstr ""
 
-#: common.py:148
+#: common.py:216
 msgid "Russian draughts"
 msgstr ""
 
-#: common.py:149
+#: common.py:217
 msgid "Simple draughts"
 msgstr ""
 
-#: common.py:150
+#: common.py:218
 msgid "English draughts"
 msgstr ""
 
-#: common.py:151
+#: common.py:219
 msgid "International draughts"
 msgstr ""
 
-#: common.py:152
+#: common.py:220
 msgid "Canadian draughts"
 msgstr ""
 
-#: common.py:153
+#: common.py:221
 msgid "Spancirety draughts"
 msgstr ""
 
-#: common.py:154
+#: common.py:222
 msgid "Diagonal draughts"
 msgstr ""
 
-#: game.py:170 game.py:172 lobby.py:19 newgamedlg.py:72
+#: game.py:87
+msgid "Beginner"
+msgstr ""
+
+#: game.py:88
+msgid "Novice"
+msgstr ""
+
+#: game.py:89
+msgid "Average"
+msgstr ""
+
+#: game.py:90
+msgid "Good"
+msgstr ""
+
+#: game.py:91
+msgid "Master"
+msgstr ""
+
+#: game.py:191 game.py:193 lobby.py:34 newgamedlg.py:91
 msgid "White"
 msgstr ""
 
-#: game.py:170 game.py:172 lobby.py:19 newgamedlg.py:73
+#: game.py:191 game.py:193 lobby.py:34 newgamedlg.py:92
 msgid "Black"
 msgstr ""
 
-#: lobby.py:19
+#: lobby.py:34
 msgid "ID"
 msgstr ""
 
-#: lobby.py:19
+#: lobby.py:34
 msgid "Status"
 msgstr ""
 
-#: lobby.py:19 newgamedlg.py:65
+#: lobby.py:34 newgamedlg.py:82
 msgid "Rules"
 msgstr ""
 
@@ -83,59 +103,59 @@ msgstr ""
 msgid "Open file"
 msgstr ""
 
-#: newgamedlg.py:53
+#: newgamedlg.py:70
 msgid "Start a game against computer"
 msgstr ""
 
-#: newgamedlg.py:54
+#: newgamedlg.py:71
 msgid "Start a game against human"
 msgstr ""
 
-#: newgamedlg.py:55
+#: newgamedlg.py:72
 msgid "Join a game against human"
 msgstr ""
 
-#: newgamedlg.py:56
+#: newgamedlg.py:73
 msgid "Action"
 msgstr ""
 
-#: newgamedlg.py:69
+#: newgamedlg.py:84
 msgid "User name"
 msgstr ""
 
-#: newgamedlg.py:74
+#: newgamedlg.py:93
 msgid "User plays"
 msgstr ""
 
-#: newgamedlg.py:77
+#: newgamedlg.py:96
 msgid "Use default initial position"
 msgstr ""
 
-#: newgamedlg.py:78
+#: newgamedlg.py:97
 msgid "Manual initial position setup"
 msgstr ""
 
-#: newgamedlg.py:79
+#: newgamedlg.py:98
 msgid "Load initial board from FEN file"
 msgstr ""
 
-#: newgamedlg.py:80
+#: newgamedlg.py:99
 msgid "Load initial board from PDN file"
 msgstr ""
 
-#: newgamedlg.py:81
+#: newgamedlg.py:100
 msgid "Initial board type"
 msgstr ""
 
-#: newgamedlg.py:85
+#: newgamedlg.py:104
 msgid "Select file"
 msgstr ""
 
-#: newgamedlg.py:100
+#: newgamedlg.py:119
 msgid "AI"
 msgstr ""
 
-#: settingsdlg.py:69
+#: settingsdlg.py:67
 msgid "Title"
 msgstr ""
 
@@ -155,135 +175,166 @@ msgstr ""
 msgid "Use positional score"
 msgstr ""
 
-#: settingsdlg.py:112
+#: settingsdlg.py:86
+msgid "Continue thinking while there is time"
+msgstr ""
+
+#: settingsdlg.py:93
+msgid "Timeout (seconds)"
+msgstr ""
+
+#: settingsdlg.py:129
 msgid "Add AI preset"
 msgstr ""
 
-#: settingsdlg.py:115
+#: settingsdlg.py:133
 msgid "Delete AI preset"
 msgstr ""
 
-#: settingsdlg.py:155
+#: settingsdlg.py:174
 msgid "Show fields notation"
 msgstr ""
 
-#: settingsdlg.py:157
+#: settingsdlg.py:176
 msgid "Show possible moves"
 msgstr ""
 
-#: settingsdlg.py:163
+#: settingsdlg.py:182
 msgid "Theme"
 msgstr ""
 
-#: settingsdlg.py:192
+#: settingsdlg.py:210
 msgid "Server URL"
 msgstr ""
 
-#: settingsdlg.py:211
+#: settingsdlg.py:230
 msgid "General"
 msgstr ""
 
-#: settingsdlg.py:213
+#: settingsdlg.py:232
 msgid "View Settings"
 msgstr ""
 
-#: settingsdlg.py:215
+#: settingsdlg.py:234
 msgid "AI Presets"
 msgstr ""
 
-#: toplevel.py:22
+#: toplevel.py:51
 msgid "HCheckers client"
 msgstr ""
 
-#: toplevel.py:49
+#: toplevel.py:78
 msgid "Your turn."
 msgstr ""
 
-#: toplevel.py:51
+#: toplevel.py:80
 msgid "Awaiting a turn from another side."
 msgstr ""
 
-#: toplevel.py:101
+#: toplevel.py:131
 msgid "History"
 msgstr ""
 
-#: toplevel.py:132
+#: toplevel.py:138
+msgid "Log"
+msgstr ""
+
+#: toplevel.py:177
 msgid "&Game"
 msgstr ""
 
-#: toplevel.py:133
+#: toplevel.py:178
 msgid "&New Game"
 msgstr ""
 
-#: toplevel.py:134
+#: toplevel.py:179
 msgid "Save Position"
 msgstr ""
 
-#: toplevel.py:135
+#: toplevel.py:180
 msgid "&Undo"
 msgstr ""
 
-#: toplevel.py:140
+#: toplevel.py:185
 msgid "Start &Game"
 msgstr ""
 
-#: toplevel.py:142
+#: toplevel.py:187
 msgid "Se&ttings"
 msgstr ""
 
-#: toplevel.py:144
+#: toplevel.py:189
 msgid "&Position"
 msgstr ""
 
-#: toplevel.py:147
+#: toplevel.py:192
 msgid "Put &white piece"
 msgstr ""
 
-#: toplevel.py:148
+#: toplevel.py:193
 msgid "Put &black piece"
 msgstr ""
 
-#: toplevel.py:149
+#: toplevel.py:194
 msgid "&Remove piece"
 msgstr ""
 
-#: toplevel.py:154
+#: toplevel.py:199
 msgid "&View"
 msgstr ""
 
-#: toplevel.py:155
+#: toplevel.py:200
 msgid "&Flip board"
 msgstr ""
 
-#: toplevel.py:214 toplevel.py:225 toplevel.py:237
+#: toplevel.py:265 toplevel.py:276 toplevel.py:290
 msgid "Rules: {}"
 msgstr ""
 
-#: toplevel.py:215
+#: toplevel.py:266
 msgid "AI: {}"
 msgstr ""
 
-#: toplevel.py:229
+#: toplevel.py:280
 msgid "Waiting for another side to join the game."
 msgstr ""
 
-#: toplevel.py:249
+#: toplevel.py:303
 msgid "Save file"
 msgstr ""
 
-#: toplevel.py:269 toplevel.py:271
+#: toplevel.py:325 toplevel.py:327
 msgid "{} win"
 msgstr ""
 
-#: toplevel.py:273
+#: toplevel.py:329
 msgid "Draw"
 msgstr ""
 
-#: toplevel.py:279
+#: toplevel.py:335
 msgid "Game result: {}"
 msgstr ""
 
-#: toplevel.py:281
+#: toplevel.py:337
 msgid "Game over."
+msgstr ""
+
+#: toplevel.py:378
+msgid ""
+"Unexpected response received from the server.\n"
+"Request URL: {}\n"
+"Response code: {}\n"
+"Response message: {}"
+msgstr ""
+
+#: toplevel.py:379 toplevel.py:383
+msgid "Exception"
+msgstr ""
+
+#: toplevel.py:382
+msgid ""
+"An exception occured while connecting to the server.\n"
+"Request URL: {}\n"
+"Exception text: {}"
 msgstr ""
 
