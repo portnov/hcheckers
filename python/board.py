@@ -176,7 +176,7 @@ class Board(QWidget):
             self.fields[idx].last_moved = (idx == value)
 
         self.invalidate()
-        self.repaint()
+        #self.repaint()
 
     last_moved = property(get_last_moved, set_last_moved)
 

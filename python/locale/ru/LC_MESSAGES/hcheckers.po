@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: 0.1.0.0\n"
-"POT-Creation-Date: 2018-12-23 22:32+YEKT\n"
+"POT-Creation-Date: 2018-12-23 23:31+YEKT\n"
 "PO-Revision-Date: 2018-11-07 22:30+5\n"
 "Last-Translator: Ilya Portnov <portnov84@rambler.ru>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -71,31 +71,31 @@ msgstr "Шашки Спанцирети"
 msgid "Diagonal draughts"
 msgstr "Диагональные шашки"
 
-#: game.py:87
+#: game.py:90
 msgid "Beginner"
 msgstr "Начинающий"
 
-#: game.py:88
+#: game.py:91
 msgid "Novice"
 msgstr "Новичок"
 
-#: game.py:89
+#: game.py:92
 msgid "Average"
 msgstr "Средний"
 
-#: game.py:90
+#: game.py:93
 msgid "Good"
 msgstr "Хороший"
 
-#: game.py:91
+#: game.py:94
 msgid "Master"
 msgstr "Мастер"
 
-#: game.py:191 game.py:193 lobby.py:34 newgamedlg.py:91
+#: game.py:195 game.py:197 lobby.py:34 newgamedlg.py:91
 msgid "White"
 msgstr "Белые"
 
-#: game.py:191 game.py:193 lobby.py:34 newgamedlg.py:92
+#: game.py:195 game.py:197 lobby.py:34 newgamedlg.py:92
 msgid "Black"
 msgstr "Черные"
 
@@ -255,87 +255,87 @@ msgstr "История"
 msgid "Log"
 msgstr "Журнал"
 
-#: toplevel.py:177
+#: toplevel.py:178
 msgid "&Game"
 msgstr "&Игра"
 
-#: toplevel.py:178
+#: toplevel.py:179
 msgid "&New Game"
 msgstr "&Новая игра"
 
-#: toplevel.py:179
+#: toplevel.py:180
 msgid "Save Position"
 msgstr "Сохранить позицию"
 
-#: toplevel.py:180
+#: toplevel.py:181
 msgid "&Undo"
 msgstr "&Отменить"
 
-#: toplevel.py:185
+#: toplevel.py:186
 msgid "Start &Game"
 msgstr "Начать &игру"
 
-#: toplevel.py:187
+#: toplevel.py:188
 msgid "Se&ttings"
 msgstr "Нас&тройки"
 
-#: toplevel.py:189
+#: toplevel.py:190
 msgid "&Position"
 msgstr "&Позиция"
 
-#: toplevel.py:192
+#: toplevel.py:193
 msgid "Put &white piece"
 msgstr "Установить &белую шашку"
 
-#: toplevel.py:193
+#: toplevel.py:194
 msgid "Put &black piece"
 msgstr "Установить &черную шашку"
 
-#: toplevel.py:194
+#: toplevel.py:195
 msgid "&Remove piece"
 msgstr "&Удалить шашку"
 
-#: toplevel.py:199
+#: toplevel.py:200
 msgid "&View"
 msgstr "&Вид"
 
-#: toplevel.py:200
+#: toplevel.py:201
 msgid "&Flip board"
 msgstr "&Перевернуть доску"
 
-#: toplevel.py:265 toplevel.py:276 toplevel.py:290
+#: toplevel.py:266 toplevel.py:277 toplevel.py:291
 msgid "Rules: {}"
 msgstr "Правила: {}"
 
-#: toplevel.py:266
+#: toplevel.py:267
 msgid "AI: {}"
 msgstr "ИИ: {}"
 
-#: toplevel.py:280
+#: toplevel.py:281
 msgid "Waiting for another side to join the game."
 msgstr "Ожидаем подключения второй стороны к игре"
 
-#: toplevel.py:303
+#: toplevel.py:304
 msgid "Save file"
 msgstr "Сохранить файл"
 
-#: toplevel.py:325 toplevel.py:327
+#: toplevel.py:326 toplevel.py:328
 msgid "{} win"
 msgstr "{} выиграли"
 
-#: toplevel.py:329
+#: toplevel.py:330
 msgid "Draw"
 msgstr "Ничья"
 
-#: toplevel.py:335
+#: toplevel.py:336
 msgid "Game result: {}"
 msgstr "Результат игры: {}"
 
-#: toplevel.py:337
+#: toplevel.py:338
 msgid "Game over."
 msgstr "Игра окончена."
 
-#: toplevel.py:378
+#: toplevel.py:379
 msgid ""
 "Unexpected response received from the server.\n"
 "Request URL: {}\n"
@@ -347,11 +347,11 @@ msgstr ""
 "Код ответа: {}\n"
 "Сообщение в ответе: {}"
 
-#: toplevel.py:379 toplevel.py:383
+#: toplevel.py:380 toplevel.py:385
 msgid "Exception"
 msgstr "Исключение"
 
-#: toplevel.py:382
+#: toplevel.py:384
 msgid ""
 "An exception occured while connecting to the server.\n"
 "Request URL: {}\n"

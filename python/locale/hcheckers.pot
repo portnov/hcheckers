@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2018-12-23 22:32+YEKT\n"
+"POT-Creation-Date: 2018-12-23 23:31+YEKT\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -71,31 +71,31 @@ msgstr ""
 msgid "Diagonal draughts"
 msgstr ""
 
-#: game.py:87
+#: game.py:90
 msgid "Beginner"
 msgstr ""
 
-#: game.py:88
+#: game.py:91
 msgid "Novice"
 msgstr ""
 
-#: game.py:89
+#: game.py:92
 msgid "Average"
 msgstr ""
 
-#: game.py:90
+#: game.py:93
 msgid "Good"
 msgstr ""
 
-#: game.py:91
+#: game.py:94
 msgid "Master"
 msgstr ""
 
-#: game.py:191 game.py:193 lobby.py:34 newgamedlg.py:91
+#: game.py:195 game.py:197 lobby.py:34 newgamedlg.py:91
 msgid "White"
 msgstr ""
 
-#: game.py:191 game.py:193 lobby.py:34 newgamedlg.py:92
+#: game.py:195 game.py:197 lobby.py:34 newgamedlg.py:92
 msgid "Black"
 msgstr ""
 
@@ -255,87 +255,87 @@ msgstr ""
 msgid "Log"
 msgstr ""
 
-#: toplevel.py:177
+#: toplevel.py:178
 msgid "&Game"
 msgstr ""
 
-#: toplevel.py:178
+#: toplevel.py:179
 msgid "&New Game"
 msgstr ""
 
-#: toplevel.py:179
+#: toplevel.py:180
 msgid "Save Position"
 msgstr ""
 
-#: toplevel.py:180
+#: toplevel.py:181
 msgid "&Undo"
 msgstr ""
 
-#: toplevel.py:185
+#: toplevel.py:186
 msgid "Start &Game"
 msgstr ""
 
-#: toplevel.py:187
+#: toplevel.py:188
 msgid "Se&ttings"
 msgstr ""
 
-#: toplevel.py:189
+#: toplevel.py:190
 msgid "&Position"
 msgstr ""
 
-#: toplevel.py:192
+#: toplevel.py:193
 msgid "Put &white piece"
 msgstr ""
 
-#: toplevel.py:193
+#: toplevel.py:194
 msgid "Put &black piece"
 msgstr ""
 
-#: toplevel.py:194
+#: toplevel.py:195
 msgid "&Remove piece"
 msgstr ""
 
-#: toplevel.py:199
+#: toplevel.py:200
 msgid "&View"
 msgstr ""
 
-#: toplevel.py:200
+#: toplevel.py:201
 msgid "&Flip board"
 msgstr ""
 
-#: toplevel.py:265 toplevel.py:276 toplevel.py:290
+#: toplevel.py:266 toplevel.py:277 toplevel.py:291
 msgid "Rules: {}"
 msgstr ""
 
-#: toplevel.py:266
+#: toplevel.py:267
 msgid "AI: {}"
 msgstr ""
 
-#: toplevel.py:280
+#: toplevel.py:281
 msgid "Waiting for another side to join the game."
 msgstr ""
 
-#: toplevel.py:303
+#: toplevel.py:304
 msgid "Save file"
 msgstr ""
 
-#: toplevel.py:325 toplevel.py:327
+#: toplevel.py:326 toplevel.py:328
 msgid "{} win"
 msgstr ""
 
-#: toplevel.py:329
+#: toplevel.py:330
 msgid "Draw"
 msgstr ""
 
-#: toplevel.py:335
+#: toplevel.py:336
 msgid "Game result: {}"
 msgstr ""
 
-#: toplevel.py:337
+#: toplevel.py:338
 msgid "Game over."
 msgstr ""
 
-#: toplevel.py:378
+#: toplevel.py:379
 msgid ""
 "Unexpected response received from the server.\n"
 "Request URL: {}\n"
@@ -343,11 +343,11 @@ msgid ""
 "Response message: {}"
 msgstr ""
 
-#: toplevel.py:379 toplevel.py:383
+#: toplevel.py:380 toplevel.py:385
 msgid "Exception"
 msgstr ""
 
-#: toplevel.py:382
+#: toplevel.py:384
 msgid ""
 "An exception occured while connecting to the server.\n"
 "Request URL: {}\n"
