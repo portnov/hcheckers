@@ -21,6 +21,7 @@ import qualified Data.Map as M
 import qualified Data.IntMap.Strict as IM
 import qualified Data.IntSet as IS
 import qualified Data.Text as T
+import qualified Data.Text.Lazy as TL
 import qualified Data.HashMap.Strict as H
 import Data.Function (on)
 import Data.Dynamic
@@ -495,6 +496,11 @@ data Notify =
     , nSource :: Side
     , nResult :: GameResult
   }
+  | LogNotify {
+      nDestination :: Side
+    , nLevel :: String
+    , nLogMessage :: TL.Text
+    }
   deriving (Eq, Show, Generic)
 
 -- | State of supervisor singleton

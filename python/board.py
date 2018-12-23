@@ -1,5 +1,7 @@
 
 import math
+import logging
+
 from PyQt5.QtGui import QPainter, QPixmap
 from PyQt5.QtCore import QRect, QSize, Qt, QObject, QTimer, pyqtSignal
 from PyQt5.QtWidgets import QApplication, QWidget
@@ -56,7 +58,7 @@ class MoveAnimation(QObject):
         x2,y2 = p2
         x = (1-progress)*x1 + progress*x2
         y = (1-progress)*y1 + progress*y2
-        #print("{} - {} @ {} = {}".format(p1, p2, progress, (x,y)))
+        #logging.debug("{} - {} @ {} = {}".format(p1, p2, progress, (x,y)))
         return (x,y)
 
     def update(self, time):
@@ -129,6 +131,8 @@ class Board(QWidget):
     field_clicked = pyqtSignal(int, int)
 
     message = pyqtSignal(object)
+
+    server_log = pyqtSignal(str, str)
 
     def _init_fields(self, rows, cols):
         self.n_rows = rows
@@ -378,7 +382,7 @@ class Board(QWidget):
         else:
             x = (col + 0.5) / self.n_cols
             y = (self.n_rows - 1 - row + 0.5) / self.n_rows
-        #print("{} => {}".format(idx, (x,y)))
+        #logging.debug("{} => {}".format(idx, (x,y)))
         return (x*width, y*height)
 
     def get_move_end_field(self, move):
@@ -398,12 +402,12 @@ class Board(QWidget):
         piece = self._board.get(field.label)
         if piece is not None and piece.side == self.game.user_side:
             moves = self.game.get_possible_moves(field.label)
-            #print(moves)
+            #logging.debug(moves)
             if not moves:
-                print("Piece at {} does not have moves".format(field.label))
+                logging.warning("Piece at {} does not have moves".format(field.label))
             else:
                 self._valid_target_fields = dict((move.steps[-1].field, move) for move in moves)
-                print("Valid target fields: {}".format(self._valid_target_fields.keys()))
+                logging.info("Valid target fields: {}".format(self._valid_target_fields.keys()))
                 self.selected_field = (row, col)
                 self.repaint()
         elif piece is None and self.selected_field is not None and self._valid_target_fields is not None:
@@ -424,7 +428,7 @@ class Board(QWidget):
                 self.repaint()
 
         else:
-            print("Field {} is not yours".format(field.label))
+            logging.warning("Field {} is not yours".format(field.label))
 
     def get_notation(self, label):
         idx = self.index_by_label[label]
@@ -460,6 +464,10 @@ class Board(QWidget):
         elif "result" in message:
             result = message["result"]
             self.message.emit(GameResultMessage(result))
+        elif "message" in message:
+            text = message["message"]
+            level = message["level"]
+            self.server_log.emit(level, text)
 
     @handling_error
     def on_animation_finished(self, process_result):
@@ -476,7 +484,7 @@ class Board(QWidget):
             self.fields_setup(self._board)
             self.repaint()
         except RequestError as e:
-            print(e)
+            logging.exception(e)
 
     @handling_error
     def mousePressEvent(self, me):

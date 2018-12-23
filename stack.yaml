@@ -36,12 +36,12 @@ resolver: lts-12.11
 packages:
 - .
 - ../random-access-file
+- ../heavy-logger
 
 # Dependency packages to be pulled from upstream that are not in the resolver
 # using the same syntax as the packages field.
 # (e.g., acme-missiles-0.3)
 extra-deps:
-  - heavy-logger-0.3.2.0
   - text-format-heavy-0.1.5.2
   - unix-memory-0.1.2
 

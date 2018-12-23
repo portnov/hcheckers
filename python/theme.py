@@ -1,6 +1,7 @@
 
 import os
 from os.path import join, basename, isdir, exists
+import logging
 
 from PyQt5.QtCore import Qt, QSettings
 from PyQt5.QtGui import QPixmap, QPainter
@@ -23,7 +24,7 @@ class CachedPixmap(object):
         if not self.defined:
             return None
         if self.size == size and self._pixmap is not None:
-            #print("{}: already rendered".format(self.path))
+            #logging.debug("{}: already rendered".format(self.path))
             return self._pixmap
         else:
             self.size = size
