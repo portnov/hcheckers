@@ -1,9 +1,12 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RecordWildCards #-}
 module Core.Checkers where
 
 import Control.Monad.Reader
+import Control.Concurrent
 import qualified Control.Monad.Metrics as Metrics
 import Data.Default
+import Data.Maybe
 import qualified Data.Text.Encoding as TE
 import System.Environment
 import System.Log.Heavy
@@ -21,21 +24,33 @@ import Core.Supervisor
 import Learn
 import Rules.Russian
 
+isGameMessage :: LogMessage -> Bool
+isGameMessage msg = 
+  isJust $ gameIdFromLogMsg msg
+
 withCheckers :: Checkers a -> IO a
 withCheckers actions = do
   supervisor <- mkSupervisor
   cfg <- loadConfig
   print cfg
   metrics <- Metrics.initialize
+  logChan <- newChan
   let store = metrics ^. Metrics.metricsStore
   EKG.registerGcMetrics store
   EKG.forkServerWith store (TE.encodeUtf8 $ gcHost cfg) (gcMetricsPort cfg)
-  let logSettings = (defFileSettings (gcLogFile cfg))
+  let file = (defFileSettings (gcLogFile cfg)) {
+                lsFormat = "{time} [{level}] {source} [{game}|{thread}]: {message}\n"
+             }
+      game = Filtering isGameMessage $ ChanLoggerSettings logChan
+      logSettings = ParallelLogSettings [LoggingSettings game, LoggingSettings file]
   withLoggingB logSettings $ \backend -> do
     let logger = makeLogger backend
         logging = LoggingTState logger (AnyLogBackend backend) []
         cs = CheckersState logging supervisor metrics cfg
-    res <- runCheckersT actions cs
+        actions' = do
+          forkCheckers $ logRouter supervisor logChan
+          actions
+    res <- runCheckersT actions' cs
     case res of
       Right result -> return result
       Left err -> fail $ show err

@@ -50,6 +50,9 @@ class Label(object):
     def __str__(self):
         return "[{},{}]".format(self.col, self.row)
 
+    def __repr__(self):
+        return "[{},{}]".format(self.col, self.row)
+
     def __hash__(self):
         return hash((self.col, self.row))
 

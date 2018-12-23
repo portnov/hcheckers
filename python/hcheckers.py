@@ -4,11 +4,12 @@ import sys
 import os
 from os.path import join, exists, dirname, abspath
 import gettext
+import logging
 
 def locate_share_dir():
     home = os.environ["HOME"]
     bindir = abspath(dirname(sys.argv[0]))
-    print(bindir)
+    logging.info(bindir)
     bases = ["/usr/share/hcheckers", "/usr/local/share/hcheckers",
              join(home, ".local", "share", "hcheckers"),
              bindir]
@@ -23,7 +24,7 @@ def locate_locales():
     if share is None:
         raise Exception("Cannot locate share directory")
     locales = join(share, "locale")
-    print("Using locales at: {}".format(locales))
+    logging.info("Using locales at: {}".format(locales))
     return locales
 
 gettext.install("hcheckers", localedir=locate_locales(), unicode=True)
@@ -38,7 +39,7 @@ from theme import Theme
 from toplevel import Checkers
 
 def clicked(row, col):
-    print("Clicked: {} {}".format(row, col))
+    logging.debug("Clicked: {} {}".format(row, col))
 
 checker = {}
 checker["m1"] = {'kind': 'Man', 'side': 'First'}

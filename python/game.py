@@ -3,6 +3,7 @@
 
 from os.path import join
 import requests
+import logging
 from threading import Thread, Lock
 
 from common import *
@@ -19,7 +20,7 @@ class MoveRequest(Thread):
             self.owner.move_lock.acquire()
             rs = self.owner.post(self.url, json=self.rq)
             result = rs.json()
-            #print(result)
+            #logging.debug(result)
             self.owner.last_move_result = Game.parse_board(result["response"]), result["messages"]
         finally:
             self.owner.move_lock.release()
@@ -121,8 +122,8 @@ class Game(object):
         if rs is None:
             return
         if rs.status_code != requests.codes.ok:
-            print(rs.url)
-            print(rs.text)
+            logging.warning(rs.url)
+            logging.warning(rs.text)
             raise RequestError(rs)
     
     def get(self, url, *args, **kwargs):
@@ -292,7 +293,7 @@ class Game(object):
         self.last_move_result = None
         self.move_thread = MoveRequest(self, url, rq)
         self.move_thread.start()
-        print("Thread was started")
+        logging.debug("Thread was started")
 
     def get_move_result(self):
         if self.move_thread is None:

@@ -14,6 +14,7 @@ module Core.Supervisor where
 import Control.Monad
 import Control.Monad.State
 import Control.Monad.Except
+import Control.Concurrent
 import Control.Concurrent.STM
 import Data.Maybe
 import qualified Data.Map as M
@@ -26,6 +27,8 @@ import GHC.Generics
 import System.Random
 import System.Log.Heavy
 import System.Log.Heavy.TH
+import System.Log.Heavy.Format
+import System.Log.FastLogger.Date
 
 import Core.Types
 import Core.Board
@@ -463,4 +466,24 @@ queueNotifications gameId messages = do
     insert msg game
       | nDestination msg == First = game {gMsgbox1 = msg : gMsgbox1 game}
       | otherwise                 = game {gMsgbox2 = msg : gMsgbox2 game}
+
+gameIdFromLogMsg :: LogMessage -> Maybe Variable
+gameIdFromLogMsg msg = msum $ map (lookup "game") $ map lcfVariables $ lmContext msg
+
+logRouter :: SupervisorHandle -> Chan LogMessage -> Checkers ()
+logRouter supervisor chan = do
+    let fmt = "{time} {source} [{thread}] {message}"
+    tcache <- liftIO $ newTimeCache simpleTimeFormat
+    forever $ do
+        msg <- liftIO $ readChan chan
+        case gameIdFromLogMsg msg of
+          Nothing -> return ()
+          Just str -> do
+
+            ftime <- liftIO tcache
+            let gameId = show str
+                level = show (lmLevel msg)
+                notifies = [LogNotify side level text | side <- [First, Second]]
+                text = format fmt $ LogMessageWithTime ftime msg
+            queueNotifications gameId notifies
 

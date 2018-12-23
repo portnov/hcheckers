@@ -2,10 +2,11 @@
 import sys
 from os.path import join, exists, dirname
 import os
+import logging
 
 from PyQt5.QtGui import QPainter, QPixmap, QIcon
 from PyQt5.QtCore import QRect, QSize, Qt, QObject, QTimer, pyqtSignal, QSettings
-from PyQt5.QtWidgets import QApplication, QWidget, QToolBar, QMainWindow, QDialog, QVBoxLayout, QAction, QActionGroup, QLabel, QFileDialog, QFrame, QDockWidget, QMessageBox
+from PyQt5.QtWidgets import QApplication, QWidget, QToolBar, QMainWindow, QDialog, QVBoxLayout, QAction, QActionGroup, QLabel, QFileDialog, QFrame, QDockWidget, QMessageBox, QListWidget, QListWidgetItem
 
 from field import Field
 from game import Game, AI, RequestError
@@ -14,6 +15,34 @@ from theme import Theme
 from history import HistoryWidget
 from newgamedlg import *
 from settingsdlg import SettingsDialog
+
+class UiLogHandler(logging.Handler):
+    def __init__(self, list_widget):
+        logging.Handler.__init__(self)
+        self.list_widget = list_widget
+
+    def get_icon(self, record):
+        if record.levelno == logging.INFO:
+            return QIcon.fromTheme("dialog-information")
+        elif record.levelno == logging.ERROR:
+            return QIcon.fromTheme("dialog-error")
+        elif record.levelno == logging.WARNING:
+            return QIcon.fromTheme("dialog-warning")
+        return None
+
+    def emit(self, record):
+        try:
+            msg = self.format(record)
+            item = QListWidgetItem(self.list_widget)
+            item.setText(msg)
+            icon = self.get_icon(record)
+            if icon is not None:
+                item.setIcon(icon)
+            self.list_widget.update()
+            self.list_widget.scrollToBottom()
+            self.flush()
+        except Exception:
+            self.handleError(record)
 
 class Checkers(QMainWindow):
     def __init__(self, share_dir):
@@ -105,6 +134,19 @@ class Checkers(QMainWindow):
         self.history_dock.setObjectName("history")
         self.addDockWidget(Qt.RightDockWidgetArea, self.history_dock)
 
+        self.log = QListWidget(self)
+        self.log_dock = QDockWidget(_("Log"), self)
+        self.log_dock.setAllowedAreas(Qt.AllDockWidgetAreas)
+        self.log_dock.setWidget(self.log)
+        self.log_dock.setObjectName("log")
+        self.addDockWidget(Qt.BottomDockWidgetArea, self.log_dock)
+
+        log_handler = UiLogHandler(self.log)
+        logging.getLogger().setLevel(logging.INFO)
+        logging.getLogger().addHandler(log_handler)
+
+        self.board.server_log.connect(self._on_server_log)
+
         geometry = self.settings.value("geometry")
         if geometry is not None:
             self.restoreGeometry(geometry)
@@ -160,6 +202,7 @@ class Checkers(QMainWindow):
         self.flip_action.setChecked(flip)
         self._set_flip_board(flip)
         menu.addAction(self.history_dock.toggleViewAction())
+        menu.addAction(self.log_dock.toggleViewAction())
 
     @handling_error
     def _on_run_game(self, checked=None):
@@ -224,7 +267,7 @@ class Checkers(QMainWindow):
                     self.status_info.setText("")
             elif game.action == START_HUMAN_GAME:
                 game_id = self.game.new_game(game.rules)
-                print(game_id)
+                logging.info(game_id)
                 if game.user_turn_first:
                     self.game.register_user(game.user_name, FIRST)
                 else:
@@ -300,6 +343,21 @@ class Checkers(QMainWindow):
         elif isinstance(message, WaitingMove):
             self.statusBar().showMessage(unicode(message))
 
+    def _on_server_log(self, level, message):
+        item = QListWidgetItem(self.log)
+        item.setText(message)
+        icon = None
+        if level == "INFO":
+            icon = QIcon.fromTheme("dialog-information")
+        elif level == "ERROR":
+            icon = QIcon.fromTheme("dialog-error")
+        elif level == "WARNING":
+            icon = QIcon.fromTheme("dialog-warning")
+        if icon is not None:
+            item.setIcon(icon)
+        self.log.update()
+        self.log.scrollToBottom()
+
     def _set_flip_board(self, value):
         self.board.flip = value
         self.settings.setValue("flip_board", self.board.flip)
@@ -314,7 +372,7 @@ class Checkers(QMainWindow):
             self.board.show_possible_moves = dialog.get_show_possible_moves()
             self.board.show_notation = dialog.get_show_notation()
             self.board.theme = dialog.get_theme()
-            print("ok")
+            logging.info("ok")
 
     def _handle_game_error(self, rs):
         message = _("Unexpected response received from the server.\nRequest URL: {}\nResponse code: {}\nResponse message: {}").format(rs.url, rs.status_code, rs.text)
