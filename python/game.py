@@ -19,7 +19,7 @@ class MoveRequest(Thread):
             self.owner.move_lock.acquire()
             rs = self.owner.post(self.url, json=self.rq)
             result = rs.json()
-            print(result)
+            #print(result)
             self.owner.last_move_result = Game.parse_board(result["response"]), result["messages"]
         finally:
             self.owner.move_lock.release()

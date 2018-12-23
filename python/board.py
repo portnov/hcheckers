@@ -115,6 +115,7 @@ class Board(QWidget):
         self._selected_field = None
         self._valid_target_fields = None
         self._moveable_fields = None
+        self._last_moved_field = None
         self._board = dict()
         self._new_board = None
 
@@ -160,6 +161,20 @@ class Board(QWidget):
             self._moveable_fields = None
 
     my_turn = property(get_my_turn, set_my_turn)
+
+    def get_last_moved(self):
+        return self._last_moved_field
+
+    def set_last_moved(self, value):
+        self._last_moved_field = value
+
+        for idx in self.fields:
+            self.fields[idx].last_moved = (idx == value)
+
+        self.invalidate()
+        self.repaint()
+
+    last_moved = property(get_last_moved, set_last_moved)
 
     def get_theme(self):
         return self._theme
@@ -408,18 +423,22 @@ class Board(QWidget):
                 self.repaint()
         elif piece is None and self.selected_field is not None and self._valid_target_fields is not None:
             if field.label in self._valid_target_fields:
-                src_field = self.fields[self.selected_field].label
+                src_index = self.selected_field
+                self.selected_field = None
+                self.fields[src_index].moveable = False
+                src_field = self.fields[src_index].label
                 dst_field = field.label
                 self.game.begin_move(src_field, dst_field)
                 self.my_turn = False
                 self.message.emit(WaitingMove())
+                self.last_moved = (row,col)
 
                 move = self._valid_target_fields[field.label]
                 start_position = self.get_field_center(self.index_by_label[src_field])
-                piece = self.fields[self.selected_field].piece
+                piece = self.fields[src_index].piece
                 if self.invert_colors:
                     piece = piece.inverted()
-                self.move_animation.start(self.selected_field, (row, col), move, start_position, piece, process_result=True)
+                self.move_animation.start(src_index, (row, col), move, start_position, piece, process_result=True)
                 self._valid_target_fields = None
                 self.repaint()
 
@@ -473,6 +492,7 @@ class Board(QWidget):
             elif self._new_board is not None:
                 self._board = self._new_board
                 self._new_board = None
+            self.last_moved = self.move_animation.end_field
             self.fields_setup(self._board)
             self.repaint()
         except RequestError as e:

@@ -59,6 +59,7 @@ class Theme(object):
         self.pattern2 = CachedPixmap(join(path, settings.value("tile2", "tile2.svg")))
         self.frame = CachedPixmap(join(path, settings.value("frame", "frame.svg")))
         self.moveable = CachedPixmap(join(path, settings.value("moveable", "moveable.svg")))
+        self.last_moved = CachedPixmap(join(path, settings.value("lastmoved", "lastmoved.svg")))
         self.captured = CachedPixmap(join(path, settings.value("captured", "captured.svg")))
 
         self.man_black = CachedPixmap(join(path, settings.value("man_black", "manblack.svg")))
@@ -71,6 +72,7 @@ class Theme(object):
         self.pattern2.invalidate()
         self.frame.invalidate()
         self.moveable.invalidate()
+        self.last_moved.invalidate()
         self.captured.invalidate()
         self.man_black.invalidate()
         self.man_white.invalidate()
@@ -87,6 +89,9 @@ class Theme(object):
 
     def get_moveable(self):
         return self.moveable.get(self.size)
+    
+    def get_last_moved(self):
+        return self.last_moved.get(self.size)
     
     def get_captured(self):
         return self.captured.get(self.size)

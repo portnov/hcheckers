@@ -9,6 +9,7 @@ class Field(object):
     def __init__(self):
         self._show_frame = False
         self._moveable = False
+        self._last_moved = False
         self._show_label = False
         self._pattern_id = None
         self._piece = None
@@ -67,6 +68,15 @@ class Field(object):
         self.invalidate()
 
     moveable = property(get_moveable, set_moveable)
+
+    def get_last_moved(self):
+        return self._last_moved
+
+    def set_last_moved(self, value):
+        self._last_moved = value
+        self.invalidate()
+
+    last_moved = property(get_last_moved, set_last_moved)
 
     def get_theme(self):
         return self._theme
@@ -163,6 +173,10 @@ class Field(object):
         if self.show_frame:
             frame = self._theme.get_frame()
             painter.drawPixmap(0, 0, frame)
+        elif self.last_moved:
+            frame = self._theme.get_last_moved()
+            if frame:
+                painter.drawPixmap(0, 0, frame)
         elif self.moveable:
             frame = self._theme.get_moveable()
             if frame:
