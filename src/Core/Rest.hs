@@ -37,12 +37,27 @@ instance ScottyError Error where
   stringError str = Unhandled str
   showError err = TL.pack $ show err
 
-liftCheckers :: Checkers a -> ActionT Error Checkers a
-liftCheckers actions = do
-  res <- lift $ tryC actions
-  case res of
-    Right result -> return result
-    Left err -> raise err
+withGameContext :: GameId -> Checkers a -> Checkers a
+withGameContext gameId actions =
+  withLogVariable "game" gameId actions
+
+liftCheckers :: GameId -> Checkers a -> ActionT Error Checkers a
+liftCheckers gameId actions = liftCheckers' (Just gameId) actions
+
+liftCheckers_ :: Checkers a -> ActionT Error Checkers a
+liftCheckers_ actions = liftCheckers' Nothing actions
+
+liftCheckers' :: Maybe GameId -> Checkers a -> ActionT Error Checkers a
+liftCheckers' mbId actions = do
+      res <- lift $ wrap $ tryC actions
+      case res of
+        Right result -> return result
+        Left err -> raise err
+  where
+    wrap r =
+      case mbId of
+        Nothing -> r
+        Just gameId -> withGameContext gameId r
 
 boardRq :: SomeRules -> Maybe BoardRep -> Maybe T.Text -> Maybe T.Text -> Either T.Text (Maybe BoardRep)
 boardRq _ (Just br) Nothing Nothing = Right $ Just br
@@ -70,95 +85,95 @@ restServer = do
         case boardRq rules mbBoard mbFen mbPdn of
           Left err -> error400 err
           Right board -> do
-            gameId <- liftCheckers $ newGame rules board
-            liftCheckers $ $info "Created new game #{} with board: {}" (gameId, show board)
+            gameId <- liftCheckers_ $ newGame rules board
+            liftCheckers gameId $ $info "Created new game #{} with board: {}" (gameId, show board)
             json $ Response (NewGameRs gameId) []
 
   post "/game/:id/attach/ai/:side" $ do
     gameId <- param "id"
     side <- param "side"
-    rules <- liftCheckers $ getRules gameId
+    rules <- liftCheckers gameId $ getRules gameId
     rq <- jsonData
     case selectAi rq rules of
       Nothing -> error400 "invalid ai settings"
       Just ai -> do
-        liftCheckers $ $info "Attached AI: {} to game #{}" (show ai, gameId)
-        liftCheckers $ initAiStorage rules ai
-        liftCheckers $ attachAi gameId side ai
+        liftCheckers gameId $ $info "Attached AI: {} to game #{}" (show ai, gameId)
+        liftCheckers gameId $ initAiStorage rules ai
+        liftCheckers gameId $ attachAi gameId side ai
         json $ Response AttachAiRs []
 
   post "/game/:id/attach/:name/:side" $ do
     gameId <- param "id"
     name <- param "name"
     side <- param "side"
-    liftCheckers $ registerUser gameId side name
+    liftCheckers gameId $ registerUser gameId side name
     json $ Response RegisterUserRs []
 
   post "/game/:id/run" $ do
     gameId <- param "id"
-    liftCheckers $ runGame gameId
+    liftCheckers gameId $ runGame gameId
     json $ Response RunGameRs []
 
   get "/game/:id/state" $ do
     gameId <- param "id"
-    rs <- liftCheckers $ getState gameId
+    rs <- liftCheckers gameId $ getState gameId
     json $ Response rs []
 
   get "/game/:id/fen" $ do
     gameId <- param "id"
-    rs <- liftCheckers $ getFen gameId
+    rs <- liftCheckers gameId $ getFen gameId
     Web.Scotty.Trans.text $ TL.fromStrict rs
 
   get "/game/:id/pdn" $ do
     gameId <- param "id"
-    rs <- liftCheckers $ getPdn gameId
+    rs <- liftCheckers gameId $ getPdn gameId
     Web.Scotty.Trans.text $ TL.fromStrict rs
 
   get "/game/:id/history" $ do
     gameId <- param "id"
-    rs <- liftCheckers $ getHistory gameId
+    rs <- liftCheckers gameId $ getHistory gameId
     json $ Response (HistoryRs rs) []
 
   post "/game/:id/move/:name" $ do
     gameId <- param "id"
     name <- param "name"
     moveRq <- jsonData
-    board <- liftCheckers $ doMove gameId name moveRq
-    messages <- liftCheckers $ getMessages name
+    board <- liftCheckers gameId $ doMove gameId name moveRq
+    messages <- liftCheckers gameId $ getMessages name
     json $ Response (MoveRs board) messages
 
   get "/game/:id/moves/:name" $ do
     gameId <- param "id"
     name <- param "name"
-    side <- liftCheckers $ getSideByUser gameId name
-    moves <- liftCheckers $ getPossibleMoves gameId side
-    messages <- liftCheckers $ getMessages name
+    side <- liftCheckers gameId $ getSideByUser gameId name
+    moves <- liftCheckers gameId $ getPossibleMoves gameId side
+    messages <- liftCheckers gameId $ getMessages name
     json $ Response (PossibleMovesRs moves) messages
 
   post "/game/:id/undo/:name" $ do
     gameId <- param "id"
     name <- param "name"
-    board <- liftCheckers $ doUndo gameId name
-    messages <- liftCheckers $ getMessages name
+    board <- liftCheckers gameId $ doUndo gameId name
+    messages <- liftCheckers gameId $ getMessages name
     json $ Response (UndoRs board) messages
 
   get "/poll/:name" $ do
     name <- param "name"
-    messages <- liftCheckers $ getMessages name
+    messages <- liftCheckers_ $ getMessages name
     json $ Response (PollRs messages) []
 
   get "/lobby/:rules" $ do
     rules <- param "rules"
-    games <- liftCheckers $ getGames (Just rules)
+    games <- liftCheckers_ $ getGames (Just rules)
     json $ Response (LobbyRs games) []
 
   get "/lobby" $ do
-    games <- liftCheckers $ getGames Nothing
+    games <- liftCheckers_ $ getGames Nothing
     json $ Response (LobbyRs games) []
 
   get "/notation/:rules" $ do
     rules <- param "rules"
-    (size, orientation, notation) <- liftCheckers $ getNotation rules
+    (size, orientation, notation) <- liftCheckers_ $ getNotation rules
     json $ Response (NotationRs size orientation notation) []
     
 runRestServer :: Checkers ()
