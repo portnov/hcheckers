@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: 0.1.0.0\n"
-"POT-Creation-Date: 2018-12-23 21:50+YEKT\n"
+"POT-Creation-Date: 2018-12-23 22:32+YEKT\n"
 "PO-Revision-Date: 2018-11-07 22:30+5\n"
 "Last-Translator: Ilya Portnov <portnov84@rambler.ru>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -14,6 +14,22 @@ msgstr ""
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: utf-8\n"
 "Generated-By: pygettext.py 1.5\n"
+
+#: board.py:422
+msgid "Piece at {} does not have moves"
+msgstr "Фишка на {} не имеет ходов"
+
+#: board.py:428
+msgid "Possible target fields: {}"
+msgstr "Возможные целевые поля: {}"
+
+#: board.py:452
+msgid "Piece at {} cannot be moved to {}"
+msgstr "Фишка на {} не может быть передвинута на {}"
+
+#: board.py:455
+msgid "Field {} does not belong to you"
+msgstr "Поле {} не принадлежит вам"
 
 #: common.py:135
 msgid "Other side move: {}"
@@ -350,4 +366,3 @@ msgstr ""
 
 #~ msgid "Portable Draughts Notation (*.pdn)"
 #~ msgstr "Portable Draughts Notation (*.pdn)"
-

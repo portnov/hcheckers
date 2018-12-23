@@ -143,6 +143,7 @@ class Checkers(QMainWindow):
 
         log_handler = UiLogHandler(self.log)
         logging.getLogger().setLevel(logging.INFO)
+        logging.getLogger("urllib3.connectionpool").setLevel(logging.WARNING)
         logging.getLogger().addHandler(log_handler)
 
         self.board.server_log.connect(self._on_server_log)

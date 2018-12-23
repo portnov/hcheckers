@@ -419,10 +419,13 @@ class Board(QWidget):
             moves = self.game.get_possible_moves(field.label)
             #logging.debug(moves)
             if not moves:
-                logging.warning("Piece at {} does not have moves".format(field.label))
+                logging.warning(_("Piece at {} does not have moves").format(field.notation))
             else:
                 self._valid_target_fields = dict((move.steps[-1].field, move) for move in moves)
-                logging.info("Valid target fields: {}".format(self._valid_target_fields.keys()))
+                valid_targets = []
+                for label in self._valid_target_fields:
+                    valid_targets.append(self.fields[(label.row, label.col)].notation)
+                logging.info(_("Possible target fields: {}").format(", ".join(valid_targets)))
                 self.selected_field = (row, col)
                 self.repaint()
         elif piece is None and self.selected_field is not None and self._valid_target_fields is not None:
@@ -445,9 +448,11 @@ class Board(QWidget):
                 self.move_animation.start(src_index, (row, col), move, start_position, piece, process_result=True)
                 self._valid_target_fields = None
                 self.repaint()
+            else:
+                logging.warning(_("Piece at {} cannot be moved to {}").format(self.fields[self.selected_field].notation, field.notation))
 
         else:
-            logging.warning("Field {} is not yours".format(field.label))
+            logging.warning(_("Field {} does not belong to you").format(field.notation))
 
     def get_notation(self, label):
         idx = self.index_by_label[label]
