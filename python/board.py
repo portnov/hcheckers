@@ -495,21 +495,20 @@ class Board(QWidget):
 
     @handling_error
     def on_animation_finished(self, process_result):
-        try:
-            if process_result:
-                board, messages = self.game.get_move_result()
+        if process_result:
+            res = self.game.get_move_result()
+            if res: 
+                board, messages = res
                 self._board = board
                 for message in messages:
                     self.process_message(message)
                 self.selected_field = None
-            elif self._new_board is not None:
-                self._board = self._new_board
-                self._new_board = None
-            self.last_moved = self.move_animation.end_field
-            self.fields_setup(self._board)
-            self.repaint()
-        except RequestError as e:
-            logging.exception(e)
+        elif self._new_board is not None:
+            self._board = self._new_board
+            self._new_board = None
+        self.last_moved = self.move_animation.end_field
+        self.fields_setup(self._board)
+        self.repaint()
 
     @handling_error
     def mousePressEvent(self, me):

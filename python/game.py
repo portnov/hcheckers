@@ -18,10 +18,13 @@ class MoveRequest(Thread):
     def run(self):
         try:
             self.owner.move_lock.acquire()
+            self.owner.move_exception = None
             rs = self.owner.post(self.url, json=self.rq)
             result = rs.json()
             #logging.debug(result)
             self.owner.last_move_result = Game.parse_board(result["response"]), result["messages"]
+        except Exception as e:
+            self.owner.move_exception = e
         finally:
             self.owner.move_lock.release()
 
@@ -117,6 +120,7 @@ class Game(object):
         self.rules = None
         self.move_thread = None
         self.move_lock = Lock()
+        self.move_exception = None
 
     def process_response(self, rs, action=None):
         if rs is None:
@@ -300,6 +304,8 @@ class Game(object):
             raise Exception("get_move_result() must be called after begin_move()")
         try:
             self.move_lock.acquire()
+            if self.move_exception is not None:
+                raise self.move_exception
             result = self.last_move_result
             self.last_move_result = None
             self.move_thread = None

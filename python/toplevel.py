@@ -378,10 +378,12 @@ class Checkers(QMainWindow):
     def _handle_game_error(self, rs):
         message = _("Unexpected response received from the server.\nRequest URL: {}\nResponse code: {}\nResponse message: {}").format(rs.url, rs.status_code, rs.text)
         QMessageBox.critical(self, _("Exception"), message)
+        logging.exception(message)
 
     def _handle_connection_error(self, url, e):
-        message = _("An exception occured while connecting to the server.\nRequest URL: {}\nException text: {}").format(url, unicode(e))
+        message = _("An exception occured while connecting to the server.\nRequest URL: {}\nException text: {}").format(url, e)
         QMessageBox.critical(self, _("Exception"), message)
+        logging.exception(message)
 
     def closeEvent(self, ev):
         self.settings.setValue("geometry", self.saveGeometry())
