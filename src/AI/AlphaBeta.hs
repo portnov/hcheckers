@@ -133,13 +133,13 @@ runAI ai@(AlphaBeta params rules eval) handle side board = do
                    , dpMax = abCombinationDepth params + depth
                    , dpMin = fromMaybe depth (abStartDepth params)
                    }
-          joined <- widthController prevResult moves dp initInterval
+          joined <- widthController True True prevResult moves dp initInterval
           let params' = params {abDepth = depth + 1, abStartDepth = Nothing}
           return (joined, Just (params', Just joined))
 
     initInterval =
       let score0 = evalBoard eval First side board
-          delta = 18
+          delta = 8
       in  (score0 `safeMinus` delta, score0 `safePlus` delta)
 
     safePlus :: Integral a => Score -> a -> Score
@@ -154,32 +154,37 @@ runAI ai@(AlphaBeta params rules eval) handle side board = do
 
     nextInterval (alpha, beta) =
       let width = fromIntegral (beta - alpha) :: Int32
-          width' = 3 * width `div` 2
+          width' = 2 * width
       in  if side == First
             then (beta `safePlus` 1, beta `safePlus` width')
             else (alpha `safeMinus` width', alpha `safeMinus` 1)
 
     prevInterval (alpha, beta) =
       let width = fromIntegral (beta - alpha) :: Int32
-          width' = 3 * width `div` 2
+          width' = 2 * width
       in  if side == Second
             then (beta `safePlus` 1, beta `safePlus` width')
             else (alpha `safeMinus` width', alpha `safeMinus` 1)
 
-    widthController prevResult moves dp interval@(alpha,beta) = do
+    widthController allowNext allowPrev prevResult moves dp interval@(alpha,beta) = do
       if alpha == beta
         then do
           $info "Empty scores interval: [{}]. We have to think that all moves have this score." (Single alpha)
           return [(pmMove move, alpha) | move <- moves]
         else do
             results <- widthIteration prevResult moves dp interval
-            let (good, badMoves) = selectBestEdge interval moves results
+            let (good, badScore, badMoves) = selectBestEdge interval moves results
                 (bestMoves, bestResults) = unzip good
             if length badMoves == length moves
-              then do
-                let interval' = prevInterval interval
-                $info "All moves are `too bad'; consider worse scores interval: [{} - {}]" interval'
-                widthController prevResult badMoves dp interval'
+              then
+                if allowPrev
+                  then do
+                    let interval' = prevInterval interval
+                    $info "All moves are `too bad'; consider worse scores interval: [{} - {}]" interval'
+                    widthController False True prevResult badMoves dp interval'
+                  else do
+                    $info "All moves are `too bad' ({}), but we have already checked worse interval; so this is the real score." (Single badScore)
+                    return [(pmMove move, badScore) | move <- moves]
               else
                 case bestResults of
                   [] -> return results
@@ -187,9 +192,14 @@ runAI ai@(AlphaBeta params rules eval) handle side board = do
                     $info "Exactly one move is `too good'; do that move." ()
                     return bestResults
                   _ -> do
-                    let interval'@(alpha',beta') = nextInterval interval
-                    $info "Some moves ({} of them) are `too good'; consider better scores interval: [{} - {}]" (length bestMoves, alpha', beta')
-                    widthController prevResult bestMoves dp interval'
+                    if allowNext
+                      then do
+                        let interval'@(alpha',beta') = nextInterval interval
+                        $info "Some moves ({} of them) are `too good'; consider better scores interval: [{} - {}]" (length bestMoves, alpha', beta')
+                        widthController True False prevResult bestMoves dp interval'
+                      else do
+                        $info  "Some moves ({} of them) are `too good'; but we have already checked better interval; so this is the real score" (Single $ length bestMoves)
+                        return bestResults
 
     widthIteration prevResult moves dp (alpha, beta) = do
       $info "`- Considering scores interval: [{} - {}]" (alpha, beta)
@@ -218,7 +228,7 @@ runAI ai@(AlphaBeta params rules eval) handle side board = do
       let (good, bad) = if side == First then (beta, alpha) else (alpha, beta)
           goodResults = [(move, (goodMoves, score)) | (move, (goodMoves, score)) <- zip moves results, score == good]
           badResults = [move | (move, (_, score)) <- zip moves results, score == bad]
-      in  (goodResults, badResults)
+      in  (goodResults, bad, badResults)
 
     select :: AiIterationOutput -> Checkers AiOutput
     select pairs = do
