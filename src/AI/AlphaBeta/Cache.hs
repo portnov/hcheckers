@@ -114,7 +114,7 @@ loadAiCache scoreMove (AlphaBeta params rules eval) = do
      runStorage handle $ initFile
   when (store) $ do
     forkCheckers $ cacheDumper rules params handle
-  forkCheckers $ cacheCleaner handle
+  -- forkCheckers $ cacheCleaner handle
 
   return handle
 

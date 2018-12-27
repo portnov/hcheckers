@@ -21,6 +21,7 @@ import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as BL
 import qualified Data.Map as M
 import qualified Data.IntSet as IS
+import Data.Maybe
 import Data.Word
 import qualified Data.Binary
 import qualified Data.Binary.Put
@@ -463,56 +464,107 @@ initFile = do
 --             printf "      Depth: %d\n" depth
 --             printf "      Value: %s\n" (show item)
 
-readDataIO :: forall a. Data.Store.Store a => Handle -> IO a
-readDataIO file = do
-  bstr <- B.hGet file (fromIntegral $ sizeOf (error "unknown data size to read!" :: a))
+readDataIO :: forall a h. (Data.Store.Store a, File.FileAccess h) => h -> File.Offset -> IO a
+readDataIO file offset = do
+  bstr <- File.readBytes file offset (fromIntegral $ sizeOf (error "unknown data size to read!" :: a))
   when (B.null bstr) $ do
-    offset <- hTell file
     fail $ "readDataIO: unexpected EOF, offset " ++ show offset
   Data.Store.decodeIO bstr
 
-readDataSizedIO :: forall a. Data.Store.Store a => Handle -> IO a
-readDataSizedIO file = do
-  size <- readDataIO file :: IO Word16
-  bstr <- B.hGet file (fromIntegral size)
+readDataSizedIO :: forall a h. (Data.Store.Store a, File.FileAccess h) => h -> File.Offset -> IO a
+readDataSizedIO file offset = do
+  size <- readDataIO file offset :: IO Word16
+  bstr <- File.readBytes file (offset + 2) (fromIntegral size)
   when (B.null bstr) $ do
-    offset <- hTell file
     fail $ printf "readDataSizedIO: zero data size, offset %s, size %s" (show offset) (show size)
   Data.Store.decodeIO bstr
 
-dumpIndexBlock :: Handle -> BoardSize -> IndexBlockNumber -> IO ()
+dumpIndexBlock :: File.FileAccess h => h -> BoardSize -> IndexBlockNumber -> IO ()
 dumpIndexBlock h bsize n = do
   forM_ [0 .. 255] $ \char -> do
-    hSeek h AbsoluteSeek $ fromIntegral $ calcIndexOffset bsize n char
-    record <- readDataIO h
+    let offset = fromIntegral $ calcIndexOffset bsize n char
+    record <- readDataIO h offset
     when (irDataBlock record /= unexistingBlock || irIndexBlock record /= unexistingBlock) $
       printf "Char #%d: next index #%d, data block #%d\n" char (irIndexBlock record) (irDataBlock record)
 
 checkDataFile :: FilePath -> IO ()
-checkDataFile path = withFile path ReadMode $ \file -> do
-  nBlocks <- readDataIO file :: IO DataBlockNumber
+checkDataFile path = do
+  let params = File.MMapedParams (1024*1024) False
+  file <- File.initFile params path
+  nBlocks <- readDataIO file 0 :: IO DataBlockNumber
   forM_ [0 .. nBlocks - 1] $ \i -> do
       let start = fromIntegral $ calcDataBlockOffset i
-      hSeek file AbsoluteSeek start
-      size <- readDataIO file :: IO Word16
+      size <- readDataIO file start :: IO Word16
       when (size > 0) $ do
-        bstr <- B.hGet file (fromIntegral size)
+        bstr <- File.readBytes file (start + 2) (fromIntegral size)
         record <- Data.Store.decodeIO bstr :: IO PerBoardData
         printf "Block #%d: data: %s\n" i (show record)
 
 checkDataFile' :: FilePath -> IO ()
-checkDataFile' path = withFile path ReadMode $ \file -> do
-  nBlocks <- readDataIO file :: IO DataBlockNumber
+checkDataFile' path = do
+  let params = File.MMapedParams (1024*1024) False
+  file <- File.initFile params path
+  nBlocks <- readDataIO file 0 :: IO DataBlockNumber
   forM_ [0 .. nBlocks - 1] $ \i -> do
       let start = fromIntegral $ calcDataBlockOffset i
-      hSeek file AbsoluteSeek start
-      size <- readDataIO file :: IO Word16
+      size <- readDataIO file start :: IO Word16
       when (size > 0) $ do
-        bstr <- B.hGet file (fromIntegral size)
+        bstr <- File.readBytes file (fromIntegral $ start + 2) (fromIntegral size)
         record <- Data.Store.decodeIO bstr :: IO PerBoardData
         case boardStats record of
           Nothing -> return ()
           Just stats -> 
             when (statsCount stats > 10) $
               printf "Block #%d: data: %s\n" i (show record)
+
+data ParserState = ParserState {
+    psIndex :: File.MMaped
+  , psUnfinished :: M.Map IndexBlockNumber BL.ByteString
+  , psFinished :: M.Map BL.ByteString DataBlockNumber
+  }
+
+loadIndex :: StateT ParserState IO ()
+loadIndex = do
+    index <- gets psIndex
+    header <- liftIO $ readDataIO index 0
+    let n = ihBlocksCount header
+    forM_ [0 .. n-1] loadBlock
+  where
+    bsize = (8,8)
+
+    loadBlock :: IndexBlockNumber -> StateT ParserState IO ()
+    loadBlock i = do
+      index <- gets psIndex
+      finished <- gets psFinished
+      liftIO $ printf "Block #%d; finished: %d\n" i (M.size finished)
+      records <- forM [0 .. 255] $ \char -> do
+        let offset = calcIndexOffset bsize i char
+        liftIO $ readDataIO index (fromIntegral offset)
+      unfinished <- gets psUnfinished
+      modify $ \st -> st {psUnfinished = M.delete i (psUnfinished st)}
+      let prefix = fromMaybe "" $ M.lookup i unfinished
+      forM_ (zip [0..] records) $ \(j, record) -> do
+        let prefix' = prefix `BL.append` BL.singleton j
+        when (irDataBlock record /= unexistingBlock) $
+          modify $ \st -> st {psFinished = M.insert prefix' (irDataBlock record) (psFinished st)}
+        when (irIndexBlock record /= unexistingBlock) $
+          modify $ \st -> st {psUnfinished = M.insert (irIndexBlock record) prefix' (psUnfinished st)}
+  
+loadIndexIO :: FilePath -> IO (M.Map BL.ByteString DataBlockNumber)
+loadIndexIO indexPath = do 
+  let params = File.MMapedParams (1024*1024) False
+  index <- File.initFile params indexPath
+  let st = ParserState index M.empty M.empty
+  st' <- execStateT loadIndex st
+  File.closeFile index
+  putStrLn "index loaded."
+  return $ psFinished st'
+
+-- loadDataIO :: FilePath -> FilePath -> IO [(Board, PerBoardData)]
+-- loadDataIO indexPath dataPath = do
+--   index <- loadIndexIO indexPath
+--   let params = File.MMapedParams (1024*1024) False
+--   file <- File.initFile params
+--   forM (M.assocs index) $ \(bstr, block) -> do
+    
 
