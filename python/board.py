@@ -414,6 +414,8 @@ class Board(QWidget):
         self.field_clicked.emit(row, col)
 
         field = self.fields[(row, col)]
+        if field.notation is None:
+            return
         piece = self._board.get(field.label)
         if piece is not None and piece.side == self.game.user_side:
             moves = self.game.get_possible_moves(field.label)

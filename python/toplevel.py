@@ -394,12 +394,10 @@ class Checkers(QMainWindow):
     def timerEvent(self, e):
         if e.timerId() != self.poll_timer:
             return
-        if not self.do_poll:
-            return
         #if self.my_turn:
         #    return
 
-        if not self.game_active:
+        if self.do_poll and not self.game_active:
             state = self.game.get_state()
             if state["status"] == 'Running':
                 self.game_active = True
@@ -407,10 +405,22 @@ class Checkers(QMainWindow):
                 self.my_turn = state['side'] == my_side
                 #self.statusBar().clearMessage()
 
-        board, messages = self.game.poll()
-        for message in messages:
-            self.board.process_message(message)
-            self.my_turn = True
+        if self.game.base_url is None or self.game.user_name is None:
+            return
 
-        self.board.fields_setup(board)
+        if self.do_poll:
+            board, messages = self.game.poll()
+            for message in messages:
+                self.board.process_message(message)
+                self.my_turn = True
+            self.board.fields_setup(board)
+        else:
+            board, messages = self.game.poll()
+            for message in messages:
+                if "message" in message:
+                    text = message["message"]
+                    level = message["level"]
+                    self._on_server_log(level, text)
+
+
 
