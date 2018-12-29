@@ -26,7 +26,7 @@
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
      inkscape:zoom="3.959798"
-     inkscape:cx="-10.8917"
+     inkscape:cx="-11.144238"
      inkscape:cy="77.589537"
      inkscape:document-units="px"
      inkscape:current-layer="layer1"
@@ -61,5 +61,11 @@
        cx="64"
        cy="988.36218"
        r="57.599998" />
+    <circle
+       r="46.74086"
+       cy="988.36218"
+       cx="64"
+       id="circle840"
+       style="fill:none;stroke:#232323;stroke-width:8;stroke-miterlimit:4;stroke-dasharray:none" />
   </g>
 </svg>

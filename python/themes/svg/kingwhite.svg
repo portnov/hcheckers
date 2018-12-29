@@ -33,9 +33,9 @@
      showgrid="false"
      units="px"
      inkscape:snap-page="true"
-     inkscape:window-width="1916"
+     inkscape:window-width="956"
      inkscape:window-height="1196"
-     inkscape:window-x="0"
+     inkscape:window-x="960"
      inkscape:window-y="0"
      inkscape:window-maximized="0" />
   <metadata
@@ -46,7 +46,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title></dc:title>
+        <dc:title />
       </cc:Work>
     </rdf:RDF>
   </metadata>
@@ -61,5 +61,11 @@
        cx="64"
        cy="988.36218"
        r="57.599998" />
+    <circle
+       r="46.74086"
+       cy="988.36218"
+       cx="64"
+       id="circle840"
+       style="fill:#ffffff;stroke:#232323;stroke-width:8;stroke-miterlimit:4;stroke-dasharray:none" />
   </g>
 </svg>
