@@ -472,7 +472,7 @@ gameIdFromLogMsg msg = msum $ map (lookup "game") $ map lcfVariables $ lmContext
 
 logRouter :: SupervisorHandle -> Chan LogMessage -> Checkers ()
 logRouter supervisor chan = do
-    let fmt = "{time} {source} [{thread}] {message}"
+    let fmt = "{source} [{thread}] {message}"
     tcache <- liftIO $ newTimeCache simpleTimeFormat
     forever $ do
         msg <- liftIO $ readChan chan

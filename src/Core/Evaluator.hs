@@ -10,27 +10,32 @@ import Data.Aeson.Types (parseMaybe)
 import Core.Types
 import Core.Board
 
-win :: Score
-win = maxBound
-
-loose :: Score
-loose = -maxBound
-
 data SimpleEvaluator = SimpleEvaluator {
     seRules :: SomeRules,
-    seNumericWeight :: Score,
-    sePositionWeight :: Score,
-    seCenterWeight :: Score,
-    seOppositeSideWeight :: Score,
-    seBackedWeight :: Score,
-    seAsymetryWeight :: Score,
-    seKingCoef :: Score,
-    seHelpedKingCoef :: Score
+    seUsePositionalScore :: Bool,
+    seMobilityWeight :: ScoreBase,
+    seCenterWeight :: ScoreBase,
+    seOppositeSideWeight :: ScoreBase,
+    seBackedWeight :: ScoreBase,
+    seAsymetryWeight :: ScoreBase,
+    seKingCoef :: ScoreBase,
+    seHelpedKingCoef :: ScoreBase
   }
   deriving (Show)
 
 defaultEvaluator :: GameRules rules => rules -> SimpleEvaluator
-defaultEvaluator rules = SimpleEvaluator (SomeRules rules) 12 1 2 1 3 1 3 5
+defaultEvaluator rules =
+  SimpleEvaluator {
+      seRules = SomeRules rules
+    , seUsePositionalScore = True
+    , seMobilityWeight = 4
+    , seCenterWeight = 2
+    , seOppositeSideWeight = 3
+    , seBackedWeight = 2
+    , seAsymetryWeight = 1
+    , seKingCoef = 3
+    , seHelpedKingCoef = 5
+  }
 
 instance Evaluator SimpleEvaluator where
   evaluatorName _ = "simple"
@@ -39,8 +44,8 @@ instance Evaluator SimpleEvaluator where
     case parseMaybe (.: "use_positional_score") v of
       Nothing -> e
       Just Nothing -> e
-      Just (Just True) -> e {sePositionWeight = 1}
-      Just (Just False) -> e {sePositionWeight = 0}
+      Just (Just True) -> e {seUsePositionalScore = True}
+      Just (Just False) -> e {seUsePositionalScore = False}
 
   evalBoard (SimpleEvaluator {seRules=SomeRules rules, ..}) whoAsks whoMovesNext board =
     let kingCoef side =
@@ -97,13 +102,21 @@ instance Evaluator SimpleEvaluator where
 
         positionalScore side =
           let (men, kings) = myLabelsCount side board isCenter
-          in  seCenterWeight * (kingCoef side * fromIntegral kings + fromIntegral men) +
-              seOppositeSideWeight * fromIntegral (opponentSideCount side) +
-              seBackedWeight * fromIntegral (backedScore side) -
-              seAsymetryWeight * fromIntegral (asymetry side)
+          in  if seUsePositionalScore
+                then
+                  seCenterWeight * (kingCoef side * fromIntegral kings + fromIntegral men) +
+                  seOppositeSideWeight * fromIntegral (opponentSideCount side) +
+                  seMobilityWeight * mobility side +
+                  seBackedWeight * fromIntegral (backedScore side) -
+                  seAsymetryWeight * fromIntegral (asymetry side)
+                else 0
 
-        myScore = myNumeric * seNumericWeight + (positionalScore whoAsks) * sePositionWeight
-        opponentScore = opponentNumeric * seNumericWeight + positionalScore (opposite whoAsks) * sePositionWeight
+        mobility side = fromIntegral $ length (possibleMoves rules side board)
+
+        myScore = Score myNumeric
+                        (positionalScore whoAsks)
+        opponentScore = Score opponentNumeric
+                              (positionalScore (opposite whoAsks))
 
     in  if myNumeric == 0
           then loose

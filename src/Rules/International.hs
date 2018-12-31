@@ -39,8 +39,7 @@ instance GameRules International where
 
   boardNotation r = numericNotation (boardSize r)
 
-  -- TODO: I suspect in international draughts a king has much more weight
-  dfltEvaluator r = SomeEval $ defaultEvaluator r
+  dfltEvaluator r = SomeEval $ (defaultEvaluator r) {seKingCoef = 5, seHelpedKingCoef = 6}
 
   parseNotation r = parseNumericNotation (boardSize r)
 

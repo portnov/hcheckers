@@ -137,35 +137,36 @@ runAI ai@(AlphaBeta params rules eval) handle side board = do
           let params' = params {abDepth = depth + 1, abStartDepth = Nothing}
           return (joined, Just (params', Just joined))
 
+    initInterval :: (Score, Score)
     initInterval =
       let score0 = evalBoard eval First side board
-          delta = 8
-      in  (score0 `safeMinus` delta, score0 `safePlus` delta)
+          delta = 1
+      in  (score0 - delta, score0 + delta)
 
-    safePlus :: Integral a => Score -> a -> Score
-    safePlus x y =
-      let result = (fromIntegral x + fromIntegral y) :: Int32
-      in  fromIntegral $ min result (fromIntegral (maxBound :: Score))
+    selectScale :: Score -> ScoreBase
+    selectScale s
+      | s > 10000 = 1000
+      | s > 1000 = 10
+      | s > 100 = 5
+      | otherwise = 2
 
-    safeMinus :: Integral a => Score -> a -> Score
-    safeMinus x y =
-      let result = (fromIntegral x - fromIntegral y) :: Int32
-      in  fromIntegral $ max result (fromIntegral (minBound :: Score))
-
+    nextInterval :: (Score, Score) -> (Score, Score)
     nextInterval (alpha, beta) =
-      let width = fromIntegral (beta - alpha) :: Int32
-          width' = 2 * width
+      let width = (beta - alpha)
+          width' = selectScale width `scaleScore` width
       in  if side == First
-            then (beta `safePlus` 1, beta `safePlus` width')
-            else (alpha `safeMinus` width', alpha `safeMinus` 1)
+            then (beta + 1, beta + width')
+            else (alpha - width', alpha - 1)
 
+    prevInterval :: (Score, Score) -> (Score, Score)
     prevInterval (alpha, beta) =
-      let width = fromIntegral (beta - alpha) :: Int32
-          width' = 2 * width
+      let width = (beta - alpha)
+          width' = selectScale width `scaleScore` width
       in  if side == Second
-            then (beta `safePlus` 1, beta `safePlus` width')
-            else (alpha `safeMinus` width', alpha `safeMinus` 1)
+            then (beta + 1, beta + width')
+            else (alpha - width', alpha - 1)
 
+    widthController :: Bool -> Bool -> Maybe AiIterationOutput -> [PossibleMove] -> DepthParams -> (Score, Score) -> Checkers AiIterationOutput
     widthController allowNext allowPrev prevResult moves dp interval@(alpha,beta) = do
       if alpha == beta
         then do
@@ -201,6 +202,7 @@ runAI ai@(AlphaBeta params rules eval) handle side board = do
                         $info  "Some moves ({} of them) are `too good'; but we have already checked better interval; so this is the real score" (Single $ length bestMoves)
                         return bestResults
 
+    widthIteration :: Maybe AiIterationOutput -> [PossibleMove] -> DepthParams -> (Score, Score) -> Checkers AiIterationOutput
     widthIteration prevResult moves dp (alpha, beta) = do
       $info "`- Considering scores interval: [{} - {}]" (alpha, beta)
       let var = aichData handle

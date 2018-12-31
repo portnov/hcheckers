@@ -220,7 +220,10 @@ lookupAiCache params board depth side handle = do
 --       liftIO $ atomically $ putCleanupQueue (aichCleanupQueue handle) key now
 
     avg :: Stats -> Score
-    avg s = statsSumScore s `div` statsCount s
+    avg s = 
+      let Score n p = statsSumScore s
+          cnt = statsCount s
+      in  Score (n `div` cnt) (p `div` cnt)
 
     checkStats :: Stats -> Maybe Stats
     checkStats s

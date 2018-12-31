@@ -62,7 +62,7 @@ instance Store DepthParams
 instance Binary DepthParams
 
 data Stats = Stats {
-    statsCount :: Int16
+    statsCount :: ScoreBase
   , statsMaxScore :: Score
   , statsMinScore :: Score
   , statsSumScore :: Score

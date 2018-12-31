@@ -15,7 +15,6 @@ import System.Log.Heavy.TH
 
 import Core.Types
 import Core.Board
-import Core.Evaluator (win, loose)
 import AI.AlphaBeta
 import AI.AlphaBeta.Types
 import AI.AlphaBeta.Cache

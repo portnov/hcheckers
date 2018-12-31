@@ -22,7 +22,10 @@ import qualified Data.IntMap.Strict as IM
 import qualified Data.IntSet as IS
 import qualified Data.Text as T
 import qualified Data.Text.Lazy as TL
+import qualified Data.Text.Lazy.Builder as Builder
+import qualified Data.Text.Lazy.Builder.Int as Builder
 import qualified Data.HashMap.Strict as H
+import Data.Text.Format.Heavy
 import Data.Function (on)
 import Data.Dynamic
 import Data.Aeson (Value)
@@ -378,7 +381,62 @@ data SomeRules = forall g. GameRules g => SomeRules g
 instance Show SomeRules where
   show (SomeRules rules) = rulesName rules
 
-type Score = Int16
+type ScoreBase = Int16
+
+data Score = Score {
+      sNumeric :: ScoreBase
+    , sPositional :: ScoreBase
+    }
+    deriving (Eq, Ord, Generic, Typeable, Bounded)
+
+instance Store Score
+
+instance Binary Score
+
+scoreBound :: ScoreBase
+scoreBound = 256
+
+win :: Score
+win = Score 30 scoreBound
+
+loose :: Score
+loose = Score (-30) (-scoreBound)
+
+clamp :: Int32 -> ScoreBase
+clamp x = min scoreBound $ max (-scoreBound) (fromIntegral x)
+
+safePlus :: forall a. (Integral a) => ScoreBase -> a -> ScoreBase
+safePlus x y =
+  let result = (fromIntegral x + fromIntegral y) :: Int32
+  in  clamp result
+
+safeMinus :: forall a. (Integral a) => ScoreBase -> a -> ScoreBase
+safeMinus x y =
+  let result = (fromIntegral x - fromIntegral y) :: Int32
+  in  clamp result
+
+safeScale :: forall a. (Integral a) => ScoreBase -> a -> ScoreBase
+safeScale x y =
+  let result = (fromIntegral x * fromIntegral y) :: Int32
+  in  clamp result
+
+instance Num Score where
+  fromInteger x = Score (fromIntegral x) 0
+  (Score n1 p1) + (Score n2 p2) = Score (n1 `safePlus` n2) (p1 `safePlus` p2)
+  (Score n1 p1) - (Score n2 p2) = Score (n1 `safeMinus` n2) (p1 `safeMinus` p2)
+  _ * _ = error "* is not defined for Score"
+  abs (Score n p) = Score (abs n) (abs p)
+  negate (Score n p) = Score (negate n) (negate p)
+  signum _ = error "signum is not defined for Score"
+
+scaleScore :: Integral n => n -> Score -> Score
+scaleScore x (Score n p) = Score (fromIntegral x `safeScale` n) (fromIntegral x `safeScale` p)
+
+instance Show Score where
+  show (Score n p) = show n ++ "/" ++ show p
+
+instance Formatable Score where
+  formatVar _ (Score n p) = Right $ Builder.decimal n <> "/" <> Builder.decimal p
 
 data GameResult =
     FirstWin
