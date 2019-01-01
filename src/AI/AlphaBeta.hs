@@ -41,6 +41,8 @@ instance FromJSON AlphaBetaParams where
       <$> v .: "depth"
       <*> v .:? "start_depth"
       <*> v .:? "max_combination_depth" .!= 8
+      <*> v .:? "moves_bound_low" .!= 4
+      <*> v .:? "moves_bound_high" .!= 8
       <*> v .:? "time"
 
 instance (GameRules rules, Evaluator eval) => GameAi (AlphaBeta rules eval) where
@@ -127,7 +129,7 @@ runAI ai@(AlphaBeta params rules eval) handle side board = do
         else do
           let var = aichData handle
           $info "Selecting a move. Side = {}, depth = {}, number of possible moves = {}" (show side, depth, length moves)
-          dp <- updateDepth (length moves) $ DepthParams {
+          dp <- updateDepth params (length moves) $ DepthParams {
                      dpTarget = depth
                    , dpCurrent = -1
                    , dpMax = abCombinationDepth params + depth
@@ -386,16 +388,16 @@ isTargetDepth dp = dpCurrent dp >= dpTarget dp
 --
 -- Otherwise, this just increases dpCurrent by 1.
 --
-updateDepth :: (Monad m, HasLogging m, MonadIO m) => Int -> DepthParams -> m DepthParams
-updateDepth nMoves dp
-  | nMoves <= 4 = do
+updateDepth :: (Monad m, HasLogging m, MonadIO m) => AlphaBetaParams -> Int -> DepthParams -> m DepthParams
+updateDepth params nMoves dp
+  | nMoves <= abMovesLowBound params = do
                 let delta = nMoves - 1
                 let target = min (dpTarget dp + 1) (dpMax dp - delta)
                 let indent = replicate (2*dpCurrent dp) ' '
                 $debug "{}| there is only one move, increase target depth to {}"
                         (indent, target)
                 return $ dp {dpCurrent = dpCurrent dp + 1, dpTarget = target}
-  | nMoves > 8 = do
+  | nMoves > abMovesHighBound params = do
                 let target = max (dpCurrent dp + 1) (dpMin dp)
                 let indent = replicate (2*dpCurrent dp) ' '
                 $debug "{}| there are too many moves, decrease target depth to {}"
@@ -437,7 +439,7 @@ scoreAB var params input
       when (null moves) $
         $trace "{}`—No moves left." (Single indent)
 
-      dp' <- updateDepth (length moves) dp
+      dp' <- updateDepth params (length moves) dp
       let prevMove = siPrevMove input
       score <- iterateMoves (sortMoves prevMove moves) dp'
       pop

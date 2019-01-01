@@ -37,6 +37,8 @@ data AlphaBetaParams = AlphaBetaParams {
     abDepth :: Int
   , abStartDepth :: Maybe Int
   , abCombinationDepth :: Int
+  , abMovesLowBound :: Int
+  , abMovesHighBound :: Int
   , abBaseTime :: Maybe Int
   }
   deriving (Eq, Ord, Show)
@@ -46,6 +48,8 @@ instance Default AlphaBetaParams where
           abDepth = 2
         , abStartDepth = Nothing
         , abCombinationDepth = 8
+        , abMovesLowBound = 4
+        , abMovesHighBound = 8
         , abBaseTime = Nothing
         }
 
