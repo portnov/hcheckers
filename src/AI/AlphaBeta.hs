@@ -344,9 +344,9 @@ cachedScoreAB var params side dp alpha beta board = do
                else return score
 
     Nothing -> do
-      (score, moves) <- Metrics.timed "ai.score.board" $ scoreAB var params side dp alpha beta board
+      score <- Metrics.timed "ai.score.board" $ scoreAB var params side dp alpha beta board
       when (alpha < score && score < beta) $
-          lift $ putAiCache params board dp side score moves var
+          lift $ putAiCache params board dp side score [] var
       return score
 
 isTargetDepth :: DepthParams -> Bool
@@ -402,14 +402,14 @@ scoreAB :: forall rules eval. (GameRules rules, Evaluator eval)
         -> Score        -- ^ Alpha
         -> Score        -- ^ Beta
         -> Board
-        -> ScoreM rules eval (Score, [Move])
+        -> ScoreM rules eval Score
 scoreAB var params side dp alpha beta board
   | isTargetDepth dp = do
       -- target depth is achieved, calculate score of current board directly
       evaluator <- gets ssEvaluator
       let score0 = evalBoard evaluator First side board
       $trace "    X Side: {}, A = {}, B = {}, score0 = {}" (show side, show alpha, show beta, show score0)
-      return (score0, [])
+      return score0
   | otherwise = do
       rules <- gets ssRules
       setBest $ if maximize then alpha else beta -- we assume alpha <= beta
@@ -488,11 +488,11 @@ scoreAB var params side dp alpha beta board
         where
           update item = item {siScoreBest = best}
 
-    iterateMoves :: [PossibleMove] -> DepthParams -> ScoreM rules eval (Score, [Move])
+    iterateMoves :: [PossibleMove] -> DepthParams -> ScoreM rules eval Score
     iterateMoves [] _ = do
       best <- getBest
       $trace "{}`—All moves considered at this level, return best = {}" (indent, show best)
-      return (best, [])
+      return best
     iterateMoves (move : moves) dp' = do
       timeout <- isTimeExhaused
       when timeout $ do
@@ -523,7 +523,7 @@ scoreAB var params side dp alpha beta board
                then do
                     best <- getBest
                     $trace "{}`—Return {} for depth {} = {}" (indent, bestStr, dpCurrent dp, show best)
-                    return (best, [])
+                    return best
                     
                else iterateMoves moves dp'
         else do
