@@ -67,30 +67,47 @@ class AiEditorWidget(QWidget):
         self.title = MandatoryField(_("Title"), QLineEdit(self))
         self.title.add_to_form(layout)
         self.title.widget.editingFinished.connect(self.edited)
+
         self.depth = QSpinBox(self)
         self.depth.setRange(0, 20)
         self.depth.valueChanged.connect(self.edited)
         layout.addRow(_("Default depth (half-steps)"), self.depth)
+
         self.start_depth = QSpinBox(self)
         self.start_depth.setRange(0, 20)
         self.start_depth.valueChanged.connect(self.edited)
         layout.addRow(_("Minimum depth"), self.start_depth)
+
         self.max_combination_depth = QSpinBox(self)
         self.max_combination_depth.setRange(0, 20)
         self.max_combination_depth.valueChanged.connect(self.edited)
         layout.addRow(_("Combination depth"), self.max_combination_depth)
+
+        self.moves_bound_low = QSpinBox(self)
+        self.moves_bound_low.setRange(1, 5)
+        self.moves_bound_low.valueChanged.connect(self.edited)
+        layout.addRow(_("`Few moves' mode bound"), self.moves_bound_low)
+
+        self.moves_bound_high = QSpinBox(self)
+        self.moves_bound_high.setRange(5, 50)
+        self.moves_bound_high.valueChanged.connect(self.edited)
+        layout.addRow(_("`Too many moves' mode bound"), self.moves_bound_high)
+
         self.use_positional_score = QCheckBox(self)
         layout.addRow(_("Use positional score"), self.use_positional_score)
         self.use_positional_score.stateChanged.connect(self.edited)
+
         self.use_timeout = QCheckBox(self)
         layout.addRow(_("Continue thinking while there is time"), self.use_timeout)
         self.use_timeout.stateChanged.connect(self.edited)
         self.use_timeout.stateChanged.connect(self._on_use_timeout)
+
         self.timeout = QSpinBox(self)
         self.timeout.setRange(1, 120)
         self.timeout.setEnabled(False)
         self.timeout.valueChanged.connect(self.edited)
         layout.addRow(_("Timeout (seconds)"), self.timeout)
+
         self.setLayout(layout)
 
     def _on_use_timeout(self):
@@ -103,6 +120,8 @@ class AiEditorWidget(QWidget):
         if ai.start_depth is not None:
             self.start_depth.setValue(ai.start_depth)
         self.max_combination_depth.setValue(ai.max_combination_depth)
+        self.moves_bound_low.setValue(ai.moves_bound_low)
+        self.moves_bound_high.setValue(ai.moves_bound_high)
         self.use_positional_score.setCheckState(Qt.Checked if ai.use_positional_score else Qt.Unchecked)
         self.use_timeout.setCheckState(Qt.Checked if ai.use_timeout else Qt.Unchecked)
         self.timeout.setValue(1 if ai.timeout is None else ai.timeout)
@@ -113,6 +132,8 @@ class AiEditorWidget(QWidget):
         ai.depth = self.depth.value()
         ai.start_depth = self.start_depth.value()
         ai.max_combination_depth = self.max_combination_depth.value()
+        ai.moves_bound_low = self.moves_bound_low.value()
+        ai.moves_bound_high = self.moves_bound_high.value()
         ai.use_positional_score = self.use_positional_score.checkState() == Qt.Checked
         ai.use_timeout = self.use_timeout.checkState() == Qt.Checked
         ai.timeout = self.timeout.value()
