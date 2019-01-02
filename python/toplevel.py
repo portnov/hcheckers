@@ -405,7 +405,7 @@ class Checkers(QMainWindow):
                 self.my_turn = state['side'] == my_side
                 #self.statusBar().clearMessage()
 
-        if self.game.base_url is None or self.game.user_name is None:
+        if self.game.base_url is None or self.game.user_name is None or self.game.game_id is None:
             return
 
         if self.do_poll:
