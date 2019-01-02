@@ -141,6 +141,8 @@ class Checkers(QMainWindow):
         self.log_dock.setObjectName("log")
         self.addDockWidget(Qt.BottomDockWidgetArea, self.log_dock)
 
+        console_handler = logging.getLogger().handlers[0]
+        logging.getLogger().removeHandler(console_handler)
         log_handler = UiLogHandler(self.log)
         logging.getLogger().setLevel(logging.INFO)
         logging.getLogger("urllib3.connectionpool").setLevel(logging.WARNING)
