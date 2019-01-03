@@ -322,12 +322,12 @@ data BoardRep = BoardRep [(Label, Piece)]
 -- | More convinient format for game rules to specify
 -- which moves are possible
 data PossibleMove = PossibleMove {
-    pmBegin :: Address
-  , pmEnd :: Address
-  , pmVictims :: [Address] -- ^ list of captured fields
-  , pmMove :: Move
-  , pmPromote :: Bool      -- ^ is there any promotion in the move
-  , pmResult :: [MoveAction]
+    pmBegin :: ! Address
+  , pmEnd :: ! Address
+  , pmVictims :: ! [Address] -- ^ list of captured fields
+  , pmMove :: ! Move
+  , pmPromote :: ! Bool      -- ^ is there any promotion in the move
+  , pmResult :: ! [MoveAction]
   }
   deriving (Typeable)
 
@@ -341,9 +341,9 @@ instance Show PossibleMove where
 
 -- | The primitive action that can take place during the move
 data MoveAction =
-    Take Address            -- ^ Lift the piece from the board (at the beginning of the move)
-  | RemoveCaptured Address  -- ^ Remove the piece that was captured (should be performed at the end of the move)
-  | Put Address Piece       -- ^ Put the piece to the board (at the end of the move)
+    Take ! Address            -- ^ Lift the piece from the board (at the beginning of the move)
+  | RemoveCaptured ! Address  -- ^ Remove the piece that was captured (should be performed at the end of the move)
+  | Put ! Address ! Piece       -- ^ Put the piece to the board (at the end of the move)
   deriving (Eq, Ord, Show, Typeable)
 
 class HasBoardOrientation a where
@@ -478,7 +478,7 @@ class (Show ai, Typeable (AiStorage ai)) => GameAi ai where
   
   updateAi :: ai -> Value -> ai
 
-  chooseMove :: ai -> AiStorage ai -> Side -> Board -> Checkers [Move]
+  chooseMove :: ai -> AiStorage ai -> Side -> Board -> Checkers [PossibleMove]
 
 data SomeAi = forall ai. GameAi ai => SomeAi ai
 

@@ -141,7 +141,7 @@ type ScoreMoveInput rules eval =
 
 data AICache rules eval = AICache {
     aicDirty :: Bool
-  , aicProcessor :: Processor Move (ScoreMoveInput rules eval) (Move, Score)
+  , aicProcessor :: Processor [MoveAction] (ScoreMoveInput rules eval) (PossibleMove, Score)
   , aicData :: AIData
   }
 

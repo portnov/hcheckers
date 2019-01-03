@@ -69,7 +69,7 @@ instance (GameRules rules, Evaluator eval) => GameAi (AlphaBeta rules eval) wher
 
   aiName _ = "default"
 
-scoreMove :: (GameRules rules, Evaluator eval) => ScoreMoveInput rules eval -> Checkers (Move, Score)
+scoreMove :: (GameRules rules, Evaluator eval) => ScoreMoveInput rules eval -> Checkers (PossibleMove, Score)
 scoreMove (ai@(AlphaBeta params rules eval), var, side, dp, board, pm, alpha, beta) = do
      score <- Metrics.timed "ai.score.move" $ do
                 let board' = applyMoveActions (pmResult pm) board
@@ -81,11 +81,11 @@ scoreMove (ai@(AlphaBeta params rules eval), var, side, dp, board, pm, alpha, be
                 $info "Check: {} (depth {}) => {}" (show pm, dpTarget dp, show score)
                 return score
      
-     return (pmMove pm, score)
+     return (pm, score)
 
 type DepthIterationInput = (AlphaBetaParams, Maybe DepthIterationOutput)
-type DepthIterationOutput = [(Move, Score)]
-type AiOutput = ([Move], Score)
+type DepthIterationOutput = [(PossibleMove, Score)]
+type AiOutput = ([PossibleMove], Score)
 
 runAI :: (GameRules rules, Evaluator eval) => AlphaBeta rules eval -> AICacheHandle rules eval -> Side -> Board -> Checkers AiOutput
 runAI ai@(AlphaBeta params rules eval) handle side board = do
@@ -112,7 +112,7 @@ runAI ai@(AlphaBeta params rules eval) handle side board = do
           case prevResult of
             Just result -> return (result, Nothing)
             Nothing -> do
-              let moves = map pmMove $ possibleMoves rules side board
+              let moves = possibleMoves rules side board
               return ([(move, 0) | move <- moves], Nothing)
         Left err -> throwError err
 
@@ -127,7 +127,7 @@ runAI ai@(AlphaBeta params rules eval) handle side board = do
           -- currently we do not use results of evaluating of all moves
           -- when evaluating deeper parts of the tree (it is hard due to alpha-beta restrictions).
           -- It means we are not going to use that Score value anyway.
-          return ([(pmMove move, 0) | move <- moves], Nothing)
+          return ([(move, 0) | move <- moves], Nothing)
                                                              
         else do
           let var = aichData handle
@@ -193,7 +193,7 @@ runAI ai@(AlphaBeta params rules eval) handle side board = do
       if alpha == beta
         then do
           $info "Empty scores interval: [{}]. We have to think that all moves have this score." (Single alpha)
-          return [(pmMove move, alpha) | move <- moves]
+          return [(move, alpha) | move <- moves]
         else do
             results <- widthIteration prevResult moves dp interval
             let (good, badScore, badMoves) = selectBestEdge interval moves results
@@ -207,7 +207,7 @@ runAI ai@(AlphaBeta params rules eval) handle side board = do
                     widthController False True prevResult badMoves dp interval'
                   else do
                     $info "All moves are `too bad' ({}), but we have already checked worse interval; so this is the real score." (Single badScore)
-                    return [(pmMove move, badScore) | move <- moves]
+                    return [(move, badScore) | move <- moves]
               else
                 case bestResults of
                   [] -> return results
@@ -234,14 +234,14 @@ runAI ai@(AlphaBeta params rules eval) handle side board = do
       joined <- joinResults prevResult results
       return joined
 
-    joinResults :: Maybe DepthIterationOutput -> [Either Error (Move, Score)] -> Checkers DepthIterationOutput
+    joinResults :: Maybe DepthIterationOutput -> [Either Error (PossibleMove, Score)] -> Checkers DepthIterationOutput
     joinResults Nothing results =
       case sequence results of
         Right result -> return result
         Left err -> throwError err
     joinResults (Just prevResults) results = zipWithM joinResult prevResults results
 
-    joinResult :: (Move, Score) -> Either Error (Move, Score) -> Checkers (Move, Score)
+    joinResult :: (PossibleMove, Score) -> Either Error (PossibleMove, Score) -> Checkers (PossibleMove, Score)
     joinResult prev@(move, score) (Left TimeExhaused) = do
       $info "Time exhaused while checking move {}, use result from previous depth: {}" (show move, score)
       return prev
@@ -448,7 +448,7 @@ scoreAB var params input
 
       dp' <- updateDepth params (length moves) dp
       let prevMove = siPrevMove input
-      score <- iterateMoves (sortMoves prevMove moves) dp'
+      score <- iterateMoves moves dp'
       pop
       return score
 
