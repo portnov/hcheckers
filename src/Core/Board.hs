@@ -234,6 +234,11 @@ myLabelsCount side board p =
   (length $ filter p $ myMen side board,
    length $ filter p $ myKings side board)
 
+myLabelsCount' :: Integral i => Side -> Board -> (Label -> i) -> (i, i)
+myLabelsCount' side board w =
+  (sum $ map w $ myMen side board,
+   sum $ map w $ myKings side board)
+
 myCounts :: Side -> Board -> (Int, Int)
 myCounts side board =
   let counts = boardCounts board

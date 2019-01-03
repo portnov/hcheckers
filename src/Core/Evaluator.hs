@@ -90,14 +90,16 @@ instance Evaluator SimpleEvaluator where
         backedScore side =
           sum $ map (backedScoreOf side) $ allMyAddresses side board
 
-        isAtOpponentHalf side (Label _ row) =
-          case boardSide (boardOrientation rules) side of
-            Top -> row < crow
-            Bottom -> row >= crow
+        tempNumber side (Label col row)
+          | col == 0 || col == ncols-1 = 0
+          | otherwise =
+              case boardSide (boardOrientation rules) side of
+                Top -> nrows - row
+                Bottom -> row + 1
 
-        opponentSideCount :: Side -> Int
+        -- opponentSideCount :: Side -> Int
         opponentSideCount side =
-          let (men, kings) = myLabelsCount side board (isAtOpponentHalf side)
+          let (men, kings) = myLabelsCount' side board (tempNumber side)
           in  men
 
         positionalScore side =
