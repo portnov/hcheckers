@@ -136,12 +136,27 @@ type StorageKey = (DepthParams, BoardKey)
 
 type StorageValue = CacheItemSide
 
-type ScoreMoveInput rules eval = 
-  (AlphaBeta rules eval, AICacheHandle rules eval, Side, DepthParams, Board, PossibleMove, Score, Score)
+type DepthIterationInput = (AlphaBetaParams, [PossibleMove], Maybe DepthIterationOutput)
+type DepthIterationOutput = [(Move, Score)]
+type AiOutput = ([Move], Score)
+
+data ScoreMoveInput rules eval m = ScoreMoveInput {
+      smiKey :: Int
+    , smiParams :: AlphaBetaParams
+    , smiRules :: rules
+    , smiEvaluator :: eval
+    , smiCache :: AICacheHandle rules eval
+    , smiSide :: Side
+    , smiDepth :: DepthParams
+    , smiBoard :: Board
+    , smiGlobalBounds :: (Score, Score)
+    , smiLocalBounds :: (Score, Score)
+    , smiMoves :: m
+  }
 
 data AICache rules eval = AICache {
     aicDirty :: Bool
-  , aicProcessor :: Processor Move (ScoreMoveInput rules eval) (Move, Score)
+  , aicProcessor :: Processor Int (ScoreMoveInput rules eval [PossibleMove]) DepthIterationOutput
   , aicData :: AIData
   }
 

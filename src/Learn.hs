@@ -113,7 +113,7 @@ processMove rules eval var params side move board = do
 
 learnPdn :: (GameRules rules, Evaluator eval) => AlphaBeta rules eval -> FilePath -> Checkers ()
 learnPdn ai@(AlphaBeta params rules eval) path = do
-  cache <- loadAiCache scoreMove ai
+  cache <- loadAiCache processMoves' ai
   pdn <- liftIO $ parsePdnFile (Just $ SomeRules rules) path
   let n = length pdn
   forM_ (zip [1.. ] pdn) $ \(i, gameRec) -> do

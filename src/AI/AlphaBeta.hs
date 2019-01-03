@@ -4,6 +4,7 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE RecordWildCards #-}
 
 {-
  - This module contains an implementation of alpha-beta-pruning algorithm
@@ -14,6 +15,7 @@ module AI.AlphaBeta where
 
 import Control.Monad
 import Control.Monad.State
+import Control.Monad.Reader
 import Control.Monad.Except
 import Control.Monad.Catch
 import qualified Control.Monad.Metrics as Metrics
@@ -50,7 +52,7 @@ instance (GameRules rules, Evaluator eval) => GameAi (AlphaBeta rules eval) wher
   type AiStorage (AlphaBeta rules eval) = AICacheHandle rules eval
 
   createAiStorage ai = do
-    cache <- loadAiCache scoreMove ai
+    cache <- loadAiCache processMoves' ai
     return cache
 
   saveAiStorage (AlphaBeta params rules _) cache = do
@@ -69,55 +71,114 @@ instance (GameRules rules, Evaluator eval) => GameAi (AlphaBeta rules eval) wher
 
   aiName _ = "default"
 
-scoreMove :: (GameRules rules, Evaluator eval) => ScoreMoveInput rules eval -> Checkers (Move, Score)
-scoreMove (ai@(AlphaBeta params rules eval), var, side, dp, board, pm, alpha, beta) = do
-     score <- Metrics.timed "ai.score.move" $ do
-                let board' = applyMoveActions (pmResult pm) board
-                score <- doScore rules eval var params (opposite side) dp board' alpha beta
-                          `catchError` (\(e :: Error) -> do
-                                        $info "doScore: move {}, depth {}: {}" (show pm, dpTarget dp, show e)
-                                        throwError e
-                                  )
-                $info "Check: {} (depth {}) => {}" (show pm, dpTarget dp, show score)
-                return score
-     
-     return (pmMove pm, score)
+scoreMove :: (GameRules rules, Evaluator eval) => ScoreMoveInput rules eval PossibleMove -> Checkers (Move, Score)
+scoreMove (ScoreMoveInput {..}) = Metrics.timed "ai.score.move" $ do
+   let board' = applyMoveActions (pmResult smiMoves) smiBoard
+       (alpha, beta) = smiLocalBounds
+   score <- doScore smiRules smiEvaluator smiCache smiParams (opposite smiSide) smiDepth board' alpha beta
+             `catchError` (\(e :: Error) -> do
+                           $info "doScore: move {}, depth {}: {}" (show smiMoves, dpTarget smiDepth, show e)
+                           throwError e
+                     )
+   $info "Check: {} (depth {}) => {}" (show smiMoves, dpTarget smiDepth, show score)
+   return (pmMove smiMoves, score)
 
-type DepthIterationInput = (AlphaBetaParams, Maybe DepthIterationOutput)
-type DepthIterationOutput = [(Move, Score)]
-type AiOutput = ([Move], Score)
+processMoves' :: (GameRules rules, Evaluator eval) => ScoreMoveInput rules eval [PossibleMove] -> Checkers DepthIterationOutput
+processMoves' input@(ScoreMoveInput {..}) =
+  case smiMoves of
+    [] -> return []
+    (pm : pms) -> do
+      let (alpha, beta) = smiLocalBounds
+          (globalAlpha, globalBeta) = smiGlobalBounds
+          maximize = smiSide == First
+          minimize = not maximize
+      let singleInput = input {smiMoves = pm}
+      (move, score) <- scoreMove singleInput
+      let score'
+            | maximize && score <= alpha = globalAlpha
+            | minimize && score >= beta  = globalBeta
+            | otherwise                  = score
+      let alpha' = if maximize
+                     then max score alpha
+                     else alpha
+          beta'  = if maximize
+                     then beta
+                     else min score beta
+      $info "Restrict: [{} - {}] => [{} - {}], score: {}" (alpha, beta, alpha', beta', score')
+      let input' = input {
+                       smiLocalBounds = (alpha', beta')
+                     , smiMoves = pms
+                   }
+      rest <- processMoves' input'
+      return $ (move, score') : rest
 
 runAI :: (GameRules rules, Evaluator eval) => AlphaBeta rules eval -> AICacheHandle rules eval -> Side -> Board -> Checkers AiOutput
 runAI ai@(AlphaBeta params rules eval) handle side board = do
-    options <- depthDriver
+    preOptions <- preselect
+    options <- depthDriver preOptions
     select options
   where
-    depthDriver :: Checkers DepthIterationOutput
-    depthDriver = case abBaseTime params of
-                 Nothing -> do
-                    (result, _) <- go (params, Nothing)
-                    return result
-                 Just time -> repeatTimed' "runAI" time goTimed (params, Nothing)
+    maximize = side == First
+    minimize = not maximize
+
+--     preselect :: Checkers [PossibleMove]
+--     preselect = do
+--       let moves = possibleMoves rules side board
+--       return moves
+
+    preselect :: Checkers [PossibleMove]
+    preselect = do
+      let moves = possibleMoves rules side board
+      if length moves <= abMovesLowBound params
+        then return moves
+        else do
+          let simple = AlphaBetaParams {
+                        abDepth = 2
+                      , abStartDepth = Nothing
+                      , abCombinationDepth = 2
+                      , abMovesLowBound = 4
+                      , abMovesHighBound = 8
+                      , abBaseTime = Nothing
+                    }
+          (options, _) <- go (simple, moves, Nothing)
+          let options' = [(pm, move, score) | (pm, (move, score)) <- zip moves options]
+          let key = if maximize
+                      then \(_,_,score) -> negate score
+                      else \(_,_,score) -> score
+          let sorted = sortOn key options'
+              n = length options
+              bestOptions = if n <= abMovesLowBound params
+                              then options'
+                              else take (n `div` 2) sorted
+          let result = [pm | (pm, _, _) <- sorted]
+          -- $info "Pre-selected options: {}" (Single $ show result)
+          return result
+
+    depthDriver :: [PossibleMove] -> Checkers DepthIterationOutput
+    depthDriver moves =
+      case abBaseTime params of
+        Nothing -> do
+          (result, _) <- go (params, moves, Nothing)
+          return result
+        Just time -> repeatTimed' "runAI" time goTimed (params, moves, Nothing)
   
     goTimed :: DepthIterationInput
             -> Checkers (DepthIterationOutput, Maybe DepthIterationInput)
-    goTimed (params, prevResult) = do
-      ret <- tryC $ go (params, prevResult)
+    goTimed (params, moves, prevResult) = do
+      ret <- tryC $ go (params, moves, prevResult)
       case ret of
         Right result -> return result
         Left TimeExhaused ->
           case prevResult of
             Just result -> return (result, Nothing)
             Nothing -> do
-              let moves = map pmMove $ possibleMoves rules side board
-              return ([(move, 0) | move <- moves], Nothing)
+              return ([(pmMove move, 0) | move <- moves], Nothing)
         Left err -> throwError err
 
     go :: DepthIterationInput
             -> Checkers (DepthIterationOutput, Maybe DepthIterationInput)
-    go (params, prevResult) = do
+    go (params, moves, prevResult) = do
       let depth = abDepth params
-      let moves = possibleMoves rules side board
       if length moves <= 1 -- Just one move possible
         then do
           $info "There is only one move possible; just do it." ()
@@ -142,7 +203,7 @@ runAI ai@(AlphaBeta params rules eval) handle side board = do
           if depth < 50
             then do
               let params' = params {abDepth = depth + 1, abStartDepth = Nothing}
-              return (result, Just (params', Just result))
+              return (result, Just (params', moves, Just result))
             else return (result, Nothing)
 
     -- | Initial (alpha, beta) interval
@@ -163,17 +224,21 @@ runAI ai@(AlphaBeta params rules eval) handle side board = do
     nextInterval (alpha, beta) =
       let width = (beta - alpha)
           width' = selectScale width `scaleScore` width
-      in  if side == First
-            then (beta + 1, beta + width')
-            else (alpha - width', alpha - 1)
+          alpha' = prevScore alpha
+          beta'  = nextScore beta
+      in  if maximize
+            then (beta', max beta' (beta' + width'))
+            else (min alpha' (alpha' - width'), alpha')
 
     prevInterval :: (Score, Score) -> (Score, Score)
     prevInterval (alpha, beta) =
       let width = (beta - alpha)
           width' = selectScale width `scaleScore` width
-      in  if side == Second
-            then (beta + 1, beta + width')
-            else (alpha - width', alpha - 1)
+          alpha' = prevScore alpha
+          beta'  = nextScore beta
+      in  if minimize
+            then (beta', max beta' (beta' + width'))
+            else (min alpha' (alpha' - width'), alpha')
 
     widthController :: Bool -- ^ Allow to shift (alpha,beta) segment to bigger values?
                     -> Bool -- ^ Allow to shift (alpha,beta) segment to lesser values?
@@ -220,12 +285,46 @@ runAI ai@(AlphaBeta params rules eval) handle side board = do
     widthIteration :: Maybe DepthIterationOutput -> [PossibleMove] -> DepthParams -> (Score, Score) -> Checkers DepthIterationOutput
     widthIteration prevResult moves dp (alpha, beta) = do
       $info "`- Considering scores interval: [{} - {}]" (alpha, beta)
+      results <- processMoves dp (alpha, beta) moves
+      joinResults prevResult (joinE results)
+
+    joinE :: [Either e [a]] -> [Either e a]
+    joinE [] = []
+    joinE (Left e : rest) = Left e : joinE rest
+    joinE (Right list : rest) = map Right list ++ joinE rest
+
+    processMoves dp (alpha, beta) moves = do
       let var = aichData handle
+          n = length moves
       AICache _ processor _ <- liftIO $ atomically $ readTVar var
-      let inputs = [(ai, handle, side, dp, board, move, alpha, beta) | move <- moves]
-      results <- process' processor inputs
-      joined <- joinResults prevResult results
-      return joined
+      nThreads <- asks (aiThreads . gcAiConfig . csConfig)
+      let nBuckets
+            | n <= 4 = 1
+            | n <= 7 = min 2 nThreads
+            | n <= 3*nThreads = min 3 nThreads
+            | otherwise = nThreads
+
+          bucketSize = ceiling (fromIntegral n / fromIntegral nBuckets)
+          buckets = divide bucketSize moves
+          inputs = [ScoreMoveInput {
+                        smiKey = i
+                      , smiParams = params
+                      , smiRules = rules
+                      , smiEvaluator = eval
+                      , smiCache = handle
+                      , smiSide = side
+                      , smiDepth = dp
+                      , smiBoard = board
+                      , smiGlobalBounds = (alpha, beta)
+                      , smiLocalBounds = (alpha, beta)
+                      , smiMoves = bucket
+                    } | (i, bucket) <- zip [0..] buckets]
+      process' processor inputs
+
+    divide :: Int -> [a] -> [[a]]
+    divide size list
+      | length list < size = [list]
+      | otherwise = take size list : divide size (drop size list)
 
     joinResults :: Maybe DepthIterationOutput -> [Either Error (Move, Score)] -> Checkers DepthIterationOutput
     joinResults Nothing results =
@@ -242,14 +341,14 @@ runAI ai@(AlphaBeta params rules eval) handle side board = do
     joinResult _ (Right result) = return result
 
     selectBestEdge (alpha, beta) moves results =
-      let (good, bad) = if side == First then (beta, alpha) else (alpha, beta)
+      let (good, bad) = if maximize then (beta, alpha) else (alpha, beta)
           goodResults = [(move, (goodMoves, score)) | (move, (goodMoves, score)) <- zip moves results, score == good]
           badResults = [move | (move, (_, score)) <- zip moves results, score == bad]
       in  (goodResults, bad, badResults)
 
     select :: DepthIterationOutput -> Checkers AiOutput
     select pairs = do
-      let best = if side == First then maximum else minimum
+      let best = if maximize then maximum else minimum
           maxScore = best $ map snd pairs
           goodMoves = [move | (move, score) <- pairs, score == maxScore]
       return (goodMoves, maxScore)
@@ -428,6 +527,9 @@ scoreAB var params input
       let score0 = evalBoard evaluator First side board
       $trace "    X Side: {}, A = {}, B = {}, score0 = {}" (show side, show alpha, show beta, show score0)
       return score0
+  | alpha >= beta = do
+      $trace "    Empty scores interval: [{}]; use this score." (Single alpha)
+      return alpha
   | otherwise = do
       -- first, let "best" be the worse possible value
       let best = if maximize then alpha else beta -- we assume alpha <= beta

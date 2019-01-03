@@ -432,6 +432,12 @@ instance Num Score where
 scaleScore :: Integral n => n -> Score -> Score
 scaleScore x (Score n p) = Score (fromIntegral x `safeScale` n) (fromIntegral x `safeScale` p)
 
+nextScore :: Score -> Score
+nextScore (Score n p) = Score n (p `safePlus` 1)
+
+prevScore :: Score -> Score
+prevScore (Score n p) = Score n (p `safeMinus` 1)
+
 instance Show Score where
   show (Score n p) = show n ++ "/" ++ show p
 
