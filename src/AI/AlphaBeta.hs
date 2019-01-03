@@ -92,6 +92,9 @@ runAI ai@(AlphaBeta params rules eval) handle side board = do
     options <- depthDriver
     select options
   where
+    maximize = side == First
+    minimize = not maximize
+
     depthDriver :: Checkers DepthIterationOutput
     depthDriver = case abBaseTime params of
                  Nothing -> do
@@ -163,17 +166,21 @@ runAI ai@(AlphaBeta params rules eval) handle side board = do
     nextInterval (alpha, beta) =
       let width = (beta - alpha)
           width' = selectScale width `scaleScore` width
-      in  if side == First
-            then (beta + 1, beta + width')
-            else (alpha - width', alpha - 1)
+          alpha' = prevScore alpha
+          beta'  = nextScore beta
+      in  if maximize
+            then (beta', max beta' (beta' + width'))
+            else (min alpha' (alpha' - width'), alpha')
 
     prevInterval :: (Score, Score) -> (Score, Score)
     prevInterval (alpha, beta) =
       let width = (beta - alpha)
           width' = selectScale width `scaleScore` width
-      in  if side == Second
-            then (beta + 1, beta + width')
-            else (alpha - width', alpha - 1)
+          alpha' = prevScore alpha
+          beta'  = nextScore beta
+      in  if minimize
+            then (beta', max beta' (beta' + width'))
+            else (min alpha' (alpha' - width'), alpha')
 
     widthController :: Bool -- ^ Allow to shift (alpha,beta) segment to bigger values?
                     -> Bool -- ^ Allow to shift (alpha,beta) segment to lesser values?
@@ -242,14 +249,14 @@ runAI ai@(AlphaBeta params rules eval) handle side board = do
     joinResult _ (Right result) = return result
 
     selectBestEdge (alpha, beta) moves results =
-      let (good, bad) = if side == First then (beta, alpha) else (alpha, beta)
+      let (good, bad) = if maximize then (beta, alpha) else (alpha, beta)
           goodResults = [(move, (goodMoves, score)) | (move, (goodMoves, score)) <- zip moves results, score == good]
           badResults = [move | (move, (_, score)) <- zip moves results, score == bad]
       in  (goodResults, bad, badResults)
 
     select :: DepthIterationOutput -> Checkers AiOutput
     select pairs = do
-      let best = if side == First then maximum else minimum
+      let best = if maximize then maximum else minimum
           maxScore = best $ map snd pairs
           goodMoves = [move | (move, score) <- pairs, score == maxScore]
       return (goodMoves, maxScore)
