@@ -137,8 +137,8 @@ type StorageKey = (DepthParams, BoardKey)
 type StorageValue = CacheItemSide
 
 type DepthIterationInput = (AlphaBetaParams, [PossibleMove], Maybe DepthIterationOutput)
-type DepthIterationOutput = [(Move, Score)]
-type AiOutput = ([Move], Score)
+type DepthIterationOutput = [(PossibleMove, Score)]
+type AiOutput = ([PossibleMove], Score)
 
 data ScoreMoveInput rules eval m = ScoreMoveInput {
       smiKey :: Int

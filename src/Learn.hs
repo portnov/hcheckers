@@ -79,7 +79,7 @@ doLearn rules eval var params gameRec = do
           Nothing -> return (board0, [], score0)
           Just rec -> do
             let move1 = parseMoveRec rules First board0 rec
-            if move1 `elem` predicted
+            if move1 `elem` map pmMove predicted
               then Metrics.increment "learn.hit"
               else Metrics.increment "learn.miss"
             let (board1, _,_) = applyMove rules First move1 board0
@@ -89,7 +89,7 @@ doLearn rules eval var params gameRec = do
         Nothing -> return (score2, board0 : board1 : boards)
         Just rec -> do
           let move2 = parseMoveRec rules Second board1 rec
-          if move2 `elem` predict2
+          if move2 `elem` map pmMove predict2
             then Metrics.increment "learn.hit"
             else Metrics.increment "learn.miss"
           let (board2, _, _) = applyMove rules Second move2 board1
@@ -104,7 +104,7 @@ processMove :: (GameRules rules, Evaluator eval)
             -> Side
             -> Move
             -> Board
-            -> Checkers ([Move], Score)
+            -> Checkers ([PossibleMove], Score)
 processMove rules eval var params side move board = do
   let ai = AlphaBeta params rules eval
   (moves, score) <- runAI ai var side board

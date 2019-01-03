@@ -3,6 +3,7 @@
 module Rules.Generic where
 
 import Data.List
+import Data.Maybe
 
 import Core.Types
 import Core.Board
@@ -142,25 +143,25 @@ abstractRules =
         (Piece King _) -> gKingCaptures rules ct
 
     manSimpleMoves rules piece@(Piece _ side) board src =
-        concatMap check (gManSimpleMoveDirections rules)
+        mapMaybe check (gManSimpleMoveDirections rules)
       where
         check dir =
           case myNeighbour rules side dir src of
-            Nothing -> []
+            Nothing -> Nothing
             Just dst -> if isFree dst board
                           then let move = Move src [Step dir False promote]
                                    promote = isLastHorizontal side dst
                                    piece' = if promote then promotePiece piece else piece
-                               in  [PossibleMove {
+                               in  Just $ PossibleMove {
                                      pmBegin = src,
                                      pmEnd = dst,
                                      pmVictims = [],
                                      pmMove = move,
                                      pmPromote = promote,
                                      pmResult = [Take src, Put dst piece']
-                                    }]
+                                    }
                           
-                          else []
+                          else Nothing
 
     pieceCaptures1 rules ct@(CaptureState {..}) =
       case ctPiece of
@@ -168,7 +169,7 @@ abstractRules =
         (Piece King _) -> gKingCaptures1 rules ct
 
     manCaptures1 rules (CaptureState {..}) =
-        concatMap (check ctCurrent) $ filter allowedDir (gManCaptureDirections rules)
+        mapMaybe (check ctCurrent) $ filter allowedDir (gManCaptureDirections rules)
       where
         side = pieceSide ctPiece
 
@@ -181,14 +182,14 @@ abstractRules =
           case myNeighbour rules side dir a of
             Just victimAddr | not (aLabel victimAddr `labelSetMember` ctCaptured) ->
               case getPiece victimAddr ctBoard of
-                Nothing -> []
+                Nothing -> Nothing
                 Just victim ->
                   if isMyPiece side victim
-                    then []
+                    then Nothing
                     else case myNeighbour rules side dir victimAddr of
-                           Nothing -> []
+                           Nothing -> Nothing
                            Just freeAddr -> if isFree freeAddr ctBoard
-                                              then [Capture {
+                                              then Just $ Capture {
                                                       cSrc = a,
                                                       cDirection = dir,
                                                       cInitSteps = 0,
@@ -196,9 +197,9 @@ abstractRules =
                                                       cFreeSteps = 1,
                                                       cDst = freeAddr,
                                                       cPromote = isLastHorizontal side freeAddr
-                                                    }]
-                                              else []
-            _ -> []
+                                                    }
+                                              else Nothing
+            _ -> Nothing
 
     -- This is a most popular implementation, which fits most rules
     -- except for english / checkers.

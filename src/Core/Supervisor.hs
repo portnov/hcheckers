@@ -358,7 +358,7 @@ letAiMove gameId side mbBoard = do
                 i <- liftIO $ randomRIO (0, length aiMoves - 1)
                 let aiMove = aiMoves !! i
                 $info "AI returned {} move(s), selected: {}" (length aiMoves, show aiMove)
-                GMoveRs board' messages <- withGame gameId $ \_ -> doMoveRq side aiMove
+                GMoveRs board' messages <- withGame gameId $ \_ -> doMoveRq side (pmMove aiMove)
                 $debug "Messages: {}" (Single $ show messages)
                 queueNotifications (getGameId game) messages
                 return board'
