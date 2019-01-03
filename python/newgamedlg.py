@@ -17,6 +17,7 @@ DEFAULT_BOARD = 1
 MANUAL_BOARD = 2
 LOAD_FEN = 3
 LOAD_PDN = 4
+PREVIOUS_BOARD = 5
 
 FEN_MASK = "FEN notation (*.fen)"
 PDN_MASK = "Portable Draughts Notation (*.pdn)"
@@ -95,6 +96,7 @@ class NewGameDialog(DialogBase):
         self.board_type = QComboBox(self)
         self.board_type.addItem(_("Use default initial position"), DEFAULT_BOARD)
         self.board_type.addItem(_("Manual initial position setup"), MANUAL_BOARD)
+        self.board_type.addItem(_("Use initial board of previous game"), PREVIOUS_BOARD)
         self.board_type.addItem(_("Load initial board from FEN file"), LOAD_FEN)
         self.board_type.addItem(_("Load initial board from PDN file"), LOAD_PDN)
         layout.addRow(_("Initial board type"), self.board_type)
@@ -144,9 +146,10 @@ class NewGameDialog(DialogBase):
 
     def _on_action_changed(self, idx):
         action = self.game_type.itemData(idx)
+        board_type = self.board_type.itemData(idx)
 
         show_ai = action == START_AI_GAME
-        show_lobby = action == JOIN_HUMAN_GAME
+        show_lobby = action == JOIN_HUMAN_GAME or board_type == PREVIOUS_BOARD
         show_side = action != JOIN_HUMAN_GAME
         show_board_setup = action != JOIN_HUMAN_GAME
 
@@ -156,25 +159,32 @@ class NewGameDialog(DialogBase):
         self.board_type.setVisible(show_board_setup)
 
     def _on_board_type_changed(self, idx):
-        action = self.board_type.itemData(idx)
-        show_file = action == LOAD_FEN or action == LOAD_PDN
+        action = self.game_type.currentData()
+        board_type = self.board_type.itemData(idx)
+        show_file = board_type == LOAD_FEN or board_type == LOAD_PDN
         self.file_path.setVisible(show_file)
 
-        show_rules = action != LOAD_PDN
+        show_rules = board_type != LOAD_PDN
         self.rules.setVisible(show_rules)
 
-        if action == LOAD_FEN:
+        show_lobby = action == JOIN_HUMAN_GAME or board_type == PREVIOUS_BOARD
+        self.lobby.setVisible(show_lobby)
+        self.lobby.set_selectable(board_type != PREVIOUS_BOARD)
+
+        if board_type == LOAD_FEN:
             self.file_path.mask = FEN_MASK
-        elif action == LOAD_PDN:
+        elif board_type == LOAD_PDN:
             self.file_path.mask = PDN_MASK
 
     def _on_game_selected(self, game):
-        used_name = game.get_used_name()
-        if used_name is None:
-            return
-        self.user_name_validator.used_name = used_name
-        name = self.user_name.widget.text()
-        self.user_name.widget.setText(self.user_name_validator.fixup(name))
+        action = self.game_type.currentData()
+        if action == JOIN_HUMAN_GAME:
+            used_name = game.get_used_name()
+            if used_name is None:
+                return
+            self.user_name_validator.used_name = used_name
+            name = self.user_name.widget.text()
+            self.user_name.widget.setText(self.user_name_validator.fixup(name))
 
     def _on_accept(self):
         self.settings.setValue("ai", self.ai.currentText())
@@ -192,11 +202,15 @@ class NewGameDialog(DialogBase):
         if self.client.get_invert_colors(game.rules):
             game.user_turn_first = not game.user_turn_first
         game.action = action
-        game.board_setup = self.board_type.currentData() == MANUAL_BOARD
-        if self.board_type.currentData() == LOAD_FEN:
+
+        board_type = self.board_type.currentData()
+        game.board_setup = board_type == MANUAL_BOARD
+        if board_type == LOAD_FEN:
             game.fen_path = self.file_path.path()
-        elif self.board_type.currentData() == LOAD_PDN:
+        elif board_type == LOAD_PDN:
             game.pdn_path = self.file_path.path()
+        elif board_type == PREVIOUS_BOARD:
+            game.previous_board_game = self.lobby.get_game_id()
 
         game.ai = self.ais[self.ai.currentIndex()]
 

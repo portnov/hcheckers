@@ -507,6 +507,7 @@ data GameStatus = New | Running | Ended GameResult
 
 data Game = Game {
     getGameId :: GameId
+  , gInitialBoard :: Board
   , gState :: GameState
   , gStatus :: GameStatus
   , gRules :: SomeRules
@@ -645,6 +646,7 @@ data Error =
   | NoSuchUserInGame
   | UserNameAlreadyUsed
   | TimeExhaused
+  | InvalidBoard String
   | Unhandled String
   deriving (Eq, Show, Typeable, Generic)
 

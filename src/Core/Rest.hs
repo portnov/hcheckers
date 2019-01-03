@@ -59,18 +59,21 @@ liftCheckers' mbId actions = do
         Nothing -> r
         Just gameId -> withGameContext gameId r
 
-boardRq :: SomeRules -> Maybe BoardRep -> Maybe T.Text -> Maybe T.Text -> Either T.Text (Maybe BoardRep)
-boardRq _ (Just br) Nothing Nothing = Right $ Just br
-boardRq rules Nothing (Just fen) Nothing =
+boardRq :: SomeRules -> NewGameRq ->  ActionT Error Checkers (Maybe BoardRep)
+boardRq _ (NewGameRq {rqBoard = Just br, rqFen = Nothing, rqPdn = Nothing}) = return $ Just br
+boardRq rules (NewGameRq {rqBoard = Nothing, rqFen = Just fen, rqPdn = Nothing}) =
   case parseFen rules fen of
-    Left err -> Left $ T.pack err
-    Right br -> Right $ Just br
-boardRq rules Nothing Nothing (Just pdn) =
+    Left err -> raise $ InvalidBoard err
+    Right br -> return $ Just br
+boardRq rules (NewGameRq {rqBoard = Nothing, rqFen = Nothing, rqPdn = Just pdn}) =
   case parsePdn (Just rules) pdn of
-    Left err -> Left $ T.pack err
-    Right gr -> Right $ Just $ boardRep $ loadPdn gr
-boardRq _ Nothing Nothing Nothing = Right Nothing
-boardRq _ _ _ _ = Left "only one of fields must be filled: board, fen, pdn"
+    Left err -> raise $ InvalidBoard err
+    Right gr -> return $ Just $ boardRep $ loadPdn gr
+boardRq _ (NewGameRq {rqPrevBoard = Just gameId}) = do
+  board <- liftCheckers_ $ getInitialBoard gameId
+  return $ Just $ boardRep board
+boardRq _ (NewGameRq {rqBoard = Nothing, rqFen = Nothing, rqPdn = Nothing}) = return Nothing
+boardRq _ _ = raise $ InvalidBoard "only one of fields must be filled: board, fen, pdn"
 
 restServer :: ScottyT Error Checkers ()
 restServer = do
@@ -78,16 +81,14 @@ restServer = do
   defaultHandler transformError
 
   post "/game/new" $ do
-    rq@(NewGameRq {rqBoard=mbBoard, rqFen=mbFen, rqPdn=mbPdn}) <- jsonData
+    rq <- jsonData
     case selectRules rq of
       Nothing -> error400 "invalid game rules"
       Just rules -> do
-        case boardRq rules mbBoard mbFen mbPdn of
-          Left err -> error400 err
-          Right board -> do
-            gameId <- liftCheckers_ $ newGame rules board
-            liftCheckers gameId $ $info "Created new game #{} with board: {}" (gameId, show board)
-            json $ Response (NewGameRs gameId) []
+        board <- boardRq rules rq
+        gameId <- liftCheckers_ $ newGame rules board
+        liftCheckers gameId $ $info "Created new game #{} with board: {}" (gameId, show board)
+        json $ Response (NewGameRs gameId) []
 
   post "/game/:id/attach/ai/:side" $ do
     gameId <- param "id"

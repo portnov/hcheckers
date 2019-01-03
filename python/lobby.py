@@ -42,7 +42,21 @@ class LobbyWidget(QWidget):
 
     selected = pyqtSignal(object)
 
-    def fill(self):
+    def set_selectable(self, new_only):
+        def set(row, col, selectable):
+            flags = self.table.item(row, col).flags()
+            self.table.item(row, col).setFlags(flags | selectable)
+
+        for row in range(self.table.rowCount()):
+            status = self.table.item(row, 4).text()
+            selectable = (not new_only) or status == "New"
+            set(row, 0, selectable)
+            set(row, 1, selectable)
+            set(row, 2, selectable)
+            set(row, 3, selectable)
+            set(row, 4, selectable)
+
+    def fill(self, new_only=True):
         def make_item(game, key, selectable=True):
             value = game[key]
             item = QTableWidgetItem(value)
@@ -53,7 +67,7 @@ class LobbyWidget(QWidget):
             return item
 
         def fill_row(row, game):
-            selectable = game["status"] == "New"
+            selectable = (not new_only) or game["status"] == "New"
             self.table.setItem(row, 0, make_item(game, "id", selectable))
             self.table.setItem(row, 1, make_item(game, "rules", selectable))
             self.table.setItem(row, 2, make_item(game, "first", selectable))

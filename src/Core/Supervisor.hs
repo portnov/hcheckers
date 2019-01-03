@@ -55,6 +55,7 @@ data NewGameRq = NewGameRq {
   , rqBoard :: Maybe BoardRep -- ^ Initial board, Nothing for default one
   , rqFen :: Maybe T.Text     -- ^ Initial board in FEN notation
   , rqPdn :: Maybe T.Text     -- ^ Initial board in PDN notation
+  , rqPrevBoard :: Maybe GameId
   }
   deriving (Eq, Show, Generic)
 
@@ -250,6 +251,11 @@ getRules :: GameId -> Checkers SomeRules
 getRules gameId = do
   game <- getGame gameId
   return $ gRules game
+
+getInitialBoard :: GameId -> Checkers Board
+getInitialBoard gameId = do
+  game <- getGame gameId
+  return $ gInitialBoard game
 
 -- | Find a game by participating user name.
 -- Returns Just game if there is exactly one such game.

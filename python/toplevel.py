@@ -264,7 +264,7 @@ class Checkers(QMainWindow):
                     self.board_setup_mode = True
                     self.game.rules = game.rules
                 else:
-                    self.game.start_new_game(game.user_name, rules=game.rules, user_turn_first=game.user_turn_first, ai=game.ai, fen_path=game.fen_path, pdn_path=game.pdn_path)
+                    self.game.start_new_game(game.user_name, rules=game.rules, user_turn_first=game.user_turn_first, ai=game.ai, fen_path=game.fen_path, pdn_path=game.pdn_path, previous_board_game=game.previous_board_game)
                     state = self.game.get_state()
                     my_side = 'First' if self.game.user_side == FIRST else 'Second'
                     self.my_turn = state["side"] == my_side
@@ -273,7 +273,7 @@ class Checkers(QMainWindow):
                     self.status_info.setText("")
             elif game.action == START_HUMAN_GAME:
                 game_id = self.game.new_game(game.rules)
-                logging.info(game_id)
+                logging.info(_("New game ID: {}").format(game_id))
                 if game.user_turn_first:
                     self.game.register_user(game.user_name, FIRST)
                 else:

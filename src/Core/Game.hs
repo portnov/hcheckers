@@ -30,6 +30,7 @@ mkGame rules id mbBoardRep =
         st = GameState First board []
     in  Game {
           getGameId = show id,
+          gInitialBoard = board,
           gState = st,
           gStatus = New,
           gRules = SomeRules rules,
