@@ -181,6 +181,7 @@ class Checkers(QMainWindow):
         self._create_action(QIcon.fromTheme("document-new"), _("&New Game"), menu, self._on_new_game, key="Ctrl+N")
         self._create_action(QIcon.fromTheme("document-save"), _("Save Position"), menu, self._on_save_game, key="Ctrl+S")
         self._create_action(QIcon.fromTheme("edit-undo"), _("&Undo"), menu, self._on_undo, key="Ctrl+Z")
+        self._create_action(None, _("Capitulate"), menu, self._on_capitulate, toolbar=False)
 
         menu.addSeparator()
         self.toolbar.addSeparator()
@@ -252,6 +253,8 @@ class Checkers(QMainWindow):
         dialog = NewGameDialog(self.settings, self.game, self)
         result = dialog.exec_()
         if result == QDialog.Accepted:
+            if self.game.is_active():
+                self.game.capitulate()
             self.game_active = True
             self.game.game_id = None
             self.game_settings = game = dialog.get_settings()
@@ -322,6 +325,13 @@ class Checkers(QMainWindow):
         self.history.fill()
 
     @handling_error
+    def _on_capitulate(self, checked=None):
+        messages = self.game.capitulate()
+        for message in messages:
+            self.board.process_message(message)
+        #self.my_turn = False
+
+    @handling_error
     def get_result_str(self, result):
         first, second = self.game.get_colors(self.game.rules)
         if result == 'FirstWin':
@@ -388,6 +398,14 @@ class Checkers(QMainWindow):
         logging.exception(message)
 
     def closeEvent(self, ev):
+        
+        if self.game.is_active():
+            try:
+                self.game.capitulate()
+            except Exception as e:
+                logging.exception(e)
+                print(e)
+
         self.settings.setValue("geometry", self.saveGeometry())
         self.settings.setValue("windowState", self.saveState())
         QMainWindow.closeEvent(self, ev)
@@ -407,7 +425,7 @@ class Checkers(QMainWindow):
                 self.my_turn = state['side'] == my_side
                 #self.statusBar().clearMessage()
 
-        if self.game.base_url is None or self.game.user_name is None or self.game.game_id is None:
+        if not self.game.is_active():
             return
 
         if self.do_poll:

@@ -559,7 +559,7 @@ data Notify =
       nDestination :: Side
     , nSource :: Side
     , nResult :: GameResult
-  }
+    }
   | LogNotify {
       nDestination :: Side
     , nLevel :: String

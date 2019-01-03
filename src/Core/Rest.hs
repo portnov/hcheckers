@@ -157,6 +157,13 @@ restServer = do
     messages <- liftCheckers gameId $ getMessages name
     json $ Response (UndoRs board) messages
 
+  post "/game/:id/capitulate/:name" $ do
+    gameId <- param "id"
+    name <- param "name"
+    liftCheckers gameId $ doCapitulate gameId name
+    messages <- liftCheckers gameId $ getMessages name
+    json $ Response CapitulateRs messages
+
   get "/poll/:name" $ do
     name <- param "name"
     messages <- liftCheckers_ $ getMessages name

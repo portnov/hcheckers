@@ -129,6 +129,11 @@ class Game(object):
         self.move_thread = None
         self.move_lock = Lock()
         self.move_exception = None
+        self.finished = False
+
+    def is_active(self):
+        defined = not (self.base_url is None or self.user_name is None or self.game_id is None)
+        return defined and not self.finished
 
     def process_response(self, rs, action=None):
         if rs is None:
@@ -172,6 +177,7 @@ class Game(object):
         result = rs.json()
         self.game_id = result["response"]["id"]
         self.rules = rules
+        self.finished = False
         return self.game_id
 
     def get_notation(self, rules):
@@ -254,6 +260,7 @@ class Game(object):
         rs = self.get(url)
         result = rs.json()
         messages = result["response"]
+        self._process_messages(messages)
         board = self.get_board()
         return board, messages
 
@@ -296,6 +303,15 @@ class Game(object):
         result = rs.json()
         board = Game.parse_board(result["response"])
         return board
+
+    def capitulate(self):
+        url = join(self.base_url, "game", self.game_id, "capitulate", self.user_name)
+        rs = self.post(url)
+        result = rs.json()
+        messages = result["messages"]
+        self._process_messages(messages)
+        logging.info(_("You capitulated."))
+        return messages
     
     def begin_move(self, src, dst):
         if self.move_thread is not None:
@@ -314,10 +330,19 @@ class Game(object):
             self.move_lock.acquire()
             if self.move_exception is not None:
                 raise self.move_exception
-            result = self.last_move_result
+            result, messages = self.last_move_result
+            self._process_messages(messages)
             self.last_move_result = None
             self.move_thread = None
-            return result
+            return result, messages
         finally:
             self.move_lock.release()
+
+    def _process_messages(self, messages):
+        for message in messages:
+            self._process_message(message)
+
+    def _process_message(self, message):
+        if "result" in message:
+            self.finished = True
 

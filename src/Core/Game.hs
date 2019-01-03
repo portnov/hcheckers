@@ -138,3 +138,15 @@ popMove st =
       in  Just (board, st')
     _ -> Nothing
 
+doCapitulateRq :: Side -> GameM GameResult
+doCapitulateRq side = do
+  currentSide <- gets (gsSide . gState)
+  if side /= currentSide
+    then throwError NotYourTurn
+    else do
+      let result = case side of
+                     First -> SecondWin
+                     Second -> FirstWin
+      modify $ \game -> game {gStatus = Ended result}
+      return result
+

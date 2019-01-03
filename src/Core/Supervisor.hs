@@ -83,6 +83,7 @@ data RsPayload =
   | PossibleMovesRs [MoveRep]
   | MoveRs BoardRep
   | UndoRs BoardRep
+  | CapitulateRs
   deriving (Eq, Show, Generic)
 
 -- | Create supervisor handle
@@ -287,11 +288,15 @@ getMessages name = do
 -- | Get moves that are possible currently
 -- in the specified game for specified side.
 getPossibleMoves :: GameId -> Side -> Checkers [MoveRep]
-getPossibleMoves gameId side = do
+getPossibleMoves gameId side =
     withGame gameId $ \(SomeRules rules) -> do
-      game <- get
-      moves <- gamePossibleMoves
-      return $ map (moveRep rules side) moves
+      currentSide <- gets (gsSide . gState)
+      if side /= currentSide
+        then throwError NotYourTurn
+        else do
+          game <- get
+          moves <- gamePossibleMoves
+          return $ map (moveRep rules side) moves
 
 -- | Execute specified move in specified game and return a new board.
 doMove :: GameId -> String -> MoveRep -> Checkers BoardRep
@@ -312,6 +317,17 @@ doUndo gameId name = do
   queueNotifications gameId messages
   letAiMove gameId side (Just board')
   return $ boardRep board'
+
+doCapitulate :: GameId -> String -> Checkers ()
+doCapitulate gameId name = do
+  game <- getGame gameId
+  side <- sideByUser game name
+  result <- withGame gameId $ \_ -> doCapitulateRq side
+  let messages = [
+          ResultNotify (opposite side) side result,
+          ResultNotify side side result
+        ]
+  queueNotifications gameId messages
 
 -- | Execute actions with AI storage instance.
 -- AI storage instance must be initialized beforeahead.

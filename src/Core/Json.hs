@@ -134,6 +134,7 @@ instance ToJSON RsPayload where
   toJSON (PossibleMovesRs moves) = toJSON moves
   toJSON (MoveRs board) = toJSON board
   toJSON (UndoRs board) = toJSON board
+  toJSON CapitulateRs = object ["capitulate" .= ("ok" :: T.Text)]
   toJSON (LobbyRs games) = toJSON games
   toJSON (NotationRs size orientation list) =
       object ["size" .= size, "orientation" .= orientation, "notation" .= list]
