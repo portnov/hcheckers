@@ -181,7 +181,14 @@ class Game(object):
         result = rs.json()
         self.game_id = result["response"]["id"]
         first_side = result["response"]["turn"]
-        logging.info(_("Newly created game ID: {}. First side to move: {}.").format(self.game_id, first_side))
+        first_move_first = first_side == 'First'
+        first_are_black = self.get_invert_colors(rules)
+        if first_move_first != first_are_black:
+            first_color = _("White")
+        else:
+            first_color = _("Black")
+
+        logging.info(_("Newly created game ID: {}. First side to move: {}.").format(self.game_id, first_color))
         self.rules = rules
         self.finished = False
         return self.game_id, first_side
@@ -239,15 +246,6 @@ class Game(object):
         if ai is None:
             ai = AI()
         game_id, first_side = self.new_game(rules, board=board, fen_path=fen_path, pdn_path=pdn_path, previous_board_game = previous_board_game)
-        first_skips_move = (first_side != 'First')
-        """
-        | User selected side | First side to move | Attach user as | Attach AI as |
-        ---------------------------------------------------------------------------
-        | First              | First              | First          | Second       |
-        | First              | Second             
-        | Second
-        | Second
-        """
         if user_turn_first:
             self.register_user(user_name, FIRST)
             self.attach_ai(SECOND, ai)
