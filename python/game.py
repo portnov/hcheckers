@@ -313,7 +313,7 @@ class Game(object):
         result = rs.json()
         messages = result["messages"]
         self._process_messages(messages)
-        logging.info(_("You capitulated."))
+        logging.info(_("Game #{}: you capitulated.").format(self.game_id))
         return messages
     
     def begin_move(self, src, dst):

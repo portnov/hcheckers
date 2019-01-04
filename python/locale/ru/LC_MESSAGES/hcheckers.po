@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: 0.1.0.0\n"
-"POT-Creation-Date: 2018-12-23 23:31+YEKT\n"
+"POT-Creation-Date: 2019-01-04 15:00+YEKT\n"
 "PO-Revision-Date: 2018-11-07 22:30+5\n"
 "Last-Translator: Ilya Portnov <portnov84@rambler.ru>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -15,19 +15,19 @@ msgstr ""
 "Content-Transfer-Encoding: utf-8\n"
 "Generated-By: pygettext.py 1.5\n"
 
-#: board.py:422
+#: board.py:424
 msgid "Piece at {} does not have moves"
 msgstr "Фишка на {} не имеет ходов"
 
-#: board.py:428
+#: board.py:430
 msgid "Possible target fields: {}"
 msgstr "Возможные целевые поля: {}"
 
-#: board.py:452
+#: board.py:454
 msgid "Piece at {} cannot be moved to {}"
 msgstr "Фишка на {} не может быть передвинута на {}"
 
-#: board.py:455
+#: board.py:457
 msgid "Field {} does not belong to you"
 msgstr "Поле {} не принадлежит вам"
 
@@ -71,33 +71,37 @@ msgstr "Шашки Спанцирети"
 msgid "Diagonal draughts"
 msgstr "Диагональные шашки"
 
-#: game.py:90
+#: game.py:98
 msgid "Beginner"
 msgstr "Начинающий"
 
-#: game.py:91
+#: game.py:99
 msgid "Novice"
 msgstr "Новичок"
 
-#: game.py:92
+#: game.py:100
 msgid "Average"
 msgstr "Средний"
 
-#: game.py:93
+#: game.py:101
 msgid "Good"
 msgstr "Хороший"
 
-#: game.py:94
+#: game.py:102
 msgid "Master"
 msgstr "Мастер"
 
-#: game.py:195 game.py:197 lobby.py:34 newgamedlg.py:91
+#: game.py:212 game.py:214 lobby.py:34 newgamedlg.py:92
 msgid "White"
 msgstr "Белые"
 
-#: game.py:195 game.py:197 lobby.py:34 newgamedlg.py:92
+#: game.py:212 game.py:214 lobby.py:34 newgamedlg.py:93
 msgid "Black"
 msgstr "Черные"
+
+#: game.py:316
+msgid "Game #{}: you capitulated."
+msgstr "Игра #{}: вы сдались."
 
 #: lobby.py:34
 msgid "ID"
@@ -107,67 +111,71 @@ msgstr "Ид"
 msgid "Status"
 msgstr "Статус"
 
-#: lobby.py:34 newgamedlg.py:82
+#: lobby.py:34 newgamedlg.py:83
 msgid "Rules"
 msgstr "Правила"
 
-#: newgamedlg.py:29
+#: newgamedlg.py:30
 msgid "Browse..."
 msgstr "Обзор..."
 
-#: newgamedlg.py:37
+#: newgamedlg.py:38
 msgid "Open file"
 msgstr "Открыть файл"
 
-#: newgamedlg.py:70
+#: newgamedlg.py:71
 msgid "Start a game against computer"
 msgstr "Начать игру против компьютера"
 
-#: newgamedlg.py:71
+#: newgamedlg.py:72
 msgid "Start a game against human"
 msgstr "Начать игру против человека"
 
-#: newgamedlg.py:72
+#: newgamedlg.py:73
 msgid "Join a game against human"
 msgstr "Присоединиться к игре против человека"
 
-#: newgamedlg.py:73
+#: newgamedlg.py:74
 msgid "Action"
 msgstr "Действие"
 
-#: newgamedlg.py:84
+#: newgamedlg.py:85
 msgid "User name"
 msgstr "Имя пользователя"
 
-#: newgamedlg.py:93
+#: newgamedlg.py:94
 msgid "User plays"
 msgstr "Пользователь играет"
 
-#: newgamedlg.py:96
+#: newgamedlg.py:97
 msgid "Use default initial position"
 msgstr "Использовать начальную расстановку по умолчанию"
 
-#: newgamedlg.py:97
+#: newgamedlg.py:98
 msgid "Manual initial position setup"
 msgstr "Ручная начальная расстановка"
 
-#: newgamedlg.py:98
+#: newgamedlg.py:99
+msgid "Use initial board of previous game"
+msgstr "Использовать начальную расстановку предыдущей игры"
+
+#: newgamedlg.py:100
 msgid "Load initial board from FEN file"
 msgstr "Загрузить начальную расстановку из файла FEN"
 
-#: newgamedlg.py:99
+#: newgamedlg.py:101
 msgid "Load initial board from PDN file"
 msgstr "Загрузить начальную расстановку из файла PDN"
 
-#: newgamedlg.py:100
+#: newgamedlg.py:102
 msgid "Initial board type"
 msgstr "Вид начальной расстановки"
 
-#: newgamedlg.py:104
+#: newgamedlg.py:106
 msgid "Select file"
 msgstr "Выберите файл"
 
-#: newgamedlg.py:119
+#: newgamedlg.py:121
 msgid "AI"
 msgstr "ИИ"
 
@@ -175,63 +183,71 @@ msgstr "ИИ"
 msgid "Title"
 msgstr "Название"
 
-#: settingsdlg.py:73
+#: settingsdlg.py:74
 msgid "Default depth (half-steps)"
 msgstr "Глубина по умолчанию (в полуходах)"
 
-#: settingsdlg.py:77
+#: settingsdlg.py:79
 msgid "Minimum depth"
 msgstr "Минимальная глубина"
 
-#: settingsdlg.py:81
+#: settingsdlg.py:84
 msgid "Combination depth"
 msgstr "Глубина комбинаций"
 
-#: settingsdlg.py:83
+#: settingsdlg.py:89
+msgid "`Few moves' mode bound"
+msgstr "Граница режима 'мало ходов'"
+
+#: settingsdlg.py:94
+msgid "`Too many moves' mode bound"
+msgstr "Граница режима 'слишком много ходов'"
+
+#: settingsdlg.py:97
 msgid "Use positional score"
 msgstr "Использовать оценку позиции"
 
-#: settingsdlg.py:86
+#: settingsdlg.py:101
 msgid "Continue thinking while there is time"
 msgstr "Продолжать думать, пока есть время"
 
-#: settingsdlg.py:93
+#: settingsdlg.py:109
 msgid "Timeout (seconds)"
 msgstr "Таймаут (секунд)"
 
-#: settingsdlg.py:129
+#: settingsdlg.py:150
 msgid "Add AI preset"
 msgstr "Добавить настройку ИИ"
 
-#: settingsdlg.py:133
+#: settingsdlg.py:154
 msgid "Delete AI preset"
 msgstr "Удалить настройку ИИ"
 
-#: settingsdlg.py:174
+#: settingsdlg.py:195
 msgid "Show fields notation"
 msgstr "Показывать нотацию полей"
 
-#: settingsdlg.py:176
+#: settingsdlg.py:197
 msgid "Show possible moves"
 msgstr "Показывать возможные ходы"
 
-#: settingsdlg.py:182
+#: settingsdlg.py:203
 msgid "Theme"
 msgstr "Тема"
 
-#: settingsdlg.py:210
+#: settingsdlg.py:231
 msgid "Server URL"
 msgstr "URL сервера"
 
-#: settingsdlg.py:230
+#: settingsdlg.py:251
 msgid "General"
 msgstr "Общее"
 
-#: settingsdlg.py:232
+#: settingsdlg.py:253
 msgid "View Settings"
 msgstr "Настройки внешнего вида"
 
-#: settingsdlg.py:234
+#: settingsdlg.py:255
 msgid "AI Presets"
 msgstr "Настройки ИИ"
 
@@ -255,87 +271,95 @@ msgstr "История"
 msgid "Log"
 msgstr "Журнал"
 
-#: toplevel.py:178
+#: toplevel.py:180
 msgid "&Game"
 msgstr "&Игра"
 
-#: toplevel.py:179
+#: toplevel.py:181
 msgid "&New Game"
 msgstr "&Новая игра"
 
-#: toplevel.py:180
+#: toplevel.py:182
 msgid "Save Position"
 msgstr "Сохранить позицию"
 
-#: toplevel.py:181
+#: toplevel.py:183
 msgid "&Undo"
 msgstr "&Отменить"
 
-#: toplevel.py:186
+#: toplevel.py:184
+msgid "Capitulate"
+msgstr "Сдаться"
+
+#: toplevel.py:189
 msgid "Start &Game"
 msgstr "Начать &игру"
 
-#: toplevel.py:188
+#: toplevel.py:191
 msgid "Se&ttings"
 msgstr "Нас&тройки"
 
-#: toplevel.py:190
+#: toplevel.py:193
 msgid "&Position"
 msgstr "&Позиция"
 
-#: toplevel.py:193
+#: toplevel.py:196
 msgid "Put &white piece"
 msgstr "Установить &белую шашку"
 
-#: toplevel.py:194
+#: toplevel.py:197
 msgid "Put &black piece"
 msgstr "Установить &черную шашку"
 
-#: toplevel.py:195
+#: toplevel.py:198
 msgid "&Remove piece"
 msgstr "&Удалить шашку"
 
-#: toplevel.py:200
+#: toplevel.py:203
 msgid "&View"
 msgstr "&Вид"
 
-#: toplevel.py:201
+#: toplevel.py:204
 msgid "&Flip board"
 msgstr "&Перевернуть доску"
 
-#: toplevel.py:266 toplevel.py:277 toplevel.py:291
+#: toplevel.py:271 toplevel.py:282 toplevel.py:296
 msgid "Rules: {}"
 msgstr "Правила: {}"
 
-#: toplevel.py:267
+#: toplevel.py:272
 msgid "AI: {}"
 msgstr "ИИ: {}"
 
-#: toplevel.py:281
+#: toplevel.py:276
+msgid "New game ID: {}"
+msgstr "ID новой игры: {}"
+
+#: toplevel.py:286
 msgid "Waiting for another side to join the game."
 msgstr "Ожидаем подключения второй стороны к игре"
 
-#: toplevel.py:304
+#: toplevel.py:309
 msgid "Save file"
 msgstr "Сохранить файл"
 
-#: toplevel.py:326 toplevel.py:328
+#: toplevel.py:338 toplevel.py:340
 msgid "{} win"
 msgstr "{} выиграли"
 
-#: toplevel.py:330
+#: toplevel.py:342
 msgid "Draw"
 msgstr "Ничья"
 
-#: toplevel.py:336
+#: toplevel.py:348
 msgid "Game result: {}"
 msgstr "Результат игры: {}"
 
-#: toplevel.py:338
+#: toplevel.py:350
 msgid "Game over."
 msgstr "Игра окончена."
 
-#: toplevel.py:379
+#: toplevel.py:391
 msgid ""
 "Unexpected response received from the server.\n"
 "Request URL: {}\n"
@@ -347,11 +371,11 @@ msgstr ""
 "Код ответа: {}\n"
 "Сообщение в ответе: {}"
 
-#: toplevel.py:380 toplevel.py:385
+#: toplevel.py:392 toplevel.py:397
 msgid "Exception"
 msgstr "Исключение"
 
-#: toplevel.py:384
+#: toplevel.py:396
 msgid ""
 "An exception occured while connecting to the server.\n"
 "Request URL: {}\n"
