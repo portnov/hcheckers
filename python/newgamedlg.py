@@ -198,12 +198,13 @@ class NewGameDialog(DialogBase):
         action = self.game_type.currentData()
         game.run_now = action != START_HUMAN_GAME
         side = self.user_side.currentData()
+        board_type = self.board_type.currentData()
         game.user_turn_first = side == FIRST
         if self.client.get_invert_colors(game.rules):
             game.user_turn_first = not game.user_turn_first
         game.action = action
+        game.board_type = board_type
 
-        board_type = self.board_type.currentData()
         game.board_setup = board_type == MANUAL_BOARD
         if board_type == LOAD_FEN:
             game.fen_path = self.file_path.path()

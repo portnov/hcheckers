@@ -112,6 +112,7 @@ class GameSettings(object):
         self.user_turn_first = True
         self.board_setup = False
         self.action = None
+        self.board_type = None
         self.fen_path = None
         self.pdn_path = None
         self.previous_board_game = None
@@ -179,9 +180,11 @@ class Game(object):
         rs = self.post(url, json=rq)
         result = rs.json()
         self.game_id = result["response"]["id"]
+        first_side = result["response"]["turn"]
+        logging.info(_("Newly created game ID: {}. First side to move: {}.").format(self.game_id, first_side))
         self.rules = rules
         self.finished = False
-        return self.game_id
+        return self.game_id, first_side
 
     def get_notation(self, rules):
         url = join(self.base_url, "notation", rules)
@@ -235,7 +238,16 @@ class Game(object):
     def start_new_game(self, user_name, rules="russian", board=None, fen_path=None, pdn_path=None, previous_board_game = None,  user_turn_first=True, ai=None):
         if ai is None:
             ai = AI()
-        self.new_game(rules, board=board, fen_path=fen_path, pdn_path=pdn_path, previous_board_game = previous_board_game)
+        game_id, first_side = self.new_game(rules, board=board, fen_path=fen_path, pdn_path=pdn_path, previous_board_game = previous_board_game)
+        first_skips_move = (first_side != 'First')
+        """
+        | User selected side | First side to move | Attach user as | Attach AI as |
+        ---------------------------------------------------------------------------
+        | First              | First              | First          | Second       |
+        | First              | Second             
+        | Second
+        | Second
+        """
         if user_turn_first:
             self.register_user(user_name, FIRST)
             self.attach_ai(SECOND, ai)
