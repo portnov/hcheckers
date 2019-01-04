@@ -63,11 +63,11 @@ fenToBoardRep fen =
   BoardRep $ [(lbl, Piece kind First) | (lbl, kind) <- fenFirst fen] ++
              [(lbl, Piece kind Second) | (lbl, kind) <- fenSecond fen]
 
-parseFen :: SomeRules -> T.Text -> Either String BoardRep
+parseFen :: SomeRules -> T.Text -> Either String (Side, BoardRep)
 parseFen rules text =
   case evalState (runParserT (pFen rules) "FEN" text) Nothing of
     Left err -> Left $ parseErrorPretty err
-    Right fen -> Right $ fenToBoardRep fen
+    Right fen -> Right (fenNextMove fen, fenToBoardRep fen)
 
 boardToFen :: Side -> Board -> Fen
 boardToFen side b =

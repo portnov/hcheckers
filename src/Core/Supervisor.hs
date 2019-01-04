@@ -72,7 +72,7 @@ data Response = Response RsPayload [Notify]
 
 -- | Response payload
 data RsPayload =
-    NewGameRs GameId
+    NewGameRs GameId Side
   | RegisterUserRs
   | AttachAiRs
   | RunGameRs
@@ -154,14 +154,14 @@ initAiStorage (SomeRules rules) (SomeAi ai) = do
     Just _ -> return ()
 
 -- | Create a game in the New state
-newGame :: SomeRules -> Maybe BoardRep -> Checkers GameId
-newGame r@(SomeRules rules) mbBoardRep = do
+newGame :: SomeRules -> Side -> Maybe BoardRep -> Checkers GameId
+newGame r@(SomeRules rules) firstSide mbBoardRep = do
   var <- askSupervisor
   liftIO $ atomically $ do
     st <- readTVar var
     let gameId = ssLastGameId st + 1
     writeTVar var $ st {ssLastGameId = gameId}
-    let game = mkGame rules gameId mbBoardRep
+    let game = mkGame rules gameId firstSide mbBoardRep
     modifyTVar var $ \st -> st {ssGames = M.insert (show gameId) game (ssGames st)}
     return $ show gameId
 
@@ -212,7 +212,8 @@ runGame gameId = do
     var <- askSupervisor
     liftIO $ atomically $ modifyTVar var $ \st -> st {ssGames = M.update (Just . update) gameId (ssGames st)}
     game <- getGame gameId
-    letAiMove gameId First Nothing
+    let firstSide = gsSide $ gState game
+    letAiMove gameId firstSide Nothing
     return ()
   where
     update game = game {gStatus = Running}

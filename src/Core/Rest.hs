@@ -6,6 +6,7 @@ module Core.Rest where
 import Control.Monad.Reader
 import qualified Data.Text as T
 import qualified Data.Text.Lazy as TL
+import Data.Maybe
 import Data.Aeson hiding (json)
 import Web.Scotty.Trans
 import Network.HTTP.Types.Status
@@ -19,12 +20,14 @@ import Core.Json () -- import instances only
 import Formats.Fen
 import Formats.Pdn
 
-error400 :: T.Text -> ActionT Error Checkers ()
+type Rest a = ActionT Error Checkers a
+
+error400 :: T.Text -> Rest ()
 error400 message = do
   json $ object ["error" .= message]
   status status400
 
-transformError :: Error -> ActionT Error Checkers ()
+transformError :: Error -> Rest ()
 transformError err = do
   error400 $ T.pack $ show err
 
@@ -41,13 +44,13 @@ withGameContext :: GameId -> Checkers a -> Checkers a
 withGameContext gameId actions =
   withLogVariable "game" gameId actions
 
-liftCheckers :: GameId -> Checkers a -> ActionT Error Checkers a
+liftCheckers :: GameId -> Checkers a -> Rest a
 liftCheckers gameId actions = liftCheckers' (Just gameId) actions
 
-liftCheckers_ :: Checkers a -> ActionT Error Checkers a
+liftCheckers_ :: Checkers a -> Rest a
 liftCheckers_ actions = liftCheckers' Nothing actions
 
-liftCheckers' :: Maybe GameId -> Checkers a -> ActionT Error Checkers a
+liftCheckers' :: Maybe GameId -> Checkers a -> Rest a
 liftCheckers' mbId actions = do
       res <- lift $ wrap $ tryC actions
       case res of
@@ -59,20 +62,20 @@ liftCheckers' mbId actions = do
         Nothing -> r
         Just gameId -> withGameContext gameId r
 
-boardRq :: SomeRules -> NewGameRq ->  ActionT Error Checkers (Maybe BoardRep)
-boardRq _ (NewGameRq {rqBoard = Just br, rqFen = Nothing, rqPdn = Nothing}) = return $ Just br
+boardRq :: SomeRules -> NewGameRq ->  Rest (Maybe Side, Maybe BoardRep)
+boardRq _ (NewGameRq {rqBoard = Just br, rqFen = Nothing, rqPdn = Nothing}) = return $ (Nothing, Just br)
 boardRq rules (NewGameRq {rqBoard = Nothing, rqFen = Just fen, rqPdn = Nothing}) =
   case parseFen rules fen of
     Left err -> raise $ InvalidBoard err
-    Right br -> return $ Just br
+    Right (side, br) -> return (Just side, Just br)
 boardRq rules (NewGameRq {rqBoard = Nothing, rqFen = Nothing, rqPdn = Just pdn}) =
   case parsePdn (Just rules) pdn of
     Left err -> raise $ InvalidBoard err
-    Right gr -> return $ Just $ boardRep $ loadPdn gr
+    Right gr -> return (Nothing, Just $ boardRep $ loadPdn gr)
 boardRq _ (NewGameRq {rqPrevBoard = Just gameId}) = do
   board <- liftCheckers_ $ getInitialBoard gameId
-  return $ Just $ boardRep board
-boardRq _ (NewGameRq {rqBoard = Nothing, rqFen = Nothing, rqPdn = Nothing}) = return Nothing
+  return (Nothing, Just $ boardRep board)
+boardRq _ (NewGameRq {rqBoard = Nothing, rqFen = Nothing, rqPdn = Nothing}) = return (Nothing, Nothing)
 boardRq _ _ = raise $ InvalidBoard "only one of fields must be filled: board, fen, pdn"
 
 restServer :: ScottyT Error Checkers ()
@@ -85,10 +88,11 @@ restServer = do
     case selectRules rq of
       Nothing -> error400 "invalid game rules"
       Just rules -> do
-        board <- boardRq rules rq
-        gameId <- liftCheckers_ $ newGame rules board
-        liftCheckers gameId $ $info "Created new game #{} with board: {}" (gameId, show board)
-        json $ Response (NewGameRs gameId) []
+        (mbFirstSide, board) <- boardRq rules rq
+        let firstSide = fromMaybe First mbFirstSide
+        gameId <- liftCheckers_ $ newGame rules firstSide board
+        liftCheckers gameId $ $info "Created new game #{}; First turn: {}; initial board: {}" (gameId, show firstSide, show board)
+        json $ Response (NewGameRs gameId firstSide) []
 
   post "/game/:id/attach/ai/:side" $ do
     gameId <- param "id"
@@ -98,16 +102,19 @@ restServer = do
     case selectAi rq rules of
       Nothing -> error400 "invalid ai settings"
       Just ai -> do
-        liftCheckers gameId $ $info "Attached AI: {} to game #{}" (show ai, gameId)
-        liftCheckers gameId $ initAiStorage rules ai
-        liftCheckers gameId $ attachAi gameId side ai
+        liftCheckers gameId $ do
+          $info "Attached AI: {} to game #{} as {}" (show ai, gameId, show side)
+          initAiStorage rules ai
+          attachAi gameId side ai
         json $ Response AttachAiRs []
 
   post "/game/:id/attach/:name/:side" $ do
     gameId <- param "id"
     name <- param "name"
     side <- param "side"
-    liftCheckers gameId $ registerUser gameId side name
+    liftCheckers gameId $ do
+      registerUser gameId side name
+      $info "Attached player `{}' to game #{} as {}" (name, gameId, show side)
     json $ Response RegisterUserRs []
 
   post "/game/:id/run" $ do

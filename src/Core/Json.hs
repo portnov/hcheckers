@@ -125,7 +125,7 @@ instance ToJSON Notify where
     object ["to_side" .= to, "level" .= level, "message" .= text]
 
 instance ToJSON RsPayload where
-  toJSON (NewGameRs id) = object ["id" .= id]
+  toJSON (NewGameRs id side) = object ["id" .= id, "turn" .= side]
   toJSON RegisterUserRs = object ["register_user" .= ("ok" :: T.Text)]
   toJSON AttachAiRs = object ["attach_ai" .= ("ok" :: T.Text)]
   toJSON RunGameRs = object ["run_game" .= ("ok" :: T.Text)]

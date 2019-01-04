@@ -22,12 +22,12 @@ import Core.Board
 type GameM a = ExceptT Error (State Game) a
 
 -- | Initialize Game instance
-mkGame :: GameRules rules => rules -> Int -> Maybe BoardRep -> Game
-mkGame rules id mbBoardRep =
+mkGame :: GameRules rules => rules -> Int -> Side -> Maybe BoardRep -> Game
+mkGame rules id firstSide mbBoardRep =
     let board = case mbBoardRep of
                   Nothing -> initBoard rules
                   Just rep -> parseBoardRep rules rep
-        st = GameState First board []
+        st = GameState firstSide board []
     in  Game {
           getGameId = show id,
           gInitialBoard = board,
