@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: 0.1.0.0\n"
-"POT-Creation-Date: 2019-01-04 15:00+YEKT\n"
+"POT-Creation-Date: 2019-01-04 19:31+YEKT\n"
 "PO-Revision-Date: 2018-11-07 22:30+5\n"
 "Last-Translator: Ilya Portnov <portnov84@rambler.ru>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -91,15 +91,19 @@ msgstr "Хороший"
 msgid "Master"
 msgstr "Мастер"
 
-#: game.py:212 game.py:214 lobby.py:34 newgamedlg.py:92
+#: game.py:187 game.py:222 game.py:224 lobby.py:34 newgamedlg.py:92
 msgid "White"
 msgstr "Белые"
 
-#: game.py:212 game.py:214 lobby.py:34 newgamedlg.py:93
+#: game.py:189 game.py:222 game.py:224 lobby.py:34 newgamedlg.py:93
 msgid "Black"
 msgstr "Черные"
 
-#: game.py:316
+#: game.py:191
+msgid "Newly created game ID: {}. First side to move: {}."
+msgstr "ID созданной игры: {}. Первыми ходят: {}."
+
+#: game.py:326
 msgid "Game #{}: you capitulated."
 msgstr "Игра #{}: вы сдались."
 
