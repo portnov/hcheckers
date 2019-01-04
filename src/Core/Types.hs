@@ -564,6 +564,7 @@ data Notify =
   | LogNotify {
       nDestination :: Side
     , nLevel :: String
+    , nComponent :: String
     , nLogMessage :: TL.Text
     }
   deriving (Eq, Show, Generic)

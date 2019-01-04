@@ -121,8 +121,8 @@ instance ToJSON Notify where
     object ["to_side" .= to, "from_side" .= from, "undo" .= True, "board" .= board]
   toJSON (ResultNotify to from result) =
     object ["to_side" .= to, "from_side" .= from, "result" .= result]
-  toJSON (LogNotify to level text) =
-    object ["to_side" .= to, "level" .= level, "message" .= text]
+  toJSON (LogNotify to level src text) =
+    object ["to_side" .= to, "source" .= src, "level" .= level, "message" .= text]
 
 instance ToJSON RsPayload where
   toJSON (NewGameRs id side) = object ["id" .= id, "turn" .= side]

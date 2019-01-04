@@ -17,6 +17,7 @@ import Control.Monad.Except
 import Control.Concurrent
 import Control.Concurrent.STM
 import Data.Maybe
+import Data.List
 import qualified Data.Map as M
 import qualified Data.Text as T
 import Data.Text.Format.Heavy
@@ -495,7 +496,7 @@ gameIdFromLogMsg msg = msum $ map (lookup "game") $ map lcfVariables $ lmContext
 
 logRouter :: SupervisorHandle -> Chan LogMessage -> Checkers ()
 logRouter supervisor chan = do
-    let fmt = "{source} [{thread}] {message}"
+    let fmt = "[{thread}] {message}"
     tcache <- liftIO $ newTimeCache simpleTimeFormat
     forever $ do
         msg <- liftIO $ readChan chan
@@ -506,7 +507,8 @@ logRouter supervisor chan = do
             ftime <- liftIO tcache
             let gameId = show str
                 level = show (lmLevel msg)
-                notifies = [LogNotify side level text | side <- [First, Second]]
+                src = intercalate "." (lmSource msg)
+                notifies = [LogNotify side level src text | side <- [First, Second]]
                 text = format fmt $ LogMessageWithTime ftime msg
             queueNotifications gameId notifies
 
