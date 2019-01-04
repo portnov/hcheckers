@@ -23,6 +23,7 @@ import Core.Board
 import Core.BoardMap
 import Formats.Types
 import Formats.Fen (boardToFen, showFen)
+import Formats.Pdn (showPdn, movesToInstructions)
 import Rules.Russian
 
 data SemiMove =
@@ -103,21 +104,65 @@ applySemiMove side sm@(Short colFrom colTo rowTo) board =
     Right pm ->
       applyMoveActions (pmResult pm) board
 
-convertGame :: [SemiMove] -> (Side, Board)
-convertGame game = go First (initBoard russian) game
+convertSemiMove :: Side -> Board -> SemiMove -> Maybe SemiMoveRec
+convertSemiMove _ _ Skip = Nothing
+convertSemiMove _ _ (Full from to) = Just $ ShortSemiMoveRec from to False
+convertSemiMove side board sm =
+  case findMove side sm board of
+    Left err -> error $ printf "convertSemiMove: %s: %s" (show sm) err
+    Right pm -> Just $ ShortSemiMoveRec {
+                         smrFrom = aLabel (pmBegin pm),
+                         smrTo   = aLabel (pmEnd pm),
+                         smrCapture = False
+                       }
+
+convertMoves :: [SemiMove] -> [MoveRec]
+convertMoves game = go (initBoard russian) game
+  where
+    go _ [] = []
+    go board0 [sm] =
+      let smr = convertSemiMove First board0 sm
+          board1 = applySemiMove First sm board0
+          move = MoveRec smr Nothing
+      in  [move]
+    go board0 (sm1 : sm2 : rest) =
+      let smr1 = convertSemiMove First board0 sm1
+          board1 = applySemiMove First sm1 board0
+          smr2 = convertSemiMove Second board1 sm2
+          board2 = applySemiMove Second sm2 board1
+          move = MoveRec smr1 smr2
+      in  move : go board2 rest
+
+gameToBoard :: [SemiMove] -> (Side, Board)
+gameToBoard game = go First (initBoard russian) game
   where
     go side board [] = (side, board)
     go side board (sm : rest) =
       let board' = applySemiMove side sm board
       in  go (opposite side) board' rest
 
-convertCompactFile :: FilePath -> IO ()
-convertCompactFile path = do
+compactFileToFen :: FilePath -> IO ()
+compactFileToFen path = do
   games <- parseCompactFile path
   forM_ (zip [1.. ] games) $ \(i, game) -> do
-    let (side, board) = convertGame game
-        fen = boardToFen side board
-        fenText = showFen (boardSize russian) fen
-        targetPath = printf "draw%d.fen" (i :: Int)
-    TIO.writeFile targetPath fenText
+    if null game
+      then printf "empty game: %d" i
+      else do
+        let (side, board) = gameToBoard game
+            fen = boardToFen side board
+            fenText = showFen (boardSize russian) fen
+            targetPath = printf "draw%d.fen" (i :: Int)
+        TIO.writeFile targetPath fenText
+
+compactFileToPdn :: FilePath -> IO ()
+compactFileToPdn path = do
+  games <- parseCompactFile path
+  forM_ (zip [1.. ] $ filter (not . null) games) $ \(i, game) -> do
+    let targetPath = printf "draw%d.pdn" (i :: Int)
+        pdn = GameRecord tags (movesToInstructions moves) Nothing
+        moves = convertMoves game
+        rules = SomeRules russian
+        tags = [Event "Game Opening", GameType rules]
+        pdnText = showPdn rules pdn
+    TIO.writeFile targetPath pdnText
 

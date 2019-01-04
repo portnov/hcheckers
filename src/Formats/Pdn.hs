@@ -330,6 +330,19 @@ loadPdn r =
           Nothing -> error "rules are not specified"
           Just rules -> withRules rules
 
+moveToInstructions :: Int -> MoveRec -> [Instruction]
+moveToInstructions n move =
+     [SetMoveNumber n]
+      ++ case mrFirst move of
+           Nothing -> []
+           Just rec -> [SemiMove rec]
+      ++ case mrSecond move of
+           Nothing -> []
+           Just rec -> [SemiMove rec]
+
+movesToInstructions :: [MoveRec] -> [Instruction]
+movesToInstructions moves = concat $ zipWith moveToInstructions [1..] moves
+
 gameToPdn :: Game -> GameRecord
 gameToPdn game =
     GameRecord {
@@ -344,17 +357,7 @@ gameToPdn game =
 
     tags = [Event "HCheckers game", GameType (gRules game)]
 
-    moves = fromMoves $ translate (gRules game) board0 (reverse $ gsHistory $ gState game)
-
-    fromMoves moves = concat $ zipWith fromMove [1..] moves
-    
-    fromMove n move = [SetMoveNumber n]
-              ++ case mrFirst move of
-                   Nothing -> []
-                   Just rec -> [SemiMove rec]
-              ++ case mrSecond move of
-                   Nothing -> []
-                   Just rec -> [SemiMove rec]
+    moves = movesToInstructions $ translate (gRules game) board0 (reverse $ gsHistory $ gState game)
 
     board0 = case gRules game of
                SomeRules rules -> initBoard rules
