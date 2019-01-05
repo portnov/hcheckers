@@ -440,7 +440,9 @@ scoreAB var params input
       let best = if maximize then alpha else beta -- we assume alpha <= beta
       push best
       $trace "{}V Side: {}, A = {}, B = {}" (indent, show side, show alpha, show beta)
-      moves <- possibleMoves' board
+      rules <- gets ssRules
+      let moves = possibleMoves rules side board
+      -- moves <- possibleMoves' board
 
       -- this actually means that corresponding side lost.
       when (null moves) $

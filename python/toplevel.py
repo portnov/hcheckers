@@ -100,6 +100,9 @@ class Checkers(QMainWindow):
         self.poll_timer = self.startTimer(500)
         self.do_poll = False
 
+    def _icon(self, name):
+        return QIcon(join(self.share_dir, "icons", name))
+
     @handling_error
     def _gui_setup(self):
         widget = QWidget(self)
@@ -181,7 +184,7 @@ class Checkers(QMainWindow):
         self._create_action(QIcon.fromTheme("document-new"), _("&New Game"), menu, self._on_new_game, key="Ctrl+N")
         self._create_action(QIcon.fromTheme("document-save"), _("Save Position"), menu, self._on_save_game, key="Ctrl+S")
         self._create_action(QIcon.fromTheme("edit-undo"), _("&Undo"), menu, self._on_undo, key="Ctrl+Z")
-        self._create_action(None, _("Capitulate"), menu, self._on_capitulate, toolbar=False)
+        self._create_action(self._icon("handsup.svg"), _("Capitulate"), menu, self._on_capitulate, toolbar=False)
 
         menu.addSeparator()
         self.toolbar.addSeparator()
@@ -193,8 +196,8 @@ class Checkers(QMainWindow):
         menu = self.menuBar().addMenu(_("&Position"))
         setup = QActionGroup(self)
         setup.setExclusive(True)
-        self.put_first_action = self._create_action(None, _("Put &white piece"), menu, group=setup, toggle=True)
-        self.put_second_action = self._create_action(None, _("Put &black piece"), menu, group=setup, toggle=True)
+        self.put_first_action = self._create_action(self._icon("manwhite.svg"), _("Put &white piece"), menu, group=setup, toggle=True)
+        self.put_second_action = self._create_action(self._icon("manblack.svg"), _("Put &black piece"), menu, group=setup, toggle=True)
         self.erase_action = self._create_action(QIcon.fromTheme("list-remove"), _("&Remove piece"), menu, group=setup, toggle=True)
         self.board_setup_mode = False
         menu.addSeparator()
