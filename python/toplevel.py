@@ -185,8 +185,6 @@ class Checkers(QMainWindow):
         self._create_action(QIcon.fromTheme("document-save"), _("Save Position"), menu, self._on_save_game, key="Ctrl+S")
         self._create_action(QIcon.fromTheme("edit-undo"), _("&Undo"), menu, self._on_undo, key="Ctrl+Z")
         self.request_draw_action = self._create_action(None, _("Offer a draw"), menu, self._on_draw_rq, toolbar=False)
-        self.decline_draw_action = self._create_action(None, _("Decline draw"), menu, self._on_decline_draw, toolbar=False)
-        self.decline_draw_action.setEnabled(False)
         self._create_action(self._icon("handsup.svg"), _("Capitulate"), menu, self._on_capitulate, toolbar=False)
 
         menu.addSeparator()
