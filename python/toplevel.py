@@ -45,6 +45,8 @@ class UiLogHandler(logging.Handler):
         except Exception:
             self.handleError(record)
 
+# Urllib3 floods the log with messages about HTTP connections
+# being established :/
 lowered_loggers = ["urllib3.connectionpool", "requests.packages.urllib3.connectionpool"]
 lowered_regexps = [re.compile("Starting new HTTP connection")]
 
@@ -69,6 +71,8 @@ class Checkers(QMainWindow):
         self.settings = QSettings("hcheckers", "hcheckers")
         self._board_setup_mode = False
         self._game_active = False
+        self._connection_failed = False
+        self._poll_try_number = 0
         self._prepare()
         self._gui_setup()
         self._setup_actions()
@@ -456,6 +460,7 @@ class Checkers(QMainWindow):
         message = _("An exception occured while connecting to the server.\nRequest URL: {}\nException text: {}").format(url, e)
         QMessageBox.critical(self, _("Exception"), message)
         logging.exception(message)
+        self._connection_failed = True
 
     def closeEvent(self, ev):
         
@@ -474,8 +479,11 @@ class Checkers(QMainWindow):
     def timerEvent(self, e):
         if e.timerId() != self.poll_timer:
             return
-        #if self.my_turn:
-        #    return
+
+        if self._connection_failed:
+            self._poll_try_number = self._poll_try_number + 1
+            if self._poll_try_number < 10:
+                return
 
         if self.setup_fields_on_poll and not self.game_active:
             state = self.game.get_state()
@@ -487,6 +495,8 @@ class Checkers(QMainWindow):
 
         if not self.game.is_active():
             return
+
+        self._poll_try_number = 0
 
         board, messages = self.game.poll()
         for message in messages:
