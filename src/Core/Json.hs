@@ -87,6 +87,7 @@ instance ToJSON SomeRules where
 instance ToJSON GameStatus where
   toJSON New = toJSON ("New" :: T.Text)
   toJSON Running = toJSON ("Running" :: T.Text)
+  toJSON (DrawRequested side) = object ["draw_requested" .= side]
   toJSON (Ended result) = toJSON result
 
 instance ToJSON Game where
@@ -121,6 +122,10 @@ instance ToJSON Notify where
     object ["to_side" .= to, "from_side" .= from, "undo" .= True, "board" .= board]
   toJSON (ResultNotify to from result) =
     object ["to_side" .= to, "from_side" .= from, "result" .= result]
+  toJSON (DrawRqNotify to from) =
+    object ["to_side" .= to, "from_side" .= from, "draw" .= ("requested" :: T.Text)]
+  toJSON (DrawRsNotify to from accepted) =
+    object ["to_side" .= to, "from_side" .= from, "draw_accepted" .= accepted]
   toJSON (LogNotify to level src text) =
     object ["to_side" .= to, "source" .= src, "level" .= level, "message" .= text]
 
@@ -136,6 +141,8 @@ instance ToJSON RsPayload where
   toJSON (MoveRs board) = toJSON board
   toJSON (UndoRs board) = toJSON board
   toJSON CapitulateRs = object ["capitulate" .= ("ok" :: T.Text)]
+  toJSON DrawRqRs = object ["draw_request" .= ("pending" :: T.Text)]
+  toJSON (DrawAcceptRs accepted) = object ["draw_accepted" .= accepted]
   toJSON (LobbyRs games) = toJSON games
   toJSON (NotationRs size orientation list) =
       object ["size" .= size, "orientation" .= orientation, "notation" .= list]

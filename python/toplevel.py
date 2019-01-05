@@ -184,6 +184,9 @@ class Checkers(QMainWindow):
         self._create_action(QIcon.fromTheme("document-new"), _("&New Game"), menu, self._on_new_game, key="Ctrl+N")
         self._create_action(QIcon.fromTheme("document-save"), _("Save Position"), menu, self._on_save_game, key="Ctrl+S")
         self._create_action(QIcon.fromTheme("edit-undo"), _("&Undo"), menu, self._on_undo, key="Ctrl+Z")
+        self.request_draw_action = self._create_action(None, _("Offer a draw"), menu, self._on_draw_rq, toolbar=False)
+        self.decline_draw_action = self._create_action(None, _("Decline draw"), menu, self._on_decline_draw, toolbar=False)
+        self.decline_draw_action.setEnabled(False)
         self._create_action(self._icon("handsup.svg"), _("Capitulate"), menu, self._on_capitulate, toolbar=False)
 
         menu.addSeparator()
@@ -260,6 +263,9 @@ class Checkers(QMainWindow):
                 self.game.capitulate()
             self.game_active = True
             self.game.game_id = None
+
+            self.request_draw_action.setEnabled(True)
+
             self.game_settings = game = dialog.get_settings()
             if game.action == START_AI_GAME:
                 if game.board_setup:
@@ -328,6 +334,25 @@ class Checkers(QMainWindow):
         self.history.fill()
 
     @handling_error
+    def _on_draw_rq(self, checked=None):
+        messages = self.game.request_draw()
+        for message in messages:
+            self.board.process_message(message)
+        self.request_draw_action.setEnabled(False)
+
+    @handling_error
+    def _on_accept_draw(self, checked=None):
+        messages = self.game.accept_draw(True)
+        for message in messages:
+            self.board.process_message(message)
+
+    @handling_error
+    def _on_decline_draw(self, checked=None):
+        messages = self.game.accept_draw(False)
+        for message in messages:
+            self.board.process_message(message)
+
+    @handling_error
     def _on_capitulate(self, checked=None):
         messages = self.game.capitulate()
         for message in messages:
@@ -358,6 +383,17 @@ class Checkers(QMainWindow):
             self.my_turn = True
         elif isinstance(message, WaitingMove):
             self.statusBar().showMessage(unicode(message))
+        elif isinstance(message, DrawRequestedMessage):
+            ok = QMessageBox.question(self, _("Accept the draw?"),
+                    _("Another side have offered you a draw. Do you wish to accept it?"))
+            if ok == QMessageBox.Yes:
+                self._on_accept_draw()
+            else:
+                self._on_decline_draw()
+        elif isinstance(message, DrawResponseMessage):
+            self.message.setText(unicode(message))
+            if not message.result:
+                self.request_draw_action.setEnabled(True)
 
     def _on_server_log(self, level, message):
         item = QListWidgetItem(self.log)
@@ -420,6 +456,12 @@ class Checkers(QMainWindow):
         #if self.my_turn:
         #    return
 
+        def log_message(message):
+            if "message" in message:
+                text = message["message"]
+                level = message["level"]
+                self._on_server_log(level, text)
+
         if self.do_poll and not self.game_active:
             state = self.game.get_state()
             if state["status"] == 'Running':
@@ -435,15 +477,14 @@ class Checkers(QMainWindow):
             board, messages = self.game.poll()
             for message in messages:
                 self.board.process_message(message)
-                self.my_turn = True
+                #log_message(message)
+                if "move" in message:
+                    self.my_turn = True
             self.board.fields_setup(board)
         else:
             board, messages = self.game.poll()
             for message in messages:
-                if "message" in message:
-                    text = message["message"]
-                    level = message["level"]
-                    self._on_server_log(level, text)
+                log_message(message)
 
 
 

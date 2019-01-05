@@ -172,6 +172,27 @@ restServer = do
     messages <- liftCheckers gameId $ getMessages name
     json $ Response CapitulateRs messages
 
+  post "/game/:id/draw/request/:name" $ do
+    gameId <- param "id"
+    name <- param "name"
+    liftCheckers gameId $ doDrawRequest gameId name
+    messages <- liftCheckers gameId $ getMessages name
+    json $ Response DrawRqRs messages
+
+  post "/game/:id/draw/accept/:name" $ do
+    gameId <- param "id"
+    name <- param "name"
+    liftCheckers gameId $ doDrawAccept gameId name True
+    messages <- liftCheckers gameId $ getMessages name
+    json $ Response (DrawAcceptRs True) messages
+
+  post "/game/:id/draw/decline/:name" $ do
+    gameId <- param "id"
+    name <- param "name"
+    liftCheckers gameId $ doDrawAccept gameId name False
+    messages <- liftCheckers gameId $ getMessages name
+    json $ Response (DrawAcceptRs False) messages
+
   get "/poll/:name" $ do
     name <- param "name"
     messages <- liftCheckers_ $ getMessages name

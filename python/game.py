@@ -132,6 +132,7 @@ class Game(object):
         self.move_lock = Lock()
         self.move_exception = None
         self.finished = False
+        self.draw_state = None
 
     def is_active(self):
         defined = not (self.base_url is None or self.user_name is None or self.game_id is None)
@@ -180,6 +181,7 @@ class Game(object):
         rs = self.post(url, json=rq)
         result = rs.json()
         self.game_id = result["response"]["id"]
+        self.draw_state = None
         first_side = result["response"]["turn"]
         first_move_first = first_side == 'First'
         first_are_black = self.get_invert_colors(rules)
@@ -316,6 +318,33 @@ class Game(object):
         result = rs.json()
         board = Game.parse_board(result["response"])
         return board
+    
+    def request_draw(self):
+        url = join(self.base_url, "game", self.game_id, "draw", "request", self.user_name)
+        rs = self.post(url)
+        result = rs.json()
+        messages = result["messages"]
+        self._process_messages(messages)
+        logging.info(_("Offer for a draw posted."))
+        self.draw_state = WE_REQUESTED_DRAW
+        return messages
+    
+    def accept_draw(self, accept):
+        if accept:
+            verb = "accept"
+        else:
+            verb = "decline"
+        url = join(self.base_url, "game", self.game_id, "draw", verb, self.user_name)
+        rs = self.post(url)
+        result = rs.json()
+        messages = result["messages"]
+        self._process_messages(messages)
+        if accept:
+            logging.info(_("You accepted draw."))
+        else:
+            logging.info(_("You declined draw."))
+        self.draw_state = None
+        return messages
 
     def capitulate(self):
         url = join(self.base_url, "game", self.game_id, "capitulate", self.user_name)
@@ -358,4 +387,8 @@ class Game(object):
     def _process_message(self, message):
         if "result" in message:
             self.finished = True
+        elif message.get("draw",None) == "requested":
+            self.draw_state = DRAW_REQUESTED_FROM_US
+        elif "draw_accepted"in message:
+            self.draw_state = None
 

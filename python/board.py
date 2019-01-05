@@ -490,6 +490,11 @@ class Board(QWidget):
         elif "result" in message:
             result = message["result"]
             self.message.emit(GameResultMessage(result))
+        elif "draw" in message:
+            self.message.emit(DrawRequestedMessage())
+        elif "draw_accepted" in message:
+            result = message["draw_accepted"]
+            self.message.emit(DrawResponseMessage(result))
         elif "message" in message:
             text = message["message"]
             level = message["level"]
@@ -523,6 +528,13 @@ class Board(QWidget):
         if not self.my_turn:
             return
         if self.locked:
+            return
+
+        if self.game.draw_state == WE_REQUESTED_DRAW:
+            logging.warning(_("Awaiting a response about draw."))
+            return
+        elif self.game.draw_state == DRAW_REQUESTED_FROM_US:
+            logging.warning(_("Another side have offered a draw. You have to accept or decline it."))
             return
         
         for (row, col) in self.fields:

@@ -86,6 +86,8 @@ data RsPayload =
   | MoveRs BoardRep
   | UndoRs BoardRep
   | CapitulateRs
+  | DrawRqRs
+  | DrawAcceptRs Bool
   deriving (Eq, Show, Generic)
 
 -- | Create supervisor handle
@@ -337,6 +339,40 @@ doCapitulate gameId name = do
         ]
   queueNotifications gameId messages
 
+doDrawRequest :: GameId -> String -> Checkers ()
+doDrawRequest gameId name = do
+  game <- getGame gameId
+  side <- sideByUser game name
+  withGame gameId $ \_ -> doPostDrawRequest side
+  let messages = [
+          DrawRqNotify (opposite side) side
+        ]
+  queueNotifications gameId messages
+  mbResult <- aiDrawRequest gameId (opposite side)
+  case mbResult of
+    Nothing -> return ()
+    Just accepted -> doDrawAccept' gameId (opposite side) accepted
+
+doDrawAccept' :: GameId -> Side -> Bool -> Checkers ()
+doDrawAccept' gameId side accepted = do
+  withGame gameId $ \_ -> doDrawAcceptRq side accepted
+  let drawNotify = DrawRsNotify (opposite side) side accepted
+      resultNotify = [
+          ResultNotify (opposite side) side Draw,
+          ResultNotify side side Draw
+        ]
+  let messages =
+        if accepted
+          then drawNotify : resultNotify
+          else [drawNotify]
+  queueNotifications gameId messages
+
+doDrawAccept :: GameId -> String -> Bool -> Checkers ()
+doDrawAccept gameId name accepted = do
+  game <- getGame gameId
+  side <- sideByUser game name
+  doDrawAccept' gameId side accepted
+
 -- | Execute actions with AI storage instance.
 -- AI storage instance must be initialized beforeahead.
 withAiStorage :: GameAi ai
@@ -388,6 +424,21 @@ letAiMove gameId side mbBoard = do
                 return board'
 
     _ -> return board
+
+aiDrawRequest :: GameId -> Side -> Checkers (Maybe Bool)
+aiDrawRequest gameId side = do
+  game <- getGame gameId
+  board <- do
+           (_, _, b) <- withGame gameId $ \_ -> gameState
+           return b
+  case getPlayer game side of
+    AI ai -> do
+      rules <- getRules gameId
+      withAiStorage rules ai $ \storage -> do
+        result <- decideDrawRequest ai storage side board 
+        $info "AI response for draw request: {}" (Single result)
+        return $ Just result
+    _ -> return Nothing
 
 -- | Get current game state
 getState :: GameId -> Checkers RsPayload

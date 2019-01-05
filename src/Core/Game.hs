@@ -40,9 +40,25 @@ mkGame rules id firstSide mbBoardRep =
           gMsgbox2 = []
         }
 
+-- | Check current game status. 
+-- Throw an error if it is not as expected.
+-- Do nothing otherwise.
+checkStatus :: GameStatus -> GameM ()
+checkStatus expected = do
+  status <- gets gStatus
+  when (status /= expected) $
+    throwError $ InvalidGameStatus expected status
+
+checkCurrentSide :: Side -> GameM ()
+checkCurrentSide side = do
+  currentSide <- gets (gsSide . gState)
+  when (side /= currentSide) $
+    throwError NotYourTurn
+
 -- | get currently possible moves in this game
 gamePossibleMoves :: GameM [Move]
 gamePossibleMoves = do
+  -- checkStatus Running
   SomeRules rules <- gets gRules
   board <- gets (gsCurrentBoard . gState)
   currentSide <- gets (gsSide . gState)
@@ -72,28 +88,27 @@ data GMoveRs = GMoveRs Board [Notify]
 -- | Perform specified move
 doMoveRq :: Side -> Move -> GameM GMoveRs
 doMoveRq side move = do
-  currentSide <- gets (gsSide . gState)
+  checkStatus Running
+  checkCurrentSide side
   SomeRules rules <- gets gRules
   board <- gets (gsCurrentBoard . gState)
-  if side /= currentSide
-    then throwError NotYourTurn
-    else if move `notElem` (map pmMove $ possibleMoves rules side board)
-           then throwError NotAllowedMove
-           else do
-                let (board', _, _) = applyMove rules side move board
-                    moveMsg = MoveNotify (opposite side) side (moveRep rules side move) (boardRep board')
-                    mbResult = getGameResult rules board'
-                    messages = case mbResult of
-                                 Nothing -> [moveMsg]
-                                 Just result ->
-                                  let resultMsg to = ResultNotify to side result
-                                  in  [moveMsg, resultMsg First, resultMsg Second]
-                modify $ \game -> game {gState = pushMove move board' (gState game)}
-                case mbResult of
-                  Just result -> 
-                    modify $ \game -> game {gStatus = Ended result}
-                  _ -> return ()
-                return $ GMoveRs board' messages
+  if move `notElem` (map pmMove $ possibleMoves rules side board)
+     then throwError NotAllowedMove
+     else do
+          let (board', _, _) = applyMove rules side move board
+              moveMsg = MoveNotify (opposite side) side (moveRep rules side move) (boardRep board')
+              mbResult = getGameResult rules board'
+              messages = case mbResult of
+                           Nothing -> [moveMsg]
+                           Just result ->
+                            let resultMsg to = ResultNotify to side result
+                            in  [moveMsg, resultMsg First, resultMsg Second]
+          modify $ \game -> game {gState = pushMove move board' (gState game)}
+          case mbResult of
+            Just result -> 
+              modify $ \game -> game {gStatus = Ended result}
+            _ -> return ()
+          return $ GMoveRs board' messages
 
 -- | Perform specified move, parsing it from MoveRep
 doMoveRepRq :: Side -> MoveRep -> GameM GMoveRs
@@ -111,16 +126,15 @@ data GUndoRs = GUndoRs Board [Notify]
 -- | Execute undo
 doUndoRq :: Side -> GameM GUndoRs
 doUndoRq side = do
-  currentSide <- gets (gsSide . gState)
+  checkStatus Running
+  checkCurrentSide side
   st <- gets gState
-  if side /= currentSide
-    then throwError NotYourTurn
-    else case popMove st of
-           Nothing -> throwError NothingToUndo
-           Just (prevBoard, prevSt) -> do
-             let push = UndoNotify (opposite side) side (boardRep prevBoard)
-             modify $ \game -> game {gState = prevSt}
-             return $ GUndoRs prevBoard [push]
+  case popMove st of
+     Nothing -> throwError NothingToUndo
+     Just (prevBoard, prevSt) -> do
+       let push = UndoNotify (opposite side) side (boardRep prevBoard)
+       modify $ \game -> game {gState = prevSt}
+       return $ GUndoRs prevBoard [push]
 
 pushMove :: Move -> Board -> GameState -> GameState
 pushMove move board st =
@@ -141,13 +155,24 @@ popMove st =
 
 doCapitulateRq :: Side -> GameM GameResult
 doCapitulateRq side = do
-  currentSide <- gets (gsSide . gState)
-  if side /= currentSide
-    then throwError NotYourTurn
-    else do
-      let result = case side of
-                     First -> SecondWin
-                     Second -> FirstWin
-      modify $ \game -> game {gStatus = Ended result}
-      return result
+  checkStatus Running
+  checkCurrentSide side
+  let result = case side of
+                 First -> SecondWin
+                 Second -> FirstWin
+  modify $ \game -> game {gStatus = Ended result}
+  return result
+
+doPostDrawRequest :: Side -> GameM ()
+doPostDrawRequest side = do
+  checkStatus Running
+  checkCurrentSide side
+  modify $ \game -> game {gStatus = DrawRequested side}
+
+doDrawAcceptRq :: Side -> Bool -> GameM ()
+doDrawAcceptRq side accepted = do
+  checkStatus (DrawRequested (opposite side))
+  if accepted
+    then modify $ \game -> game {gStatus = Ended Draw}
+    else modify $ \game -> game {gStatus = Running}
 

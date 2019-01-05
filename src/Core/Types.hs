@@ -480,6 +480,11 @@ class (Show ai, Typeable (AiStorage ai)) => GameAi ai where
 
   chooseMove :: ai -> AiStorage ai -> Side -> Board -> Checkers [PossibleMove]
 
+  -- | Answer for a draw request.
+  -- Default implementation always accepts the draw.
+  decideDrawRequest :: ai -> AiStorage ai -> Side -> Board -> Checkers Bool
+  decideDrawRequest _ _ _ _ = return True
+
 data SomeAi = forall ai. GameAi ai => SomeAi ai
 
 instance Show SomeAi where
@@ -502,7 +507,7 @@ isUser :: String -> Player -> Bool
 isUser name (User n) = n == name
 isUser _ _ = False
 
-data GameStatus = New | Running | Ended GameResult
+data GameStatus = New | Running | DrawRequested Side | Ended GameResult
   deriving (Eq, Show, Generic)
 
 data Game = Game {
@@ -560,6 +565,15 @@ data Notify =
       nDestination :: Side
     , nSource :: Side
     , nResult :: GameResult
+    }
+  | DrawRqNotify {
+      nDestination :: Side
+    , nSource :: Side
+    }
+  | DrawRsNotify {
+      nDestination :: Side
+    , nSource :: Side
+    , nAccepted :: Bool
     }
   | LogNotify {
       nDestination :: Side
@@ -646,6 +660,7 @@ data Error =
   | NoSuchGame GameId
   | NoSuchUserInGame
   | UserNameAlreadyUsed
+  | InvalidGameStatus GameStatus GameStatus -- ^ Expected, actual
   | TimeExhaused
   | InvalidBoard String
   | Unhandled String

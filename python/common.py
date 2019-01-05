@@ -8,6 +8,9 @@ KING = 2
 FIRST = 1
 SECOND = 2
 
+WE_REQUESTED_DRAW = 1
+DRAW_REQUESTED_FROM_US = 2
+
 DEFAULT_SERVER_URL = "http://localhost:8864"
 
 class Piece(object):
@@ -149,6 +152,20 @@ class GameResultMessage(Message):
 class WaitingMove(Message):
     def __unicode__(self):
         return _("Wating for another side turn")
+
+class DrawRequestedMessage(Message):
+    def __unicode__(self):
+        return _("Another side have offered a draw")
+
+class DrawResponseMessage(Message):
+    def __init__(self, result):
+        self.result = result
+
+    def __unicode__(self):
+        if self.result:
+            return _("Another side accepted the draw.")
+        else:
+            return _("Another side declined the draw.")
 
 class RequestError(Exception):
     def __init__(self, rs):
