@@ -184,8 +184,8 @@ class Checkers(QMainWindow):
         self._create_action(QIcon.fromTheme("document-new"), _("&New Game"), menu, self._on_new_game, key="Ctrl+N")
         self._create_action(QIcon.fromTheme("document-save"), _("Save Position"), menu, self._on_save_game, key="Ctrl+S")
         self._create_action(QIcon.fromTheme("edit-undo"), _("&Undo"), menu, self._on_undo, key="Ctrl+Z")
-        self.request_draw_action = self._create_action(None, _("Offer a draw"), menu, self._on_draw_rq, toolbar=False)
-        self._create_action(self._icon("handsup.svg"), _("Capitulate"), menu, self._on_capitulate, toolbar=False)
+        self.request_draw_action = self._create_action(self._icon("draw_offer.svg"), _("Offer a draw"), menu, self._on_draw_rq)
+        self.capitulate_action = self._create_action(self._icon("handsup.svg"), _("Capitulate"), menu, self._on_capitulate)
 
         menu.addSeparator()
         self.toolbar.addSeparator()
@@ -263,6 +263,7 @@ class Checkers(QMainWindow):
             self.game.game_id = None
 
             self.request_draw_action.setEnabled(True)
+            self.capitulate_action.setEnabled(True)
 
             self.game_settings = game = dialog.get_settings()
             if game.action == START_AI_GAME:
@@ -337,6 +338,7 @@ class Checkers(QMainWindow):
         for message in messages:
             self.board.process_message(message)
         self.request_draw_action.setEnabled(False)
+        self.capitulate_action.setEnabled(False)
 
     @handling_error
     def _on_accept_draw(self, checked=None):
@@ -375,6 +377,8 @@ class Checkers(QMainWindow):
             self.board.setCursor(Qt.ArrowCursor)
             self.statusBar().showMessage(_("Game over."))
             self.history.fill()
+            self.request_draw_action.setEnabled(False)
+            self.capitulate_action.setEnabled(False)
         elif isinstance(message, OtherSideMove):
             self.message.setText(unicode(message))
             self.history.fill()
@@ -392,6 +396,7 @@ class Checkers(QMainWindow):
             self.message.setText(unicode(message))
             if not message.result:
                 self.request_draw_action.setEnabled(True)
+                self.capitulate_action.setEnabled(True)
 
     def _on_server_log(self, level, message):
         item = QListWidgetItem(self.log)
