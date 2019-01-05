@@ -2,6 +2,7 @@
 import sys
 from os.path import join, exists, dirname
 import os
+import re
 import logging
 
 from PyQt5.QtGui import QPainter, QPixmap, QIcon
@@ -43,6 +44,22 @@ class UiLogHandler(logging.Handler):
             self.flush()
         except Exception:
             self.handleError(record)
+
+lowered_loggers = ["urllib3.connectionpool", "requests.packages.urllib3.connectionpool"]
+lowered_regexps = [re.compile("Starting new HTTP connection")]
+
+class LogFilter(logging.Filter):
+
+    def __init__(self, name='', lowered_regexps=None):
+        logging.Filter.__init__(self, name)
+        self.lowered_regexps = lowered_regexps
+
+    def filter(self, record):
+        if not logging.Filter.filter(self, record):
+            return False
+        if any(r.match(record.msg) is not None for r in self.lowered_regexps):
+            return False
+        return True
 
 class Checkers(QMainWindow):
     def __init__(self, share_dir):
@@ -148,8 +165,9 @@ class Checkers(QMainWindow):
         logging.getLogger().removeHandler(console_handler)
         log_handler = UiLogHandler(self.log)
         logging.getLogger().setLevel(logging.INFO)
-        logging.getLogger("urllib3.connectionpool").setLevel(logging.WARNING)
         logging.getLogger().addHandler(log_handler)
+        for logger in lowered_loggers:
+            logging.getLogger(logger).addFilter(LogFilter(lowered_regexps=lowered_regexps))
 
         self.board.server_log.connect(self._on_server_log)
 
