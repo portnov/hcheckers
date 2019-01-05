@@ -7,7 +7,7 @@ import logging
 
 from PyQt5.QtGui import QPainter, QPixmap, QIcon
 from PyQt5.QtCore import QRect, QSize, Qt, QObject, QTimer, pyqtSignal, QSettings
-from PyQt5.QtWidgets import QApplication, QWidget, QToolBar, QMainWindow, QDialog, QVBoxLayout, QAction, QActionGroup, QLabel, QFileDialog, QFrame, QDockWidget, QMessageBox, QListWidget, QListWidgetItem
+from PyQt5.QtWidgets import QApplication, QWidget, QToolBar, QMainWindow, QDialog, QVBoxLayout, QAction, QActionGroup, QLabel, QFileDialog, QFrame, QDockWidget, QMessageBox, QListWidget, QListWidgetItem, QMenu
 
 from field import Field
 from game import Game, AI, RequestError
@@ -16,52 +16,7 @@ from theme import Theme
 from history import HistoryWidget
 from newgamedlg import *
 from settingsdlg import SettingsDialog
-
-class UiLogHandler(logging.Handler):
-    def __init__(self, list_widget):
-        logging.Handler.__init__(self)
-        self.list_widget = list_widget
-
-    def get_icon(self, record):
-        if record.levelno == logging.INFO:
-            return QIcon.fromTheme("dialog-information")
-        elif record.levelno == logging.ERROR:
-            return QIcon.fromTheme("dialog-error")
-        elif record.levelno == logging.WARNING:
-            return QIcon.fromTheme("dialog-warning")
-        return None
-
-    def emit(self, record):
-        try:
-            msg = self.format(record)
-            item = QListWidgetItem(self.list_widget)
-            item.setText(msg)
-            icon = self.get_icon(record)
-            if icon is not None:
-                item.setIcon(icon)
-            self.list_widget.update()
-            self.list_widget.scrollToBottom()
-            self.flush()
-        except Exception:
-            self.handleError(record)
-
-# Urllib3 floods the log with messages about HTTP connections
-# being established :/
-lowered_loggers = ["urllib3.connectionpool", "requests.packages.urllib3.connectionpool"]
-lowered_regexps = [re.compile("Starting new HTTP connection")]
-
-class LogFilter(logging.Filter):
-
-    def __init__(self, name='', lowered_regexps=None):
-        logging.Filter.__init__(self, name)
-        self.lowered_regexps = lowered_regexps
-
-    def filter(self, record):
-        if not logging.Filter.filter(self, record):
-            return False
-        if any(r.match(record.msg) is not None for r in self.lowered_regexps):
-            return False
-        return True
+from logutils import *
 
 class Checkers(QMainWindow):
     def __init__(self, share_dir):
@@ -159,6 +114,8 @@ class Checkers(QMainWindow):
         self.addDockWidget(Qt.RightDockWidgetArea, self.history_dock)
 
         self.log = QListWidget(self)
+        self.log.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.log.customContextMenuRequested.connect(self._on_log_context_menu)
         self.log_dock = QDockWidget(_("Log"), self)
         self.log_dock.setAllowedAreas(Qt.AllDockWidgetAreas)
         self.log_dock.setWidget(self.log)
@@ -204,10 +161,16 @@ class Checkers(QMainWindow):
     def _setup_actions(self):
         menu = self.menuBar().addMenu(_("&Game"))
         self._create_action(QIcon.fromTheme("document-new"), _("&New Game"), menu, self._on_new_game, key="Ctrl+N")
-        self._create_action(QIcon.fromTheme("document-save"), _("Save Position"), menu, self._on_save_game, key="Ctrl+S")
+        self._create_action(QIcon.fromTheme("document-save"), _("&Save Position"), menu, self._on_save_game, key="Ctrl+S")
         self._create_action(QIcon.fromTheme("edit-undo"), _("&Undo"), menu, self._on_undo, key="Ctrl+Z")
-        self.request_draw_action = self._create_action(self._icon("draw_offer.svg"), _("Offer a draw"), menu, self._on_draw_rq)
+        self.request_draw_action = self._create_action(self._icon("draw_offer.svg"), _("Offer a &draw"), menu, self._on_draw_rq)
         self.capitulate_action = self._create_action(self._icon("handsup.svg"), _("Capitulate"), menu, self._on_capitulate)
+
+        menu.addSeparator()
+
+        self.clear_log_action = self._create_action(QIcon.fromTheme("edit-clear"), _("&Clear log"), menu, self._on_clear_log, toolbar=False)
+        self.copy_log_action = self._create_action(QIcon.fromTheme("edit-copy"), _("Copy selected log record"), menu, self._on_copy_log, toolbar=False)
+        self.save_log_action = self._create_action(QIcon.fromTheme("document-save"), _("Save &log..."), menu, self._on_save_log, toolbar=False)
 
         menu.addSeparator()
         self.toolbar.addSeparator()
@@ -434,6 +397,37 @@ class Checkers(QMainWindow):
             item.setIcon(icon)
         self.log.update()
         self.log.scrollToBottom()
+
+    def _log_context_menu(self):
+        menu = QMenu(self)
+        menu.addAction(self.clear_log_action)
+        menu.addAction(self.copy_log_action)
+        menu.addAction(self.save_log_action)
+        return menu
+
+    def _on_log_context_menu(self, pos):
+        menu = self._log_context_menu()
+        menu.exec_(self.log.mapToGlobal(pos))
+
+    def _on_clear_log(self, checked):
+        self.log.clear()
+        logging.info(_("Log has been cleared."))
+
+    def _on_save_log(self, checked):
+        text = ""
+        for row in range(self.log.count()):
+            text = text + self.log.item(row).text() + "\n"
+        (path,mask) = QFileDialog.getSaveFileName(self, _("Save file"), ".", LOG_MASK)
+        if path:
+            with open(path, 'w') as f:
+                f.write(text.encode("utf-8"))
+
+    def _on_copy_log(self, checked):
+        items = self.log.selectedItems()
+        if not items:
+            return
+        text = items[0].text()
+        QApplication.clipboard().setText(text)
 
     def _set_flip_board(self, value):
         self.board.flip = value
