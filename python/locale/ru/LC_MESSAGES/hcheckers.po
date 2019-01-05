@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: 0.1.0.0\n"
-"POT-Creation-Date: 2019-01-05 15:35+YEKT\n"
+"POT-Creation-Date: 2019-01-05 22:25+YEKT\n"
 "PO-Revision-Date: 2018-11-07 22:30+5\n"
 "Last-Translator: Ilya Portnov <portnov84@rambler.ru>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -287,127 +287,143 @@ msgstr "Настройки внешнего вида"
 msgid "AI Presets"
 msgstr "Настройки ИИ"
 
-#: toplevel.py:51
+#: toplevel.py:25
 msgid "HCheckers client"
 msgstr "Клиент HCheckers"
 
-#: toplevel.py:78
+#: toplevel.py:54
 msgid "Your turn."
 msgstr "Ваш ход."
 
-#: toplevel.py:80
+#: toplevel.py:56
 msgid "Awaiting a turn from another side."
 msgstr "Ожидаем хода другой стороны."
 
-#: toplevel.py:134
+#: toplevel.py:110
 msgid "History"
 msgstr "История"
 
-#: toplevel.py:141
+#: toplevel.py:119
 msgid "Log"
 msgstr "Журнал"
 
-#: toplevel.py:183
+#: toplevel.py:162
 msgid "&Game"
 msgstr "&Игра"
 
-#: toplevel.py:184
+#: toplevel.py:163
 msgid "&New Game"
 msgstr "&Новая игра"
 
-#: toplevel.py:185
-msgid "Save Position"
-msgstr "Сохранить позицию"
+#: toplevel.py:164
+msgid "&Save Position"
+msgstr "&Сохранить позицию"
 
-#: toplevel.py:186
+#: toplevel.py:165
 msgid "&Undo"
 msgstr "&Отменить"
 
-#: toplevel.py:187
-msgid "Offer a draw"
-msgstr "Предложить ничью"
+#: toplevel.py:166
+msgid "Offer a &draw"
+msgstr "&Предложить ничью"
 
-#: toplevel.py:188
+#: toplevel.py:167
 msgid "Capitulate"
 msgstr "Сдаться"
 
-#: toplevel.py:193
+#: toplevel.py:171
+msgid "&Clear log"
+msgstr "О&чистить журнал"
+
+#: toplevel.py:172
+msgid "Copy selected log record"
+msgstr "Копировать выбранную запись журнала"
+
+#: toplevel.py:173
+msgid "Save &log..."
+msgstr "Сохранить &журнал..."
+
+#: toplevel.py:178
 msgid "Start &Game"
 msgstr "Начать &игру"
 
-#: toplevel.py:195
+#: toplevel.py:180
 msgid "Se&ttings"
 msgstr "Нас&тройки"
 
-#: toplevel.py:197
+#: toplevel.py:182
 msgid "&Position"
 msgstr "&Позиция"
 
-#: toplevel.py:200
+#: toplevel.py:185
 msgid "Put &white piece"
 msgstr "Установить &белую шашку"
 
-#: toplevel.py:201
+#: toplevel.py:186
 msgid "Put &black piece"
 msgstr "Установить &черную шашку"
 
-#: toplevel.py:202
+#: toplevel.py:187
 msgid "&Remove piece"
 msgstr "&Удалить шашку"
 
-#: toplevel.py:207
+#: toplevel.py:192
 msgid "&View"
 msgstr "&Вид"
 
-#: toplevel.py:208
+#: toplevel.py:193
 msgid "&Flip board"
 msgstr "&Перевернуть доску"
 
-#: toplevel.py:278 toplevel.py:289 toplevel.py:303
+#: toplevel.py:264 toplevel.py:275 toplevel.py:289
 msgid "Rules: {}"
 msgstr "Правила: {}"
 
-#: toplevel.py:279
+#: toplevel.py:265
 msgid "AI: {}"
 msgstr "ИИ: {}"
 
-#: toplevel.py:283
+#: toplevel.py:269
 msgid "New game ID: {}"
 msgstr "ID новой игры: {}"
 
-#: toplevel.py:293
+#: toplevel.py:279
 msgid "Waiting for another side to join the game."
 msgstr "Ожидаем подключения второй стороны к игре"
 
-#: toplevel.py:316
+#: toplevel.py:302 toplevel.py:420
 msgid "Save file"
 msgstr "Сохранить файл"
 
-#: toplevel.py:364 toplevel.py:366
+#: toplevel.py:351 toplevel.py:353
 msgid "{} win"
 msgstr "{} выиграли"
 
-#: toplevel.py:368
+#: toplevel.py:355
 msgid "Draw"
 msgstr "Ничья"
 
-#: toplevel.py:374
+#: toplevel.py:361
 msgid "Game result: {}"
 msgstr "Результат игры: {}"
 
-#: toplevel.py:376
+#: toplevel.py:363
 msgid "Game over."
 msgstr "Игра окончена."
 
-#: toplevel.py:385
+#: toplevel.py:374
 msgid "Accept the draw?"
 msgstr "Согласиться на ничью?"
 
-#: toplevel.py:386
+#: toplevel.py:375
 msgid "Another side have offered you a draw. Do you wish to accept it?"
 msgstr "Другая сторона предложила вам ничью. Вы хотите согласиться на неё?"
 
-#: toplevel.py:428
+#: toplevel.py:414
+msgid "Log has been cleared."
+msgstr "Журнал был очищен."
+
+#: toplevel.py:449
 msgid ""
 "Unexpected response received from the server.\n"
 "Request URL: {}\n"
@@ -419,11 +435,11 @@ msgstr ""
 "Код ответа: {}\n"
 "Сообщение в ответе: {}"
 
-#: toplevel.py:429 toplevel.py:434
+#: toplevel.py:450 toplevel.py:455
 msgid "Exception"
 msgstr "Исключение"
 
-#: toplevel.py:433
+#: toplevel.py:454
 msgid ""
 "An exception occured while connecting to the server.\n"
 "Request URL: {}\n"
