@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: 0.1.0.0\n"
-"POT-Creation-Date: 2019-01-05 22:25+YEKT\n"
+"POT-Creation-Date: 2019-01-05 22:31+YEKT\n"
 "PO-Revision-Date: 2018-11-07 22:30+5\n"
 "Last-Translator: Ilya Portnov <portnov84@rambler.ru>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -111,31 +111,31 @@ msgstr "Хороший"
 msgid "Master"
 msgstr "Мастер"
 
-#: game.py:189 game.py:224 game.py:226 lobby.py:34 newgamedlg.py:92
+#: game.py:187 game.py:222 game.py:224 lobby.py:34 newgamedlg.py:92
 msgid "White"
 msgstr "Белые"
 
-#: game.py:191 game.py:224 game.py:226 lobby.py:34 newgamedlg.py:93
+#: game.py:189 game.py:222 game.py:224 lobby.py:34 newgamedlg.py:93
 msgid "Black"
 msgstr "Черные"
 
-#: game.py:193
+#: game.py:191
 msgid "Newly created game ID: {}. First side to move: {}."
 msgstr "ID созданной игры: {}. Первыми ходят: {}."
 
-#: game.py:328
+#: game.py:326
 msgid "Offer for a draw posted."
 msgstr "Предложение ничьей послано."
 
-#: game.py:343
+#: game.py:341
 msgid "You accepted draw."
 msgstr "Вы согласились на ничью."
 
-#: game.py:345
+#: game.py:343
 msgid "You declined draw."
 msgstr "Вы отказались от ничьей."
 
-#: game.py:355
+#: game.py:353
 msgid "Game #{}: you capitulated."
 msgstr "Игра #{}: вы сдались."
 
@@ -391,39 +391,43 @@ msgstr "ID новой игры: {}"
 msgid "Waiting for another side to join the game."
 msgstr "Ожидаем подключения второй стороны к игре"
 
-#: toplevel.py:302 toplevel.py:420
+#: toplevel.py:302 toplevel.py:427
 msgid "Save file"
 msgstr "Сохранить файл"
 
-#: toplevel.py:351 toplevel.py:353
+#: toplevel.py:323
+msgid "Nothing to undo."
+msgstr "Нечего отменять."
+
+#: toplevel.py:358 toplevel.py:360
 msgid "{} win"
 msgstr "{} выиграли"
 
-#: toplevel.py:355
+#: toplevel.py:362
 msgid "Draw"
 msgstr "Ничья"
 
-#: toplevel.py:361
+#: toplevel.py:368
 msgid "Game result: {}"
 msgstr "Результат игры: {}"
 
-#: toplevel.py:363
+#: toplevel.py:370
 msgid "Game over."
 msgstr "Игра окончена."
 
-#: toplevel.py:374
+#: toplevel.py:381
 msgid "Accept the draw?"
 msgstr "Согласиться на ничью?"
 
-#: toplevel.py:375
+#: toplevel.py:382
 msgid "Another side have offered you a draw. Do you wish to accept it?"
 msgstr "Другая сторона предложила вам ничью. Вы хотите согласиться на неё?"
 
-#: toplevel.py:414
+#: toplevel.py:421
 msgid "Log has been cleared."
 msgstr "Журнал был очищен."
 
-#: toplevel.py:449
+#: toplevel.py:456
 msgid ""
 "Unexpected response received from the server.\n"
 "Request URL: {}\n"
@@ -435,11 +439,11 @@ msgstr ""
 "Код ответа: {}\n"
 "Сообщение в ответе: {}"
 
-#: toplevel.py:450 toplevel.py:455
+#: toplevel.py:457 toplevel.py:462
 msgid "Exception"
 msgstr "Исключение"
 
-#: toplevel.py:454
+#: toplevel.py:461
 msgid ""
 "An exception occured while connecting to the server.\n"
 "Request URL: {}\n"

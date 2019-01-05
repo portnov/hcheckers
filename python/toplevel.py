@@ -312,10 +312,17 @@ class Checkers(QMainWindow):
 
     @handling_error
     def _on_undo(self, checked=None):
-        prev_board = self.game.undo()
-        self.board.fields_setup(prev_board)
-        self.board.repaint()
-        self.history.fill()
+        try:
+            prev_board = self.game.undo()
+            self.board.fields_setup(prev_board)
+            self.board.repaint()
+            self.history.fill()
+        except RequestError as e:
+            error = e.rs.json().get("error", None)
+            if error == "NothingToUndo":
+                logging.warning(_("Nothing to undo."))
+            else:
+                raise e
 
     @handling_error
     def _on_draw_rq(self, checked=None):

@@ -142,8 +142,6 @@ class Game(object):
         if rs is None:
             return
         if rs.status_code != requests.codes.ok:
-            logging.warning(rs.url)
-            logging.warning(rs.text)
             raise RequestError(rs)
     
     def get(self, url, *args, **kwargs):
