@@ -98,7 +98,7 @@ class Checkers(QMainWindow):
         self.server_url = self.settings.value("server_url", DEFAULT_SERVER_URL)
         self.game = Game(self.server_url)
         self.poll_timer = self.startTimer(500)
-        self.do_poll = False
+        self.setup_fields_on_poll = False
 
     def _icon(self, name):
         return QIcon(join(self.share_dir, "icons", name))
@@ -285,7 +285,7 @@ class Checkers(QMainWindow):
                     self.game.register_user(game.user_name, FIRST)
                 else:
                     self.game.register_user(game.user_name, SECOND)
-                self.do_poll = True
+                self.setup_fields_on_poll = True
                 self.rules_info.setText(_("Rules: {}").format(game.rules))
                 self.opponent_info.setText("")
                 self.status_info.setText("")
@@ -298,7 +298,7 @@ class Checkers(QMainWindow):
                 #used_name = dialog.lobby.get_used_name()
                 self.game.register_user(game.user_name, side)
                 self.game.run_game()
-                self.do_poll = True
+                self.setup_fields_on_poll = True
                 self.my_turn = side == FIRST
                 self.rules_info.setText(_("Rules: {}").format(game.rules))
                 self.opponent_info.setText("")
@@ -454,13 +454,7 @@ class Checkers(QMainWindow):
         #if self.my_turn:
         #    return
 
-        def log_message(message):
-            if "message" in message:
-                text = message["message"]
-                level = message["level"]
-                self._on_server_log(level, text)
-
-        if self.do_poll and not self.game_active:
+        if self.setup_fields_on_poll and not self.game_active:
             state = self.game.get_state()
             if state["status"] == 'Running':
                 self.game_active = True
@@ -471,18 +465,11 @@ class Checkers(QMainWindow):
         if not self.game.is_active():
             return
 
-        if self.do_poll:
-            board, messages = self.game.poll()
-            for message in messages:
-                self.board.process_message(message)
-                #log_message(message)
-                if "move" in message:
-                    self.my_turn = True
+        board, messages = self.game.poll()
+        for message in messages:
+            self.board.process_message(message)
+            if "move" in message:
+                self.my_turn = True
+        if self.setup_fields_on_poll:
             self.board.fields_setup(board)
-        else:
-            board, messages = self.game.poll()
-            for message in messages:
-                log_message(message)
-
-
 
