@@ -14,6 +14,7 @@ module Core.Game where
 
 import Control.Monad.State
 import Control.Monad.Except
+import Control.Concurrent.STM
 
 import Core.Types
 import Core.Board
@@ -22,13 +23,15 @@ import Core.Board
 type GameM a = ExceptT Error (State Game) a
 
 -- | Initialize Game instance
-mkGame :: GameRules rules => rules -> Int -> Side -> Maybe BoardRep -> Game
-mkGame rules id firstSide mbBoardRep =
+mkGame :: GameRules rules => rules -> Int -> Side -> Maybe BoardRep -> STM Game
+mkGame rules id firstSide mbBoardRep = do
     let board = case mbBoardRep of
                   Nothing -> initBoard rules
                   Just rep -> parseBoardRep rules rep
         st = GameState firstSide board []
-    in  Game {
+    msgbox1 <- newTChan
+    msgbox2 <- newTChan
+    return $ Game {
           getGameId = show id,
           gInitialBoard = board,
           gState = st,
@@ -36,8 +39,8 @@ mkGame rules id firstSide mbBoardRep =
           gRules = SomeRules rules,
           gPlayer1 = Nothing,
           gPlayer2 = Nothing,
-          gMsgbox1 = [],
-          gMsgbox2 = []
+          gMsgbox1 = msgbox1,
+          gMsgbox2 = msgbox2
         }
 
 -- | Check current game status. 

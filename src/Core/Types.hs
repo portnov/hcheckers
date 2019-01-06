@@ -518,8 +518,8 @@ data Game = Game {
   , gRules :: SomeRules
   , gPlayer1 :: Maybe Player
   , gPlayer2 :: Maybe Player
-  , gMsgbox1 :: [Notify]
-  , gMsgbox2 :: [Notify]
+  , gMsgbox1 :: TChan Notify
+  , gMsgbox2 :: TChan Notify
   }
 
 instance Show Game where

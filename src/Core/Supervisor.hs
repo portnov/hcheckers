@@ -164,7 +164,7 @@ newGame r@(SomeRules rules) firstSide mbBoardRep = do
     st <- readTVar var
     let gameId = ssLastGameId st + 1
     writeTVar var $ st {ssLastGameId = gameId}
-    let game = mkGame rules gameId firstSide mbBoardRep
+    game <- mkGame rules gameId firstSide mbBoardRep
     modifyTVar var $ \st -> st {ssGames = M.insert (show gameId) game (ssGames st)}
     return $ show gameId
 
@@ -278,22 +278,23 @@ getMessages name = do
   var <- askSupervisor
   liftIO $ atomically $ do
     st <- readTVar var
-    let messages = concatMap getM (M.elems $ ssGames st)
-    let st' = st {ssGames = M.map updateGame (ssGames st)}
-    writeTVar var st'
-    return messages
+    let mailboxes = mapMaybe getM (M.elems $ ssGames st)
+    messages <- forM mailboxes readAll
+    return (concat messages)
   where
-    updateGame game =
-      case sideByUser' game name of
-        Nothing -> game
-        Just First -> game {gMsgbox1 = []}
-        Just Second -> game {gMsgbox2 = []}
+    readAll chan = do
+      mbMsg <- tryReadTChan chan
+      case mbMsg of
+        Nothing -> return []
+        Just msg -> do
+          rest <- readAll chan
+          return $ msg : rest
 
     getM game = do
       case sideByUser' game name of
-        Nothing -> []
-        Just First -> gMsgbox1 game
-        Just Second -> gMsgbox2 game
+        Nothing -> Nothing
+        Just First -> Just $ gMsgbox1 game
+        Just Second -> Just $ gMsgbox2 game
     
 -- | Get moves that are possible currently
 -- in the specified game for specified side.
@@ -531,16 +532,12 @@ getSideByUser gameId name = do
 -- | Put notification messages in corresponding mailboxes.
 queueNotifications :: GameId -> [Notify] -> Checkers ()
 queueNotifications gameId messages = do
-    var <- askSupervisor
-    liftIO $ atomically $ modifyTVar var go
-  where
-    go st = foldl route st messages
-
-    route st msg = st {ssGames = M.update (Just . insert msg) gameId (ssGames st)}
-
-    insert msg game
-      | nDestination msg == First = game {gMsgbox1 = msg : gMsgbox1 game}
-      | otherwise                 = game {gMsgbox2 = msg : gMsgbox2 game}
+    game <- getGame gameId
+    liftIO $ atomically $
+      forM_ messages $ \message ->
+        case nDestination message of
+          First  -> writeTChan (gMsgbox1 game) message
+          Second -> writeTChan (gMsgbox2 game) message
 
 gameIdFromLogMsg :: LogMessage -> Maybe Variable
 gameIdFromLogMsg msg = msum $ map (lookup "game") $ map lcfVariables $ lmContext msg
