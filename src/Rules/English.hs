@@ -53,10 +53,12 @@ english = English $
               }
   in  rules
 
-kingSimpleMoves :: GenericRules -> Piece -> Board -> Address -> [PossibleMove]
-kingSimpleMoves rules piece@(Piece _ side) board src =
+kingSimpleMoves :: GenericRules -> Side -> Board -> Address -> [PossibleMove]
+kingSimpleMoves rules side board src =
     concatMap check (gKingSimpleMoveDirections rules)
   where
+    piece = Piece King side
+
     check dir =
       case myNeighbour rules side dir src of
         Nothing -> []

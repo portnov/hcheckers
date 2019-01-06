@@ -50,6 +50,10 @@ promotePiece :: Piece -> Piece
 promotePiece (Piece Man side) = Piece King side
 promotePiece p = p
 
+promoteK :: PieceKind -> PieceKind
+promoteK Man = King
+promoteK King = King
+
 allFields :: Board -> [FieldIndex]
 allFields b = IM.keys (bAddresses b)
 
@@ -200,7 +204,8 @@ isOpponentAt side addr board =
     Just piece -> isOpponentPiece side piece
 
 isFree :: Address -> Board -> Bool
-isFree addr board = isNothing (getPiece addr board)
+isFree addr b =
+  not $ any (aLabel addr `labelSetMember`) [bFirstMen b, bSecondMen b, bFirstKings b, bSecondKings b]
 
 isFree' :: Label -> Board -> Bool
 isFree' l b = isFree (resolve l b) b
@@ -221,9 +226,17 @@ myMen :: Side -> Board -> [Label]
 myMen First board = labelSetToList (bFirstMen board)
 myMen Second board = labelSetToList (bSecondMen board)
 
+myMenA :: Side -> Board -> [Address]
+myMenA side board =
+  map (\l -> resolve l board) $ myMen side board
+
 myKings :: Side -> Board -> [Label]
 myKings First board = labelSetToList (bFirstKings board)
 myKings Second board = labelSetToList (bSecondKings board)
+
+myKingsA :: Side -> Board -> [Address]
+myKingsA side board =
+  map (\l -> resolve l board) $ myKings side board
 
 allMyAddresses :: Side -> Board -> [Address]
 allMyAddresses side board =

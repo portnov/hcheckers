@@ -47,10 +47,11 @@ simple = Simple $
               }
   in  rules
 
-manSimpleMoves :: GenericRules -> Piece -> Board -> Address -> [PossibleMove]
-manSimpleMoves rules piece@(Piece _ side) board src =
+manSimpleMoves :: GenericRules -> Side -> Board -> Address -> [PossibleMove]
+manSimpleMoves rules side board src =
     concatMap check (gManSimpleMoveDirections rules)
   where
+    piece = Piece Man side
     check dir =
       case myNeighbour rules side dir src of
         Nothing -> []

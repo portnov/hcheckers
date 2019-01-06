@@ -83,44 +83,72 @@ scoreMove (ai@(AlphaBeta params rules eval), var, side, dp, board, pm, alpha, be
      
      return (pm, score)
 
-type DepthIterationInput = (AlphaBetaParams, Maybe DepthIterationOutput)
+type DepthIterationInput = (AlphaBetaParams, [PossibleMove], Maybe DepthIterationOutput)
 type DepthIterationOutput = [(PossibleMove, Score)]
 type AiOutput = ([PossibleMove], Score)
 
 runAI :: (GameRules rules, Evaluator eval) => AlphaBeta rules eval -> AICacheHandle rules eval -> Side -> Board -> Checkers AiOutput
 runAI ai@(AlphaBeta params rules eval) handle side board = do
-    options <- depthDriver
+    preOptions <- preselect
+    options <- depthDriver preOptions
     select options
   where
     maximize = side == First
     minimize = not maximize
 
-    depthDriver :: Checkers DepthIterationOutput
-    depthDriver = case abBaseTime params of
-                 Nothing -> do
-                    (result, _) <- go (params, Nothing)
-                    return result
-                 Just time -> repeatTimed' "runAI" time goTimed (params, Nothing)
+    preselect =
+      return $ possibleMoves rules side board
+
+--     preselect :: Checkers [PossibleMove]
+--     preselect = do
+--       let moves = possibleMoves rules side board
+--       if length moves <= abMovesHighBound params
+--         then return moves
+--         else do
+--           let simple = AlphaBetaParams {
+--                         abDepth = 2
+--                       , abStartDepth = Nothing
+--                       , abCombinationDepth = 2
+--                       , abMovesLowBound = 1
+--                       , abMovesHighBound = 8
+--                       , abBaseTime = Nothing
+--                     }
+--           (options, _) <- go (simple, moves, Nothing)
+--           let options' = [(pm, move, score) | (pm, (move, score)) <- zip moves options]
+--           let key = if maximize
+--                       then \(_,_,score) -> negate score
+--                       else \(_,_,score) -> score
+--           let sorted = sortOn key options'
+--               bestOptions = take (abMovesHighBound params) sorted
+--           let result = [pm | (pm, _, _) <- bestOptions]
+--           $info "Pre-selected options: {}" (Single $ show result)
+--           return result
+
+    depthDriver :: [PossibleMove] -> Checkers DepthIterationOutput
+    depthDriver moves =
+      case abBaseTime params of
+        Nothing -> do
+          (result, _) <- go (params, moves, Nothing)
+          return result
+        Just time -> repeatTimed' "runAI" time goTimed (params, moves, Nothing)
   
     goTimed :: DepthIterationInput
             -> Checkers (DepthIterationOutput, Maybe DepthIterationInput)
-    goTimed (params, prevResult) = do
-      ret <- tryC $ go (params, prevResult)
+    goTimed (params, moves, prevResult) = do
+      ret <- tryC $ go (params, moves, prevResult)
       case ret of
         Right result -> return result
         Left TimeExhaused ->
           case prevResult of
             Just result -> return (result, Nothing)
             Nothing -> do
-              let moves = possibleMoves rules side board
               return ([(move, 0) | move <- moves], Nothing)
         Left err -> throwError err
 
     go :: DepthIterationInput
             -> Checkers (DepthIterationOutput, Maybe DepthIterationInput)
-    go (params, prevResult) = do
+    go (params, moves, prevResult) = do
       let depth = abDepth params
-      let moves = possibleMoves rules side board
       if length moves <= 1 -- Just one move possible
         then do
           $info "There is only one move possible; just do it." ()
@@ -145,7 +173,7 @@ runAI ai@(AlphaBeta params rules eval) handle side board = do
           if depth < 50
             then do
               let params' = params {abDepth = depth + 1, abStartDepth = Nothing}
-              return (result, Just (params', Just result))
+              return (result, Just (params', moves, Just result))
             else return (result, Nothing)
 
     -- | Initial (alpha, beta) interval

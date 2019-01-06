@@ -35,8 +35,8 @@ data GenericRules = GenericRules {
     gPossibleMoves :: Side -> Board -> [PossibleMove]
   , gPossibleSimpleMoves1 :: Board -> Address -> [PossibleMove]
   , gPossibleCaptures1 :: Board -> Address -> [PossibleMove]
-  , gManSimpleMoves :: Piece -> Board -> Address -> [PossibleMove]
-  , gKingSimpleMoves :: Piece -> Board -> Address -> [PossibleMove]
+  , gManSimpleMoves :: Side -> Board -> Address -> [PossibleMove]
+  , gKingSimpleMoves :: Side -> Board -> Address -> [PossibleMove]
   , gManCaptures :: CaptureState -> [PossibleMove]
   , gKingCaptures ::  CaptureState -> [PossibleMove]
   , gPieceCaptures1 :: CaptureState -> [Capture] 
@@ -111,7 +111,8 @@ abstractRules :: GenericRules -> GenericRules
 abstractRules =
   let
     possibleMoves rules side board =
-      let simpleMoves = concatMap (gPossibleSimpleMoves1 rules board) (allMyAddresses side board)
+      let simpleMoves = concatMap (gManSimpleMoves rules side board) (filter (manHasSimpleMoves rules side board) $ myMenA side board) ++
+                        concatMap (gKingSimpleMoves rules side board) (myKingsA side board)
           captures = concatMap (gPossibleCaptures1 rules board) (allMyAddresses side board)
       in  if gCaptureMax rules
             then
@@ -128,8 +129,8 @@ abstractRules =
     possibleSimpleMoves1 rules board src =
       case getPiece src board of
         Nothing -> error $ "possibleSimpleMoves1: not my field"
-        Just piece@(Piece Man _) -> gManSimpleMoves rules piece board src
-        Just piece@(Piece King _) -> gKingSimpleMoves rules piece board src
+        Just (Piece Man side) -> gManSimpleMoves rules side board src
+        Just (Piece King side) -> gKingSimpleMoves rules side board src
 
     possibleCaptures1 rules board src =
       case getPiece src board of
@@ -142,7 +143,14 @@ abstractRules =
         (Piece Man _) -> gManCaptures rules ct
         (Piece King _) -> gKingCaptures rules ct
 
-    manSimpleMoves rules piece@(Piece _ side) board src =
+    manHasSimpleMoves rules side board src = any check (gManSimpleMoveDirections rules)
+      where
+        check dir =
+          case myNeighbour rules side dir src of
+            Nothing -> False
+            Just dst -> isFree dst board
+
+    manSimpleMoves rules side board src =
         mapMaybe check (gManSimpleMoveDirections rules)
       where
         check dir =
@@ -151,7 +159,7 @@ abstractRules =
             Just dst -> if isFree dst board
                           then let move = Move src [Step dir False promote]
                                    promote = isLastHorizontal side dst
-                                   piece' = if promote then promotePiece piece else piece
+                                   piece' = if promote then Piece King side else Piece Man side
                                in  Just $ PossibleMove {
                                      pmBegin = src,
                                      pmEnd = dst,
@@ -263,11 +271,12 @@ abstractRules =
 
     -- This is most popular implementation, which fits most rules
     -- except for english / checkers
-    kingSimpleMoves rules piece@(Piece _ side) board src =
+    kingSimpleMoves rules side board src =
         concatMap check (gKingSimpleMoveDirections rules)
       where
         check dir =
           let (nFree,free) = freeFields rules side dir src board
+              piece = Piece King side
           in [PossibleMove {
                 pmBegin = src,
                 pmEnd = free !! (n-1),
