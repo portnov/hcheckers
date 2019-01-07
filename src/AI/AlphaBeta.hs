@@ -326,14 +326,12 @@ doScore rules eval var params side dp board alpha beta =
       let timeout = case abBaseTime params of
                       Nothing -> Nothing
                       Just sec -> Just $ TimeSpec (fromIntegral sec) 0
-      return $ ScoreState rules eval [loose] emptyMemo now timeout
-    emptyMemo = MovesMemo emptyBoardMap emptyBoardMap
+      return $ ScoreState rules eval [loose] now timeout
 
 data ScoreState rules eval = ScoreState {
     ssRules :: rules
   , ssEvaluator :: eval
   , ssBestScores :: [Score] -- ^ At each level of depth-first search, there is own "best score"
-  , ssMemo :: ! MovesMemo   -- ^ Cache of possible moves
   , ssStartTime :: TimeSpec -- ^ Start time of calculation
   , ssTimeout :: Maybe TimeSpec -- ^ Nothing for "no timeout"
   }
@@ -470,7 +468,6 @@ scoreAB var params input
       $trace "{}V Side: {}, A = {}, B = {}" (indent, show side, show alpha, show beta)
       rules <- gets ssRules
       let moves = possibleMoves rules side board
-      -- moves <- possibleMoves' board
 
       -- this actually means that corresponding side lost.
       when (null moves) $
@@ -497,19 +494,6 @@ scoreAB var params input
     pop :: ScoreM rules eval ()
     pop =
       modify $ \st -> st {ssBestScores = tail (ssBestScores st)}
-
-    possibleMoves' :: Board -> ScoreM rules eval [PossibleMove]
-    possibleMoves' board = do
---         rules <- gets ssRules
---         return $ possibleMoves rules side board
-      rules <- gets ssRules
-      memo <- gets ssMemo
-      case lookupMoves side board memo of
-        Just moves -> return moves
-        Nothing -> do
-          let moves = possibleMoves rules side board
-          modify $ \st -> st {ssMemo = putMoves side board moves (ssMemo st)}
-          return moves
 
     sortMoves :: Maybe PossibleMove -> [PossibleMove] -> [PossibleMove]
     sortMoves Nothing moves = moves
