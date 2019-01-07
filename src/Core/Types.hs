@@ -337,7 +337,15 @@ instance Eq PossibleMove where
     pmMove pm1 == pmMove pm2
 
 instance Show PossibleMove where
-  show pm = show (pmMove pm)
+  show pm = move ++ promotion
+    where
+      move
+        | null (pmVictims pm) = show (pmBegin pm) ++ "-" ++ show (pmEnd pm)
+        | otherwise =  show (pmBegin pm) ++ "x" ++ show (pmEnd pm)
+
+      promotion
+        | pmPromote pm = "(K)"
+        | otherwise = ""
 
 -- | The primitive action that can take place during the move
 data MoveAction =
