@@ -11,6 +11,7 @@ import qualified Data.Map as M
 import qualified Data.IntMap.Strict as IM
 import qualified Data.IntSet as IS
 import qualified Data.Text as T
+import Data.Array.IArray as A
 import Text.Printf
 
 -- import Debug.Trace
@@ -58,14 +59,7 @@ allFields :: Board -> [FieldIndex]
 allFields b = IM.keys (bAddresses b)
 
 allPieces :: Board -> [Maybe Piece]
-allPieces b = map check (allFields b)
-  where
-    check field
-      | field `IS.member` bFirstMen b = Just (Piece Man First)
-      | field `IS.member` bSecondMen b = Just (Piece Man Second)
-      | field `IS.member` bFirstKings b = Just (Piece King First)
-      | field `IS.member` bSecondKings b = Just (Piece King Second)
-      | otherwise = Nothing
+allPieces b = map boxPiece $ A.elems (bPieces b)
 
 boardDirection :: BoardSide -> PlayerDirection -> BoardDirection
 boardDirection Bottom ForwardLeft = UpLeft
@@ -205,7 +199,7 @@ isOpponentAt side addr board =
 
 isFree :: Address -> Board -> Bool
 isFree addr b =
-  not $ any (aLabel addr `labelSetMember`) [bFirstMen b, bSecondMen b, bFirstKings b, bSecondKings b]
+  (bPieces b A.! aIndex addr) == unboxPiece Nothing
 
 isFree' :: Label -> Board -> Bool
 isFree' l b = isFree (resolve l b) b
@@ -217,22 +211,34 @@ isFreeInDirection dir src board n =
     Just dst -> isNothing (getPiece dst board)
 
 allMyLabels :: Side -> Board -> [Label]
-allMyLabels First board =
-  labelSetToList (bFirstMen board) ++ labelSetToList (bFirstKings board)
-allMyLabels Second board =
-  labelSetToList (bSecondMen board) ++ labelSetToList (bSecondKings board)
+allMyLabels side board = myMen side board ++ myKings side board
+-- allMyLabels side board =
+--     [unpackIndex i | (i, p) <- A.assocs (bPieces board), check (boxPiece p)]
+--   where
+--     check (Just (Piece _ s)) = s == side
+--     check _ = False
 
 myMen :: Side -> Board -> [Label]
-myMen First board = labelSetToList (bFirstMen board)
-myMen Second board = labelSetToList (bSecondMen board)
+myMen First board = labelSetToList $ bkFirstMen $ boardKey board
+myMen Second board = labelSetToList $ bkSecondMen $ boardKey board
+-- myMen side board = 
+--     [unpackIndex i | (i, p) <- A.assocs (bPieces board), check (boxPiece p)]
+--   where
+--     check (Just (Piece Man s)) = s == side
+--     check _ = False
 
 myMenA :: Side -> Board -> [Address]
 myMenA side board =
   map (\l -> resolve l board) $ myMen side board
 
 myKings :: Side -> Board -> [Label]
-myKings First board = labelSetToList (bFirstKings board)
-myKings Second board = labelSetToList (bSecondKings board)
+myKings First board = labelSetToList $ bkFirstKings $ boardKey board
+myKings Second board = labelSetToList $ bkSecondKings $ boardKey board
+-- myKings side board =
+--     [unpackIndex i | (i, p) <- A.assocs (bPieces board), check (boxPiece p)]
+--   where
+--     check (Just (Piece King s)) = s == side
+--     check _ = False
 
 myKingsA :: Side -> Board -> [Address]
 myKingsA side board =
@@ -258,35 +264,6 @@ myCounts side board =
   in  case side of
         First -> (bcFirstMen counts, bcFirstKings counts)
         Second -> (bcSecondMen counts, bcSecondKings counts)
-
--- checkWellFormedStep :: Piece -> Board -> Address -> Step -> StepCheckResult
--- checkWellFormedStep (Piece kind side) board src step =
---   case neighbour (myDirection side (sDirection step)) src of
---     Nothing -> NoSuchNeighbour
---     Just dst ->
---       if sCapture step
---         then -- trace (printf "Dir: %s, Capture: %s, Dst: %s, piece: %s" (show $ myDirection side (sDirection step)) (show $ sCapture step) (show dst) (show $ getPiece dst board)) $
---              case getPiece dst board of
---                Nothing -> NoPieceToCapture
---                Just piece -> if isMyPiece side piece
---                                then CapturingOwnPiece
---                                else ValidStep dst
---         else if isJust (getPiece dst board)
---                then OccupatedField
---                else if (kind == Man) && (sPromote step /= isLastHorizontal side dst)
---                        then InvalidPromotion (sPromote step) (isLastHorizontal side dst)
---                        else ValidStep dst
--- 
--- isWellFormedMove :: Piece -> Board -> Move -> MoveCheckResult
--- isWellFormedMove piece board move =
---     -- isMyPieceAt side (moveBegin move) board &&
---     go (moveBegin move) (moveSteps move)
---   where
---     go _ [] = ValidMove
---     go src (step : steps) =
---       case checkWellFormedStep piece board src step of
---         ValidStep dst -> go dst steps
---         err -> InvalidStep step err
 
 catMoves :: Move -> Move -> Move
 catMoves m1 m2 =
@@ -494,11 +471,10 @@ buildBoard orient bsize@(nrows, ncols) =
 
       addressByLabel = buildLabelMap nrows ncols [(label p, address) | (p, address) <- M.assocs addresses]
 
+      n2 = 16*16
+
       board = Board {
-                bFirstMen = emptyLabelSet,
-                bSecondMen = emptyLabelSet,
-                bFirstKings = emptyLabelSet,
-                bSecondKings = emptyLabelSet,
+                bPieces = A.listArray (0, n2-1) (replicate n2 0),
                 bAddresses = addressByLabel,
                 bCaptured = emptyLabelSet,
                 boardCounts = counts,
@@ -515,12 +491,8 @@ resolve :: Label -> Board -> Address
 resolve label board = fromMaybe (error $ "resolve: unknown field: " ++ show label) $ lookupLabel label (bAddresses board)
 
 getPiece :: Address -> Board -> Maybe Piece
-getPiece a b
-  | (aLabel a) `labelSetMember` (bFirstMen b) = Just (Piece Man First)
-  | (aLabel a) `labelSetMember` (bSecondMen b) = Just (Piece Man Second)
-  | (aLabel a) `labelSetMember` (bFirstKings b) = Just (Piece King First)
-  | (aLabel a) `labelSetMember` (bSecondKings b) = Just (Piece King Second)
-  | otherwise = Nothing
+getPiece a b =
+  boxPiece $ bPieces b A.! (aIndex a)
 
 getPiece_ :: String -> Address -> Board -> Piece
 getPiece_ name addr board =
@@ -545,15 +517,13 @@ setPiece a p b = board
     b1 = if isFree a b
            then b
            else removePiece a b
-    board = case p of
-              Piece Man First -> b1 {bFirstMen = insertLabelSet (aLabel a) (bFirstMen b1), boardCounts = counts, boardKey = key}
-              Piece Man Second -> b1 {bSecondMen = insertLabelSet (aLabel a) (bSecondMen b1), boardCounts = counts, boardKey = key}
-              Piece King First -> b1 {bFirstKings = insertLabelSet (aLabel a) (bFirstKings b1), boardCounts = counts, boardKey = key}
-              Piece King Second -> b1 {bSecondKings = insertLabelSet (aLabel a) (bSecondKings b1), boardCounts = counts, boardKey = key}
+    board = b1 {bPieces = bPieces b1 A.// [(aIndex a, unboxPiece (Just p))], boardCounts = counts, boardKey = key}
     counts = case getPiece a b of
                      Nothing -> insertBoardCounts p (boardCounts b)
                      Just old -> insertBoardCounts p $ removeBoardCounts old (boardCounts b)
-    key = calcBoardKey board
+    key = case getPiece a b of
+            Nothing -> insertBoardKey a p (boardKey b1)
+            Just old -> insertBoardKey a p $ removeBoardKey a old (boardKey b1)
 
 removePiece :: Address -> Board -> Board
 removePiece a b = board
@@ -561,14 +531,9 @@ removePiece a b = board
     board = case getPiece a b of
               Nothing -> error $ printf "removePiece: there is no piece at %s; board: %s" (show a) (show b)
               Just piece ->
-                let b' = case piece of
-                          Piece Man First -> b {bFirstMen = deleteLabelSet (aLabel a) (bFirstMen b), boardCounts = counts, boardKey = key}
-                          Piece Man Second -> b {bSecondMen = deleteLabelSet (aLabel a) (bSecondMen b), boardCounts = counts, boardKey = key}
-                          Piece King First -> b {bFirstKings = deleteLabelSet (aLabel a) (bFirstKings b), boardCounts = counts, boardKey = key}
-                          Piece King Second -> b {bSecondKings = deleteLabelSet (aLabel a) (bSecondKings b), boardCounts = counts, boardKey = key}
-                           
+                let b' = b {bPieces = bPieces b A.// [(aIndex a, unboxPiece Nothing)], boardCounts = counts, boardKey = key}
                     counts = removeBoardCounts piece (boardCounts b)
-                    key = calcBoardKey b'
+                    key = removeBoardKey a piece (boardKey b)
                 in  b'
 
 removePiece' :: Label -> Board -> Board
@@ -634,10 +599,10 @@ parseMoveRep rules side board (FullMoveRep from steps) =
 
 boardRep :: Board -> BoardRep
 boardRep board = BoardRep $
-  [(lbl, Piece Man First) | lbl <- labelSetToList (bFirstMen board)] ++
-  [(lbl, Piece Man Second) | lbl <- labelSetToList (bSecondMen board)] ++
-  [(lbl, Piece King First) | lbl <- labelSetToList (bFirstKings board)] ++
-  [(lbl, Piece King Second) | lbl <- labelSetToList (bSecondKings board)]
+  catMaybes $ flip map (A.assocs (bPieces board)) $ \(i, p) ->
+    case boxPiece p of
+      Nothing -> Nothing
+      Just piece -> Just (unpackIndex i, piece)
 
 parseBoardRep :: GameRules rules => rules -> BoardRep -> Board
 parseBoardRep rules (BoardRep list) = foldr set (buildBoard orient bsize) list

@@ -6,6 +6,8 @@ import qualified Data.Map as M
 import qualified Data.HashMap.Strict as H
 import qualified Data.IntMap.Strict as IM
 import qualified Data.IntSet as IS
+import Data.Array.Unboxed
+import Data.Array.IArray as A
 import Data.Hashable
 import Data.Store
 import Data.Word
@@ -13,13 +15,30 @@ import Text.Printf
 
 import Core.Types
 
+boxPiece :: UnboxedPiece -> Maybe Piece
+boxPiece 0 = Nothing
+boxPiece 1 = Just $ Piece Man First
+boxPiece 2 = Just $ Piece Man Second
+boxPiece 3 = Just $ Piece King First
+boxPiece 4 = Just $ Piece King Second
+
+unboxPiece :: Maybe Piece -> UnboxedPiece
+unboxPiece Nothing = 0
+unboxPiece (Just (Piece Man First)) = 1
+unboxPiece (Just (Piece Man Second)) = 2
+unboxPiece (Just (Piece King First)) = 3
+unboxPiece (Just (Piece King Second)) = 4
+
 calcBoardCounts :: Board -> BoardCounts
 calcBoardCounts board = BoardCounts {
-                      bcFirstMen = IS.size (bFirstMen board)
-                    , bcFirstKings = IS.size (bFirstKings board)
-                    , bcSecondMen = IS.size (bSecondMen board)
-                    , bcSecondKings = IS.size (bSecondKings board)
+                      bcFirstMen = length $ find (Piece Man First) pieces
+                    , bcFirstKings = length $ find (Piece King First) pieces
+                    , bcSecondMen = length $ find (Piece Man Second) pieces
+                    , bcSecondKings = length $ find (Piece King Second) pieces
                   }
+  where
+    pieces = A.elems (bPieces board)
+    find p = filter (== unboxPiece (Just p))
 
 insertBoardCounts :: Piece -> BoardCounts -> BoardCounts
 insertBoardCounts p bc =
@@ -39,11 +58,14 @@ removeBoardCounts p bc =
 
 calcBoardKey :: Board -> BoardKey
 calcBoardKey board = BoardKey {
-                   bkFirstMen = bFirstMen board
-                 , bkFirstKings = bFirstKings board
-                 , bkSecondMen = bSecondMen board
-                 , bkSecondKings = bSecondKings board
+                   bkFirstMen = IS.fromList $ find (Piece Man First)
+                 , bkFirstKings = IS.fromList $ find (Piece King First)
+                 , bkSecondMen = IS.fromList $ find (Piece Man Second)
+                 , bkSecondKings = IS.fromList $ find (Piece King Second)
                 }
+  where
+    find p =
+      [i | (i, piece) <- A.assocs (bPieces board), piece == unboxPiece (Just p)]
 
 insertBoardKey :: Address -> Piece -> BoardKey -> BoardKey
 insertBoardKey a (Piece Man First) bk = bk {bkFirstMen = insertLabelSet (aLabel a) (bkFirstMen bk)}

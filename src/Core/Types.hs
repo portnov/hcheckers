@@ -17,6 +17,7 @@ import Control.Monad.Metrics as Metrics
 import Control.Concurrent
 import Control.Concurrent.STM
 import Data.List
+import Data.Array.Unboxed
 import qualified Data.Map as M
 import qualified Data.IntMap.Strict as IM
 import qualified Data.IntSet as IS
@@ -121,6 +122,8 @@ data Piece = Piece {
 instance Show Piece where
   show (Piece k s) = show k ++ show s
 
+type UnboxedPiece = Word8
+
 data Address = Address {
     aLabel :: ! Label,
     aPromotionSide :: Maybe Side,
@@ -155,10 +158,7 @@ type LabelSet = IS.IntSet
 
 -- | Board describes current position on the board.
 data Board = Board {
-    bFirstMen :: LabelSet,
-    bSecondMen :: LabelSet,
-    bFirstKings :: LabelSet,
-    bSecondKings :: LabelSet,
+    bPieces :: UArray FieldIndex UnboxedPiece,
     bAddresses :: LabelMap Address,
     bCaptured :: LabelSet,
     boardCounts :: BoardCounts,

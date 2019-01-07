@@ -73,10 +73,10 @@ boardToFen :: Side -> Board -> Fen
 boardToFen side b =
   Fen {
     fenNextMove = side,
-    fenFirst = [(lbl, Man) | lbl <- labelSetToList (bFirstMen b)] ++
-               [(lbl, King) | lbl <- labelSetToList (bFirstKings b)],
-    fenSecond = [(lbl, Man) | lbl <- labelSetToList (bSecondMen b)] ++
-                [(lbl, King) | lbl <- labelSetToList (bSecondKings b)]
+    fenFirst = [(lbl, Man) | lbl <- myMen First b] ++
+               [(lbl, King) | lbl <- myKings First b],
+    fenSecond = [(lbl, Man) | lbl <- myMen Second b] ++
+                [(lbl, King) | lbl <- myKings Second b]
   }
 
 showFen :: BoardSize -> Fen -> T.Text
