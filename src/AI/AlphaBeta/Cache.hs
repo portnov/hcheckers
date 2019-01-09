@@ -45,7 +45,7 @@ loadAiCache :: (GameRules rules, Evaluator eval)
             -> AlphaBeta rules eval
             -> Checkers (AICacheHandle rules eval)
 loadAiCache scoreMove (AlphaBeta params rules eval) = do
-  let getKey (ai, handle, side, depth, board, pm, _, _) = pmResult pm
+  let getKey input = pmResult (smiMove input)
   aiCfg <- asks (gcAiConfig . csConfig)
   processor <- runProcessor (aiThreads aiCfg) getKey scoreMove
   cache <- liftIO $ atomically $ newTVar $ AICache False processor emptyBoardMap

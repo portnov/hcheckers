@@ -136,8 +136,16 @@ type StorageKey = (DepthParams, BoardKey)
 
 type StorageValue = CacheItemSide
 
-type ScoreMoveInput rules eval = 
-  (AlphaBeta rules eval, AICacheHandle rules eval, Side, DepthParams, Board, PossibleMove, Score, Score)
+data ScoreMoveInput rules eval = ScoreMoveInput {
+    smiAi :: AlphaBeta rules eval
+  , smiCache :: AICacheHandle rules eval
+  , smiSide :: Side 
+  , smiDepth :: DepthParams
+  , smiBoard :: Board
+  , smiMove :: PossibleMove
+  , smiAlpha :: Score
+  , smiBeta :: Score
+  }
 
 data AICache rules eval = AICache {
     aicDirty :: Bool

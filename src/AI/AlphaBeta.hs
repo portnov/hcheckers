@@ -4,6 +4,7 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE RecordWildCards #-}
 
 {-
  - This module contains an implementation of alpha-beta-pruning algorithm
@@ -69,19 +70,21 @@ instance (GameRules rules, Evaluator eval) => GameAi (AlphaBeta rules eval) wher
 
   aiName _ = "default"
 
+-- | Calculate score of one possible move.
 scoreMove :: (GameRules rules, Evaluator eval) => ScoreMoveInput rules eval -> Checkers (PossibleMove, Score)
-scoreMove (ai@(AlphaBeta params rules eval), var, side, dp, board, pm, alpha, beta) = do
+scoreMove (ScoreMoveInput {..}) = do
+     let AlphaBeta params rules eval = smiAi
      score <- Metrics.timed "ai.score.move" $ do
-                let board' = applyMoveActions (pmResult pm) board
-                score <- doScore rules eval var params (opposite side) dp board' alpha beta
+                let board' = applyMoveActions (pmResult smiMove) smiBoard
+                score <- doScore rules eval smiCache params (opposite smiSide) smiDepth board' smiAlpha smiBeta
                           `catchError` (\(e :: Error) -> do
-                                        $info "doScore: move {}, depth {}: {}" (show pm, dpTarget dp, show e)
+                                        $info "doScore: move {}, depth {}: {}" (show smiMove, dpTarget smiDepth, show e)
                                         throwError e
                                   )
-                $info "Check: {} (depth {}) => {}" (show pm, dpTarget dp, show score)
+                $info "Check: {} (depth {}) => {}" (show smiMove, dpTarget smiDepth, show score)
                 return score
      
-     return (pm, score)
+     return (smiMove, score)
 
 type DepthIterationInput = (AlphaBetaParams, [PossibleMove], Maybe DepthIterationOutput)
 type DepthIterationOutput = [(PossibleMove, Score)]
@@ -257,7 +260,17 @@ runAI ai@(AlphaBeta params rules eval) handle side board = do
       $info "`- Considering scores interval: [{} - {}]" (alpha, beta)
       let var = aichData handle
       AICache _ processor _ <- liftIO $ atomically $ readTVar var
-      let inputs = [(ai, handle, side, dp, board, move, alpha, beta) | move <- moves]
+      let inputs = [
+            ScoreMoveInput {
+              smiAi = ai,
+              smiCache = handle,
+              smiSide = side,
+              smiDepth = dp,
+              smiBoard = board,
+              smiMove = move,
+              smiAlpha = alpha,
+              smiBeta = beta
+            } | move <- moves ]
       results <- process' processor inputs
       joined <- joinResults prevResult results
       return joined
