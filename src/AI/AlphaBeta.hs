@@ -90,6 +90,54 @@ type DepthIterationInput = (AlphaBetaParams, [PossibleMove], Maybe DepthIteratio
 type DepthIterationOutput = [(PossibleMove, Score)]
 type AiOutput = ([PossibleMove], Score)
 
+-- | General driver / controller for Alpha-Beta prunning algorithm.
+-- This method is responsible in running scoreAB method on all possible moves
+-- and selecting the best move.
+--
+-- This is done, in general, in three stages:
+--
+-- 1. Preselect. From all possible moves, select ones that look good at a first glance.
+--    This logic can be used to make AI work faster, but it obviously can miss some moves
+--    that are not so good from a first glance, but are very good from the second glance.
+-- 
+-- 2. Depth-wise loop. Score all moves with specified depth. If there is still time, then
+--    score them again with better depth. Repeat until there is still time.
+--    Each iteration can be interrupted by TimeExhaused exception.
+--    If last iteration was not interrupted, then use results of last iteration.
+--    If last iteration was interrputed, then merge results of last iteration with results
+--    of previous one: for moves that we was not able to calculate with better depth,
+--    use results with previous depth.
+--    If timeout is not specified, then only one iteration is executed, without timeout.
+--    The depth to start with should not be very big, so that we should be always able to
+--    calculate all moves with at least start depth. Neither should it be too small, 
+--    otherwise we would re-calculate the same for many times.
+--
+-- 3. Width-wise loop. This is performed within each depth iteration.
+--    Specifics of alpha-beta prunning algorithm is so that the lesser 
+--    (alpha, beta) range is provided at start, the faster algorithm works; however,
+--    in case real score is outside of these bounds, it will return eiter alpha or beta
+--    value instead of real score value. So, we do the following:
+--
+--    *  Select initial "width range", which is range of scores (alpha, beta). This range
+--       is selected based on evaluation of current board with zero depth, plus-minus some
+--       small delta.
+--       Run scoreAB in that range.
+--    *  If values returned by scoreAB are within selected initial range, then everything is
+--       okay: we just select the best of returned values.
+--    *  If exactly one move seems to bee "too good", i.e. corresponding result of scoreAB
+--       equals to alpha/beta (depending on side), then we do not bother about it's exact
+--       score: we should do that move anyway.
+--    *  If there are more than one "too good" moves, then we should select the next interval
+--       (alpha, beta), and run the next iteration only on that moves that seem to be "too good".
+--    *  If all moves seem to be "too bad", then we should select the previous interval of
+--       (alpha, beta), and run the next iteration on all moves in that interval.
+--    *  It is possible (not very likely, but possible) that real score of some moves equals
+--       exactly to alpha or beta bound that we selected on some iteration. To prevent switching
+--       between "better" and "worther" intervals forwards and backwards indefinitely, we
+--       introduce a restriction: if we see that scoreAB returned the bound value, but we have
+--       already considered the interval on that side, then we know that the real score equals
+--       exactly to the bound.
+--
 runAI :: (GameRules rules, Evaluator eval) => AlphaBeta rules eval -> AICacheHandle rules eval -> Side -> Board -> Checkers AiOutput
 runAI ai@(AlphaBeta params rules eval) handle side board = do
     preOptions <- preselect
@@ -302,22 +350,6 @@ runAI ai@(AlphaBeta params rules eval) handle side board = do
           goodMoves = [move | (move, score) <- pairs, score == maxScore]
       return (goodMoves, maxScore)
 
--- | Cache of possible moves per board
-data MovesMemo = MovesMemo {
-      mmFirst :: BoardMap [PossibleMove]
-    , mmSecond :: BoardMap [PossibleMove]
-  }
-
-lookupMoves :: Side -> Board -> MovesMemo -> Maybe [PossibleMove]
-lookupMoves First board memo = lookupBoardMap (boardCounts board, boardKey board) (mmFirst memo)
-lookupMoves Second board memo = lookupBoardMap (boardCounts board, boardKey board) (mmSecond memo)
-
-putMoves :: Side -> Board -> [PossibleMove] -> MovesMemo -> MovesMemo
-putMoves First board moves memo =
-  memo {mmFirst = putBoardMap board moves (mmFirst memo)}
-putMoves Second board moves memo =
-  memo {mmSecond = putBoardMap board moves (mmSecond memo)}
-
 -- | Calculate score of the board
 doScore :: (GameRules rules, Evaluator eval)
         => rules
@@ -341,6 +373,7 @@ doScore rules eval var params side dp board alpha beta =
                       Just sec -> Just $ TimeSpec (fromIntegral sec) 0
       return $ ScoreState rules eval [loose] now timeout
 
+-- | State of ScoreM monad.
 data ScoreState rules eval = ScoreState {
     ssRules :: rules
   , ssEvaluator :: eval
@@ -349,6 +382,7 @@ data ScoreState rules eval = ScoreState {
   , ssTimeout :: Maybe TimeSpec -- ^ Nothing for "no timeout"
   }
 
+-- | Input data for scoreAB method.
 data ScoreInput = ScoreInput {
     siSide :: Side
   , siDepth :: DepthParams
@@ -358,6 +392,7 @@ data ScoreInput = ScoreInput {
   , siPrevMove :: Maybe PossibleMove
   }
 
+-- | ScoreM monad.
 type ScoreM rules eval a = StateT (ScoreState rules eval) Checkers a
 
 instance HasLogger (StateT (ScoreState rules eval) Checkers) where
@@ -451,6 +486,7 @@ updateDepth params nMoves dp
                 return $ dp {dpCurrent = dpCurrent dp + 1, dpTarget = target}
   | otherwise = return $ dp {dpCurrent = dpCurrent dp + 1}
 
+-- | Check if timeout is exhaused.
 isTimeExhaused :: ScoreM rules eval Bool
 isTimeExhaused = do
   check <- gets ssTimeout
@@ -461,7 +497,8 @@ isTimeExhaused = do
       now <- liftIO $ getTime Monotonic
       return $ start + delta <= now
 
--- | Calculate score for the board
+-- | Calculate score for the board.
+-- This implements the alpha-beta section algorithm itself.
 scoreAB :: forall rules eval. (GameRules rules, Evaluator eval)
         => AICacheHandle rules eval
         -> AlphaBetaParams
