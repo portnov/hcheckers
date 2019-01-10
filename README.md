@@ -66,7 +66,7 @@ $ stack install
 Run server:
 
 ```
-$ stack exec hcheckers-exe
+$ stack exec hcheckersd
 ```
 
 Run client:
