@@ -58,7 +58,7 @@ dependencies:
 - random-access-file
 
 executables:
-  hcheckers-exe:
+  hcheckersd:
     main:                Main.hs
     source-dirs:         src
     ghc-options:
