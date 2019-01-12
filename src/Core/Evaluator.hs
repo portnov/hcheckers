@@ -6,6 +6,7 @@ module Core.Evaluator where
 import Data.Int
 import Data.Aeson
 import Data.Aeson.Types (parseMaybe)
+import Data.Default
 
 import Core.Types
 import Core.Board
@@ -37,30 +38,47 @@ defaultEvaluator rules =
     , seHelpedKingCoef = 5
   }
 
-instance Evaluator SimpleEvaluator where
-  evaluatorName _ = "simple"
+data PreScore = PreScore {
+      psNumeric :: ScoreBase
+    , psMobility :: ScoreBase
+    , psCenter :: ScoreBase
+    , psTemp :: ScoreBase
+    , psBacked :: ScoreBase
+    , psAsymetry :: ScoreBase
+  }
 
-  updateEval e (Object v) =
-    case parseMaybe (.: "use_positional_score") v of
-      Nothing -> e
-      Just Nothing -> e
-      Just (Just True) -> e {seUsePositionalScore = True}
-      Just (Just False) -> e {seUsePositionalScore = False}
+sub :: PreScore -> PreScore -> PreScore
+sub ps1 ps2 = PreScore {
+    psNumeric = psNumeric ps1 - psNumeric ps2
+  , psMobility = psMobility ps1 - psMobility ps2
+  , psCenter = psCenter ps1 - psCenter ps2
+  , psTemp = psTemp ps1 - psTemp ps2
+  , psBacked = psBacked ps1 - psBacked ps2
+  , psAsymetry = psAsymetry ps1 - psAsymetry ps2
+  }
 
-  evalBoard (SimpleEvaluator {seRules=SomeRules rules, ..}) whoAsks whoMovesNext board =
-    let kingCoef side =
+instance Default PreScore where
+  def = PreScore {
+            psNumeric = 0
+          , psMobility = 0
+          , psCenter = 0
+          , psTemp = 0
+          , psBacked = 0
+          , psAsymetry = 0
+        }
+
+preEval :: SimpleEvaluator -> Side -> Board -> PreScore
+preEval (SimpleEvaluator {seRules = SomeRules rules, ..}) side board =
+    let kingCoef =
           -- King is much more useful when there are enough men to help it
           let (men, _) = myCounts side board
           in  if men > 3
                 then seHelpedKingCoef
                 else seKingCoef
         
-        numericScore side =
+        numericScore =
           let (myMen, myKings) = myCounts side board
-          in  kingCoef side * fromIntegral myKings + fromIntegral myMen
-
-        myNumeric = numericScore whoAsks
-        opponentNumeric = numericScore (opposite whoAsks)
+          in  kingCoef * fromIntegral myKings + fromIntegral myMen
 
         (nrows,ncols) = bSize board
         crow = nrows `div` 2
@@ -74,23 +92,23 @@ instance Evaluator SimpleEvaluator where
 
         isLeftHalf (Label col _) = col >= ccol
 
-        asymetry side =
+        asymetry =
           let (leftMen, leftKings) = myLabelsCount side board isLeftHalf
               (rightMen, rightKings) = myLabelsCount side board (not . isLeftHalf)
           in  abs $ (leftMen + leftKings) - (rightMen + rightKings)
 
-        isBackedAt addr side dir =
+        isBackedAt addr dir =
           case getNeighbourPiece (myDirection rules side dir) addr board of
             Nothing -> False
             Just p -> pieceSide p == side
 
-        backedScoreOf side addr = 
-          length $ filter (isBackedAt addr side) [BackwardLeft, BackwardRight]
+        backedScoreOf addr = 
+          length $ filter (isBackedAt addr) [BackwardLeft, BackwardRight]
 
-        backedScore side =
-          sum $ map (backedScoreOf side) $ allMyAddresses side board
+        backedScore =
+          fromIntegral $ sum $ map backedScoreOf $ allMyAddresses side board
 
-        tempNumber side (Label col row)
+        tempNumber (Label col row)
           | col == 0 || col == ncols-1 = 0
           | otherwise =
               case boardSide (boardOrientation rules) side of
@@ -98,27 +116,58 @@ instance Evaluator SimpleEvaluator where
                 Bottom -> row + 1
 
         -- opponentSideCount :: Side -> Int
-        opponentSideCount side =
-          let (men, kings) = myLabelsCount' side board (tempNumber side)
+        opponentSideCount =
+          let (men, kings) = myLabelsCount' side board tempNumber
           in  men
 
-        positionalScore side =
+        mobility = length (possibleMoves rules side board)
+
+        centerScore =
           let (men, kings) = myLabelsCount side board isCenter
-          in  if seUsePositionalScore
-                then
-                  seCenterWeight * (kingCoef side * fromIntegral kings + fromIntegral men) +
-                  seOppositeSideWeight * fromIntegral (opponentSideCount side) +
-                  seMobilityWeight * mobility side +
-                  seBackedWeight * fromIntegral (backedScore side) -
-                  seAsymetryWeight * fromIntegral (asymetry side)
-                else 0
+          in  kingCoef * fromIntegral kings + fromIntegral men
 
-        mobility side = fromIntegral $ length (possibleMoves rules side board)
+    in  PreScore {
+            psNumeric = numericScore
+          , psMobility = fromIntegral mobility  
+          , psCenter = centerScore
+          , psTemp = fromIntegral opponentSideCount
+          , psBacked = fromIntegral backedScore
+          , psAsymetry = fromIntegral asymetry
+        }
 
-        myScore = Score myNumeric
-                        (positionalScore whoAsks)
-        opponentScore = Score opponentNumeric
-                              (positionalScore (opposite whoAsks))
+preEvalBoth :: SimpleEvaluator -> Board -> PreScore
+preEvalBoth eval board =
+  preEval eval First board `sub` preEval eval Second board
+
+instance Evaluator SimpleEvaluator where
+  evaluatorName _ = "simple"
+
+  updateEval e (Object v) =
+    case parseMaybe (.: "use_positional_score") v of
+      Nothing -> e
+      Just Nothing -> e
+      Just (Just True) -> e {seUsePositionalScore = True}
+      Just (Just False) -> e {seUsePositionalScore = False}
+
+  evalBoard eval@(SimpleEvaluator {..}) whoAsks whoMovesNext board =
+    let ps1 = preEval eval whoAsks board
+        ps2 = preEval eval (opposite whoAsks) board
+
+        positionalScore ps =
+          if seUsePositionalScore
+            then
+              seCenterWeight * psCenter ps +
+              seOppositeSideWeight * psTemp ps +
+              seMobilityWeight * psMobility ps +
+              seBackedWeight * psBacked ps +
+              seAsymetryWeight * psAsymetry ps
+            else 0
+
+        myNumeric = psNumeric ps1
+        opponentNumeric = psNumeric ps2
+
+        myScore = Score myNumeric (positionalScore ps1)
+        opponentScore = Score opponentNumeric (positionalScore ps2)
 
     in  if myNumeric == 0
           then loose

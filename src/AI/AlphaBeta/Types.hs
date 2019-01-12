@@ -37,6 +37,7 @@ data AlphaBetaParams = AlphaBetaParams {
     abDepth :: Int
   , abStartDepth :: Maybe Int
   , abCombinationDepth :: Int
+  , abDeeperIfBad :: Bool
   , abMovesLowBound :: Int
   , abMovesHighBound :: Int
   , abBaseTime :: Maybe Int
@@ -48,6 +49,7 @@ instance Default AlphaBetaParams where
           abDepth = 2
         , abStartDepth = Nothing
         , abCombinationDepth = 8
+        , abDeeperIfBad = False
         , abMovesLowBound = 4
         , abMovesHighBound = 8
         , abBaseTime = Nothing

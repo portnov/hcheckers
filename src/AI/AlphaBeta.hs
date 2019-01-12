@@ -42,6 +42,7 @@ instance FromJSON AlphaBetaParams where
       <$> v .: "depth"
       <*> v .:? "start_depth"
       <*> v .:? "max_combination_depth" .!= 8
+      <*> v .:? "deeper_if_bad" .!= False
       <*> v .:? "moves_bound_low" .!= 4
       <*> v .:? "moves_bound_high" .!= 8
       <*> v .:? "time"
@@ -147,6 +148,12 @@ runAI ai@(AlphaBeta params rules eval) handle side board = do
     maximize = side == First
     minimize = not maximize
 
+    betterThan s1 s2
+      | maximize = s1 > s2
+      | otherwise = s1 < s2
+
+    worseThan s1 s2 = not (betterThan s1 s2)
+
     preselect =
       return $ possibleMoves rules side board
 
@@ -217,7 +224,13 @@ runAI ai@(AlphaBeta params rules eval) handle side board = do
                    , dpMax = abCombinationDepth params + depth
                    , dpMin = fromMaybe depth (abStartDepth params)
                    }
-          result <- widthController True True prevResult moves dp initInterval
+          let needDeeper = abDeeperIfBad params && score0 `worseThan` 0
+          let dp'
+                | needDeeper = dp {
+                                    dpTarget = min (dpMax dp) (dpTarget dp + 1)
+                                  }
+                | otherwise = dp
+          result <- widthController True True prevResult moves dp' initInterval
           -- In some corner cases, there might be 1 or 2 possible moves,
           -- so the timeout would allow us to calculate with very big depth;
           -- too big depth does not decide anything in such situations.
@@ -227,11 +240,12 @@ runAI ai@(AlphaBeta params rules eval) handle side board = do
               return (result, Just (params', moves, Just result))
             else return (result, Nothing)
 
+    score0 = evalBoard eval First side board
+
     -- | Initial (alpha, beta) interval
     initInterval :: (Score, Score)
     initInterval =
-      let score0 = evalBoard eval First side board
-          delta = 1
+      let delta = 1
       in  (score0 - delta, score0 + delta)
 
     selectScale :: Score -> ScoreBase
@@ -305,7 +319,7 @@ runAI ai@(AlphaBeta params rules eval) handle side board = do
 
     widthIteration :: Maybe DepthIterationOutput -> [PossibleMove] -> DepthParams -> (Score, Score) -> Checkers DepthIterationOutput
     widthIteration prevResult moves dp (alpha, beta) = do
-      $info "`- Considering scores interval: [{} - {}]" (alpha, beta)
+      $info "`- Considering scores interval: [{} - {}], depth = {}" (alpha, beta, dpTarget dp)
       let var = aichData handle
       AICache _ processor _ <- liftIO $ atomically $ readTVar var
       let inputs = [
