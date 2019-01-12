@@ -83,6 +83,10 @@ class AiEditorWidget(QWidget):
         self.max_combination_depth.valueChanged.connect(self.edited)
         layout.addRow(_("Combination depth"), self.max_combination_depth)
 
+        self.deeper_if_bad = QCheckBox(self)
+        self.deeper_if_bad.stateChanged.connect(self.edited)
+        layout.addRow(_("Think better if situation seem bad"), self.deeper_if_bad)
+
         self.moves_bound_low = QSpinBox(self)
         self.moves_bound_low.setRange(1, 5)
         self.moves_bound_low.valueChanged.connect(self.edited)
@@ -120,6 +124,7 @@ class AiEditorWidget(QWidget):
         if ai.start_depth is not None:
             self.start_depth.setValue(ai.start_depth)
         self.max_combination_depth.setValue(ai.max_combination_depth)
+        self.deeper_if_bad.setCheckState(Qt.Checked if ai.deeper_if_bad else Qt.Unchecked)
         self.moves_bound_low.setValue(ai.moves_bound_low)
         self.moves_bound_high.setValue(ai.moves_bound_high)
         self.use_positional_score.setCheckState(Qt.Checked if ai.use_positional_score else Qt.Unchecked)
@@ -132,6 +137,7 @@ class AiEditorWidget(QWidget):
         ai.depth = self.depth.value()
         ai.start_depth = self.start_depth.value()
         ai.max_combination_depth = self.max_combination_depth.value()
+        ai.deeper_if_bad = self.deeper_if_bad.checkState() == Qt.Checked
         ai.moves_bound_low = self.moves_bound_low.value()
         ai.moves_bound_high = self.moves_bound_high.value()
         ai.use_positional_score = self.use_positional_score.checkState() == Qt.Checked
