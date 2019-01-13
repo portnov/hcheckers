@@ -210,6 +210,11 @@ class Checkers(QMainWindow):
         if not self.board_setup_mode:
             return
 
+        field = self.board.fields[(row,col)]
+        if not field.usable:
+            logging.debug("You cant put piece at this field")
+            return
+
         first = self.put_first_action.isChecked()
         second = self.put_second_action.isChecked()
         erase = self.erase_action.isChecked()
@@ -221,7 +226,7 @@ class Checkers(QMainWindow):
         elif second:
             side = SECOND
 
-        piece = self.board.fields[(row,col)].piece
+        piece = field.piece
         if not erase:
             if piece and piece.side == side:
                 if piece.kind == MAN:

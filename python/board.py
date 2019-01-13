@@ -189,8 +189,10 @@ class Board(QWidget):
             for col in range(self.n_cols):
                 if (row % 2) == (col % 2):
                     self.fields[(row,col)].pattern_id = 2
+                    self.fields[(row,col)].usable = True
                 else:
                     self.fields[(row,col)].pattern_id = 1
+                    self.fields[(row,col)].usable = False
 
     def set_theme(self, theme):
         self._theme = theme
@@ -441,6 +443,8 @@ class Board(QWidget):
     @handling_error
     def process_click(self, row, col):
         self.field_clicked.emit(row, col)
+        if self.toplevel.board_setup_mode:
+            return
 
         field = self.fields[(row, col)]
         if field.notation is None:

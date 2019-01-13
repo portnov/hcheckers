@@ -23,6 +23,7 @@ class Field(object):
         self._hide_piece = False
         self._captured = False
         self.invert_colors = False
+        self.usable = False
 
     def get_captured(self):
         return self._captured
