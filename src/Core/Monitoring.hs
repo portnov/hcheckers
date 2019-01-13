@@ -9,7 +9,7 @@ import qualified Data.Text as T
 
 import Core.Types
 
-ifMetricsEnabled :: (MonadIO m, Metrics.MonadMetrics m, HasMetricsConfig m) => m () -> m ()
+ifMetricsEnabled :: (Monad m, HasMetricsConfig m) => m () -> m ()
 ifMetricsEnabled action = do
   enabled <- isMetricsEnabled
   when enabled action

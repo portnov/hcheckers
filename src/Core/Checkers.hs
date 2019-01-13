@@ -2,6 +2,7 @@
 {-# LANGUAGE RecordWildCards #-}
 module Core.Checkers where
 
+import Control.Monad (when)
 import Control.Concurrent
 import qualified Control.Monad.Metrics as Metrics
 import Data.Maybe
@@ -24,11 +25,13 @@ withCheckers actions = do
   supervisor <- mkSupervisor
   cfg <- loadConfig
   print cfg
-  metrics <- Metrics.initialize
   logChan <- newChan
-  let store = metrics ^. Metrics.metricsStore
-  EKG.registerGcMetrics store
-  EKG.forkServerWith store (TE.encodeUtf8 $ gcHost cfg) (gcMetricsPort cfg)
+  metrics <- Metrics.initialize
+  when (gcEnableMetrics cfg) $ do
+    let store = metrics ^. Metrics.metricsStore
+    EKG.registerGcMetrics store
+    EKG.forkServerWith store (TE.encodeUtf8 $ gcHost cfg) (gcMetricsPort cfg)
+    return ()
   let file = (defFileSettings (gcLogFile cfg)) {
                 lsFormat = "{time} [{level}] {source} [{game}|{thread}]: {message}\n"
              }
