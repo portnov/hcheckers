@@ -9,7 +9,6 @@ import Data.String
 import Data.Char (isDigit, toLower, toUpper)
 import qualified Data.Map as M
 import qualified Data.IntMap.Strict as IM
-import qualified Data.IntSet as IS
 import qualified Data.Text as T
 import Data.Array.IArray as A
 import Text.Printf

@@ -12,26 +12,21 @@ module AI.AlphaBeta.Persistent where
 
 import Control.Monad
 import Control.Monad.State
-import Control.Monad.Catch (bracket_, catch, SomeException)
+import Control.Monad.Catch (catch, SomeException)
 import qualified Control.Monad.Metrics as Metrics
 import Control.Concurrent.STM
-import qualified Control.Concurrent.ReadWriteLock as RWL
 import qualified Data.HashPSQ as PQ
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as BL
 import qualified Data.Map as M
-import qualified Data.IntSet as IS
 import Data.Maybe
 import Data.Word
-import qualified Data.Binary
-import qualified Data.Binary.Put
 import Data.Text.Format.Heavy
 import Data.Store
 import Data.Bits.Coded
 import Data.Bits.Coding
 import Data.Bytes.Put
 import System.Clock
-import System.IO 
 import Text.Printf
 import GHC.Generics
 import System.Posix.Types
@@ -41,7 +36,6 @@ import System.Log.Heavy.TH
 
 import Core.Types
 import Core.Board
-import Core.BoardMap
 import AI.AlphaBeta.Types
 
 maxPieces :: Integer
@@ -119,7 +113,7 @@ getFh file = do
   st <- get
   case selector st of
     Nothing -> fail "getFh: file is not open"
-    Just fh -> return $ fh
+    Just fh -> return fh
 
 updateFh :: FileType -> (FHandle -> FHandle) -> Storage ()
 updateFh IndexFile fn = do

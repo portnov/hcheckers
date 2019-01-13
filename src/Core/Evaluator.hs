@@ -3,7 +3,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Core.Evaluator where
 
-import Data.Int
 import Data.Aeson
 import Data.Aeson.Types (parseMaybe)
 import Data.Default
@@ -29,8 +28,8 @@ defaultEvaluator rules =
   SimpleEvaluator {
       seRules = SomeRules rules
     , seUsePositionalScore = True
-    , seMobilityWeight = 4
-    , seCenterWeight = 2
+    , seMobilityWeight = 2
+    , seCenterWeight = 4
     , seOppositeSideWeight = 3
     , seBackedWeight = 2
     , seAsymetryWeight = 1

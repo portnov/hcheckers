@@ -6,7 +6,6 @@ import qualified Data.Map as M
 import qualified Data.HashMap.Strict as H
 import qualified Data.IntMap.Strict as IM
 import qualified Data.IntSet as IS
-import Data.Array.Unboxed
 import Data.Array.IArray as A
 import Data.Hashable
 import Data.Store

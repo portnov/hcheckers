@@ -15,7 +15,6 @@ import qualified Control.Concurrent.ReadWriteLock as RWL
 import Control.Concurrent.STM
 import qualified Data.Map as M
 import qualified Data.HashPSQ as PQ
-import Data.Int
 import Data.Word
 import Data.Binary
 import Data.Store
@@ -138,6 +137,7 @@ type StorageKey = (DepthParams, BoardKey)
 
 type StorageValue = CacheItemSide
 
+-- | Input for the `scoreMove` method
 data ScoreMoveInput rules eval = ScoreMoveInput {
     smiAi :: AlphaBeta rules eval
   , smiCache :: AICacheHandle rules eval
@@ -163,11 +163,6 @@ type DataBlockNumber = Word32
 data FileType = IndexFile | DataFile
   deriving (Eq, Show)
 
-data Locks = Locks {
-    lBlocksCount :: RWL.RWLock
-  , lBlockLocks :: TVar (M.Map IndexBlockNumber RWL.RWLock)
-  }
-
 -- | Handle to the instance of AI storage
 -- and related structures
 data AICacheHandle rules eval = AICacheHandle {
@@ -192,6 +187,7 @@ data FHandle = FHandle {
   , fhHandle :: FileDescriptor
   }
 
+-- | State for the Storage monad
 data StorageState = StorageState {
     ssLogging :: LoggingTState
   , ssMetrics :: Metrics.Metrics
@@ -200,6 +196,7 @@ data StorageState = StorageState {
   , ssData :: Maybe FHandle
   }
 
+-- | Storage monad.
 type Storage a = StateT StorageState IO a
 
 instance HasLogContext (StateT StorageState IO) where

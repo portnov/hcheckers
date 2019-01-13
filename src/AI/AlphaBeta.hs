@@ -16,23 +16,18 @@ module AI.AlphaBeta where
 import Control.Monad
 import Control.Monad.State
 import Control.Monad.Except
-import Control.Monad.Catch
 import qualified Control.Monad.Metrics as Metrics
 import Control.Concurrent.STM
 import Data.Maybe
-import Data.Int
 import Data.List (sortOn)
 import Data.Text.Format.Heavy
 import Data.Aeson
-import Text.Printf
 import System.Log.Heavy
 import System.Log.Heavy.TH
 import System.Clock
 
 import Core.Types
 import Core.Board
-import Core.Evaluator
-import Core.BoardMap
 import Core.Parallel
 import AI.AlphaBeta.Types
 import AI.AlphaBeta.Cache
@@ -282,7 +277,7 @@ runAI ai@(AlphaBeta params rules eval) handle side board = do
                     -> DepthParams
                     -> (Score, Score) -- ^ (Alpha, Beta)
                     -> Checkers DepthIterationOutput
-    widthController allowNext allowPrev prevResult moves dp interval@(alpha,beta) = do
+    widthController allowNext allowPrev prevResult moves dp interval@(alpha,beta) =
       if alpha == beta
         then do
           $info "Empty scores interval: [{}]. We have to think that all moves have this score." (Single alpha)

@@ -9,28 +9,35 @@ import Core.Types
 import Core.Board
 import Core.BoardMap
 
+-- | Describes one jump during capture move;
+-- capture can conssit of several jumps.
 data Capture = Capture {
-    cSrc :: Address,
-    cDirection :: PlayerDirection,
-    cInitSteps :: Int,
-    cVictim :: Address,
-    cFreeSteps :: Int,
-    cDst :: Address,
-    cPromote :: Bool
+      cSrc :: Address                -- ^ Source piece position
+    , cDirection :: PlayerDirection  -- ^ Direction of jump
+    , cInitSteps :: Int              -- ^ Number of steps by free fields that we have to do before the actual capture.
+                                     --   If a piece is a man, this is obviously always 0.
+    , cVictim :: Address             -- ^ Position of piece being captured
+    , cFreeSteps :: Int              -- ^ Number of steps by free fields that we are doing after actual capture.
+                                     --   For man, this is always 1.
+    , cDst :: Address                -- ^ End position of capture.
+    , cPromote :: Bool               -- ^ Whether the piece should be promoted at the end of this jump.
   }
 
+-- | State that we have to track during single capture move.
 data CaptureState = CaptureState {
-    ctPrevDirection :: Maybe PlayerDirection
-  , ctCaptured :: LabelSet
-  , ctPiece :: Piece
-  , ctBoard :: Board
-  , ctCurrent :: Address
-  , ctSource :: Address
+    ctPrevDirection :: Maybe PlayerDirection -- ^ Previous capture direction
+  , ctCaptured :: LabelSet                   -- ^ Fields that were already captured; we have to track this to prevent one piece being captured twice
+  , ctPiece :: Piece                         -- ^ Piece that is performing the capture
+  , ctBoard :: Board                         -- ^ Current board state
+  , ctCurrent :: Address                     -- ^ Current position of the piece
+  , ctSource :: Address                      -- ^ Starting position of capture
   }
 
+-- | Initial capture state
 initState :: Piece -> Board -> Address -> CaptureState
 initState piece board src = CaptureState Nothing emptyLabelSet piece board src src
 
+-- | An `Abstract class` for game rules
 data GenericRules = GenericRules {
     gPossibleMoves :: Side -> Board -> [PossibleMove]
   , gPossibleSimpleMoves1 :: Board -> Address -> [PossibleMove]
