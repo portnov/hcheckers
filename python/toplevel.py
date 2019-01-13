@@ -202,6 +202,7 @@ class Checkers(QMainWindow):
         self.board_setup_mode = False
         board = self.board.json()
         self.game.start_new_game(self.game_settings.user_name, rules=self.game_settings.rules, user_turn_first=self.game_settings.user_turn_first, ai=self.game_settings.ai, board=board)
+        self.board.text_message = None
         self.board.fields_setup()
 
     @handling_error
@@ -244,6 +245,7 @@ class Checkers(QMainWindow):
         if result == QDialog.Accepted:
             if self.game.is_active():
                 self.game.capitulate()
+            self.board.text_message = None
             self.game_active = True
             self.game.game_id = None
 
@@ -276,7 +278,9 @@ class Checkers(QMainWindow):
                 self.opponent_info.setText("")
                 self.status_info.setText("")
                 self.game_active = False
-                self.statusBar().showMessage(_("Waiting for another side to join the game."))
+                message = _("Waiting for another side to join the game.")
+                self.statusBar().showMessage(message)
+                self.board.text_message = message
             elif game.action == JOIN_HUMAN_GAME:
                 self.game.game_id = dialog.lobby.get_game_id()
                 self.game.user_side = side = dialog.lobby.get_free_side()
@@ -294,7 +298,8 @@ class Checkers(QMainWindow):
             self.board.invert_colors = invert
             self.board.set_notation(size, notation)
 
-            self.board.repaint()
+            self.board.theme = self.board.theme
+            #self.board.repaint()
             self.history.fill()
 
     @handling_error
@@ -365,9 +370,12 @@ class Checkers(QMainWindow):
         if isinstance(message, GameResultMessage):
             self.game_active = False
             result = self.get_result_str(message.result)
-            self.status_info.setText(_("Game result: {}").format(result))
+            result_text = _("Game result: {}").format(result)
+            self.status_info.setText(result_text)
             self.board.setCursor(Qt.ArrowCursor)
-            self.statusBar().showMessage(_("Game over."))
+            game_over = _("Game over.")
+            self.statusBar().showMessage(game_over)
+            self.board.text_message = game_over + " " + result_text
             self.history.fill()
             self.request_draw_action.setEnabled(False)
             self.capitulate_action.setEnabled(False)
@@ -376,7 +384,9 @@ class Checkers(QMainWindow):
             self.history.fill()
             self.my_turn = True
         elif isinstance(message, WaitingMove):
-            self.statusBar().showMessage(unicode(message))
+            text = unicode(message)
+            self.statusBar().showMessage(text)
+            self.board.text_message = text
         elif isinstance(message, DrawRequestedMessage):
             ok = QMessageBox.question(self, _("Accept the draw?"),
                     _("Another side have offered you a draw. Do you wish to accept it?"))
@@ -385,7 +395,10 @@ class Checkers(QMainWindow):
             else:
                 self._on_decline_draw()
         elif isinstance(message, DrawResponseMessage):
-            self.message.setText(unicode(message))
+            text = unicode(message)
+            self.message.setText(text)
+            self.board.text_message = text
+            self.board.repaint()
             if not message.result:
                 self.request_draw_action.setEnabled(True)
                 self.capitulate_action.setEnabled(True)
@@ -450,7 +463,8 @@ class Checkers(QMainWindow):
             self.board.show_possible_moves = dialog.get_show_possible_moves()
             self.board.show_notation = dialog.get_show_notation()
             self.board.theme = dialog.get_theme()
-            logging.info("ok")
+            self.settings.sync()
+            logging.info(_("Settings have been updated."))
 
     def _handle_game_error(self, rs):
         message = _("Unexpected response received from the server.\nRequest URL: {}\nResponse code: {}\nResponse message: {}").format(rs.url, rs.status_code, rs.text)

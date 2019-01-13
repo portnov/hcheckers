@@ -120,6 +120,7 @@ class Board(QWidget):
         self._last_moved_field = None
         self._board = dict()
         self._new_board = None
+        self._text_message = None
 
         self._my_turn = True
         self.locked = False
@@ -249,6 +250,16 @@ class Board(QWidget):
             self.fields[idx].notation = notation
         self.fields_setup()
 
+    def get_text_message(self):
+        return self._text_message
+
+    def set_text_message(self, text):
+        self._text_message = text
+        self.invalidate()
+        #self.repaint()
+
+    text_message = property(get_text_message, set_text_message)
+
     def json(self):
         board = []
         for idx in self.fields:
@@ -352,10 +363,27 @@ class Board(QWidget):
                 y = y0 - h*0.5
                 painter.drawPixmap(x, y, piece)
 
+        if self.text_message:
+            self.drawText(painter, self.text_message)
+
         painter.end()
 
         self._pixmap = pixmap
         self.update()
+
+    def drawText(self, painter, text):
+        flags = Qt.AlignHCenter | Qt.AlignVCenter | Qt.TextWordWrap
+#         box = painter.boundingRect(self.rect(), flags, text)
+#         height_r = self.height() / box.height()
+#         width_r = self.width() / box.width()
+#         r = min(height_r, width_r)
+        font = painter.font()
+#         font.setPointSize(font.pointSize() * r)
+        font.setPointSize(self.theme.size / 2)
+        font.setBold(True)
+        painter.setFont(font)
+        painter.setPen(self.theme.message_color)
+        painter.drawText(self.rect(), flags, text)
 
     def get_size(self):
         field_size = self.get_target_field_size(self.size())
@@ -364,9 +392,10 @@ class Board(QWidget):
     def get_target_field_size(self, size):
         w_max = size.width()
         h_max = size.height()
-        max_size = min(w_max, h_max)
+        r_w = w_max / self.n_cols
+        r_h = h_max / self.n_rows
 
-        return max_size / min(self.n_rows, self.n_cols)
+        return min(r_w, r_h)
     
     def paintEvent(self, e):
         self.draw()
@@ -514,6 +543,7 @@ class Board(QWidget):
             self._board = self._new_board
             self._new_board = None
         self.last_moved = self.move_animation.end_field
+        self.text_message = None
         self.fields_setup(self._board)
         self.repaint()
 

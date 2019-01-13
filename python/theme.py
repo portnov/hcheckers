@@ -4,7 +4,7 @@ from os.path import join, basename, isdir, exists
 import logging
 
 from PyQt5.QtCore import Qt, QSettings
-from PyQt5.QtGui import QPixmap, QPainter
+from PyQt5.QtGui import QPixmap, QPainter, QColor
 from PyQt5.Qt import QSvgRenderer
 
 from common import *
@@ -67,6 +67,9 @@ class Theme(object):
         self.man_white = CachedPixmap(join(path, settings.value("man_white", "manwhite.svg")))
         self.king_black = CachedPixmap(join(path, settings.value("king_black", "kingblack.svg")))
         self.king_white = CachedPixmap(join(path, settings.value("king_white", "kingwhite.svg")))
+
+        message_color = settings.value("message_color", "black")
+        self.message_color = QColor(message_color)
 
     def reset(self):
         self.pattern1.invalidate()
