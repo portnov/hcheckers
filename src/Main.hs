@@ -2,24 +2,14 @@
 module Main where
 
 import Control.Monad.Reader
-import qualified Control.Monad.Metrics as Metrics
 import Data.Default
-import qualified Data.Text.Encoding as TE
 import System.Environment
 import System.Log.Heavy
-import qualified System.Metrics as EKG
-import qualified System.Remote.Monitoring as EKG
-import Lens.Micro ((^.))
 
 import Core.Types
-import Core.Board
 import AI.AlphaBeta.Types
-import AI.AlphaBeta.Cache
 import AI.AlphaBeta.Persistent
-import AI.AlphaBeta
 import Core.Rest
-import Core.Config
-import Core.Supervisor
 import Core.Checkers
 
 import Learn

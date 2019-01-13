@@ -16,7 +16,6 @@ module AI.AlphaBeta where
 import Control.Monad
 import Control.Monad.State
 import Control.Monad.Except
-import qualified Control.Monad.Metrics as Metrics
 import Control.Concurrent.STM
 import Data.Maybe
 import Data.List (sortOn)
@@ -29,6 +28,7 @@ import System.Clock
 import Core.Types
 import Core.Board
 import Core.Parallel
+import qualified Core.Monitoring as Monitoring
 import AI.AlphaBeta.Types
 import AI.AlphaBeta.Cache
 
@@ -70,7 +70,7 @@ instance (GameRules rules, Evaluator eval) => GameAi (AlphaBeta rules eval) wher
 scoreMove :: (GameRules rules, Evaluator eval) => ScoreMoveInput rules eval -> Checkers (PossibleMove, Score)
 scoreMove (ScoreMoveInput {..}) = do
      let AlphaBeta params rules eval = smiAi
-     score <- Metrics.timed "ai.score.move" $ do
+     score <- Monitoring.timed "ai.score.move" $ do
                 let board' = applyMoveActions (pmResult smiMove) smiBoard
                 score <- doScore rules eval smiCache params (opposite smiSide) smiDepth board' smiAlpha smiBeta
                           `catchError` (\(e :: Error) -> do
@@ -149,33 +149,34 @@ runAI ai@(AlphaBeta params rules eval) handle side board = do
 
     worseThan s1 s2 = not (betterThan s1 s2)
 
-    preselect =
-      return $ possibleMoves rules side board
+--     preselect =
+--       return $ possibleMoves rules side board
 
---     preselect :: Checkers [PossibleMove]
---     preselect = do
---       let moves = possibleMoves rules side board
---       if length moves <= abMovesHighBound params
---         then return moves
---         else do
---           let simple = AlphaBetaParams {
---                         abDepth = 2
---                       , abStartDepth = Nothing
---                       , abCombinationDepth = 2
---                       , abMovesLowBound = 1
---                       , abMovesHighBound = 8
---                       , abBaseTime = Nothing
---                     }
---           (options, _) <- go (simple, moves, Nothing)
---           let options' = [(pm, move, score) | (pm, (move, score)) <- zip moves options]
---           let key = if maximize
---                       then \(_,_,score) -> negate score
---                       else \(_,_,score) -> score
---           let sorted = sortOn key options'
---               bestOptions = take (abMovesHighBound params) sorted
---           let result = [pm | (pm, _, _) <- bestOptions]
---           $info "Pre-selected options: {}" (Single $ show result)
---           return result
+    preselect :: Checkers [PossibleMove]
+    preselect = do
+      let moves = possibleMoves rules side board
+      if length moves <= abMovesHighBound params
+        then return moves
+        else do
+          let simple = AlphaBetaParams {
+                        abDepth = 2
+                      , abStartDepth = Nothing
+                      , abCombinationDepth = 2
+                      , abDeeperIfBad = False
+                      , abMovesLowBound = 1
+                      , abMovesHighBound = 8
+                      , abBaseTime = Nothing
+                    }
+          (options, _) <- go (simple, moves, Nothing)
+          let options' = [(pm, move, score) | (pm, (move, score)) <- zip moves options]
+          let key = if maximize
+                      then \(_,_,score) -> negate score
+                      else \(_,_,score) -> score
+          let sorted = sortOn key options'
+              bestOptions = take (abMovesHighBound params) sorted
+          let result = [pm | (pm, _, _) <- sorted]
+          $info "Pre-selected options: {}" (Single $ show result)
+          return result
 
     depthDriver :: [PossibleMove] -> Checkers DepthIterationOutput
     depthDriver moves =
@@ -404,6 +405,9 @@ data ScoreInput = ScoreInput {
 -- | ScoreM monad.
 type ScoreM rules eval a = StateT (ScoreState rules eval) Checkers a
 
+instance HasMetricsConfig (StateT (ScoreState rules eval) Checkers) where
+  isMetricsEnabled = lift isMetricsEnabled
+
 instance HasLogger (StateT (ScoreState rules eval) Checkers) where
   getLogger = lift getLogger
 
@@ -452,7 +456,7 @@ cachedScoreAB var params input = do
                else return score
 
     Nothing -> do
-      score <- Metrics.timed "ai.score.board" $ scoreAB var params input
+      score <- Monitoring.timed "ai.score.board" $ scoreAB var params input
       when (alpha < score && score < beta) $
           -- we can only put the result to the cache if we know
           -- that this score was not clamped by alpha or beta

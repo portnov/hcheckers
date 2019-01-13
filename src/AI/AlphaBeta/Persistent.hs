@@ -13,7 +13,6 @@ module AI.AlphaBeta.Persistent where
 import Control.Monad
 import Control.Monad.State
 import Control.Monad.Catch (catch, SomeException)
-import qualified Control.Monad.Metrics as Metrics
 import Control.Concurrent.STM
 import qualified Data.HashPSQ as PQ
 import qualified Data.ByteString as B
@@ -36,6 +35,7 @@ import System.Log.Heavy.TH
 
 import Core.Types
 import Core.Board
+import qualified Core.Monitoring as Monitoring
 import AI.AlphaBeta.Types
 
 maxPieces :: Integer
@@ -304,7 +304,7 @@ lookupFileB bstr = do
 
 -- | Returns: (cached result, stats
 lookupFile :: Board -> DepthParams -> Side -> Storage (Maybe Score, Maybe Stats)
-lookupFile board depth side = Metrics.timed "cache.lookup.file" $ do
+lookupFile board depth side = Monitoring.timed "cache.lookup.file" $ do
   mbRecord <- lookupFileB (encodeBoard board)
   case mbRecord of
     Nothing -> return (Nothing, Nothing)
@@ -319,7 +319,7 @@ lookupFile board depth side = Metrics.timed "cache.lookup.file" $ do
       return (cached, stats)
 
 lookupStatsFile :: Board -> Storage (Maybe Stats)
-lookupStatsFile board = Metrics.timed "stats.lookup.file" $ do
+lookupStatsFile board = Monitoring.timed "stats.lookup.file" $ do
   mbItem <- lookupFileB (encodeBoard board)
   return $ join $ boardStats `fmap` mbItem
 
@@ -339,7 +339,7 @@ putRecordFileB bstr newData = do
           let dataBlockNumber = irDataBlock record
           if dataBlockNumber == unexistingBlock 
             then do
-                 Metrics.increment "storage.data.block.created"
+                 Monitoring.increment "storage.data.block.created"
                  newDataBlock <- createDataBlock
                  let record' = record {irDataBlock = newDataBlock}
                  seek IndexFile idxOffset
@@ -348,7 +348,7 @@ putRecordFileB bstr newData = do
                  writeDataSized DataFile newData
                  return ()
             else do
-                 Metrics.increment "storage.data.block.reused"
+                 Monitoring.increment "storage.data.block.reused"
                  let dataOffset = calcDataBlockOffset dataBlockNumber
                  seek DataFile dataOffset
                  oldData <- readDataSized DataFile
@@ -369,14 +369,14 @@ putRecordFileB bstr newData = do
           let nextBlockNumber = irIndexBlock record
           if nextBlockNumber == unexistingBlock
             then do
-                 Metrics.increment "storage.index.block.created"
+                 Monitoring.increment "storage.index.block.created"
                  newIndexBlock <- createIndexBlock
                  let record' = record {irIndexBlock = newIndexBlock}
                  seek IndexFile idxOffset
                  writeData IndexFile record'
                  tryBlock newIndexBlock (B.tail bstr)
             else do
-                 Metrics.increment "storage.index.block.reused"
+                 Monitoring.increment "storage.index.block.reused"
                  tryBlock nextBlockNumber (B.tail bstr)
     
     createIndexBlock = do
@@ -405,7 +405,7 @@ putRecordFileB bstr newData = do
       return newBlockNumber
 
 putRecordFile :: Board -> DepthParams -> Side -> StorageValue -> Storage ()
-putRecordFile board depth side value = Metrics.timed "cache.put.file" $ do
+putRecordFile board depth side value = Monitoring.timed "cache.put.file" $ do
   let bstr = encodeBoard board
       newData = PerBoardData (M.singleton depth item) Nothing
       item = case side of

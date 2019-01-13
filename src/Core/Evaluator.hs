@@ -3,12 +3,12 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Core.Evaluator where
 
-import Data.Aeson
-import Data.Aeson.Types (parseMaybe)
-import Data.Default
+import           Data.Aeson
+import           Data.Aeson.Types               ( parseMaybe )
+import           Data.Default
 
-import Core.Types
-import Core.Board
+import           Core.Types
+import           Core.Board
 
 data SimpleEvaluator = SimpleEvaluator {
     seRules :: SomeRules,
@@ -24,17 +24,16 @@ data SimpleEvaluator = SimpleEvaluator {
   deriving (Show)
 
 defaultEvaluator :: GameRules rules => rules -> SimpleEvaluator
-defaultEvaluator rules =
-  SimpleEvaluator {
-      seRules = SomeRules rules
-    , seUsePositionalScore = True
-    , seMobilityWeight = 2
-    , seCenterWeight = 4
-    , seOppositeSideWeight = 3
-    , seBackedWeight = 2
-    , seAsymetryWeight = 1
-    , seKingCoef = 3
-    , seHelpedKingCoef = 5
+defaultEvaluator rules = SimpleEvaluator
+  { seRules              = SomeRules rules
+  , seUsePositionalScore = True
+  , seMobilityWeight     = 2
+  , seCenterWeight       = 4
+  , seOppositeSideWeight = 3
+  , seBackedWeight       = 2
+  , seAsymetryWeight     = 1
+  , seKingCoef           = 3
+  , seHelpedKingCoef     = 5
   }
 
 data PreScore = PreScore {
@@ -47,12 +46,12 @@ data PreScore = PreScore {
   }
 
 sub :: PreScore -> PreScore -> PreScore
-sub ps1 ps2 = PreScore {
-    psNumeric = psNumeric ps1 - psNumeric ps2
+sub ps1 ps2 = PreScore
+  { psNumeric  = psNumeric ps1 - psNumeric ps2
   , psMobility = psMobility ps1 - psMobility ps2
-  , psCenter = psCenter ps1 - psCenter ps2
-  , psTemp = psTemp ps1 - psTemp ps2
-  , psBacked = psBacked ps1 - psBacked ps2
+  , psCenter   = psCenter ps1 - psCenter ps2
+  , psTemp     = psTemp ps1 - psTemp ps2
+  , psBacked   = psBacked ps1 - psBacked ps2
   , psAsymetry = psAsymetry ps1 - psAsymetry ps2
   }
 
@@ -67,72 +66,69 @@ instance Default PreScore where
         }
 
 preEval :: SimpleEvaluator -> Side -> Board -> PreScore
-preEval (SimpleEvaluator {seRules = SomeRules rules, ..}) side board =
-    let kingCoef =
-          -- King is much more useful when there are enough men to help it
-          let (men, _) = myCounts side board
-          in  if men > 3
-                then seHelpedKingCoef
-                else seKingCoef
-        
-        numericScore =
-          let (myMen, myKings) = myCounts side board
-          in  kingCoef * fromIntegral myKings + fromIntegral myMen
+preEval (SimpleEvaluator { seRules = SomeRules rules, ..}) side board =
+  let
+    kingCoef =
+      -- King is much more useful when there are enough men to help it
+      let (men, _) = myCounts side board
+      in  if men > 3 then seHelpedKingCoef else seKingCoef
 
-        (nrows,ncols) = bSize board
-        crow = nrows `div` 2
-        ccol = ncols `div` 2
-        halfCol = ccol `div` 2
-        halfRow = crow `div` 2
+    numericScore =
+      let (myMen, myKings) = myCounts side board
+      in  kingCoef * fromIntegral myKings + fromIntegral myMen
 
-        isCenter (Label col row) =
-            (col >= ccol - halfCol && col < ccol + halfCol) &&
-            (row >= crow - halfRow && row < crow + halfRow)
+    (nrows, ncols) = bSize board
+    crow           = nrows `div` 2
+    ccol           = ncols `div` 2
+    halfCol        = ccol `div` 2
+    halfRow        = crow `div` 2
 
-        isLeftHalf (Label col _) = col >= ccol
+    isCenter (Label col row) =
+      (col >= ccol - halfCol && col < ccol + halfCol)
+        && (row >= crow - halfRow && row < crow + halfRow)
 
-        asymetry =
-          let (leftMen, leftKings) = myLabelsCount side board isLeftHalf
-              (rightMen, rightKings) = myLabelsCount side board (not . isLeftHalf)
-          in  abs $ (leftMen + leftKings) - (rightMen + rightKings)
+    isLeftHalf (Label col _) = col >= ccol
 
-        isBackedAt addr dir =
-          case getNeighbourPiece (myDirection rules side dir) addr board of
-            Nothing -> False
-            Just p -> pieceSide p == side
+    asymetry =
+      let (leftMen , leftKings ) = myLabelsCount side board isLeftHalf
+          (rightMen, rightKings) = myLabelsCount side board (not . isLeftHalf)
+      in  abs $ (leftMen + leftKings) - (rightMen + rightKings)
 
-        backedScoreOf addr = 
-          length $ filter (isBackedAt addr) [BackwardLeft, BackwardRight]
+    isBackedAt addr dir =
+      case getNeighbourPiece (myDirection rules side dir) addr board of
+        Nothing -> False
+        Just p  -> pieceSide p == side
 
-        backedScore =
-          fromIntegral $ sum $ map backedScoreOf $ allMyAddresses side board
+    backedScoreOf addr =
+      length $ filter (isBackedAt addr) [BackwardLeft, BackwardRight]
 
-        tempNumber (Label col row)
-          | col == 0 || col == ncols-1 = 0
-          | otherwise =
-              case boardSide (boardOrientation rules) side of
-                Top -> nrows - row
-                Bottom -> row + 1
+    backedScore =
+      fromIntegral $ sum $ map backedScoreOf $ allMyAddresses side board
 
-        -- opponentSideCount :: Side -> Int
-        opponentSideCount =
-          let (men, kings) = myLabelsCount' side board tempNumber
-          in  men
+    tempNumber (Label col row)
+      | col == 0 || col == ncols - 1 = 0
+      | otherwise = case boardSide (boardOrientation rules) side of
+        Top    -> nrows - row
+        Bottom -> row + 1
 
-        mobility = length (possibleMoves rules side board)
+    -- opponentSideCount :: Side -> Int
+    opponentSideCount =
+      let (men, kings) = myLabelsCount' side board tempNumber in men
 
-        centerScore =
-          let (men, kings) = myLabelsCount side board isCenter
-          in  kingCoef * fromIntegral kings + fromIntegral men
+    mobility = length (possibleMoves rules side board)
 
-    in  PreScore {
-            psNumeric = numericScore
-          , psMobility = fromIntegral mobility  
-          , psCenter = centerScore
-          , psTemp = fromIntegral opponentSideCount
-          , psBacked = fromIntegral backedScore
-          , psAsymetry = fromIntegral asymetry
-        }
+    centerScore =
+      let (men, kings) = myLabelsCount side board isCenter
+      in  kingCoef * fromIntegral kings + fromIntegral men
+  in
+    PreScore
+      { psNumeric  = numericScore
+      , psMobility = fromIntegral mobility
+      , psCenter   = centerScore
+      , psTemp     = fromIntegral opponentSideCount
+      , psBacked   = fromIntegral backedScore
+      , psAsymetry = fromIntegral asymetry
+      }
 
 preEvalBoth :: SimpleEvaluator -> Board -> PreScore
 preEvalBoth eval board =

@@ -16,7 +16,6 @@ import Control.Concurrent
 import Control.Concurrent.STM
 import Control.Exception (SomeException)
 import qualified Control.Concurrent.ReadWriteLock as RWL
-import qualified Control.Monad.Metrics as Metrics
 import qualified Data.Map as M
 import qualified Data.HashPSQ as PQ
 import Data.Maybe
@@ -34,6 +33,7 @@ import Core.Types
 import Core.Board
 import Core.BoardMap
 import Core.Parallel
+import qualified Core.Monitoring as Monitoring
 import AI.AlphaBeta.Types
 import AI.AlphaBeta.Persistent
 
@@ -127,7 +127,7 @@ cacheDumper rules params handle = do
       case mbRecord of
         Nothing -> return False
         Just (board, depth, side, value) -> do
-          Metrics.increment "cache.records.writen"
+          Monitoring.increment "cache.records.writen"
           runStorage handle $
               putRecordFile board depth side value
           return True
@@ -174,14 +174,14 @@ lookupAiCache params board depth side handle = do
     (cachedScore, cachedStats) <- lookupMemory (bc, bk) side
     case (cachedScore, cachedStats) of
       (Just result, Nothing) -> do
-        Metrics.increment "cache.hit.memory"
+        Monitoring.increment "cache.hit.memory"
         queueCleanup bc bk
         return cachedScore
       (Nothing, Just stats) -> do
-        Metrics.increment "stats.hit.memory"
+        Monitoring.increment "stats.hit.memory"
         return $ Just $ CacheItemSide $ avg stats
       (Just _, Just stats) -> do
-        Metrics.increment "stats.hit.memory"
+        Monitoring.increment "stats.hit.memory"
         return $ Just $ CacheItemSide $ avg stats
       (Nothing, Nothing) -> do
         (mbCached, mbStats) <-
@@ -194,19 +194,19 @@ lookupAiCache params board depth side handle = do
         let mbStats' = join $ checkStats `fmap` mbStats
         case (mbCached, mbStats') of
           (Nothing, Nothing) -> do
-            Metrics.increment "cache.miss"
+            Monitoring.increment "cache.miss"
             return Nothing
           (Nothing, Just stats) -> do
-            Metrics.increment "stats.hit.file"
+            Monitoring.increment "stats.hit.file"
             let score = avg stats
             putAiCache' params board depth side (CacheItemSide score) handle
             return $ Just $ CacheItemSide score
           (Just score, Nothing) -> do
-            Metrics.increment "cache.hit.file"
+            Monitoring.increment "cache.hit.file"
             putAiCache' params board depth side (CacheItemSide score) handle
             return $ Just $ CacheItemSide score
           (Just _, Just stats) -> do
-            Metrics.increment "stats.hit.file"
+            Monitoring.increment "stats.hit.file"
             let score = avg stats
             putAiCache' params board depth side (CacheItemSide score) handle
             return $ Just $ CacheItemSide score
@@ -230,7 +230,7 @@ lookupAiCache params board depth side handle = do
       | otherwise = Just s
 
     lookupMemory :: (BoardCounts, BoardKey) -> Side -> Checkers (Maybe CacheItemSide, Maybe Stats)
-    lookupMemory (bc, bk) side = Metrics.timed "cache.lookup.memory" $ do
+    lookupMemory (bc, bk) side = Monitoring.timed "cache.lookup.memory" $ do
       let total = bcFirstMen bc + bcSecondMen bc + bcFirstKings bc + bcSecondKings bc
       cfg <- asks (gcAiConfig . csConfig)
       if total <= aiUseCacheMaxPieces cfg && dpTarget depth >= aiUseCacheMaxDepth cfg
@@ -260,9 +260,9 @@ putAiCache' params board depth side sideItem handle = do
   --let (bc', bk', side') = normalize bsize (bc, bk, side)
   let total = bcFirstMen bc + bcSecondMen bc + bcFirstKings bc + bcSecondKings bc
   cfg <- asks (gcAiConfig . csConfig)
-  when (total <= aiUpdateCacheMaxPieces cfg && dpTarget depth > aiUpdateCacheMaxDepth cfg) $ Metrics.timed "cache.put.memory" $ do
+  when (total <= aiUpdateCacheMaxPieces cfg && dpTarget depth > aiUpdateCacheMaxDepth cfg) $ Monitoring.timed "cache.put.memory" $ do
       now <- liftIO $ getTime Monotonic
-      Metrics.increment "cache.records.put"
+      Monitoring.increment "cache.records.put"
       store <- asks (aiStoreCache . gcAiConfig . csConfig)
       liftIO $ atomically $ do
         aic <- readTVar (aichData handle)

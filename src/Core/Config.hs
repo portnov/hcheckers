@@ -1,5 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
-module Core.Config where
+module Core.Config
+  (locateConfig, loadConfig
+  ) where
 
 import Data.Yaml
 import Data.Default

@@ -23,11 +23,9 @@ import qualified Data.IntMap.Strict as IM
 import qualified Data.IntSet as IS
 import qualified Data.Text as T
 import qualified Data.Text.Lazy as TL
-import qualified Data.Text.Lazy.Builder as Builder
 import qualified Data.Text.Lazy.Builder.Int as Builder
 import qualified Data.HashMap.Strict as H
 import Data.Text.Format.Heavy
-import Data.Function (on)
 import Data.Dynamic
 import Data.Aeson (Value)
 import Data.Int
@@ -727,6 +725,12 @@ instance HasLogger Checkers where
 
 instance MonadMetrics Checkers where
   getMetrics = asks csMetrics
+
+class HasMetricsConfig m where
+  isMetricsEnabled :: m Bool
+
+instance HasMetricsConfig Checkers where
+  isMetricsEnabled = asks (gcEnableMetrics . csConfig)
 
 timed :: String -> Checkers a -> Checkers a
 timed message actions = do

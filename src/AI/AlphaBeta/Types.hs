@@ -11,7 +11,6 @@ module AI.AlphaBeta.Types where
 import Control.Monad.State
 import Control.Monad.Reader
 import qualified Control.Monad.Metrics as Metrics
-import qualified Control.Concurrent.ReadWriteLock as RWL
 import Control.Concurrent.STM
 import qualified Data.Map as M
 import qualified Data.HashPSQ as PQ
@@ -29,6 +28,9 @@ import System.Log.Heavy
 import Core.Types
 import Core.Parallel
 
+-- | Alpha-beta prunning AI engine.
+-- It is parametrized by game rules, evaluator
+-- and an instance of Evaluator.
 data AlphaBeta rules eval = AlphaBeta AlphaBetaParams rules eval
   deriving (Eq, Ord, Show, Typeable)
 
@@ -191,6 +193,7 @@ data FHandle = FHandle {
 data StorageState = StorageState {
     ssLogging :: LoggingTState
   , ssMetrics :: Metrics.Metrics
+  , ssMetricsEnabled :: Bool
   , ssBoardSize :: BoardSize
   , ssIndex :: Maybe FHandle
   , ssData :: Maybe FHandle
@@ -198,6 +201,9 @@ data StorageState = StorageState {
 
 -- | Storage monad.
 type Storage a = StateT StorageState IO a
+
+instance HasMetricsConfig (StateT StorageState IO) where
+  isMetricsEnabled = gets ssMetricsEnabled
 
 instance HasLogContext (StateT StorageState IO) where
   getLogContext = gets (ltsContext . ssLogging)
@@ -231,6 +237,7 @@ runStorage handle actions = do
   let dataHandle = aichDataFile handle
   let bsize = boardSize (aichRules handle)
   metrics <- Metrics.getMetrics
-  let initState = StorageState lts metrics bsize indexHandle dataHandle
+  metricsEnabled <- isMetricsEnabled
+  let initState = StorageState lts metrics metricsEnabled bsize indexHandle dataHandle
   liftIO $ evalStateT actions initState
   
