@@ -158,16 +158,13 @@ runAI ai@(AlphaBeta params rules eval) handle side board = do
       if length moves <= abMovesHighBound params
         then return moves
         else do
-          let simple = AlphaBetaParams {
-                        abDepth = 2
-                      , abStartDepth = Nothing
-                      , abCombinationDepth = 2
-                      , abDeeperIfBad = False
-                      , abMovesLowBound = 1
-                      , abMovesHighBound = 8
-                      , abBaseTime = Nothing
+          let simple = DepthParams {
+                        dpTarget = 2
+                      , dpCurrent = -1
+                      , dpMax = 4
+                      , dpMin = 2
                     }
-          (options, _) <- go (simple, moves, Nothing)
+          options <- widthController False False Nothing moves simple (loose, win)
           let options' = [(pm, move, score) | (pm, (move, score)) <- zip moves options]
           let key = if maximize
                       then \(_,_,score) -> negate score
