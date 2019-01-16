@@ -547,7 +547,8 @@ class Board(QWidget):
             self._board = self._new_board
             self._new_board = None
         self.last_moved = self.move_animation.end_field
-        self.text_message = None
+        if not self.game.finished:
+            self.text_message = None
         self.fields_setup(self._board)
         self.repaint()
 
