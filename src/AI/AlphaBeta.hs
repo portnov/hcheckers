@@ -166,13 +166,12 @@ runAI ai@(AlphaBeta params rules eval) handle side board = do
                     }
           $info "Preselecting; number of possible moves = {}, depth = {}" (length moves, dpTarget simple)
           options <- scoreMoves' moves simple (loose, win)
-          let options' = [(pm, move, score) | (pm, (move, score)) <- zip moves options]
           let key = if maximize
-                      then \(_,_,score) -> negate score
-                      else \(_,_,score) -> score
-          let sorted = sortOn key options'
+                      then negate . snd
+                      else snd
+          let sorted = sortOn key options
               bestOptions = take (abMovesHighBound params) sorted
-          let result = [pm | (pm, _, _) <- sorted]
+          let result = map fst sorted
           $debug "Pre-selected options: {}" (Single $ show result)
           return result
 
@@ -193,8 +192,7 @@ runAI ai@(AlphaBeta params rules eval) handle side board = do
         Left TimeExhaused ->
           case prevResult of
             Just result -> return (result, Nothing)
-            Nothing -> do
-              return ([(move, 0) | move <- moves], Nothing)
+            Nothing -> return ([(move, 0) | move <- moves], Nothing)
         Left err -> throwError err
 
     go :: DepthIterationInput
@@ -304,7 +302,7 @@ runAI ai@(AlphaBeta params rules eval) handle side board = do
                   [_] -> do
                     $info "Exactly one move is `too good'; do that move." ()
                     return bestResults
-                  _ -> do
+                  _ ->
                     if allowNext
                       then do
                         let interval'@(alpha',beta') = nextInterval interval
@@ -342,8 +340,7 @@ runAI ai@(AlphaBeta params rules eval) handle side board = do
     widthIteration prevResult moves dp (alpha, beta) = do
       $info "`- Considering scores interval: [{} - {}], depth = {}" (alpha, beta, dpTarget dp)
       results <- scoreMoves moves dp (alpha, beta)
-      joined <- joinResults prevResult results
-      return joined
+      joinResults prevResult results
 
     joinResults :: Maybe DepthIterationOutput -> [Either Error (PossibleMove, Score)] -> Checkers DepthIterationOutput
     joinResults Nothing results =
