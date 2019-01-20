@@ -164,7 +164,8 @@ runAI ai@(AlphaBeta params rules eval) handle side board = do
                       , dpMax = 4
                       , dpMin = 2
                     }
-          options <- widthController False False Nothing moves simple (loose, win)
+          $info "Preselecting; number of possible moves = {}, depth = {}" (length moves, dpTarget simple)
+          options <- scoreMoves' moves simple (loose, win)
           let options' = [(pm, move, score) | (pm, (move, score)) <- zip moves options]
           let key = if maximize
                       then \(_,_,score) -> negate score
@@ -172,7 +173,7 @@ runAI ai@(AlphaBeta params rules eval) handle side board = do
           let sorted = sortOn key options'
               bestOptions = take (abMovesHighBound params) sorted
           let result = [pm | (pm, _, _) <- sorted]
-          $info "Pre-selected options: {}" (Single $ show result)
+          $debug "Pre-selected options: {}" (Single $ show result)
           return result
 
     depthDriver :: [PossibleMove] -> Checkers DepthIterationOutput
@@ -238,7 +239,10 @@ runAI ai@(AlphaBeta params rules eval) handle side board = do
     -- | Initial (alpha, beta) interval
     initInterval :: (Score, Score)
     initInterval =
-      let delta = 1
+      let delta
+            | abs score0 < 4 = 1
+            | abs score0 < 8 = 2
+            | otherwise = 4
       in  (score0 - delta, score0 + delta)
 
     selectScale :: Score -> ScoreBase
@@ -310,9 +314,8 @@ runAI ai@(AlphaBeta params rules eval) handle side board = do
                         $info  "Some moves ({} of them) are `too good'; but we have already checked better interval; so this is the real score" (Single $ length bestMoves)
                         return bestResults
 
-    widthIteration :: Maybe DepthIterationOutput -> [PossibleMove] -> DepthParams -> (Score, Score) -> Checkers DepthIterationOutput
-    widthIteration prevResult moves dp (alpha, beta) = do
-      $info "`- Considering scores interval: [{} - {}], depth = {}" (alpha, beta, dpTarget dp)
+    scoreMoves :: [PossibleMove] -> DepthParams -> (Score, Score) -> Checkers [Either Error (PossibleMove, Score)]
+    scoreMoves moves dp (alpha, beta) = do
       let var = aichData handle
       AICache _ processor _ <- liftIO $ atomically $ readTVar var
       let inputs = [
@@ -326,7 +329,19 @@ runAI ai@(AlphaBeta params rules eval) handle side board = do
               smiAlpha = alpha,
               smiBeta = beta
             } | move <- moves ]
-      results <- process' processor inputs
+      process' processor inputs
+    
+    scoreMoves' :: [PossibleMove] -> DepthParams -> (Score, Score) -> Checkers DepthIterationOutput
+    scoreMoves' moves dp (alpha, beta) = do
+      results <- scoreMoves moves dp (alpha, beta)
+      case sequence results of
+        Right result -> return result
+        Left err -> throwError err
+
+    widthIteration :: Maybe DepthIterationOutput -> [PossibleMove] -> DepthParams -> (Score, Score) -> Checkers DepthIterationOutput
+    widthIteration prevResult moves dp (alpha, beta) = do
+      $info "`- Considering scores interval: [{} - {}], depth = {}" (alpha, beta, dpTarget dp)
+      results <- scoreMoves moves dp (alpha, beta)
       joined <- joinResults prevResult results
       return joined
 

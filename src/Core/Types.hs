@@ -402,47 +402,54 @@ instance Binary Score
 scoreBound :: ScoreBase
 scoreBound = 256
 
+maxPieces :: ScoreBase
+maxPieces = 30
+
 win :: Score
-win = Score 30 scoreBound
+win = Score maxPieces scoreBound
 
 loose :: Score
-loose = Score (-30) (-scoreBound)
+loose = Score (-maxPieces) (-scoreBound)
 
 clamp :: Int32 -> ScoreBase
-clamp x = min scoreBound $ max (-scoreBound) (fromIntegral x)
+clamp x = clamp' scoreBound x
 
-safePlus :: forall a. (Integral a) => ScoreBase -> a -> ScoreBase
-safePlus x y =
+clamp' :: ScoreBase -> Int32 -> ScoreBase
+clamp' bound x = min bound $ max (-bound) (fromIntegral x)
+
+safePlus :: forall a. (Integral a) => ScoreBase -> ScoreBase -> a -> ScoreBase
+safePlus bound x y =
   let result = (fromIntegral x + fromIntegral y) :: Int32
-  in  clamp result
+  in  clamp' bound result
 
-safeMinus :: forall a. (Integral a) => ScoreBase -> a -> ScoreBase
-safeMinus x y =
+safeMinus :: forall a. (Integral a) => ScoreBase -> ScoreBase -> a -> ScoreBase
+safeMinus bound x y =
   let result = (fromIntegral x - fromIntegral y) :: Int32
-  in  clamp result
+  in  clamp' bound result
 
-safeScale :: forall a. (Integral a) => ScoreBase -> a -> ScoreBase
-safeScale x y =
+safeScale :: forall a. (Integral a) => ScoreBase -> ScoreBase -> a -> ScoreBase
+safeScale bound x y =
   let result = (fromIntegral x * fromIntegral y) :: Int32
-  in  clamp result
+  in  clamp' bound result
 
 instance Num Score where
   fromInteger x = Score (fromIntegral x) 0
-  (Score n1 p1) + (Score n2 p2) = Score (n1 `safePlus` n2) (p1 `safePlus` p2)
-  (Score n1 p1) - (Score n2 p2) = Score (n1 `safeMinus` n2) (p1 `safeMinus` p2)
+  (Score n1 p1) + (Score n2 p2) = Score (safePlus maxPieces n1 n2) (safePlus scoreBound p1 p2)
+  (Score n1 p1) - (Score n2 p2) = Score (safeMinus maxPieces n1 n2) (safeMinus scoreBound p1 p2)
   _ * _ = error "* is not defined for Score"
   abs (Score n p) = Score (abs n) (abs p)
   negate (Score n p) = Score (negate n) (negate p)
   signum _ = error "signum is not defined for Score"
 
 scaleScore :: Integral n => n -> Score -> Score
-scaleScore x (Score n p) = Score (fromIntegral x `safeScale` n) (fromIntegral x `safeScale` p)
+scaleScore x (Score n p) = Score (safeScale maxPieces (fromIntegral x) n)
+                                 (safeScale scoreBound (fromIntegral x) p)
 
 nextScore :: Score -> Score
-nextScore (Score n p) = Score n (p `safePlus` 1)
+nextScore (Score n p) = Score n (safePlus scoreBound p 1)
 
 prevScore :: Score -> Score
-prevScore (Score n p) = Score n (p `safeMinus` 1)
+prevScore (Score n p) = Score n (safeMinus scoreBound p 1)
 
 instance Show Score where
   show (Score n p) = show n ++ "/" ++ show p
