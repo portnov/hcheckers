@@ -547,7 +547,7 @@ scoreAB var params input
 
       dp' <- updateDepth params (length moves) dp
       let prevMove = siPrevMove input
-      score <- iterateMoves (sortMoves prevMove moves) dp'
+      score <- iterateMoves moves dp'
       pop
       return score
 
