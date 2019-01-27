@@ -284,8 +284,14 @@ catPMoves pm1 pm2 =
         (Put a1 _, Take a2) | a1 == a2 -> init lst1 ++ tail lst2
         _ -> lst1 ++ lst2
 
-isCapture :: Move -> Bool
-isCapture move = any sCapture (moveSteps move)
+isCaptureM :: Move -> Bool
+isCaptureM move = any sCapture (moveSteps move)
+
+isCapture :: PossibleMove -> Bool
+isCapture pm = not $ null $ pmVictims pm
+
+isPromotion :: PossibleMove -> Bool
+isPromotion = pmPromote
 
 capturesCount :: Move -> Int
 capturesCount move = length $ filter sCapture (moveSteps move)

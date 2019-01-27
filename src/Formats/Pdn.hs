@@ -378,7 +378,7 @@ gameToPdn game =
       ShortSemiMoveRec {
           smrFrom = aLabel (moveBegin move)
         , smrTo = aLabel (moveEnd rules side board move)
-        , smrCapture = isCapture move
+        , smrCapture = isCaptureM move
         }
 
 showPdn :: SomeRules -> GameRecord -> T.Text

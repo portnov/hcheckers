@@ -210,7 +210,7 @@ runAI ai@(AlphaBeta params rules eval) handle side board = do
         else do
           let var = aichData handle
           $info "Selecting a move. Side = {}, depth = {}, number of possible moves = {}" (show side, depth, length moves)
-          dp <- updateDepth params (length moves) $ DepthParams {
+          dp <- updateDepth params moves $ DepthParams {
                      dpTarget = depth
                    , dpCurrent = -1
                    , dpMax = abCombinationDepth params + depth
@@ -491,22 +491,25 @@ isTargetDepth dp = dpCurrent dp >= dpTarget dp
 --
 -- Otherwise, this just increases dpCurrent by 1.
 --
-updateDepth :: (Monad m, HasLogging m, MonadIO m) => AlphaBetaParams -> Int -> DepthParams -> m DepthParams
-updateDepth params nMoves dp
-  | nMoves <= abMovesLowBound params = do
-                let delta = nMoves - 1
-                let target = min (dpTarget dp + 1) (dpMax dp - delta)
-                let indent = replicate (2*dpCurrent dp) ' '
-                $debug "{}| there is only one move, increase target depth to {}"
-                        (indent, target)
-                return $ dp {dpCurrent = dpCurrent dp + 1, dpTarget = target}
-  | nMoves > abMovesHighBound params = do
-                let target = max (dpCurrent dp + 1) (dpMin dp)
-                let indent = replicate (2*dpCurrent dp) ' '
-                $debug "{}| there are too many moves, decrease target depth to {}"
-                        (indent, target)
-                return $ dp {dpCurrent = dpCurrent dp + 1, dpTarget = target}
-  | otherwise = return $ dp {dpCurrent = dpCurrent dp + 1}
+updateDepth :: (Monad m, HasLogging m, MonadIO m) => AlphaBetaParams -> [PossibleMove] -> DepthParams -> m DepthParams
+updateDepth params moves dp
+    | forced = do
+                  let delta = nMoves - 1
+                  let target = min (dpTarget dp + 1) (dpMax dp - delta)
+                  let indent = replicate (2*dpCurrent dp) ' '
+                  $debug "{}| there is only one move, increase target depth to {}"
+                          (indent, target)
+                  return $ dp {dpCurrent = dpCurrent dp + 1, dpTarget = target}
+    | nMoves > abMovesHighBound params = do
+                  let target = max (dpCurrent dp + 1) (dpMin dp)
+                  let indent = replicate (2*dpCurrent dp) ' '
+                  $debug "{}| there are too many moves, decrease target depth to {}"
+                          (indent, target)
+                  return $ dp {dpCurrent = dpCurrent dp + 1, dpTarget = target}
+    | otherwise = return $ dp {dpCurrent = dpCurrent dp + 1}
+  where
+    nMoves = length moves
+    forced = any isCapture moves || any isPromotion moves || nMoves <= abMovesLowBound params
 
 -- | Check if timeout is exhaused.
 isTimeExhaused :: ScoreM rules eval Bool
@@ -545,7 +548,7 @@ scoreAB var params input
       when (null moves) $
         $trace "{}`—No moves left." (Single indent)
 
-      dp' <- updateDepth params (length moves) dp
+      dp' <- updateDepth params moves dp
       let prevMove = siPrevMove input
       score <- iterateMoves moves dp'
       pop
