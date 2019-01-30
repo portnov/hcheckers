@@ -310,7 +310,7 @@ lookupFile board depth side = Monitoring.timed "cache.lookup.file" $ do
     Nothing -> return (Nothing, Nothing)
     Just record -> do
       let cached =
-            case M.lookup depth (boardScores record) of
+            case M.lookup (dpTarget depth) (boardScores record) of
                Nothing -> Nothing
                Just ci -> case side of
                             First -> cisScore `fmap` ciFirst ci
@@ -407,7 +407,7 @@ putRecordFileB bstr newData = do
 putRecordFile :: Board -> DepthParams -> Side -> StorageValue -> Storage ()
 putRecordFile board depth side value = Monitoring.timed "cache.put.file" $ do
   let bstr = encodeBoard board
-      newData = PerBoardData (M.singleton depth item) Nothing
+      newData = PerBoardData (M.singleton (dpTarget depth) item) Nothing
       item = case side of
                First -> CacheItem {ciFirst = Just value, ciSecond = Nothing}
                Second -> CacheItem {ciFirst = Nothing, ciSecond = Just value}

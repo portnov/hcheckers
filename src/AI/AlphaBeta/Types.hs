@@ -116,7 +116,7 @@ instance Monoid CacheItem where
   mempty = CacheItem Nothing Nothing
 
 data PerBoardData = PerBoardData {
-    boardScores :: M.Map DepthParams CacheItem
+    boardScores :: M.Map Int CacheItem
   , boardStats :: Maybe Stats
   }
   deriving (Generic, Typeable, Show)
