@@ -562,7 +562,7 @@ scoreAB var params input
 
       dp' <- updateDepth params moves dp
       let prevMove = siPrevMove input
-      out <- iterateMoves moves dp'
+      out <- iterateMoves (sortMoves moves) dp'
       pop
       return out
 
@@ -587,9 +587,12 @@ scoreAB var params input
     pop =
       modify $ \st -> st {ssBestScores = tail (ssBestScores st)}
 
-    sortMoves :: Maybe PossibleMove -> [PossibleMove] -> [PossibleMove]
-    sortMoves Nothing moves = moves
-    sortMoves (Just prev) moves = sortOn (distance prev) moves
+    sortMoves :: [PossibleMove] -> [PossibleMove]
+    sortMoves moves =
+      let promotions = map isPromotion moves
+      in  if or promotions
+            then map fst $ sortOn (not . snd) $ zip moves promotions
+            else moves
 
     distance :: PossibleMove -> PossibleMove -> Line
     distance prev pm =
