@@ -230,8 +230,8 @@ lookupAiCache params board depth side handle = do
       case lookupBoardMap (bc,bk) cache of
         Nothing -> return (Nothing, Nothing)
         Just (PerBoardData {..}) -> do
-          let depths = [dpTarget depth .. dpTarget depth + aiUseCacheMaxDepthPlus cfg] ++
-                       [dpTarget depth - aiUseCacheMaxDepthMinus cfg .. dpTarget depth-1]
+          let depths = [dpLast depth .. dpLast depth + aiUseCacheMaxDepthPlus cfg] ++
+                       [dpLast depth - aiUseCacheMaxDepthMinus cfg .. dpLast depth-1]
           case foldl mplus Nothing [M.lookup d boardScores | d <- depths ] of
             Nothing -> return (Nothing, boardStats)
             Just item -> case side of
@@ -273,7 +273,7 @@ putAiCache' params board depth side sideItem handle = do
                    First -> CacheItem {ciFirst = Just sideItem, ciSecond = Nothing}
                    Second -> CacheItem {ciFirst = Nothing, ciSecond = Just sideItem}
 
-          init = PerBoardData (M.singleton (dpTarget depth) item) Nothing
+          init = PerBoardData (M.singleton (dpLast depth) item) Nothing
 
           newAicData = putBoardMapWith (<>) (bc,bk) init (aicData aic)
           aic' = aic {aicDirty = True, aicData = newAicData}

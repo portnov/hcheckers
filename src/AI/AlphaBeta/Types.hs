@@ -65,6 +65,9 @@ data DepthParams = DepthParams {
   }
   deriving (Eq, Ord, Show, Typeable, Generic)
 
+dpLast :: DepthParams -> Int
+dpLast dp = dpMax dp - dpCurrent dp
+
 instance Store DepthParams
 instance Binary DepthParams
 
