@@ -34,6 +34,7 @@ mkGame rules id firstSide mbBoardRep = do
     return $ Game {
           getGameId = show id,
           gInitialBoard = board,
+          gFirstSide = firstSide,
           gState = st,
           gStatus = New,
           gRules = SomeRules rules,

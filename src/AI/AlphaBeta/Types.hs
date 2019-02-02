@@ -26,6 +26,7 @@ import System.IO.RandomAccessFile
 import System.Log.Heavy
 
 import Core.Types
+import Core.BoardMap
 import Core.Parallel
 
 -- | Alpha-beta prunning AI engine.
@@ -146,17 +147,17 @@ type StorageValue = CacheItemSide
 data ScoreMoveInput rules eval = ScoreMoveInput {
     smiAi :: AlphaBeta rules eval
   , smiCache :: AICacheHandle rules eval
-  , smiSide :: Side 
+  , smiGameId :: GameId
   , smiDepth :: DepthParams
-  , smiBoard :: Board
   , smiMove :: PossibleMove
+  , smiNode :: Tree
   , smiAlpha :: Score
   , smiBeta :: Score
   }
 
 data AICache rules eval = AICache {
     aicDirty :: Bool
-  , aicProcessor :: Processor [MoveAction] (ScoreMoveInput rules eval) (PossibleMove, Score)
+  , aicProcessor :: Processor [MoveAction] (ScoreMoveInput rules eval) (PossibleMove, Tree, Score)
   , aicData :: AIData
   }
 
@@ -173,12 +174,20 @@ data FileType = IndexFile | DataFile
 data AICacheHandle rules eval = AICacheHandle {
     aichRules :: rules
   , aichData :: TVar (AICache rules eval)
+  , aichCurrentNodes :: TVar (M.Map GameId Tree)
   , aichWriteQueue :: WriteQueue
   , aichCleanupQueue :: CleanupQueue
   , aichCurrentCounts :: TVar BoardCounts
   , aichIndexFile :: Maybe FHandle
   , aichDataFile :: Maybe FHandle
   }
+
+data Tree = Node {
+    nodeBoard :: Board
+  , nodeSide :: Side
+  , nodeChildren :: [(PossibleMove, Tree)]
+  }
+  deriving (Show)
 
 type WriteQueue = TChan (Board, DepthParams, Side, StorageValue)
 

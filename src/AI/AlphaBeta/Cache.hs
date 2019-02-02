@@ -40,7 +40,7 @@ import AI.AlphaBeta.Persistent
 -- | Prepare AI storage instance.
 -- This also contains Processor instance with several threads.
 loadAiCache :: (GameRules rules, Evaluator eval)
-            => (ScoreMoveInput rules eval -> Checkers (PossibleMove, Score))
+            => (ScoreMoveInput rules eval -> Checkers (PossibleMove, Tree, Score))
             -> AlphaBeta rules eval
             -> Checkers (AICacheHandle rules eval)
 loadAiCache scoreMove (AlphaBeta params rules eval) = do
@@ -100,9 +100,11 @@ loadAiCache scoreMove (AlphaBeta params rules eval) = do
                      fhHandle = fd
                    }
   counts <- liftIO $ atomically $ newTVar $ BoardCounts 50 50 50 50
+  trees <- liftIO $ atomically $ newTVar M.empty
   let handle = AICacheHandle {
       aichRules = rules,
       aichData = cache,
+      aichCurrentNodes = trees,
       aichWriteQueue = writeQueue,
       aichCleanupQueue = cleanupQueue,
       aichCurrentCounts = counts,

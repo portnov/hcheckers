@@ -203,6 +203,11 @@ attachAi :: GameId -> Side -> SomeAi -> Checkers ()
 attachAi gameId side (SomeAi ai) = do
     var <- askSupervisor
     liftIO $ atomically $ modifyTVar var $ \st -> st {ssGames = M.update (Just . update) gameId (ssGames st)}
+    rules <- getRules gameId
+    board0 <- getInitialBoard gameId
+    game <- getGame gameId
+    withAiStorage rules ai $ \storage ->
+      initAi ai storage gameId board0 (gFirstSide game)
   where
     update game
       | side == First = game {gPlayer1 = Just $ AI ai}
@@ -410,7 +415,7 @@ letAiMove gameId side mbBoard = do
       rules <- getRules gameId
       withAiStorage rules ai $ \storage -> do
         timed "Selecting AI move" $ do
-            aiMoves <- chooseMove ai storage side board
+            aiMoves <- chooseMove ai storage gameId side board
             if null aiMoves
               then do
                 $info "AI failed to move." ()

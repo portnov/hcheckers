@@ -19,6 +19,7 @@ import Control.Monad.Except
 import Control.Concurrent.STM
 import Data.Maybe
 import Data.List (sortOn)
+import qualified Data.Map as M
 import Data.Text.Format.Heavy
 import Data.Aeson
 import System.Log.Heavy
@@ -27,6 +28,7 @@ import System.Clock
 
 import Core.Types
 import Core.Board
+import Core.BoardMap
 import Core.Parallel
 import qualified Core.Monitoring as Monitoring
 import AI.AlphaBeta.Types
@@ -54,10 +56,13 @@ instance (GameRules rules, Evaluator eval) => GameAi (AlphaBeta rules eval) wher
       -- saveAiCache rules params cache
       return ()
 
-  chooseMove ai storage side board = do
-    (moves, _) <- runAI ai storage side board
+  chooseMove ai storage gameId side board = do
+    (moves, _) <- runAI ai storage gameId side board
     liftIO $ atomically $ writeTVar (aichCurrentCounts storage) $ boardCounts board
     return moves
+
+  initAi ai@(AlphaBeta _ rules eval) cache gameId board side =
+    setTree cache gameId $ mkTree rules board side
 
   updateAi ai@(AlphaBeta _ rules eval) json =
     case fromJSON json of
@@ -66,13 +71,53 @@ instance (GameRules rules, Evaluator eval) => GameAi (AlphaBeta rules eval) wher
 
   aiName _ = "default"
 
+mkTree :: GameRules rules => rules -> Board -> Side -> Tree
+mkTree rules board0 first =
+  let children side node = flip map (possibleMoves rules side (nodeBoard node)) $ \move ->
+          let side' = opposite side
+              child = Node board' side' $ children side' child
+              board' = applyMoveActions (pmResult move) (nodeBoard node)
+          in  (move, child)
+      root = Node board0 first $ children first root
+  in  root
+
+getTree :: AICacheHandle rules eval -> GameId -> Checkers Tree
+getTree handle gameId = liftIO $ atomically $ do
+    nodes <- readTVar $ aichCurrentNodes handle
+    case M.lookup gameId nodes of
+      Just tree -> return tree
+      Nothing -> fail "Cant obtain current game tree node"
+
+setTree :: AICacheHandle rules eval -> GameId -> Tree -> Checkers ()
+setTree handle gameId tree = liftIO $ atomically $ do
+    nodes <- readTVar $ aichCurrentNodes handle
+    writeTVar (aichCurrentNodes handle) $ M.insert gameId tree nodes
+
+findTree :: AICacheHandle rules eval -> GameId -> Board -> Checkers Tree
+findTree handle gameId board = do
+    currentRoot <- getTree handle gameId
+    return $ find currentRoot
+  where
+    find root =
+      -- let nodes = map snd $ concatMap (nodeChildren . snd) (nodeChildren root)
+      let nodes = map snd $ nodeChildren root
+      in case go nodes of
+          Just node -> node
+          Nothing -> error $ "Cant find specified board in the tree: " ++ show (map nodeBoard nodes)
+
+    go [] = Nothing
+    go (node : rest)
+      | nodeBoard node == board = Just node
+      | otherwise = go rest
+
 -- | Calculate score of one possible move.
-scoreMove :: (GameRules rules, Evaluator eval) => ScoreMoveInput rules eval -> Checkers (PossibleMove, Score)
+scoreMove :: (GameRules rules, Evaluator eval) => ScoreMoveInput rules eval -> Checkers (PossibleMove, Tree, Score)
 scoreMove (ScoreMoveInput {..}) = do
      let AlphaBeta params rules eval = smiAi
      score <- Monitoring.timed "ai.score.move" $ do
-                let board' = applyMoveActions (pmResult smiMove) smiBoard
-                score <- doScore rules eval smiCache params (opposite smiSide) smiDepth board' smiAlpha smiBeta
+                let board' = nodeBoard smiNode
+                    side = nodeSide smiNode
+                score <- doScore rules eval smiCache params smiGameId smiDepth smiNode smiAlpha smiBeta
                           `catchError` (\(e :: Error) -> do
                                         $info "doScore: move {}, depth {}: {}" (show smiMove, dpTarget smiDepth, show e)
                                         throwError e
@@ -80,10 +125,10 @@ scoreMove (ScoreMoveInput {..}) = do
                 $info "Check: {} (depth {}) => {}" (show smiMove, dpTarget smiDepth, show score)
                 return score
      
-     return (smiMove, score)
+     return (smiMove, smiNode, score)
 
-type DepthIterationInput = (AlphaBetaParams, [PossibleMove], Maybe DepthIterationOutput)
-type DepthIterationOutput = [(PossibleMove, Score)]
+type DepthIterationInput = (AlphaBetaParams, [(PossibleMove, Tree)], Maybe DepthIterationOutput)
+type DepthIterationOutput = [(PossibleMove, Tree, Score)]
 type AiOutput = ([PossibleMove], Score)
 
 -- | General driver / controller for Alpha-Beta prunning algorithm.
@@ -134,8 +179,14 @@ type AiOutput = ([PossibleMove], Score)
 --       already considered the interval on that side, then we know that the real score equals
 --       exactly to the bound.
 --
-runAI :: (GameRules rules, Evaluator eval) => AlphaBeta rules eval -> AICacheHandle rules eval -> Side -> Board -> Checkers AiOutput
-runAI ai@(AlphaBeta params rules eval) handle side board = do
+runAI :: (GameRules rules, Evaluator eval)
+      => AlphaBeta rules eval
+      -> AICacheHandle rules eval
+      -> GameId
+      -> Side
+      -> Board
+      -> Checkers AiOutput
+runAI ai@(AlphaBeta params rules eval) handle gameId side board = do
     preOptions <- preselect
     options <- depthDriver preOptions
     select options
@@ -152,11 +203,12 @@ runAI ai@(AlphaBeta params rules eval) handle side board = do
 --     preselect =
 --       return $ possibleMoves rules side board
 
-    preselect :: Checkers [PossibleMove]
+    preselect :: Checkers [(PossibleMove, Tree)]
     preselect = do
-      let moves = possibleMoves rules side board
-      if length moves <= abMovesHighBound params
-        then return moves
+      tree <- findTree handle gameId board
+      let next = nodeChildren tree
+      if length next <= abMovesHighBound params
+        then return next
         else do
           let simple = DepthParams {
                         dpTarget = 2
@@ -164,18 +216,18 @@ runAI ai@(AlphaBeta params rules eval) handle side board = do
                       , dpMax = 4
                       , dpMin = 2
                     }
-          $info "Preselecting; number of possible moves = {}, depth = {}" (length moves, dpTarget simple)
-          options <- scoreMoves' moves simple (loose, win)
+          $info "Preselecting; number of possible moves = {}, depth = {}" (length next, dpTarget simple)
+          options <- scoreMoves' next simple (loose, win)
           let key = if maximize
-                      then negate . snd
-                      else snd
+                      then \(pm, node, score) -> negate score
+                      else \(pm, node, score) -> score
           let sorted = sortOn key options
               bestOptions = take (abMovesHighBound params) sorted
-          let result = map fst sorted
-          $debug "Pre-selected options: {}" (Single $ show result)
+          let result = [(move, node) | (move, node, score) <- sorted]
+          $debug "Pre-selected options: {}" (Single $ show $ map fst result)
           return result
 
-    depthDriver :: [PossibleMove] -> Checkers DepthIterationOutput
+    depthDriver :: [(PossibleMove, Tree)] -> Checkers DepthIterationOutput
     depthDriver moves =
       case abBaseTime params of
         Nothing -> do
@@ -192,7 +244,7 @@ runAI ai@(AlphaBeta params rules eval) handle side board = do
         Left TimeExhaused ->
           case prevResult of
             Just result -> return (result, Nothing)
-            Nothing -> return ([(move, 0) | move <- moves], Nothing)
+            Nothing -> return ([(move, node, 0) | (move, node) <- moves], Nothing)
         Left err -> throwError err
 
     go :: DepthIterationInput
@@ -205,7 +257,7 @@ runAI ai@(AlphaBeta params rules eval) handle side board = do
           -- currently we do not use results of evaluating of all moves
           -- when evaluating deeper parts of the tree (it is hard due to alpha-beta restrictions).
           -- It means we are not going to use that Score value anyway.
-          return ([(move, 0) | move <- moves], Nothing)
+          return ([(move, node', 0) | (move, node') <- moves], Nothing)
                                                              
         else do
           let var = aichData handle
@@ -273,20 +325,22 @@ runAI ai@(AlphaBeta params rules eval) handle side board = do
     widthController :: Bool -- ^ Allow to shift (alpha,beta) segment to bigger values?
                     -> Bool -- ^ Allow to shift (alpha,beta) segment to lesser values?
                     -> Maybe DepthIterationOutput -- ^ Results of previous depth iteration
-                    -> [PossibleMove]
+                    -> [(PossibleMove, Tree)]
                     -> DepthParams
                     -> (Score, Score) -- ^ (Alpha, Beta)
                     -> Checkers DepthIterationOutput
-    widthController allowNext allowPrev prevResult moves dp interval@(alpha,beta) =
+    widthController allowNext allowPrev prevResult options dp interval@(alpha,beta) =
       if alpha == beta
         then do
-          $info "Empty scores interval: [{}]. We have to think that all moves have this score." (Single alpha)
-          return [(move, alpha) | move <- moves]
+          $info "Empty scores interval: [{}]. We have to think that all options have this score." (Single alpha)
+          return [(move, node', alpha) | (move, node') <- options]
         else do
-            results <- widthIteration prevResult moves dp interval
-            let (good, badScore, badMoves) = selectBestEdge interval moves results
+            results <- widthIteration prevResult options dp interval
+            -- results :: [(PossibleMove, Tree, Score)]
+            -- options :: [(PossibleMove, Score)]
+            let (good, badScore, badMoves) = selectBestEdge interval options results
                 (bestMoves, bestResults) = unzip good
-            if length badMoves == length moves
+            if length badMoves == length options
               then
                 if allowPrev
                   then do
@@ -295,7 +349,7 @@ runAI ai@(AlphaBeta params rules eval) handle side board = do
                     widthController False True prevResult badMoves dp interval'
                   else do
                     $info "All moves are `too bad' ({}), but we have already checked worse interval; so this is the real score." (Single badScore)
-                    return [(move, badScore) | move <- moves]
+                    return [(move, node, badScore) | (move, node) <- options]
               else
                 case bestResults of
                   [] -> return results
@@ -312,7 +366,10 @@ runAI ai@(AlphaBeta params rules eval) handle side board = do
                         $info  "Some moves ({} of them) are `too good'; but we have already checked better interval; so this is the real score" (Single $ length bestMoves)
                         return bestResults
 
-    scoreMoves :: [PossibleMove] -> DepthParams -> (Score, Score) -> Checkers [Either Error (PossibleMove, Score)]
+    scoreMoves :: [(PossibleMove, Tree)]
+               -> DepthParams
+               -> (Score, Score)
+               -> Checkers [Either Error (PossibleMove, Tree, Score)]
     scoreMoves moves dp (alpha, beta) = do
       let var = aichData handle
       AICache _ processor _ <- liftIO $ atomically $ readTVar var
@@ -320,53 +377,54 @@ runAI ai@(AlphaBeta params rules eval) handle side board = do
             ScoreMoveInput {
               smiAi = ai,
               smiCache = handle,
-              smiSide = side,
+              smiGameId = gameId,
               smiDepth = dp,
-              smiBoard = board,
               smiMove = move,
+              smiNode = node,
               smiAlpha = alpha,
               smiBeta = beta
-            } | move <- moves ]
+            } | (move, node) <- moves ]
       process' processor inputs
     
-    scoreMoves' :: [PossibleMove] -> DepthParams -> (Score, Score) -> Checkers DepthIterationOutput
+    scoreMoves' :: [(PossibleMove, Tree)] -> DepthParams -> (Score, Score) -> Checkers DepthIterationOutput
     scoreMoves' moves dp (alpha, beta) = do
       results <- scoreMoves moves dp (alpha, beta)
       case sequence results of
         Right result -> return result
         Left err -> throwError err
 
-    widthIteration :: Maybe DepthIterationOutput -> [PossibleMove] -> DepthParams -> (Score, Score) -> Checkers DepthIterationOutput
+    widthIteration :: Maybe DepthIterationOutput -> [(PossibleMove, Tree)] -> DepthParams -> (Score, Score) -> Checkers DepthIterationOutput
     widthIteration prevResult moves dp (alpha, beta) = do
       $info "`- Considering scores interval: [{} - {}], depth = {}" (alpha, beta, dpTarget dp)
       results <- scoreMoves moves dp (alpha, beta)
       joinResults prevResult results
 
-    joinResults :: Maybe DepthIterationOutput -> [Either Error (PossibleMove, Score)] -> Checkers DepthIterationOutput
+    joinResults :: Maybe DepthIterationOutput -> [Either Error (PossibleMove, Tree, Score)] -> Checkers DepthIterationOutput
     joinResults Nothing results =
       case sequence results of
         Right result -> return result
         Left err -> throwError err
     joinResults (Just prevResults) results = zipWithM joinResult prevResults results
 
-    joinResult :: (PossibleMove, Score) -> Either Error (PossibleMove, Score) -> Checkers (PossibleMove, Score)
-    joinResult prev@(move, score) (Left TimeExhaused) = do
+    joinResult :: (PossibleMove, Tree, Score) -> Either Error (PossibleMove, Tree, Score) -> Checkers (PossibleMove, Tree, Score)
+    joinResult prev@(move, node, score) (Left TimeExhaused) = do
       $info "Time exhaused while checking move {}, use result from previous depth: {}" (show move, score)
       return prev
     joinResult _ (Left err) = throwError err
     joinResult _ (Right result) = return result
 
-    selectBestEdge (alpha, beta) moves results =
+    --selectBestEdge :: (Score, Score) -> [(PossibleMove, Score)] -> [(PossibleMove, Tree, Score)]
+    selectBestEdge (alpha, beta) options results =
       let (good, bad) = if maximize then (beta, alpha) else (alpha, beta)
-          goodResults = [(move, (goodMoves, score)) | (move, (goodMoves, score)) <- zip moves results, score == good]
-          badResults = [move | (move, (_, score)) <- zip moves results, score == bad]
+          goodResults = [((move, node), (goodMoves, node, score)) | ((move, node), (goodMoves, _, score)) <- zip options results, score == good]
+          badResults = [move | (move, (_, _, score)) <- zip options results, score == bad]
       in  (goodResults, bad, badResults)
 
     select :: DepthIterationOutput -> Checkers AiOutput
-    select pairs = do
+    select options = do
       let best = if maximize then maximum else minimum
-          maxScore = best $ map snd pairs
-          goodMoves = [move | (move, score) <- pairs, score == maxScore]
+          maxScore = best [score | (move, node, score) <- options]
+          goodMoves = [move | (move, node, score) <- options, score == maxScore]
       return (goodMoves, maxScore)
 
 -- | Calculate score of the board
@@ -375,29 +433,30 @@ doScore :: (GameRules rules, Evaluator eval)
         -> eval
         -> AICacheHandle rules eval
         -> AlphaBetaParams
-        -> Side
+        -> GameId
         -> DepthParams
-        -> Board
+        -> Tree
         -> Score -- ^ Alpha
         -> Score -- ^ Beta
         -> Checkers Score
-doScore rules eval var params side dp board alpha beta = do
+doScore rules eval var params gameId dp node alpha beta = do
     initState <- mkInitState
     out <- evalStateT (cachedScoreAB var params input) initState
     return $ soScore out
   where
-    input = ScoreInput side dp alpha beta board Nothing 
+    input = ScoreInput dp node alpha beta Nothing 
     mkInitState = do
       now <- liftIO $ getTime Monotonic
       let timeout = case abBaseTime params of
                       Nothing -> Nothing
                       Just sec -> Just $ TimeSpec (fromIntegral sec) 0
-      return $ ScoreState rules eval [loose] now timeout
+      return $ ScoreState rules eval gameId [loose] now timeout
 
 -- | State of ScoreM monad.
 data ScoreState rules eval = ScoreState {
     ssRules :: rules
   , ssEvaluator :: eval
+  , ssGameId :: GameId
   , ssBestScores :: [Score] -- ^ At each level of depth-first search, there is own "best score"
   , ssStartTime :: TimeSpec -- ^ Start time of calculation
   , ssTimeout :: Maybe TimeSpec -- ^ Nothing for "no timeout"
@@ -405,11 +464,10 @@ data ScoreState rules eval = ScoreState {
 
 -- | Input data for scoreAB method.
 data ScoreInput = ScoreInput {
-    siSide :: Side
-  , siDepth :: DepthParams
+    siDepth :: DepthParams
+  , siNode :: Tree
   , siAlpha :: Score
   , siBeta :: Score
-  , siBoard :: Board
   , siPrevMove :: Maybe PossibleMove
   }
 
@@ -451,8 +509,8 @@ cachedScoreAB :: forall rules eval. (GameRules rules, Evaluator eval)
               -> ScoreM rules eval ScoreOutput
 cachedScoreAB var params input = do
   let depth = dpCurrent dp
-      side = siSide input
-      board = siBoard input
+      side = nodeSide $ siNode input
+      board = nodeBoard $ siNode input
       dp = siDepth input
       alpha = siAlpha input
       beta = siBeta input
@@ -499,8 +557,8 @@ isTargetDepth dp = dpCurrent dp >= dpTarget dp
 --
 -- Otherwise, this just increases dpCurrent by 1.
 --
-updateDepth :: (Monad m, HasLogging m, MonadIO m) => AlphaBetaParams -> [PossibleMove] -> DepthParams -> m DepthParams
-updateDepth params moves dp
+updateDepth :: (Monad m, HasLogging m, MonadIO m) => AlphaBetaParams -> [(PossibleMove, Tree)] -> DepthParams -> m DepthParams
+updateDepth params options dp
     | forced = do
                   let delta = nMoves - 1
                   let target = min (dpTarget dp + 1) (dpMax dp - delta)
@@ -516,7 +574,8 @@ updateDepth params moves dp
                   return $ dp {dpCurrent = dpCurrent dp + 1, dpTarget = target}
     | otherwise = return $ dp {dpCurrent = dpCurrent dp + 1}
   where
-    nMoves = length moves
+    moves = map fst options
+    nMoves = length options
     forced = any isCapture moves || any isPromotion moves || nMoves <= abMovesLowBound params
 
 isQuiescene :: [PossibleMove] -> Bool
@@ -554,25 +613,25 @@ scoreAB var params input
       push best
       $trace "{}V Side: {}, A = {}, B = {}" (indent, show side, show alpha, show beta)
       rules <- gets ssRules
-      let moves = possibleMoves rules side board
+      let nextNodes = nodeChildren $ siNode input
 
       -- this actually means that corresponding side lost.
-      when (null moves) $
+      when (null nextNodes) $
         $trace "{}`—No moves left." (Single indent)
 
-      dp' <- updateDepth params moves dp
+      dp' <- updateDepth params nextNodes dp
       let prevMove = siPrevMove input
-      out <- iterateMoves (sortMoves moves) dp'
+      out <- iterateMoves (sortMoves nextNodes) dp'
       pop
       return out
 
   where
 
-    side = siSide input
+    side = nodeSide $ siNode input
+    board = nodeBoard $ siNode input
     dp = siDepth input
     alpha = siAlpha input
     beta = siBeta input
-    board = siBoard input
 
     checkQuiescene :: ScoreM rules eval Bool
     checkQuiescene = do
@@ -587,9 +646,9 @@ scoreAB var params input
     pop =
       modify $ \st -> st {ssBestScores = tail (ssBestScores st)}
 
-    sortMoves :: [PossibleMove] -> [PossibleMove]
+    sortMoves :: [(PossibleMove, Tree)] -> [(PossibleMove, Tree)]
     sortMoves moves =
-      let promotions = map isPromotion moves
+      let promotions = map (isPromotion . fst) moves
       in  if or promotions
             then map fst $ sortOn (not . snd) $ zip moves promotions
             else moves
@@ -619,13 +678,13 @@ scoreAB var params input
       $trace "{}| {} for depth {} : {} => {}" (indent, bestStr, dpCurrent dp, show oldBest, show best)
       modify $ \st -> st {ssBestScores = best : tail (ssBestScores st)}
 
-    iterateMoves :: [PossibleMove] -> DepthParams -> ScoreM rules eval ScoreOutput
+    iterateMoves :: [(PossibleMove, Tree)] -> DepthParams -> ScoreM rules eval ScoreOutput
     iterateMoves [] _ = do
       best <- getBest
       $trace "{}`—All moves considered at this level, return best = {}" (indent, show best)
       quiescene <- checkQuiescene
       return $ ScoreOutput best quiescene
-    iterateMoves (move : moves) dp' = do
+    iterateMoves ((move, nextNode) : rest) dp' = do
       timeout <- isTimeExhaused
       when timeout $ do
         -- $info "Timeout exhaused for depth {}." (Single $ dpCurrent dp)
@@ -635,15 +694,14 @@ scoreAB var params input
       rules <- gets ssRules
       best <- getBest
       let input' = input {
-                      siSide = opposite side
-                    , siAlpha = if maximize
+                      siAlpha = if maximize
                                  then max alpha best
                                  else alpha
                     , siBeta = if maximize
                                  then beta
                                  else min beta best
                     , siPrevMove = Just move
-                    , siBoard = applyMoveActions (pmResult move) board
+                    , siNode = nextNode
                     , siDepth = dp'
                   }
       out <- cachedScoreAB var params input'
@@ -659,9 +717,9 @@ scoreAB var params input
                     quiescene <- checkQuiescene
                     return $ ScoreOutput score quiescene
                     
-               else iterateMoves moves dp'
+               else iterateMoves rest dp'
         else do
-             iterateMoves moves dp'
+             iterateMoves rest dp'
         
 instance (Evaluator eval, GameRules rules) => Evaluator (AlphaBeta rules eval) where
   evaluatorName (AlphaBeta _ _ eval) = evaluatorName eval

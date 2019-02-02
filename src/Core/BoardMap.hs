@@ -228,5 +228,5 @@ instance Show BoardKey where
               (show $ labelSetToList $ bkSecondKings bk)
 
 instance Show Board where
-  show board = show $ boardKey board
+  show b = show (boardKey b)
 

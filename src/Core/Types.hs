@@ -165,6 +165,9 @@ data Board = Board {
   }
   deriving (Typeable)
 
+instance Eq Board where
+  b1 == b2 = boardKey b1 == boardKey b2
+
 -- | Statistic information about the board.
 -- Can be used as a part of key in some caches.
 data BoardCounts = BoardCounts {
@@ -489,9 +492,10 @@ class (Show ai, Typeable (AiStorage ai)) => GameAi ai where
 
   aiName :: ai -> String
   
+  initAi :: ai -> AiStorage ai -> GameId -> Board -> Side -> Checkers ()
   updateAi :: ai -> Value -> ai
 
-  chooseMove :: ai -> AiStorage ai -> Side -> Board -> Checkers [PossibleMove]
+  chooseMove :: ai -> AiStorage ai -> GameId -> Side -> Board -> Checkers [PossibleMove]
 
   -- | Answer for a draw request.
   -- Default implementation always accepts the draw.
@@ -526,6 +530,7 @@ data GameStatus = New | Running | DrawRequested Side | Ended GameResult
 data Game = Game {
     getGameId :: GameId
   , gInitialBoard :: Board
+  , gFirstSide :: Side
   , gState :: GameState
   , gStatus :: GameStatus
   , gRules :: SomeRules
