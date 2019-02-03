@@ -3,14 +3,14 @@ module Core.BoardMap where
 
 import Control.Monad
 import Control.Exception (bracket_)
+import Control.Concurrent.STM
 import qualified Data.Map as M
 import qualified Data.HashMap.Strict as H
 import qualified Data.IntMap.Strict as IM
 import qualified Data.IntSet as IS
 import Data.Array.IArray as A
 import Data.Hashable
-import qualified Data.HashTable.IO as HT
-import qualified Control.Concurrent.ReadWriteLock as RWL
+import qualified STMContainers.Map as SM
 import Data.Store
 import Data.Word
 import Text.Printf
@@ -82,40 +82,22 @@ removeBoardKey a (Piece King First) bk = bk {bkFirstKings = deleteLabelSet (aLab
 removeBoardKey a (Piece King Second) bk = bk {bkSecondKings = deleteLabelSet (aLabel a) (bkSecondKings bk)}
 
 newTBoardMap :: IO (TBoardMap a)
-newTBoardMap = do
-  lock <- RWL.new
-  m <- HT.newSized (100*1000)
-  return (lock, m)
+newTBoardMap = atomically $ SM.new
 
 putBoardMap :: TBoardMap a -> Board -> a -> IO ()
-putBoardMap (lock, bmap) board value =
-  bracket_
-    (RWL.acquireWrite lock)
-    (RWL.releaseWrite lock)
-    (HT.insert bmap (boardCounts board, boardKey board) value)
+putBoardMap bmap board value = atomically $
+  SM.insert value (boardCounts board, boardKey board) bmap
 
 putBoardMapWith :: TBoardMap a -> (a -> a -> a) -> Board -> a -> IO ()
-putBoardMapWith (lock, bmap) plus board value =
-  bracket_
-    (RWL.acquireWrite lock)
-    (RWL.releaseWrite lock)
-    (do mbOld <- HT.lookup bmap (boardCounts board, boardKey board)
-        case mbOld of
-          Nothing -> HT.insert bmap (boardCounts board, boardKey board) value
-          Just old -> HT.insert bmap (boardCounts board, boardKey board) (plus old value)
-      )
+putBoardMapWith bmap plus board value = atomically $ do
+  mbOld <- SM.lookup (boardCounts board, boardKey board) bmap
+  case mbOld of
+    Nothing -> SM.insert value (boardCounts board, boardKey board) bmap
+    Just old -> SM.insert (plus old value) (boardCounts board, boardKey board) bmap
 
 lookupBoardMap :: TBoardMap a -> Board -> IO (Maybe a)
-lookupBoardMap (lock, bmap) board =
-  bracket_
-    (RWL.acquireRead lock)
-    (RWL.releaseRead lock)
-    (HT.lookup bmap (boardCounts board, boardKey board))
-
-boardMapSize :: TBoardMap a -> IO Int
-boardMapSize (_, bmap) = do
-  list <- HT.toList bmap
-  return $ length list
+lookupBoardMap bmap board = atomically $
+  SM.lookup (boardCounts board, boardKey board) bmap
 
 ------------------
 

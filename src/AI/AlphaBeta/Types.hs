@@ -92,8 +92,15 @@ instance Semigroup Stats where
 instance Monoid Stats where
   mempty = Stats 0 0 0 0
 
+data Bound = Alpha | Beta | Exact
+  deriving (Generic, Typeable, Eq, Show)
+
+instance Binary Bound
+instance Store Bound
+
 data CacheItemSide = CacheItemSide {
     cisScore :: ! Score
+  , cisBound :: ! Bound
   }
   deriving (Eq, Show, Generic, Typeable)
 

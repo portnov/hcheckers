@@ -16,7 +16,6 @@ import Control.Monad.Except
 import Control.Monad.Metrics as Metrics
 import Control.Concurrent
 import Control.Concurrent.STM
-import qualified Control.Concurrent.ReadWriteLock as RWL
 import Data.List
 import Data.Array.Unboxed
 import qualified Data.Map as M
@@ -25,8 +24,7 @@ import qualified Data.IntSet as IS
 import qualified Data.Text as T
 import qualified Data.Text.Lazy as TL
 import qualified Data.Text.Lazy.Builder.Int as Builder
-import qualified Data.HashMap.Strict as H
-import qualified Data.HashTable.IO as HT
+import qualified STMContainers.Map as SM
 import Data.Text.Format.Heavy
 import Data.Dynamic
 import Data.Aeson (Value)
@@ -195,9 +193,7 @@ data BoardKey = BoardKey {
 
 instance Binary BoardKey
 
-type BoardMap a = HT.CuckooHashTable (BoardCounts, BoardKey) a
-
-type TBoardMap a = (RWL.RWLock, BoardMap a)
+type TBoardMap a = SM.Map (BoardCounts, BoardKey) a
 
 -- | Direction on the board.
 -- For example, B2 is at UpRight of A1.
@@ -415,26 +411,26 @@ win = Score maxPieces scoreBound
 loose :: Score
 loose = Score (-maxPieces) (-scoreBound)
 
-clamp :: Int32 -> ScoreBase
-clamp x = clamp' scoreBound x
+clampS :: Int32 -> ScoreBase
+clampS x = clampS' scoreBound x
 
-clamp' :: ScoreBase -> Int32 -> ScoreBase
-clamp' bound x = min bound $ max (-bound) (fromIntegral x)
+clampS' :: ScoreBase -> Int32 -> ScoreBase
+clampS' bound x = min bound $ max (-bound) (fromIntegral x)
 
 safePlus :: forall a. (Integral a) => ScoreBase -> ScoreBase -> a -> ScoreBase
 safePlus bound x y =
   let result = (fromIntegral x + fromIntegral y) :: Int32
-  in  clamp' bound result
+  in  clampS' bound result
 
 safeMinus :: forall a. (Integral a) => ScoreBase -> ScoreBase -> a -> ScoreBase
 safeMinus bound x y =
   let result = (fromIntegral x - fromIntegral y) :: Int32
-  in  clamp' bound result
+  in  clampS' bound result
 
 safeScale :: forall a. (Integral a) => ScoreBase -> ScoreBase -> a -> ScoreBase
 safeScale bound x y =
   let result = (fromIntegral x * fromIntegral y) :: Int32
-  in  clamp' bound result
+  in  clampS' bound result
 
 instance Num Score where
   fromInteger x = Score (fromIntegral x) 0

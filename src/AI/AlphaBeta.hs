@@ -91,33 +91,33 @@ getPossibleMoves :: GameRules rules => AICacheHandle rules eval -> Side -> Board
 getPossibleMoves handle side board = Monitoring.timed "ai.possible_moves.duration" $ do
     let rules = aichRules handle
     Monitoring.increment "ai.possible_moves.calls"
-    -- return $ possibleMoves rules side board
-    (result, hit) <- liftIO $ do
-        let memo = aichPossibleMoves handle
-        let rules = aichRules handle
-        let bc = boardCounts board
-            bk = boardKey board
-        let moves = possibleMoves rules side board
-        mbItem <- lookupBoardMap memo board
-        case mbItem of
-            Nothing -> do
-              let value = case side of
-                           First -> (Just moves, Nothing) 
-                           Second -> (Nothing, Just moves)
-              putBoardMap memo board value
-              return (moves, False)
-            Just (Just cachedMoves, _) | side == First -> return (cachedMoves, True)
-            Just (_, Just cachedMoves) | side == Second -> return (cachedMoves, True)
-            Just (mbMoves1, mbMoves2) -> do
-              let value
-                   | side == First = (Just moves, mbMoves2)
-                   | otherwise     = (mbMoves1, Just moves)
-              putBoardMap memo board value
-              return (moves, False)
-    if hit
-      then Monitoring.increment "ai.possible_moves.hit"
-      else Monitoring.increment "ai.possible_moves.miss"
-    return result
+    return $ possibleMoves rules side board
+--     (result, hit) <- liftIO $ do
+--         let memo = aichPossibleMoves handle
+--         let rules = aichRules handle
+--         let bc = boardCounts board
+--             bk = boardKey board
+--         let moves = possibleMoves rules side board
+--         mbItem <- lookupBoardMap memo board
+--         case mbItem of
+--             Nothing -> do
+--               let value = case side of
+--                            First -> (Just moves, Nothing) 
+--                            Second -> (Nothing, Just moves)
+--               putBoardMap memo board value
+--               return (moves, False)
+--             Just (Just cachedMoves, _) | side == First -> return (cachedMoves, True)
+--             Just (_, Just cachedMoves) | side == Second -> return (cachedMoves, True)
+--             Just (mbMoves1, mbMoves2) -> do
+--               let value
+--                    | side == First = (Just moves, mbMoves2)
+--                    | otherwise     = (mbMoves1, Just moves)
+--               putBoardMap memo board value
+--               return (moves, False)
+--     if hit
+--       then Monitoring.increment "ai.possible_moves.hit"
+--       else Monitoring.increment "ai.possible_moves.miss"
+--     return result
 
 -- | General driver / controller for Alpha-Beta prunning algorithm.
 -- This method is responsible in running scoreAB method on all possible moves
@@ -478,6 +478,12 @@ instance HasLogContext (StateT (ScoreState rules eval) Checkers) where
     put st'
     return result
 
+clamp :: Ord a => a -> a -> a -> a
+clamp alpha beta score
+  | score < alpha = alpha
+  | score > beta  = beta
+  | otherwise = score
+
 -- | Calculate score of the board. 
 -- This uses the cache. It is called in the recursive call also.
 cachedScoreAB :: forall rules eval. (GameRules rules, Evaluator eval)
@@ -493,28 +499,37 @@ cachedScoreAB var params input = do
       alpha = siAlpha input
       beta = siBeta input
   mbItem <- lift $ lookupAiCache params board dp side var
-  case mbItem of
-    Just item -> do
-      $trace "Cache hit" ()
-      let score = cisScore item
-      -- it is possible that this value was put to cache with different
-      -- values of alpha/beta; but we have to maintain the property of
-      -- AB-section: alpha <= result <= beta. So here we clamp the value
-      -- that we got from cache.
-      if score < alpha
-        then return $ ScoreOutput alpha False
-        else if score > beta
-               then return $ ScoreOutput beta False
-               else return $ ScoreOutput score False
-
+  mbCached <- case mbItem of
+                Just item -> do
+                  let score = cisScore item
+                  -- it is possible that this value was put to cache with different
+                  -- values of alpha/beta; but we have to maintain the property of
+                  -- AB-section: alpha <= result <= beta. So here we clamp the value
+                  -- that we got from cache.
+                  case cisBound item of
+                    Exact -> return $ Just $ ScoreOutput (clamp alpha beta score) False
+                    Alpha -> if score <= alpha
+                               then return $ Just $ ScoreOutput alpha False
+                               else return Nothing
+                    Beta  -> if score >= beta
+                               then return $ Just $ ScoreOutput beta False
+                               else return Nothing
+                Nothing -> return Nothing
+  case mbCached of
+    Just out -> return out
     Nothing -> do
       out <- Monitoring.timed "ai.score.board" $ scoreAB var params input
       let score = soScore out
-      when (alpha < score && score < beta && soQuiescene out) $
+          bound
+            | score <= alpha = Alpha
+            | score >= beta = Beta
+            | otherwise = Exact
           -- we can only put the result to the cache if we know
           -- that this score was not clamped by alpha or beta
           -- (so this is a real score, not alpha/beta bound)
-          lift $ putAiCache params board dp side score [] var
+          item = CacheItemSide score bound
+      when (bound == Exact && soQuiescene out) $
+          lift $ putAiCache params board dp side item [] var
       return out
 
 -- | Check if target depth is reached

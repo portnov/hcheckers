@@ -166,10 +166,10 @@ lookupAiCache params board depth side handle = do
         return cachedScore
       (Nothing, Just stats) -> do
         Monitoring.increment "stats.hit.memory"
-        return $ Just $ CacheItemSide $ avg stats
+        return $ Just $ CacheItemSide (avg stats) Exact
       (Just _, Just stats) -> do
         Monitoring.increment "stats.hit.memory"
-        return $ Just $ CacheItemSide $ avg stats
+        return $ Just $ CacheItemSide (avg stats) Exact
       (Nothing, Nothing) -> do
         (mbCached, mbStats) <- lookupFile' board depth side
         let mbStats' = checkStats =<< mbStats
@@ -180,17 +180,20 @@ lookupAiCache params board depth side handle = do
           (Nothing, Just stats) -> do
             Monitoring.increment "stats.hit.file"
             let score = avg stats
-            putAiCache' params board depth side (CacheItemSide score) handle
-            return $ Just $ CacheItemSide score
+            let result = CacheItemSide score Exact
+            putAiCache' params board depth side result handle
+            return $ Just result
           (Just score, Nothing) -> do
+            let result = CacheItemSide score Exact
             Monitoring.increment "cache.hit.file"
-            putAiCache' params board depth side (CacheItemSide score) handle
-            return $ Just $ CacheItemSide score
+            putAiCache' params board depth side result handle
+            return $ Just result
           (Just _, Just stats) -> do
             Monitoring.increment "stats.hit.file"
             let score = avg stats
-            putAiCache' params board depth side (CacheItemSide score) handle
-            return $ Just $ CacheItemSide score
+            let result = CacheItemSide score Exact
+            putAiCache' params board depth side result handle
+            return $ Just result
 
   where
     queueCleanup bc bk = return ()
@@ -270,8 +273,7 @@ putAiCache' params board depth side sideItem handle = do
       putCleanupQueue (aichCleanupQueue handle) (bc, bk) now
 
 
-putAiCache :: GameRules rules => AlphaBetaParams -> Board -> DepthParams -> Side -> Score -> [Move] -> AICacheHandle rules eval -> Checkers ()
+putAiCache :: GameRules rules => AlphaBetaParams -> Board -> DepthParams -> Side -> CacheItemSide -> [Move] -> AICacheHandle rules eval -> Checkers ()
 putAiCache params board depth side score moves handle = do
-  let sideItem = CacheItemSide {cisScore = score}
-  putAiCache' params board depth side sideItem handle
+  putAiCache' params board depth side score handle
 
