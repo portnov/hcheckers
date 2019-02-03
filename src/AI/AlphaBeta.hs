@@ -91,34 +91,33 @@ getPossibleMoves :: GameRules rules => AICacheHandle rules eval -> Side -> Board
 getPossibleMoves handle side board = Monitoring.timed "ai.possible_moves.duration" $ do
     let rules = aichRules handle
     Monitoring.increment "ai.possible_moves.calls"
-    return $ possibleMoves rules side board
---   (result, hit) <- liftIO $ atomically $ do
---       memo <- readTVar (aichPossibleMoves handle)
---       let rules = aichRules handle
---       let bc = boardCounts board
---           bk = boardKey board
---       let moves = possibleMoves rules side board
---       case lookupBoardMap (bc, bk) memo of
---           Nothing -> do
---             let value = case side of
---                          First -> (Just moves, Nothing) 
---                          Second -> (Nothing, Just moves)
---             let memo' = putBoardMap board value memo
---             writeTVar (aichPossibleMoves handle) memo'
---             return (moves, False)
---           Just (Just cachedMoves, _) | side == First -> return (cachedMoves, True)
---           Just (_, Just cachedMoves) | side == Second -> return (cachedMoves, True)
---           Just (mbMoves1, mbMoves2) -> do
---             let value
---                  | side == First = (Just moves, mbMoves2)
---                  | otherwise     = (mbMoves1, Just moves)
---             let memo' = putBoardMap board value memo
---             writeTVar (aichPossibleMoves handle) memo'
---             return (moves, False)
---   if hit
---     then Monitoring.increment "ai.possible_moves.hit"
---     else Monitoring.increment "ai.possible_moves.miss"
---   return result
+    -- return $ possibleMoves rules side board
+    (result, hit) <- liftIO $ do
+        let memo = aichPossibleMoves handle
+        let rules = aichRules handle
+        let bc = boardCounts board
+            bk = boardKey board
+        let moves = possibleMoves rules side board
+        mbItem <- lookupBoardMap memo board
+        case mbItem of
+            Nothing -> do
+              let value = case side of
+                           First -> (Just moves, Nothing) 
+                           Second -> (Nothing, Just moves)
+              putBoardMap memo board value
+              return (moves, False)
+            Just (Just cachedMoves, _) | side == First -> return (cachedMoves, True)
+            Just (_, Just cachedMoves) | side == Second -> return (cachedMoves, True)
+            Just (mbMoves1, mbMoves2) -> do
+              let value
+                   | side == First = (Just moves, mbMoves2)
+                   | otherwise     = (mbMoves1, Just moves)
+              putBoardMap memo board value
+              return (moves, False)
+    if hit
+      then Monitoring.increment "ai.possible_moves.hit"
+      else Monitoring.increment "ai.possible_moves.miss"
+    return result
 
 -- | General driver / controller for Alpha-Beta prunning algorithm.
 -- This method is responsible in running scoreAB method on all possible moves
@@ -352,7 +351,7 @@ runAI ai@(AlphaBeta params rules eval) handle side board = do
     scoreMoves :: [PossibleMove] -> DepthParams -> (Score, Score) -> Checkers [Either Error (PossibleMove, Score)]
     scoreMoves moves dp (alpha, beta) = do
       let var = aichData handle
-      AICache _ processor _ <- liftIO $ atomically $ readTVar var
+      let processor = aichProcessor handle
       let inputs = [
             ScoreMoveInput {
               smiAi = ai,

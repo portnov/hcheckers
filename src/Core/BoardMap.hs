@@ -2,12 +2,15 @@
 module Core.BoardMap where
 
 import Control.Monad
+import Control.Exception (bracket_)
 import qualified Data.Map as M
 import qualified Data.HashMap.Strict as H
 import qualified Data.IntMap.Strict as IM
 import qualified Data.IntSet as IS
 import Data.Array.IArray as A
 import Data.Hashable
+import qualified Data.HashTable.IO as HT
+import qualified Control.Concurrent.ReadWriteLock as RWL
 import Data.Store
 import Data.Word
 import Text.Printf
@@ -78,39 +81,41 @@ removeBoardKey a (Piece Man Second) bk = bk {bkSecondMen = deleteLabelSet (aLabe
 removeBoardKey a (Piece King First) bk = bk {bkFirstKings = deleteLabelSet (aLabel a) (bkFirstKings bk)}
 removeBoardKey a (Piece King Second) bk = bk {bkSecondKings = deleteLabelSet (aLabel a) (bkSecondKings bk)}
 
-putBoardMap :: Board -> a -> BoardMap a -> BoardMap a
-putBoardMap board x bmap =
-    M.unionWith H.union bmap init
-  where
-    init = M.singleton (boardCounts board) $ H.singleton (boardKey board) x
+newTBoardMap :: IO (TBoardMap a)
+newTBoardMap = do
+  lock <- RWL.new
+  m <- HT.newSized (100*1000)
+  return (lock, m)
 
-putBoardMapWith :: (a -> a -> a) -> (BoardCounts,BoardKey) -> a -> BoardMap a -> BoardMap a
-putBoardMapWith plus (bc,bk) x bmap =
-    M.unionWith (H.unionWith plus) bmap init
-  where
-    init = M.singleton bc $ H.singleton bk x
+putBoardMap :: TBoardMap a -> Board -> a -> IO ()
+putBoardMap (lock, bmap) board value =
+  bracket_
+    (RWL.acquireWrite lock)
+    (RWL.releaseWrite lock)
+    (HT.insert bmap (boardCounts board, boardKey board) value)
 
-lookupBoardMap :: (BoardCounts,BoardKey) -> BoardMap a -> Maybe a
-lookupBoardMap (bc,bk) bmap =
-  H.lookup bk =<< M.lookup bc bmap
+putBoardMapWith :: TBoardMap a -> (a -> a -> a) -> Board -> a -> IO ()
+putBoardMapWith (lock, bmap) plus board value =
+  bracket_
+    (RWL.acquireWrite lock)
+    (RWL.releaseWrite lock)
+    (do mbOld <- HT.lookup bmap (boardCounts board, boardKey board)
+        case mbOld of
+          Nothing -> HT.insert bmap (boardCounts board, boardKey board) value
+          Just old -> HT.insert bmap (boardCounts board, boardKey board) (plus old value)
+      )
 
-singleBoardMap :: Board -> a -> BoardMap a
-singleBoardMap board x =
-  M.singleton (boardCounts board) $ H.singleton (boardKey board) x
+lookupBoardMap :: TBoardMap a -> Board -> IO (Maybe a)
+lookupBoardMap (lock, bmap) board =
+  bracket_
+    (RWL.acquireRead lock)
+    (RWL.releaseRead lock)
+    (HT.lookup bmap (boardCounts board, boardKey board))
 
-emptyBoardMap :: BoardMap a
-emptyBoardMap = M.empty
-
-deleteBoardMap :: BoardCounts -> BoardKey -> BoardMap a -> BoardMap a
-deleteBoardMap bc bk bm =
-  let del m = let m' = H.delete bk m
-              in  if H.null m'
-                    then Nothing
-                    else Just m'
-  in  M.update del bc bm
-
-boardMapSize :: BoardMap a -> Int
-boardMapSize bmap = sum $ map H.size $ M.elems bmap
+boardMapSize :: TBoardMap a -> IO Int
+boardMapSize (_, bmap) = do
+  list <- HT.toList bmap
+  return $ length list
 
 ------------------
 

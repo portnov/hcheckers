@@ -47,7 +47,7 @@ loadAiCache scoreMove (AlphaBeta params rules eval) = do
   let getKey input = pmResult (smiMove input)
   aiCfg <- asks (gcAiConfig . csConfig)
   processor <- runProcessor (aiThreads aiCfg) getKey scoreMove
-  cache <- liftIO $ atomically $ newTVar $ AICache False processor emptyBoardMap
+  cache <- liftIO newTBoardMap
   cachePath <- do
               home <- liftIO $ getEnv "HOME"
               let directory = home </> ".cache" </> "hcheckers" </> rulesName rules </> "ai.cache"
@@ -100,10 +100,11 @@ loadAiCache scoreMove (AlphaBeta params rules eval) = do
                      fhHandle = fd
                    }
   counts <- liftIO $ atomically $ newTVar $ BoardCounts 50 50 50 50
-  moves <- liftIO $ atomically $ newTVar emptyBoardMap
+  moves <- liftIO newTBoardMap
   let handle = AICacheHandle {
       aichRules = rules,
       aichData = cache,
+      aichProcessor = processor,
       aichPossibleMoves = moves,
       aichWriteQueue = writeQueue,
       aichCleanupQueue = cleanupQueue,
@@ -138,22 +139,6 @@ cacheDumper rules params handle = do
 
 cacheCleaner :: AICacheHandle rules eval -> Checkers ()
 cacheCleaner handle = forever $ do
-    delta <- liftIO $ atomically $ do
-        aic <- readTVar (aichData handle)
-        currentCounts <- readTVar (aichCurrentCounts handle)
-        let cache = aicData aic
-        let oldSize = boardMapSize cache
-        let cache' = M.filterWithKey biggerCounts cache
-            biggerCounts bc _ =
-              (bcFirstMen bc + bcFirstKings bc + bcSecondMen bc + bcSecondKings bc) <=
-              (bcFirstMen currentCounts + bcFirstKings currentCounts + bcSecondMen currentCounts + bcSecondKings currentCounts)
-            aic' = aic {aicData = cache'}
-            newSize = boardMapSize cache'
-            delta = oldSize - newSize
-        writeTVar (aichData handle) aic'
-        return delta
-    $info "cleanup: cleaned {} records" (Single delta)
-
     liftIO $ threadDelay $ 30 * 1000 * 1000
 
 normalize :: BoardSize -> (BoardCounts,BoardKey,Side) -> (BoardCounts,BoardKey,Side)
@@ -173,7 +158,7 @@ lookupAiCache params board depth side handle = do
     -- let fixSign = if side' == side then id else negate
     let bc = boardCounts board
         bk = boardKey board
-    (cachedScore, cachedStats) <- lookupMemory (bc, bk) side
+    (cachedScore, cachedStats) <- lookupMemory board side
     case (cachedScore, cachedStats) of
       (Just result, Nothing) -> do
         Monitoring.increment "cache.hit.memory"
@@ -225,11 +210,12 @@ lookupAiCache params board depth side handle = do
       | statsCount s < 10 = Nothing
       | otherwise = Just s
 
-    lookupMemory :: (BoardCounts, BoardKey) -> Side -> Checkers (Maybe CacheItemSide, Maybe Stats)
-    lookupMemory (bc, bk) side = Monitoring.timed "cache.lookup.memory" $ do
+    lookupMemory :: Board -> Side -> Checkers (Maybe CacheItemSide, Maybe Stats)
+    lookupMemory board side = Monitoring.timed "cache.lookup.memory" $ do
       cfg <- asks (gcAiConfig . csConfig)
-      AICache _ _ cache <- liftIO $ atomically $ readTVar (aichData handle)
-      case lookupBoardMap (bc,bk) cache of
+      let cache = aichData handle
+      mbItem <- liftIO $ lookupBoardMap cache board 
+      case mbItem of
         Nothing -> return (Nothing, Nothing)
         Just (PerBoardData {..}) -> do
           let depths = [dpLast depth .. dpLast depth + aiUseCacheMaxDepthPlus cfg] ++
@@ -269,20 +255,16 @@ putAiCache' params board depth side sideItem handle = do
     now <- liftIO $ getTime Monotonic
     Monitoring.increment "cache.records.put"
     fileCacheEnabled <- asks (aiStoreCache . gcAiConfig . csConfig)
+    let cache = aichData handle
+    let item = case side of
+                 First -> CacheItem {ciFirst = Just sideItem, ciSecond = Nothing}
+                 Second -> CacheItem {ciFirst = Nothing, ciSecond = Just sideItem}
+
+        init = PerBoardData (M.singleton (dpLast depth) item) Nothing
+
+    liftIO $ putBoardMapWith cache (<>) board init
+
     liftIO $ atomically $ do
-      aic <- readTVar (aichData handle)
-      let item = case side of
-                   First -> CacheItem {ciFirst = Just sideItem, ciSecond = Nothing}
-                   Second -> CacheItem {ciFirst = Nothing, ciSecond = Just sideItem}
-
-          init = PerBoardData (M.singleton (dpLast depth) item) Nothing
-
-          newAicData = putBoardMapWith (<>) (bc,bk) init (aicData aic)
-          aic' = aic {aicDirty = True, aicData = newAicData}
-
-          Just perBoard = lookupBoardMap (bc,bk) newAicData
-
-      writeTVar (aichData handle) aic'
       when (fileCacheEnabled && needWriteFile) $
           putWriteQueue (aichWriteQueue handle) (board, depth, side, sideItem)
       putCleanupQueue (aichCleanupQueue handle) (bc, bk) now
@@ -292,3 +274,4 @@ putAiCache :: GameRules rules => AlphaBetaParams -> Board -> DepthParams -> Side
 putAiCache params board depth side score moves handle = do
   let sideItem = CacheItemSide {cisScore = score}
   putAiCache' params board depth side sideItem handle
+

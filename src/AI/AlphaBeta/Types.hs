@@ -136,7 +136,7 @@ instance Monoid PerBoardData where
 instance Binary PerBoardData
 instance Store PerBoardData
 
-type AIData = BoardMap PerBoardData
+type AIData = TBoardMap PerBoardData
 
 type StorageKey = (DepthParams, BoardKey)
 
@@ -154,12 +154,6 @@ data ScoreMoveInput rules eval = ScoreMoveInput {
   , smiBeta :: Score
   }
 
-data AICache rules eval = AICache {
-    aicDirty :: Bool
-  , aicProcessor :: Processor [MoveAction] (ScoreMoveInput rules eval) (PossibleMove, Score)
-  , aicData :: AIData
-  }
-
 type QueueKey = (BoardCounts, BoardKey)
 
 type IndexBlockNumber = Word32
@@ -168,14 +162,15 @@ type DataBlockNumber = Word32
 data FileType = IndexFile | DataFile
   deriving (Eq, Show)
 
-type MovesMemo = BoardMap (Maybe [PossibleMove], Maybe [PossibleMove])
+type MovesMemo = TBoardMap (Maybe [PossibleMove], Maybe [PossibleMove])
 
 -- | Handle to the instance of AI storage
 -- and related structures
 data AICacheHandle rules eval = AICacheHandle {
     aichRules :: rules
-  , aichData :: TVar (AICache rules eval)
-  , aichPossibleMoves :: TVar MovesMemo
+  , aichData :: AIData
+  , aichProcessor ::  Processor [MoveAction] (ScoreMoveInput rules eval) (PossibleMove, Score)
+  , aichPossibleMoves :: MovesMemo
   , aichWriteQueue :: WriteQueue
   , aichCleanupQueue :: CleanupQueue
   , aichCurrentCounts :: TVar BoardCounts

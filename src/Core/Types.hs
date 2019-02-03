@@ -16,6 +16,7 @@ import Control.Monad.Except
 import Control.Monad.Metrics as Metrics
 import Control.Concurrent
 import Control.Concurrent.STM
+import qualified Control.Concurrent.ReadWriteLock as RWL
 import Data.List
 import Data.Array.Unboxed
 import qualified Data.Map as M
@@ -25,6 +26,7 @@ import qualified Data.Text as T
 import qualified Data.Text.Lazy as TL
 import qualified Data.Text.Lazy.Builder.Int as Builder
 import qualified Data.HashMap.Strict as H
+import qualified Data.HashTable.IO as HT
 import Data.Text.Format.Heavy
 import Data.Dynamic
 import Data.Aeson (Value)
@@ -193,7 +195,9 @@ data BoardKey = BoardKey {
 
 instance Binary BoardKey
 
-type BoardMap a = M.Map BoardCounts (H.HashMap BoardKey a)
+type BoardMap a = HT.CuckooHashTable (BoardCounts, BoardKey) a
+
+type TBoardMap a = (RWL.RWLock, BoardMap a)
 
 -- | Direction on the board.
 -- For example, B2 is at UpRight of A1.

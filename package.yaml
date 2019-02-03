@@ -24,7 +24,9 @@ dependencies:
 - mtl
 - containers
 - unordered-containers
+- hashtables
 - concurrent-extra
+- stm-containers
 - psqueues
 - aeson
 - yaml
