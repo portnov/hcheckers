@@ -193,7 +193,7 @@ data BoardKey = BoardKey {
 
 instance Binary BoardKey
 
-type TBoardMap a = SM.Map (BoardCounts, BoardKey) a
+type TBoardMap a = SM.Map BoardKey a
 
 -- | Direction on the board.
 -- For example, B2 is at UpRight of A1.

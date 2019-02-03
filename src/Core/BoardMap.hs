@@ -86,18 +86,18 @@ newTBoardMap = atomically $ SM.new
 
 putBoardMap :: TBoardMap a -> Board -> a -> IO ()
 putBoardMap bmap board value = atomically $
-  SM.insert value (boardCounts board, boardKey board) bmap
+  SM.insert value (boardKey board) bmap
 
 putBoardMapWith :: TBoardMap a -> (a -> a -> a) -> Board -> a -> IO ()
 putBoardMapWith bmap plus board value = atomically $ do
-  mbOld <- SM.lookup (boardCounts board, boardKey board) bmap
+  mbOld <- SM.lookup (boardKey board) bmap
   case mbOld of
-    Nothing -> SM.insert value (boardCounts board, boardKey board) bmap
-    Just old -> SM.insert (plus old value) (boardCounts board, boardKey board) bmap
+    Nothing -> SM.insert value (boardKey board) bmap
+    Just old -> SM.insert (plus old value) (boardKey board) bmap
 
 lookupBoardMap :: TBoardMap a -> Board -> IO (Maybe a)
 lookupBoardMap bmap board = atomically $
-  SM.lookup (boardCounts board, boardKey board) bmap
+  SM.lookup (boardKey board) bmap
 
 ------------------
 
