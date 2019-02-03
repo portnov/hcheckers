@@ -196,6 +196,7 @@ runAI ai@(AlphaBeta params rules eval) handle side board = do
 --                       , dpCurrent = -1
 --                       , dpMax = 4
 --                       , dpMin = 2
+--                       , dpForcedMode = False
 --                     }
 --           $info "Preselecting; number of possible moves = {}, depth = {}" (length moves, dpTarget simple)
 --           options <- scoreMoves' moves simple (loose, win)
@@ -248,6 +249,7 @@ runAI ai@(AlphaBeta params rules eval) handle side board = do
                    , dpCurrent = -1
                    , dpMax = abCombinationDepth params + depth
                    , dpMin = fromMaybe depth (abStartDepth params)
+                   , dpForcedMode = False
                    }
           let needDeeper = abDeeperIfBad params && score0 `worseThan` 0
           let dp'
@@ -558,7 +560,7 @@ updateDepth params moves dp
                   let indent = replicate (2*dpCurrent dp) ' '
                   $debug "{}| there is only one move, increase target depth to {}"
                           (indent, target)
-                  return $ dp {dpCurrent = dpCurrent dp + 1, dpTarget = target}
+                  return $ dp {dpCurrent = dpCurrent dp + 1, dpTarget = target, dpForcedMode = True}
     | nMoves > abMovesHighBound params = do
                   let target = max (dpCurrent dp + 1) (dpMin dp)
                   let indent = replicate (2*dpCurrent dp) ' '

@@ -62,6 +62,7 @@ data DepthParams = DepthParams {
   , dpCurrent :: Int    -- ^ Currently achieved depth
   , dpMax :: Int        -- ^ Maximum allowed depth
   , dpMin :: Int        -- ^ Minimum allowed depth
+  , dpForcedMode :: Bool
   }
   deriving (Eq, Ord, Show, Typeable, Generic)
 
