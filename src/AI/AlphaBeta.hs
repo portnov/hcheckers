@@ -615,7 +615,7 @@ scoreAB var params input
 
       dp' <- updateDepth params moves dp
       let prevMove = siPrevMove input
-      moves' <- sortMoves moves
+      moves' <- sortMoves prevMove moves
       out <- iterateMoves moves' dp'
       pop
       return out
@@ -642,11 +642,23 @@ scoreAB var params input
     pop =
       modify $ \st -> st {ssBestScores = tail (ssBestScores st)}
 
-    sortMoves :: [PossibleMove] -> ScoreM rules eval [PossibleMove]
-    sortMoves moves = do
-      interest <- mapM isInteresting moves
-      if or interest
-        then return $ map fst $ sortOn (not . snd) $ zip moves interest
+    evalMove :: Maybe PossibleMove -> PossibleMove -> ScoreM rules eval Int
+    evalMove mbPrevMove move = do
+      let victims = pmVictims move
+          nVictims = length victims
+          promotion = if isPromotion move then 2 else 0
+          attackPrevPiece = case mbPrevMove of
+                              Nothing -> 0
+                              Just prevMove -> if pmEnd prevMove `elem` victims
+                                                 then 2
+                                                 else 0
+      return $ nVictims + promotion + attackPrevPiece
+
+    sortMoves :: Maybe PossibleMove -> [PossibleMove] -> ScoreM rules eval [PossibleMove]
+    sortMoves mbPrevMove moves = do
+      interest <- mapM (evalMove mbPrevMove) moves
+      if any (> 0) interest
+        then return $ map fst $ sortOn (negate . snd) $ zip moves interest
         else return moves
 
     distance :: PossibleMove -> PossibleMove -> Line
