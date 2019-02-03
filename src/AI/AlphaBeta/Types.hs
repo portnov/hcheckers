@@ -168,11 +168,14 @@ type DataBlockNumber = Word32
 data FileType = IndexFile | DataFile
   deriving (Eq, Show)
 
+type MovesMemo = BoardMap (Maybe [PossibleMove], Maybe [PossibleMove])
+
 -- | Handle to the instance of AI storage
 -- and related structures
 data AICacheHandle rules eval = AICacheHandle {
     aichRules :: rules
   , aichData :: TVar (AICache rules eval)
+  , aichPossibleMoves :: TVar MovesMemo
   , aichWriteQueue :: WriteQueue
   , aichCleanupQueue :: CleanupQueue
   , aichCurrentCounts :: TVar BoardCounts

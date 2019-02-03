@@ -445,6 +445,10 @@ scaleScore :: Integral n => n -> Score -> Score
 scaleScore x (Score n p) = Score (safeScale maxPieces (fromIntegral x) n)
                                  (safeScale scoreBound (fromIntegral x) p)
 
+divideScore :: Integral n => Score -> n -> Score
+divideScore (Score n p) d =
+  Score (n `div` fromIntegral d) (p `div` fromIntegral d)
+
 nextScore :: Score -> Score
 nextScore (Score n p) = Score n (safePlus scoreBound p 1)
 

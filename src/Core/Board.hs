@@ -499,6 +499,14 @@ getPiece :: Address -> Board -> Maybe Piece
 getPiece a b =
   boxPiece $ bPieces b A.! (aIndex a)
 
+isPieceAt :: Address -> Board -> Side -> Bool
+isPieceAt a b side =
+  let bk = boardKey b
+      label = aLabel a
+  in  case side of
+        First -> label `labelSetMember` bkFirstMen bk || label `labelSetMember` bkFirstKings bk
+        Second -> label `labelSetMember` bkSecondMen bk || label `labelSetMember` bkSecondKings bk
+
 getPiece_ :: String -> Address -> Board -> Piece
 getPiece_ name addr board =
   case getPiece addr board of

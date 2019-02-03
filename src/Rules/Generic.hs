@@ -196,12 +196,8 @@ abstractRules =
         check a dir =
           case myNeighbour rules side dir a of
             Just victimAddr | not (aLabel victimAddr `labelSetMember` ctCaptured) ->
-              case getPiece victimAddr ctBoard of
-                Nothing -> Nothing
-                Just victim ->
-                  if isMyPiece side victim
-                    then Nothing
-                    else case myNeighbour rules side dir victimAddr of
+              if isPieceAt victimAddr ctBoard (opposite side)
+                then case myNeighbour rules side dir victimAddr of
                            Nothing -> Nothing
                            Just freeAddr -> if isFree freeAddr ctBoard
                                               then Just $ Capture {
@@ -214,6 +210,7 @@ abstractRules =
                                                       cPromote = isLastHorizontal side freeAddr
                                                     }
                                               else Nothing
+                else Nothing
             _ -> Nothing
 
     -- This is a most popular implementation, which fits most rules
