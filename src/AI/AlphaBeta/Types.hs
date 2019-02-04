@@ -109,7 +109,8 @@ instance Binary CacheItemSide
 instance Store CacheItemSide
 
 data CacheItem = CacheItem {
-    ciFirst :: Maybe CacheItemSide
+    ciDepth :: Int
+  , ciFirst :: Maybe CacheItemSide
   , ciSecond :: Maybe CacheItemSide
   }
   deriving (Generic, Typeable, Show)
@@ -118,28 +119,27 @@ instance Binary CacheItem
 instance Store CacheItem
 
 instance Semigroup CacheItem where
-  item1 <> item2 = CacheItem {
-    ciFirst = ciFirst item2 `mplus` ciFirst item1,
-    ciSecond = ciSecond item2 `mplus` ciSecond item1
-  }
+  item1 <> item2
+    | ciDepth item1 > ciDepth item2 = item1
+    | otherwise = item2
 
 instance Monoid CacheItem where
-  mempty = CacheItem Nothing Nothing
+  mempty = CacheItem 0 Nothing Nothing
 
 data PerBoardData = PerBoardData {
-    boardScores :: M.Map Int CacheItem
+    boardScores :: CacheItem
   , boardStats :: Maybe Stats
   }
   deriving (Generic, Typeable, Show)
 
 instance Semigroup PerBoardData where
   d1 <> d2 = PerBoardData {
-    boardScores = M.unionWith (<>) (boardScores d1) (boardScores d2),
+    boardScores = boardScores d1 <> boardScores d2,
     boardStats = liftM2 (<>) (boardStats d1) (boardStats d2)
   }
 
 instance Monoid PerBoardData where
-  mempty = PerBoardData M.empty Nothing
+  mempty = PerBoardData mempty Nothing
 
 instance Binary PerBoardData
 instance Store PerBoardData

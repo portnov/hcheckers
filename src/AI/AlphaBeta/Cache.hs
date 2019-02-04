@@ -220,14 +220,12 @@ lookupAiCache params board depth side handle = do
       mbItem <- liftIO $ lookupBoardMap cache board 
       case mbItem of
         Nothing -> return (Nothing, Nothing)
-        Just (PerBoardData {..}) -> do
-          let depths = [dpLast depth .. dpLast depth + aiUseCacheMaxDepthPlus cfg] ++
-                       [dpLast depth - aiUseCacheMaxDepthMinus cfg .. dpLast depth-1]
-          case foldl mplus Nothing [M.lookup d boardScores | d <- depths ] of
-            Nothing -> return (Nothing, boardStats)
-            Just item -> case side of
-                           First -> return (ciFirst item, boardStats)
-                           Second -> return (ciSecond item, boardStats)
+        Just (PerBoardData {..}) ->
+          if ciDepth boardScores >= dpLast depth
+            then case side of
+                   First -> return (ciFirst boardScores, boardStats)
+                   Second -> return (ciSecond boardScores, boardStats)
+            else return (Nothing, boardStats)
 
     lookupFile' :: Board -> DepthParams -> Side -> Checkers (Maybe Score, Maybe Stats)
     lookupFile' board depth side = do
@@ -260,10 +258,10 @@ putAiCache' params board depth side sideItem handle = do
     fileCacheEnabled <- asks (aiStoreCache . gcAiConfig . csConfig)
     let cache = aichData handle
     let item = case side of
-                 First -> CacheItem {ciFirst = Just sideItem, ciSecond = Nothing}
-                 Second -> CacheItem {ciFirst = Nothing, ciSecond = Just sideItem}
+                 First -> CacheItem {ciFirst = Just sideItem, ciSecond = Nothing, ciDepth = dpLast depth}
+                 Second -> CacheItem {ciFirst = Nothing, ciSecond = Just sideItem, ciDepth = dpLast depth}
 
-        init = PerBoardData (M.singleton (dpLast depth) item) Nothing
+        init = PerBoardData item Nothing
 
     liftIO $ putBoardMapWith cache (<>) board init
 
