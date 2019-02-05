@@ -6,6 +6,7 @@ module Learn where
 
 import Control.Monad
 import Control.Monad.State
+import Control.Concurrent.STM
 import qualified Control.Monad.Metrics as Metrics
 import Control.Monad.Catch
 import Data.Maybe
@@ -24,7 +25,9 @@ import Formats.Pdn
 
 doLearn' :: (GameRules rules, Evaluator eval) => rules -> eval -> AICacheHandle rules eval -> AlphaBetaParams -> GameRecord -> Checkers ()
 doLearn' rules eval var params gameRec = do
-    let startBoard = initBoardFromTags (SomeRules rules) (grTags gameRec)
+    sup <- askSupervisor
+    supervisor <- liftIO $ atomically $ readTVar sup
+    let startBoard = initBoardFromTags supervisor (SomeRules rules) (grTags gameRec)
     let result = resultFromTags $ grTags gameRec
     $info "Initial board: {}; result: {}" (show startBoard, show result)
     forM_ (instructionsToMoves $ grMoves gameRec) $ \moves -> (do
@@ -62,7 +65,9 @@ doLearn' rules eval var params gameRec = do
 
 doLearn :: (GameRules rules, Evaluator eval) => rules -> eval -> AICacheHandle rules eval -> AlphaBetaParams -> GameRecord -> Checkers ()
 doLearn rules eval var params gameRec = do
-    let startBoard = initBoardFromTags (SomeRules rules) (grTags gameRec)
+    sup <- askSupervisor
+    supervisor <- liftIO $ atomically $ readTVar sup
+    let startBoard = initBoardFromTags supervisor (SomeRules rules) (grTags gameRec)
     $info "Initial board: {}; tags: {}" (show startBoard, show $ grTags gameRec)
     forM_ (instructionsToMoves $ grMoves gameRec) $ \moves -> do
       (endScore, allBoards) <- go (0, []) startBoard [] moves

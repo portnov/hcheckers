@@ -58,6 +58,7 @@ dependencies:
 - monad-metrics
 - microlens
 - random-access-file
+- mwc-random
 
 executables:
   hcheckersd:

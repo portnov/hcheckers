@@ -22,7 +22,7 @@ instance Show Russian where
   show = rulesName
 
 instance GameRules Russian where
-  initBoard _ = board8
+  initBoard rnd _ = board8 rnd
 
   boardSize _ = (8, 8)
 

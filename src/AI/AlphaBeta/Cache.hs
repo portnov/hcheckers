@@ -268,7 +268,7 @@ putAiCache' params board depth side sideItem handle = do
     liftIO $ atomically $ do
       when (fileCacheEnabled && needWriteFile) $
           putWriteQueue (aichWriteQueue handle) (board, depth, side, sideItem)
-      putCleanupQueue (aichCleanupQueue handle) (bc, bk) now
+      -- putCleanupQueue (aichCleanupQueue handle) (bc, bk) now
 
 
 putAiCache :: GameRules rules => AlphaBetaParams -> Board -> DepthParams -> Side -> CacheItemSide -> [Move] -> AICacheHandle rules eval -> Checkers ()

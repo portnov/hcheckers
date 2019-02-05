@@ -11,6 +11,7 @@ import qualified Data.Map as M
 import qualified Data.IntMap.Strict as IM
 import qualified Data.Text as T
 import Data.Array.IArray as A
+import Data.Bits (xor)
 import Text.Printf
 
 -- import Debug.Trace
@@ -442,8 +443,17 @@ line7labels = ["a7", "c7", "e7", "g7"]
 line8labels :: [Label]
 line8labels = ["b8", "d8", "f8", "h8"]
 
-buildBoard :: BoardOrientation -> BoardSize -> Board
-buildBoard orient bsize@(nrows, ncols) =
+calcBoardHash :: RandomTable -> BoardData -> BoardHash
+calcBoardHash table boardData =
+  foldr xor 0 [table A.! (piece, index) | (index, piece) <- A.assocs boardData, piece /= unboxPiece Nothing]
+
+updateBoardHash :: Board -> Label -> Piece -> BoardHash
+updateBoardHash board (Label col row) piece =
+  let table = randomTable board
+  in  boardHash board `xor` (table A.! (unboxPiece (Just piece), mkIndex col row))
+
+buildBoard :: RandomTableProvider rnd => rnd -> BoardOrientation -> BoardSize -> Board
+buildBoard rnd orient bsize@(nrows, ncols) =
   let mkAddress p = Address (label p) (promote p) (upLeft p) (upRight p) (downLeft p) (downRight p)
       label (r,c) = Label (c-1) (r-1)
 
@@ -478,13 +488,17 @@ buildBoard orient bsize@(nrows, ncols) =
 
       n2 = 16*16
 
+      boardData = A.listArray (0, n2-1) (replicate n2 0)
+      table = getRandomTable rnd
       board = Board {
-                bPieces = A.listArray (0, n2-1) (replicate n2 0),
+                bPieces = boardData,
                 bAddresses = addressByLabel,
                 bCaptured = emptyLabelSet,
                 boardCounts = counts,
                 boardKey = key,
-                bSize = bsize
+                bSize = bsize,
+                boardHash = calcBoardHash table boardData,
+                randomTable = table
               }
 
       counts = calcBoardCounts board
@@ -530,7 +544,12 @@ setPiece a p b = board
     b1 = if isFree a b
            then b
            else removePiece a b
-    board = b1 {bPieces = bPieces b1 A.// [(aIndex a, unboxPiece (Just p))], boardCounts = counts, boardKey = key}
+    board = b1 {
+              bPieces = bPieces b1 A.// [(aIndex a, unboxPiece (Just p))],
+              boardCounts = counts,
+              boardKey = key,
+              boardHash = updateBoardHash b1 (aLabel a) p
+            }
     counts = case getPiece a b of
                      Nothing -> insertBoardCounts p (boardCounts b)
                      Just old -> insertBoardCounts p $ removeBoardCounts old (boardCounts b)
@@ -544,7 +563,12 @@ removePiece a b = board
     board = case getPiece a b of
               Nothing -> error $ printf "removePiece: there is no piece at %s; board: %s" (show a) (show b)
               Just piece ->
-                let b' = b {bPieces = bPieces b A.// [(aIndex a, unboxPiece Nothing)], boardCounts = counts, boardKey = key}
+                let b' = b {
+                          bPieces = bPieces b A.// [(aIndex a, unboxPiece Nothing)],
+                          boardCounts = counts,
+                          boardKey = key,
+                          boardHash = updateBoardHash b (aLabel a) piece
+                        }
                     counts = removeBoardCounts piece (boardCounts b)
                     key = removeBoardKey a piece (boardKey b)
                 in  b'
@@ -573,9 +597,9 @@ setManyPieces addresses piece board = foldr (\a b -> setPiece a piece b) board a
 setManyPieces' :: [Label] -> Piece -> Board -> Board
 setManyPieces' labels piece board = foldr (\l b -> setPiece' l piece b) board labels
 
-board8 :: Board
-board8 =
-  let board = buildBoard FirstAtBottom (8, 8)
+board8 :: RandomTableProvider rnd => rnd -> Board
+board8 rnd =
+  let board = buildBoard rnd FirstAtBottom (8, 8)
       labels1 = line1labels ++ line2labels ++ line3labels
       labels2 = line8labels ++ line7labels ++ line6labels
   in  setManyPieces' labels1 (Piece Man First) $ setManyPieces' labels2 (Piece Man Second) board
@@ -617,15 +641,15 @@ boardRep board = BoardRep $
       Nothing -> Nothing
       Just piece -> Just (unpackIndex i, piece)
 
-parseBoardRep :: GameRules rules => rules -> BoardRep -> Board
-parseBoardRep rules (BoardRep list) = foldr set (buildBoard orient bsize) list
+parseBoardRep :: (GameRules rules, RandomTableProvider rnd) => rnd -> rules -> BoardRep -> Board
+parseBoardRep rnd rules (BoardRep list) = foldr set (buildBoard rnd orient bsize) list
   where
     set (label, piece) board = setPiece' label piece board
     bsize = boardSize rules
     orient = boardOrientation rules
 
-parseBoardKey :: GameRules rules => rules -> BoardKey -> Board
-parseBoardKey rules bk = foldr set (buildBoard orient bsize) list
+parseBoardKey :: (GameRules rules, RandomTableProvider rnd) => rnd -> rules -> BoardKey -> Board
+parseBoardKey rnd rules bk = foldr set (buildBoard rnd orient bsize) list
   where
     bsize = boardSize rules
     orient = boardOrientation rules

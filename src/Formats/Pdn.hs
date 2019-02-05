@@ -228,11 +228,11 @@ fenFromTags [] = Nothing
 fenFromTags (FEN fen:_) = Just fen
 fenFromTags (_:rest) = fenFromTags rest
 
-initBoardFromTags :: SomeRules -> [Tag] -> Board
-initBoardFromTags (SomeRules rules) tags =
+initBoardFromTags :: SupervisorState -> SomeRules -> [Tag] -> Board
+initBoardFromTags rnd (SomeRules rules) tags =
   case fenFromTags tags of
-    Nothing -> initBoard rules
-    Just fen -> parseBoardRep rules $ fenToBoardRep fen
+    Nothing -> initBoard rnd rules
+    Just fen -> parseBoardRep rnd rules $ fenToBoardRep fen
 
 resultFromTags :: [Tag] -> Maybe GameResult
 resultFromTags [] = Nothing
@@ -298,15 +298,15 @@ instructionsToMoves instructions =
       state = execState (forM_ instructions interpret) initState
   in  map M.elems $ M.elems $ isVariants state
 
-loadPdn :: GameRecord -> Board
-loadPdn r =
+loadPdn :: SupervisorState -> GameRecord -> Board
+loadPdn rnd r =
     let findRules [] = Nothing
         findRules (GameType rules:_) = Just rules
         findRules (_:rest) = findRules rest
 
         withRules :: SomeRules -> Board
         withRules some@(SomeRules rules) =
-            let board0 = initBoardFromTags some (grTags r)
+            let board0 = initBoardFromTags rnd some (grTags r)
                 
                 go board [] = board
                 go board0 (moveRec : rest) =
@@ -343,8 +343,8 @@ moveToInstructions n move =
 movesToInstructions :: [MoveRec] -> [Instruction]
 movesToInstructions moves = concat $ zipWith moveToInstructions [1..] moves
 
-gameToPdn :: Game -> GameRecord
-gameToPdn game =
+gameToPdn :: SupervisorState -> Game -> GameRecord
+gameToPdn rnd game =
     GameRecord {
       grTags = tags
     , grMoves = moves
@@ -360,7 +360,7 @@ gameToPdn game =
     moves = movesToInstructions $ translate (gRules game) board0 (reverse $ gsHistory $ gState game)
 
     board0 = case gRules game of
-               SomeRules rules -> initBoard rules
+               SomeRules rules -> initBoard rnd rules
 
     translate :: SomeRules -> Board -> [HistoryRecord] -> [MoveRec]
     translate _ _ [] = []

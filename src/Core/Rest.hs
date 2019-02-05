@@ -4,6 +4,7 @@
 module Core.Rest where
 
 import           Control.Monad.Reader
+import Control.Concurrent.STM
 import qualified Data.Text                     as T
 import qualified Data.Text.Lazy                as TL
 import           Data.Maybe
@@ -60,23 +61,23 @@ liftCheckers' mbId actions = do
     Nothing     -> r
     Just gameId -> withGameContext gameId r
 
-boardRq :: SomeRules -> NewGameRq -> Rest (Maybe Side, Maybe BoardRep)
-boardRq _ (NewGameRq { rqBoard = Just br, rqFen = Nothing, rqPdn = Nothing }) =
+boardRq :: SupervisorState -> SomeRules -> NewGameRq -> Rest (Maybe Side, Maybe BoardRep)
+boardRq _ _ (NewGameRq { rqBoard = Just br, rqFen = Nothing, rqPdn = Nothing }) =
   return $ (Nothing, Just br)
-boardRq rules (NewGameRq { rqBoard = Nothing, rqFen = Just fen, rqPdn = Nothing })
+boardRq _ rules (NewGameRq { rqBoard = Nothing, rqFen = Just fen, rqPdn = Nothing })
   = case parseFen rules fen of
     Left  err        -> raise $ InvalidBoard err
     Right (side, br) -> return (Just side, Just br)
-boardRq rules (NewGameRq { rqBoard = Nothing, rqFen = Nothing, rqPdn = Just pdn })
+boardRq rnd rules (NewGameRq { rqBoard = Nothing, rqFen = Nothing, rqPdn = Just pdn })
   = case parsePdn (Just rules) pdn of
     Left  err -> raise $ InvalidBoard err
-    Right gr  -> return (Nothing, Just $ boardRep $ loadPdn gr)
-boardRq _ (NewGameRq { rqPrevBoard = Just gameId }) = do
+    Right gr  -> return (Nothing, Just $ boardRep $ loadPdn rnd gr)
+boardRq _ _ (NewGameRq { rqPrevBoard = Just gameId }) = do
   board <- liftCheckers_ $ getInitialBoard gameId
   return (Nothing, Just $ boardRep board)
-boardRq _ (NewGameRq { rqBoard = Nothing, rqFen = Nothing, rqPdn = Nothing }) =
+boardRq _ _ (NewGameRq { rqBoard = Nothing, rqFen = Nothing, rqPdn = Nothing }) =
   return (Nothing, Nothing)
-boardRq _ _ =
+boardRq _ _ _ =
   raise $ InvalidBoard "only one of fields must be filled: board, fen, pdn"
 
 restServer :: ScottyT Error Checkers ()
@@ -89,7 +90,10 @@ restServer = do
     case selectRules rq of
       Nothing    -> error400 "invalid game rules"
       Just rules -> do
-        (mbFirstSide, board) <- boardRq rules rq
+        rnd <- liftCheckers_ $ do
+                 sup <- askSupervisor
+                 liftIO $ atomically $ readTVar sup
+        (mbFirstSide, board) <- boardRq rnd rules rq
         let firstSide = fromMaybe First mbFirstSide
         gameId <- liftCheckers_ $ newGame rules firstSide board
         liftCheckers gameId $ $info

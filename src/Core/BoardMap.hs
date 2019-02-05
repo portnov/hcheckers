@@ -1,4 +1,4 @@
-
+{-# LANGUAGE BangPatterns #-}
 module Core.BoardMap where
 
 import Control.Monad
@@ -32,7 +32,7 @@ unboxPiece (Just (Piece King First)) = 3
 unboxPiece (Just (Piece King Second)) = 4
 
 calcBoardCounts :: Board -> BoardCounts
-calcBoardCounts board = BoardCounts {
+calcBoardCounts !board = BoardCounts {
                       bcFirstMen = length $ find (Piece Man First) pieces
                     , bcFirstKings = length $ find (Piece King First) pieces
                     , bcSecondMen = length $ find (Piece Man Second) pieces
@@ -43,7 +43,7 @@ calcBoardCounts board = BoardCounts {
     find p = filter (== unboxPiece (Just p))
 
 insertBoardCounts :: Piece -> BoardCounts -> BoardCounts
-insertBoardCounts p bc =
+insertBoardCounts p !bc =
   case p of
     Piece Man First -> bc {bcFirstMen = bcFirstMen bc + 1}
     Piece Man Second -> bc {bcSecondMen = bcSecondMen bc + 1}
@@ -51,7 +51,7 @@ insertBoardCounts p bc =
     Piece King Second -> bc {bcSecondKings = bcSecondKings bc + 1}
 
 removeBoardCounts :: Piece -> BoardCounts -> BoardCounts
-removeBoardCounts p bc =
+removeBoardCounts p !bc =
   case p of
     Piece Man First -> bc {bcFirstMen = bcFirstMen bc - 1}
     Piece Man Second -> bc {bcSecondMen = bcSecondMen bc - 1}
@@ -59,7 +59,7 @@ removeBoardCounts p bc =
     Piece King Second -> bc {bcSecondKings = bcSecondKings bc - 1}
 
 calcBoardKey :: Board -> BoardKey
-calcBoardKey board = BoardKey {
+calcBoardKey !board = BoardKey {
                    bkFirstMen = IS.fromList $ find (Piece Man First)
                  , bkFirstKings = IS.fromList $ find (Piece King First)
                  , bkSecondMen = IS.fromList $ find (Piece Man Second)
@@ -70,34 +70,34 @@ calcBoardKey board = BoardKey {
       [i | (i, piece) <- A.assocs (bPieces board), piece == unboxPiece (Just p)]
 
 insertBoardKey :: Address -> Piece -> BoardKey -> BoardKey
-insertBoardKey a (Piece Man First) bk = bk {bkFirstMen = insertLabelSet (aLabel a) (bkFirstMen bk)}
-insertBoardKey a (Piece Man Second) bk = bk {bkSecondMen = insertLabelSet (aLabel a) (bkSecondMen bk)}
-insertBoardKey a (Piece King First) bk = bk {bkFirstKings = insertLabelSet (aLabel a) (bkFirstKings bk)}
-insertBoardKey a (Piece King Second) bk = bk {bkSecondKings = insertLabelSet (aLabel a) (bkSecondKings bk)}
+insertBoardKey a (Piece Man First) !bk = bk {bkFirstMen = insertLabelSet (aLabel a) (bkFirstMen bk)}
+insertBoardKey a (Piece Man Second) !bk = bk {bkSecondMen = insertLabelSet (aLabel a) (bkSecondMen bk)}
+insertBoardKey a (Piece King First) !bk = bk {bkFirstKings = insertLabelSet (aLabel a) (bkFirstKings bk)}
+insertBoardKey a (Piece King Second) !bk = bk {bkSecondKings = insertLabelSet (aLabel a) (bkSecondKings bk)}
 
 removeBoardKey :: Address -> Piece -> BoardKey -> BoardKey
-removeBoardKey a (Piece Man First) bk = bk {bkFirstMen = deleteLabelSet (aLabel a) (bkFirstMen bk)}
-removeBoardKey a (Piece Man Second) bk = bk {bkSecondMen = deleteLabelSet (aLabel a) (bkSecondMen bk)}
-removeBoardKey a (Piece King First) bk = bk {bkFirstKings = deleteLabelSet (aLabel a) (bkFirstKings bk)}
-removeBoardKey a (Piece King Second) bk = bk {bkSecondKings = deleteLabelSet (aLabel a) (bkSecondKings bk)}
+removeBoardKey a (Piece Man First) !bk = bk {bkFirstMen = deleteLabelSet (aLabel a) (bkFirstMen bk)}
+removeBoardKey a (Piece Man Second) !bk = bk {bkSecondMen = deleteLabelSet (aLabel a) (bkSecondMen bk)}
+removeBoardKey a (Piece King First) !bk = bk {bkFirstKings = deleteLabelSet (aLabel a) (bkFirstKings bk)}
+removeBoardKey a (Piece King Second) !bk = bk {bkSecondKings = deleteLabelSet (aLabel a) (bkSecondKings bk)}
 
 newTBoardMap :: IO (TBoardMap a)
 newTBoardMap = atomically $ SM.new
 
 putBoardMap :: TBoardMap a -> Board -> a -> IO ()
 putBoardMap bmap board value = atomically $
-  SM.insert value (boardKey board) bmap
+  SM.insert value board bmap
 
 putBoardMapWith :: TBoardMap a -> (a -> a -> a) -> Board -> a -> IO ()
 putBoardMapWith bmap plus board value = atomically $ do
-  mbOld <- SM.lookup (boardKey board) bmap
+  mbOld <- SM.lookup board bmap
   case mbOld of
-    Nothing -> SM.insert value (boardKey board) bmap
-    Just old -> SM.insert (plus old value) (boardKey board) bmap
+    Nothing -> SM.insert value board bmap
+    Just old -> SM.insert (plus old value) board bmap
 
 lookupBoardMap :: TBoardMap a -> Board -> IO (Maybe a)
 lookupBoardMap bmap board = atomically $
-  SM.lookup (boardKey board) bmap
+  SM.lookup board bmap
 
 ------------------
 

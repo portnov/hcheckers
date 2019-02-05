@@ -116,8 +116,8 @@ convertSemiMove side board sm =
                          smrCapture = False
                        }
 
-convertMoves :: [SemiMove] -> [MoveRec]
-convertMoves game = go (initBoard russian) game
+convertMoves :: SupervisorState -> [SemiMove] -> [MoveRec]
+convertMoves rnd game = go (initBoard rnd russian) game
   where
     go _ [] = []
     go board0 [sm] =
@@ -133,34 +133,34 @@ convertMoves game = go (initBoard russian) game
           move = MoveRec smr1 smr2
       in  move : go board2 rest
 
-gameToBoard :: [SemiMove] -> (Side, Board)
-gameToBoard game = go First (initBoard russian) game
+gameToBoard :: SupervisorState -> [SemiMove] -> (Side, Board)
+gameToBoard rnd game = go First (initBoard rnd russian) game
   where
     go side board [] = (side, board)
     go side board (sm : rest) =
       let board' = applySemiMove side sm board
       in  go (opposite side) board' rest
 
-compactFileToFen :: FilePath -> IO ()
-compactFileToFen path = do
+compactFileToFen :: SupervisorState -> FilePath -> IO ()
+compactFileToFen rnd path = do
   games <- parseCompactFile path
   forM_ (zip [1.. ] games) $ \(i, game) -> do
     if null game
       then printf "empty game: %d" i
       else do
-        let (side, board) = gameToBoard game
+        let (side, board) = gameToBoard rnd game
             fen = boardToFen side board
             fenText = showFen (boardSize russian) fen
             targetPath = printf "draw%d.fen" (i :: Int)
         TIO.writeFile targetPath fenText
 
-compactFileToPdn :: FilePath -> IO ()
-compactFileToPdn path = do
+compactFileToPdn :: SupervisorState -> FilePath -> IO ()
+compactFileToPdn rnd path = do
   games <- parseCompactFile path
   forM_ (zip [1.. ] $ filter (not . null) games) $ \(i, game) -> do
     let targetPath = printf "draw%d.pdn" (i :: Int)
         pdn = GameRecord tags (movesToInstructions moves) Nothing
-        moves = convertMoves game
+        moves = convertMoves rnd game
         rules = SomeRules russian
         tags = [Event "Game Opening", GameType rules]
         pdnText = showPdn rules pdn

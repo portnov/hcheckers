@@ -20,8 +20,8 @@ instance Show Canadian where
 instance GameRules Canadian where
   boardSize _ = (12, 12)
 
-  initBoard r =
-    let board = buildBoard (boardOrientation r) (12, 12)
+  initBoard rnd r =
+    let board = buildBoard rnd (boardOrientation r) (12, 12)
         labels1 = ["a1", "c1", "e1", "g1", "i1", "k1",
                    "b2", "d2", "f2", "h2", "j2", "l2",
                    "a3", "c3", "e3", "g3", "i3", "k3",

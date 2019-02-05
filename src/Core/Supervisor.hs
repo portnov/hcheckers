@@ -20,6 +20,7 @@ import Data.Maybe
 import Data.List
 import qualified Data.Map as M
 import qualified Data.Text as T
+import Data.Array.IArray as A
 import Data.Text.Format.Heavy
 import Data.Default
 import Data.Aeson hiding (Error)
@@ -30,6 +31,7 @@ import System.Log.Heavy
 import System.Log.Heavy.TH
 import System.Log.Heavy.Format
 import System.Log.FastLogger.Date
+import System.Random.MWC
 
 import Core.Types
 import Core.Board
@@ -93,7 +95,12 @@ data RsPayload =
 -- | Create supervisor handle
 mkSupervisor :: IO SupervisorHandle
 mkSupervisor = do
-  var <- atomically $ newTVar $ SupervisorState M.empty 0 M.empty
+  random <- withSystemRandom . asGenIO $ \gen ->
+    forM [1 .. 4] $ \unboxedPiece ->
+      forM [1 .. 16*16] $ \index ->
+        uniform gen
+  let randomArray = A.listArray ((1,0), (4, 16*16-1)) $ concat random
+  var <- atomically $ newTVar $ SupervisorState M.empty 0 M.empty $! randomArray
   return var
 
 -- | List of supported rules with their identifiers
@@ -163,8 +170,9 @@ newGame r@(SomeRules rules) firstSide mbBoardRep = do
   liftIO $ atomically $ do
     st <- readTVar var
     let gameId = ssLastGameId st + 1
-    writeTVar var $ st {ssLastGameId = gameId}
-    game <- mkGame rules gameId firstSide mbBoardRep
+    let st' = st {ssLastGameId = gameId}
+    writeTVar var st'
+    game <- mkGame st' rules gameId firstSide mbBoardRep
     modifyTVar var $ \st -> st {ssGames = M.insert (show gameId) game (ssGames st)}
     return $ show gameId
 
@@ -462,7 +470,9 @@ getFen gameId = do
 getPdn :: GameId -> Checkers T.Text
 getPdn gameId = do
   game <- getGame gameId
-  return $ showPdn (gRules game) $ gameToPdn game
+  var <- askSupervisor
+  st <- liftIO $ atomically $ readTVar var
+  return $ showPdn (gRules game) $ gameToPdn st game
 
 -- | Get list of running games with specified rules
 -- (Nothing - any rules)
@@ -480,8 +490,10 @@ getGames mbRulesId = do
 -- | Get list of fields notation by rules name.
 getNotation :: String -> Checkers (BoardSize, BoardOrientation, [(Label, Notation)])
 getNotation rname = do
+    var <- askSupervisor
+    st <- liftIO $ atomically $ readTVar var
     let Just someRules = select supportedRules
-        result = process someRules
+        result = process st someRules
     return result
 
   where
@@ -490,8 +502,8 @@ getNotation rname = do
       | name == rname = Just rules
       | otherwise = select rest
 
-    process (SomeRules rules) =
-      let board = initBoard rules
+    process st (SomeRules rules) =
+      let board = initBoard st rules
           labels = labelMapKeys (bAddresses board)
           notation = [(label, boardNotation rules label) | label <- labels]
           size = boardSize rules

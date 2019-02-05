@@ -156,14 +156,19 @@ type LabelSet = IS.IntSet
 
 -- | Board describes current position on the board.
 data Board = Board {
-    bPieces :: UArray FieldIndex UnboxedPiece,
+    bPieces :: BoardData,
     bAddresses :: LabelMap Address,
     bCaptured :: LabelSet,
     boardCounts :: BoardCounts,
     boardKey :: BoardKey,
-    bSize :: BoardSize
+    bSize :: {-# UNPACK #-} ! BoardSize,
+    boardHash :: {-# UNPACK #-} ! BoardHash,
+    randomTable :: {-# UNPACK #-} ! RandomTable
   }
   deriving (Typeable)
+
+instance Eq Board where
+  b1 == b2 = boardCounts b1 == boardCounts b2 && boardKey b1 == boardKey b2
 
 -- | Statistic information about the board.
 -- Can be used as a part of key in some caches.
@@ -183,6 +188,9 @@ instance Hashable BoardCounts where
   hashWithSalt salt bc =
     salt `hashWithSalt` bcFirstMen bc `hashWithSalt` bcSecondMen bc `hashWithSalt` bcFirstKings bc `hashWithSalt` bcSecondKings bc
 
+instance Hashable Board where
+  hashWithSalt salt board = boardHash board
+
 data BoardKey = BoardKey {
     bkFirstMen :: LabelSet
   , bkSecondMen :: LabelSet
@@ -193,7 +201,14 @@ data BoardKey = BoardKey {
 
 instance Binary BoardKey
 
-type TBoardMap a = SM.Map BoardKey a
+type BoardHash = Int
+type RandomTable = UArray (UnboxedPiece, FieldIndex) BoardHash
+type BoardData = UArray FieldIndex UnboxedPiece
+
+class RandomTableProvider p where
+  getRandomTable :: p -> RandomTable
+
+type TBoardMap a = SM.Map Board a
 
 -- | Direction on the board.
 -- For example, B2 is at UpRight of A1.
@@ -359,7 +374,7 @@ class HasBoardOrientation a where
 -- | Interface of game rules
 class (Typeable g, Show g, HasBoardOrientation g) => GameRules g where
   -- | Initial board with initial pieces position
-  initBoard :: g -> Board
+  initBoard :: SupervisorState -> g -> Board
   -- | Size of board used
   boardSize :: g -> BoardSize
 
@@ -605,7 +620,11 @@ data SupervisorState = SupervisorState {
     ssGames :: M.Map GameId Game                  -- ^ Set of games running
   , ssLastGameId :: Int                           -- ^ ID of last created game
   , ssAiStorages :: M.Map (String,String) Dynamic -- ^ AI storage instance per (AI engine; game rules) tuple
+  , ssRandomTable :: RandomTable
   }
+
+instance RandomTableProvider SupervisorState where
+  getRandomTable = ssRandomTable
 
 -- | Since many threads of REST server will refer
 -- to supervisor's state, we have to put it into TVar

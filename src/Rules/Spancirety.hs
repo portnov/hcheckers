@@ -18,8 +18,8 @@ instance Show Spancirety where
   show = rulesName
 
 instance GameRules Spancirety where
-  initBoard r =
-    let board = buildBoard (boardOrientation r) (8, 10)
+  initBoard rnd r =
+    let board = buildBoard rnd (boardOrientation r) (8, 10)
         labels1 = ["a1", "c1", "e1", "g1", "i1",
                    "b2", "d2", "f2", "h2", "j2",
                    "a3", "c3", "e3", "g3", "i3"]

@@ -18,8 +18,8 @@ instance Show Diagonal where
   show = rulesName
 
 instance GameRules Diagonal where
-  initBoard r =
-    let board = buildBoard (boardOrientation r) (8, 8)
+  initBoard rnd r =
+    let board = buildBoard rnd (boardOrientation r) (8, 8)
         labels1 = ["c1", "e1", "g1",
                    "d2", "f2", "h2",
                    "e3", "g3",

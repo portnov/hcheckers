@@ -19,7 +19,7 @@ instance Show Simple where
   show = rulesName
 
 instance GameRules Simple where
-  initBoard _ = initBoard Russian.russian
+  initBoard rnd _ = initBoard rnd Russian.russian
   boardSize _ = boardSize Russian.russian
 
   boardNotation _ = boardNotation Russian.russian

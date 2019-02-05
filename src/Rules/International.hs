@@ -23,8 +23,8 @@ instance Show International where
 instance GameRules International where
   boardSize _ = (10, 10)
 
-  initBoard r =
-    let board = buildBoard (boardOrientation r) (10, 10)
+  initBoard rnd r =
+    let board = buildBoard rnd (boardOrientation r) (10, 10)
         labels1 = ["a1", "c1", "e1", "g1", "i1",
                    "b2", "d2", "f2", "h2", "j2",
                    "a3", "c3", "e3", "g3", "i3",

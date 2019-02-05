@@ -23,11 +23,11 @@ import Core.Board
 type GameM a = ExceptT Error (State Game) a
 
 -- | Initialize Game instance
-mkGame :: GameRules rules => rules -> Int -> Side -> Maybe BoardRep -> STM Game
-mkGame rules id firstSide mbBoardRep = do
+mkGame :: GameRules rules => SupervisorState -> rules -> Int -> Side -> Maybe BoardRep -> STM Game
+mkGame supervisor rules id firstSide mbBoardRep = do
     let board = case mbBoardRep of
-                  Nothing -> initBoard rules
-                  Just rep -> parseBoardRep rules rep
+                  Nothing -> initBoard supervisor rules
+                  Just rep -> parseBoardRep supervisor rules rep
         st = GameState firstSide board []
     msgbox1 <- newTChan
     msgbox2 <- newTChan
