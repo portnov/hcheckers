@@ -9,6 +9,7 @@ import Data.String
 import Data.Char (isDigit, toLower, toUpper)
 import qualified Data.Map as M
 import qualified Data.IntMap.Strict as IM
+import qualified Data.IntSet as IS
 import qualified Data.Text as T
 import Data.Array.IArray as A
 import Data.Bits (xor)
@@ -59,7 +60,10 @@ allFields :: Board -> [FieldIndex]
 allFields b = IM.keys (bAddresses b)
 
 allPieces :: Board -> [Maybe Piece]
-allPieces b = map boxPiece $ A.elems (bPieces b)
+allPieces b =
+    [getPiece' (Label col row) b | col <- [0 .. ncols-1], row <-  [0 .. nrows-1]]
+  where
+    (ncols, nrows) = bSize b
 
 boardDirection :: BoardSide -> PlayerDirection -> BoardDirection
 boardDirection Bottom ForwardLeft = UpLeft
@@ -199,7 +203,9 @@ isOpponentAt side addr board =
 
 isFree :: Address -> Board -> Bool
 isFree addr b =
-  (bPieces b A.! aIndex addr) == unboxPiece Nothing
+  let bk = boardKey b
+      label = aLabel addr
+  in  and [not (label `labelSetMember` set) | set <- [bkFirstMen bk, bkSecondMen bk, bkFirstKings bk, bkSecondKings bk]]
 
 isFree' :: Label -> Board -> Bool
 isFree' l b = isFree (resolve l b) b
@@ -443,10 +449,6 @@ line7labels = ["a7", "c7", "e7", "g7"]
 line8labels :: [Label]
 line8labels = ["b8", "d8", "f8", "h8"]
 
-calcBoardHash :: RandomTable -> BoardData -> BoardHash
-calcBoardHash table boardData =
-  foldr xor 0 [table A.! (piece, index) | (index, piece) <- A.assocs boardData, piece /= unboxPiece Nothing]
-
 updateBoardHash :: Board -> Label -> Piece -> BoardHash
 updateBoardHash board (Label col row) piece =
   let table = randomTable board
@@ -488,21 +490,20 @@ buildBoard rnd orient bsize@(nrows, ncols) =
 
       n2 = 16*16
 
-      boardData = A.listArray (0, n2-1) (replicate n2 0)
+      -- boardData = A.listArray (0, n2-1) (replicate n2 0)
       table = getRandomTable rnd
       board = Board {
-                bPieces = boardData,
                 bAddresses = addressByLabel,
                 bCaptured = emptyLabelSet,
                 boardCounts = counts,
                 boardKey = key,
                 bSize = bsize,
-                boardHash = calcBoardHash table boardData,
+                boardHash = 0,
                 randomTable = table
               }
 
-      counts = calcBoardCounts board
-      key = calcBoardKey board
+      counts = BoardCounts 0 0 0 0
+      key = BoardKey IS.empty IS.empty IS.empty IS.empty
 
   in  board
 
@@ -510,8 +511,12 @@ resolve :: Label -> Board -> Address
 resolve label board = fromMaybe (error $ "resolve: unknown field: " ++ show label) $ lookupLabel label (bAddresses board)
 
 getPiece :: Address -> Board -> Maybe Piece
-getPiece a b =
-  boxPiece $ bPieces b A.! (aIndex a)
+getPiece a b
+  | aLabel a `labelSetMember` (bkFirstKings $ boardKey b) = Just $ Piece King First
+  | aLabel a `labelSetMember` (bkSecondKings $ boardKey b) = Just $ Piece King Second
+  | aLabel a `labelSetMember` (bkFirstMen $ boardKey b) = Just $ Piece Man First
+  | aLabel a `labelSetMember` (bkSecondMen $ boardKey b) = Just $ Piece Man Second
+  | otherwise = Nothing
 
 isPieceAt :: Address -> Board -> Side -> Bool
 isPieceAt a b side =
@@ -545,14 +550,13 @@ setPiece a p b = board
            then b
            else removePiece a b
     board = b1 {
-              bPieces = bPieces b1 A.// [(aIndex a, unboxPiece (Just p))],
               boardCounts = counts,
               boardKey = key,
               boardHash = updateBoardHash b1 (aLabel a) p
             }
     counts = case getPiece a b of
-                     Nothing -> insertBoardCounts p (boardCounts b)
-                     Just old -> insertBoardCounts p $ removeBoardCounts old (boardCounts b)
+                     Nothing -> insertBoardCounts p (boardCounts b1)
+                     Just old -> insertBoardCounts p $ removeBoardCounts old (boardCounts b1)
     key = case getPiece a b of
             Nothing -> insertBoardKey a p (boardKey b1)
             Just old -> insertBoardKey a p $ removeBoardKey a old (boardKey b1)
@@ -564,7 +568,6 @@ removePiece a b = board
               Nothing -> error $ printf "removePiece: there is no piece at %s; board: %s" (show a) (show b)
               Just piece ->
                 let b' = b {
-                          bPieces = bPieces b A.// [(aIndex a, unboxPiece Nothing)],
                           boardCounts = counts,
                           boardKey = key,
                           boardHash = updateBoardHash b (aLabel a) piece
@@ -636,10 +639,12 @@ parseMoveRep rules side board (FullMoveRep from steps) =
 
 boardRep :: Board -> BoardRep
 boardRep board = BoardRep $
-  catMaybes $ flip map (A.assocs (bPieces board)) $ \(i, p) ->
-    case boxPiece p of
-      Nothing -> Nothing
-      Just piece -> Just (unpackIndex i, piece)
+    [(label, Piece Man First) | label <- labelSetToList (bkFirstMen bk)] ++
+    [(label, Piece Man Second) | label <- labelSetToList (bkSecondMen bk)] ++
+    [(label, Piece King First) | label <- labelSetToList (bkFirstKings bk)] ++
+    [(label, Piece King Second) | label <- labelSetToList (bkSecondKings bk)]
+  where
+    bk = boardKey board
 
 parseBoardRep :: (GameRules rules, RandomTableProvider rnd) => rnd -> rules -> BoardRep -> Board
 parseBoardRep rnd rules (BoardRep list) = foldr set (buildBoard rnd orient bsize) list

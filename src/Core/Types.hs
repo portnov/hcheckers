@@ -156,14 +156,13 @@ type LabelSet = IS.IntSet
 
 -- | Board describes current position on the board.
 data Board = Board {
-    bPieces :: BoardData,
     bAddresses :: LabelMap Address,
-    bCaptured :: LabelSet,
-    boardCounts :: BoardCounts,
-    boardKey :: BoardKey,
+    bCaptured :: {-# UNPACK #-} ! LabelSet,
+    boardCounts ::  BoardCounts,
+    boardKey ::  ! BoardKey,
     bSize :: {-# UNPACK #-} ! BoardSize,
     boardHash :: {-# UNPACK #-} ! BoardHash,
-    randomTable :: {-# UNPACK #-} ! RandomTable
+    randomTable :: ! RandomTable
   }
   deriving (Typeable)
 

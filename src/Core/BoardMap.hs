@@ -33,14 +33,13 @@ unboxPiece (Just (Piece King Second)) = 4
 
 calcBoardCounts :: Board -> BoardCounts
 calcBoardCounts !board = BoardCounts {
-                      bcFirstMen = length $ find (Piece Man First) pieces
-                    , bcFirstKings = length $ find (Piece King First) pieces
-                    , bcSecondMen = length $ find (Piece Man Second) pieces
-                    , bcSecondKings = length $ find (Piece King Second) pieces
+                      bcFirstMen = IS.size $ bkFirstMen bk
+                    , bcFirstKings = IS.size $ bkFirstKings bk
+                    , bcSecondMen = IS.size $ bkSecondMen bk
+                    , bcSecondKings = IS.size $ bkSecondKings bk
                   }
   where
-    pieces = A.elems (bPieces board)
-    find p = filter (== unboxPiece (Just p))
+    bk = boardKey board
 
 insertBoardCounts :: Piece -> BoardCounts -> BoardCounts
 insertBoardCounts p !bc =
@@ -57,17 +56,6 @@ removeBoardCounts p !bc =
     Piece Man Second -> bc {bcSecondMen = bcSecondMen bc - 1}
     Piece King First -> bc {bcFirstKings = bcFirstKings bc - 1}
     Piece King Second -> bc {bcSecondKings = bcSecondKings bc - 1}
-
-calcBoardKey :: Board -> BoardKey
-calcBoardKey !board = BoardKey {
-                   bkFirstMen = IS.fromList $ find (Piece Man First)
-                 , bkFirstKings = IS.fromList $ find (Piece King First)
-                 , bkSecondMen = IS.fromList $ find (Piece Man Second)
-                 , bkSecondKings = IS.fromList $ find (Piece King Second)
-                }
-  where
-    find p =
-      [i | (i, piece) <- A.assocs (bPieces board), piece == unboxPiece (Just p)]
 
 insertBoardKey :: Address -> Piece -> BoardKey -> BoardKey
 insertBoardKey a (Piece Man First) !bk = bk {bkFirstMen = insertLabelSet (aLabel a) (bkFirstMen bk)}
