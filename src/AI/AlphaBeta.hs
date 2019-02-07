@@ -11,7 +11,9 @@
  - with small improvements.
  -}
 
-module AI.AlphaBeta where
+module AI.AlphaBeta
+  ( runAI, scoreMove
+  ) where
 
 import Control.Monad
 import Control.Monad.State

@@ -6,7 +6,12 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE RecordWildCards #-}
 
-module AI.AlphaBeta.Cache where
+module AI.AlphaBeta.Cache
+  ( loadAiCache,
+    lookupAiCache,
+    putAiCache,
+    putAiCache'
+  ) where
 
 import Control.Monad
 import Control.Monad.State

@@ -6,13 +6,34 @@
 {-# LANGUAGE PackageImports #-}
 {-# LANGUAGE FlexibleInstances #-}
 
-module AI.AlphaBeta.Types where
+module AI.AlphaBeta.Types
+  ( AlphaBeta (..),
+    AlphaBetaParams (..),
+    DepthParams (..),
+    dpLast,
+    Stats (..),
+    Bound (..),
+    CacheItemSide (..),
+    CacheItem (..),
+    PerBoardData (..),
+    AIData, StorageKey, StorageValue,
+    ScoreMoveInput (..),
+    QueueKey,
+    IndexBlockNumber, DataBlockNumber,
+    CleanupQueue, WriteQueue, FileDescriptor,
+    FHandle (..),
+    FileType (..),
+    MovesMemo,
+    AICacheHandle (..),
+    StorageState (..),
+    Storage,
+    runStorage
+  ) where
 
 import Control.Monad.State
 import Control.Monad.Reader
 import qualified Control.Monad.Metrics as Metrics
 import Control.Concurrent.STM
-import qualified Data.Map as M
 import qualified Data.HashPSQ as PQ
 import Data.Word
 import Data.Binary

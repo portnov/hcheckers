@@ -1,7 +1,10 @@
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE OverloadedStrings #-}
-module Core.Evaluator where
+module Core.Evaluator
+  ( SimpleEvaluator (..),
+    defaultEvaluator
+  ) where
 
 import           Data.Aeson
 import           Data.Aeson.Types               ( parseMaybe )

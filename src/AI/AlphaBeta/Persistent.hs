@@ -8,7 +8,17 @@
 {-# LANGUAGE PackageImports #-}
 {-# LANGUAGE TemplateHaskell #-}
 
-module AI.AlphaBeta.Persistent where
+module AI.AlphaBeta.Persistent
+  (lookupFile,
+   lookupStatsFile,
+   putRecordFile,
+   putStatsFile,
+   putWriteQueue,
+   checkWriteQueue,
+   initFile,
+   checkDataFile',
+   loadIndexIO
+  ) where
 
 import Control.Monad
 import Control.Monad.State
