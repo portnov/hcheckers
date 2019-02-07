@@ -59,7 +59,7 @@ instance (GameRules rules, Evaluator eval) => GameAi (AlphaBeta rules eval) wher
 
   chooseMove ai storage side board = do
     (moves, _) <- runAI ai storage side board
-    liftIO $ atomically $ writeTVar (aichCurrentCounts storage) $ boardCounts board
+    -- liftIO $ atomically $ writeTVar (aichCurrentCounts storage) $ calcBoardCounts board
     return moves
 
   updateAi ai@(AlphaBeta _ rules eval) json =

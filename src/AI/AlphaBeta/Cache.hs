@@ -201,10 +201,10 @@ lookupAiCache params board depth handle = do
 
     lookupFile' :: Board -> DepthParams -> Checkers (Maybe PerBoardData)
     lookupFile' board depth = do
-      let bc = boardCounts board
+      let bc = calcBoardCounts board
       let total = bcFirstMen bc + bcSecondMen bc + bcFirstKings bc + bcSecondKings bc
       cfg <- asks (gcAiConfig . csConfig)
-      if total <= aiUseCacheMaxPieces cfg && dpTarget depth >= aiUseCacheMaxDepth cfg
+      if {-total <= aiUseCacheMaxPieces cfg &&-} dpTarget depth >= aiUseCacheMaxDepth cfg
         then runStorage handle (lookupFile board depth)
               `catch`
                   \(e :: SomeException) -> do
@@ -217,13 +217,13 @@ lookupAiCache params board depth handle = do
 -- and it is writen to the file if it is open.
 putAiCache :: GameRules rules => AlphaBetaParams -> Board -> StorageValue -> AICacheHandle rules eval -> Checkers ()
 putAiCache params board newItem handle = do
-  let bc = boardCounts board
+  let bc = calcBoardCounts board
       bk = boardKey board
   let bsize = boardSize (aichRules handle)
   let total = bcFirstMen bc + bcSecondMen bc + bcFirstKings bc + bcSecondKings bc
   let depth = itemDepth newItem
   cfg <- asks (gcAiConfig . csConfig)
-  let needWriteFile = total <= aiUpdateCacheMaxPieces cfg && depth > aiUpdateCacheMaxDepth cfg
+  let needWriteFile = {-total <= aiUpdateCacheMaxPieces cfg &&-} depth > aiUpdateCacheMaxDepth cfg
   Monitoring.timed "cache.put.memory" $ do
     now <- liftIO $ getTime Monotonic
     Monitoring.increment "cache.records.put"

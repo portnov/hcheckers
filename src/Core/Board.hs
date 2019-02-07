@@ -266,10 +266,10 @@ myLabelsCount' side board w =
 
 myCounts :: Side -> Board -> (Int, Int)
 myCounts side board =
-  let counts = boardCounts board
+  let bk = boardKey board
   in  case side of
-        First -> (bcFirstMen counts, bcFirstKings counts)
-        Second -> (bcSecondMen counts, bcSecondKings counts)
+        First -> (I8.size (bkFirstMen bk), I8.size (bkFirstKings bk))
+        Second -> (I8.size (bkSecondMen bk), I8.size (bkSecondKings bk))
 
 catMoves :: Move -> Move -> Move
 catMoves m1 m2 =
@@ -495,7 +495,6 @@ buildBoard rnd orient bsize@(nrows, ncols) =
       board = Board {
                 bAddresses = addressByLabel,
                 bCaptured = emptyLabelSet,
-                boardCounts = counts,
                 boardKey = key,
                 bSize = bsize,
                 boardHash = 0,
@@ -550,13 +549,9 @@ setPiece a p b = board
            then b
            else removePiece a b
     board = b1 {
-              boardCounts = counts,
               boardKey = key,
               boardHash = updateBoardHash b1 (aLabel a) p
             }
-    counts = case getPiece a b of
-                     Nothing -> insertBoardCounts p (boardCounts b1)
-                     Just old -> insertBoardCounts p $ removeBoardCounts old (boardCounts b1)
     key = case getPiece a b of
             Nothing -> insertBoardKey a p (boardKey b1)
             Just old -> insertBoardKey a p $ removeBoardKey a old (boardKey b1)
@@ -568,11 +563,9 @@ removePiece a b = board
               Nothing -> error $ printf "removePiece: there is no piece at %s; board: %s" (show a) (show b)
               Just piece ->
                 let b' = b {
-                          boardCounts = counts,
                           boardKey = key,
                           boardHash = updateBoardHash b (aLabel a) piece
                         }
-                    counts = removeBoardCounts piece (boardCounts b)
                     key = removeBoardKey a piece (boardKey b)
                 in  b'
 

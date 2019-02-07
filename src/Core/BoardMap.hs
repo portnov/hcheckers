@@ -32,7 +32,7 @@ unboxPiece (Just (Piece King First)) = 3
 unboxPiece (Just (Piece King Second)) = 4
 
 calcBoardCounts :: Board -> BoardCounts
-calcBoardCounts !board = BoardCounts {
+calcBoardCounts board = BoardCounts {
                       bcFirstMen = IS.size $ bkFirstMen bk
                     , bcFirstKings = IS.size $ bkFirstKings bk
                     , bcSecondMen = IS.size $ bkSecondMen bk

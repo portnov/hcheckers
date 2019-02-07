@@ -158,7 +158,6 @@ type LabelSet = IS.IntSet
 data Board = Board {
     bAddresses :: LabelMap Address,
     bCaptured :: LabelSet,
-    boardCounts ::  BoardCounts,
     boardKey ::  ! BoardKey,
     bSize :: {-# UNPACK #-} ! BoardSize,
     boardHash :: {-# UNPACK #-} ! BoardHash,
@@ -167,7 +166,7 @@ data Board = Board {
   deriving (Typeable)
 
 instance Eq Board where
-  b1 == b2 = boardCounts b1 == boardCounts b2 && boardKey b1 == boardKey b2
+  b1 == b2 = boardKey b1 == boardKey b2
 
 -- | Statistic information about the board.
 -- Can be used as a part of key in some caches.
