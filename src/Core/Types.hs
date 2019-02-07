@@ -157,7 +157,7 @@ type LabelSet = IS.IntSet
 -- | Board describes current position on the board.
 data Board = Board {
     bAddresses :: LabelMap Address,
-    bCaptured :: {-# UNPACK #-} ! LabelSet,
+    bCaptured :: LabelSet,
     boardCounts ::  BoardCounts,
     boardKey ::  ! BoardKey,
     bSize :: {-# UNPACK #-} ! BoardSize,
@@ -482,7 +482,7 @@ data GameResult =
   deriving (Eq, Show, Ord, Typeable, Generic)
 
 class (Show e, Typeable e) => Evaluator e where
-  evalBoard :: e -> Side -> Side -> Board -> Score
+  evalBoard :: e -> Side -> Board -> Score
   evaluatorName :: e -> String
 
   updateEval :: e -> Value -> e
@@ -495,7 +495,7 @@ instance Show SomeEval where
   show (SomeEval e) = show e
 
 instance Evaluator SomeEval where
-  evalBoard (SomeEval e) s1 s2 b = evalBoard e s1 s2 b
+  evalBoard (SomeEval e) s1 b = evalBoard e s1 b
   evaluatorName (SomeEval e) = evaluatorName e
   updateEval (SomeEval e) v = SomeEval (updateEval e v)
 

@@ -147,7 +147,7 @@ instance Evaluator SimpleEvaluator where
       Just (Just True) -> e {seUsePositionalScore = True}
       Just (Just False) -> e {seUsePositionalScore = False}
 
-  evalBoard eval@(SimpleEvaluator {..}) whoAsks whoMovesNext board =
+  evalBoard eval@(SimpleEvaluator {..}) whoAsks board =
     let ps1 = preEval eval whoAsks board
         ps2 = preEval eval (opposite whoAsks) board
 

@@ -269,7 +269,7 @@ runAI ai@(AlphaBeta params rules eval) handle side board = do
               return (result, Just (params', moves, Just result))
             else return (result, Nothing)
 
-    score0 = evalBoard eval First side board
+    score0 = evalBoard eval First board
 
     -- | Initial (alpha, beta) interval
     initInterval :: (Score, Score)
@@ -502,15 +502,15 @@ cachedScoreAB var params input = do
       dp = siDepth input
       alpha = siAlpha input
       beta = siBeta input
-  mbItem <- lift $ lookupAiCache params board dp side var
+  mbItem <- lift $ lookupAiCache params board dp var
   mbCached <- case mbItem of
                 Just item -> do
-                  let score = cisScore item
+                  let score = itemScore item
                   -- it is possible that this value was put to cache with different
                   -- values of alpha/beta; but we have to maintain the property of
                   -- AB-section: alpha <= result <= beta. So here we clamp the value
                   -- that we got from cache.
-                  case cisBound item of
+                  case itemBound item of
                     Exact -> return $ Just $ ScoreOutput (clamp alpha beta score) False
                     Alpha -> if score <= alpha
                                then return $ Just $ ScoreOutput alpha False
@@ -531,9 +531,9 @@ cachedScoreAB var params input = do
           -- we can only put the result to the cache if we know
           -- that this score was not clamped by alpha or beta
           -- (so this is a real score, not alpha/beta bound)
-          item = CacheItemSide score bound
+          item = PerBoardData (dpLast dp) score bound Nothing
       when (bound == Exact && soQuiescene out) $
-          lift $ putAiCache params board dp side item [] var
+          lift $ putAiCache params board item var
       return out
 
 -- | Check if target depth is reached
@@ -599,7 +599,7 @@ scoreAB var params input
   | isTargetDepth dp = do
       -- target depth is achieved, calculate score of current board directly
       evaluator <- gets ssEvaluator
-      let score0 = evalBoard evaluator First side board
+      let score0 = evalBoard evaluator First board
       $trace "    X Side: {}, A = {}, B = {}, score0 = {}" (show side, show alpha, show beta, show score0)
       quiescene <- checkQuiescene
       return $ ScoreOutput score0 quiescene
@@ -654,7 +654,14 @@ scoreAB var params input
                               Just prevMove -> if pmEnd prevMove `elem` victims
                                                  then 2
                                                  else 0
-      return $ nVictims + promotion + attackPrevPiece
+
+      let board' = applyMoveActions (pmResult move) board
+      mbCached <- lift $ lookupAiCache params board' dp  var
+      let primeVariation = if isJust mbCached
+                             then 5
+                             else 0
+        
+      return $ nVictims + promotion + attackPrevPiece {-+ primeVariation-}
 
     sortMoves :: Maybe PossibleMove -> [PossibleMove] -> ScoreM rules eval [PossibleMove]
     sortMoves mbPrevMove moves = do
@@ -772,6 +779,6 @@ scoreAB var params input
         
 instance (Evaluator eval, GameRules rules) => Evaluator (AlphaBeta rules eval) where
   evaluatorName (AlphaBeta _ _ eval) = evaluatorName eval
-  evalBoard (AlphaBeta params rules eval) whoAsks whoMovesNext board =
-    evalBoard eval whoAsks whoMovesNext board
+  evalBoard (AlphaBeta params rules eval) whoAsks board =
+    evalBoard eval whoAsks board
 

@@ -13,8 +13,6 @@ module AI.AlphaBeta.Types
     dpLast,
     Stats (..),
     Bound (..),
-    CacheItemSide (..),
-    CacheItem (..),
     PerBoardData (..),
     AIData, StorageKey, StorageValue,
     ScoreMoveInput (..),
@@ -120,47 +118,21 @@ data Bound = Alpha | Beta | Exact
 instance Binary Bound
 instance Store Bound
 
-data CacheItemSide = CacheItemSide {
-    cisScore :: ! Score
-  , cisBound :: ! Bound
-  }
-  deriving (Eq, Show, Generic, Typeable)
-
-instance Binary CacheItemSide
-instance Store CacheItemSide
-
-data CacheItem = CacheItem {
-    ciDepth :: Int
-  , ciFirst :: Maybe CacheItemSide
-  , ciSecond :: Maybe CacheItemSide
-  }
-  deriving (Generic, Typeable, Show)
-
-instance Binary CacheItem
-instance Store CacheItem
-
-instance Semigroup CacheItem where
-  item1 <> item2
-    | ciDepth item1 > ciDepth item2 = item1
-    | otherwise = item2
-
-instance Monoid CacheItem where
-  mempty = CacheItem 0 Nothing Nothing
-
 data PerBoardData = PerBoardData {
-    boardScores :: CacheItem
+    itemDepth ::  Int
+  , itemScore ::  Score
+  , itemBound ::  Bound
   , boardStats :: Maybe Stats
   }
   deriving (Generic, Typeable, Show)
 
 instance Semigroup PerBoardData where
-  d1 <> d2 = PerBoardData {
-    boardScores = boardScores d1 <> boardScores d2,
-    boardStats = liftM2 (<>) (boardStats d1) (boardStats d2)
-  }
+  d1 <> d2
+    | itemDepth d1 > itemDepth d2 = d1 {boardStats = liftM2 (<>) (boardStats d1) (boardStats d2)}
+    | otherwise =  d2 {boardStats = liftM2 (<>) (boardStats d1) (boardStats d2)}
 
 instance Monoid PerBoardData where
-  mempty = PerBoardData mempty Nothing
+  mempty = PerBoardData 0 0 Exact Nothing
 
 instance Binary PerBoardData
 instance Store PerBoardData
@@ -169,7 +141,7 @@ type AIData = TBoardMap PerBoardData
 
 type StorageKey = (DepthParams, BoardKey)
 
-type StorageValue = CacheItemSide
+type StorageValue = PerBoardData
 
 -- | Input for the `scoreMove` method
 data ScoreMoveInput rules eval = ScoreMoveInput {
@@ -207,7 +179,7 @@ data AICacheHandle rules eval = AICacheHandle {
   , aichDataFile :: Maybe FHandle
   }
 
-type WriteQueue = TChan (Board, DepthParams, Side, StorageValue)
+type WriteQueue = TChan (Board, StorageValue)
 
 type CleanupQueue = TVar (PQ.HashPSQ QueueKey TimeSpec ())
 

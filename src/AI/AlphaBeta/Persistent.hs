@@ -104,10 +104,10 @@ checkCleanupQueue var now = do
           return $ Just key
         else return Nothing
 
-putWriteQueue :: WriteQueue -> (Board, DepthParams, Side, StorageValue) -> STM ()
+putWriteQueue :: WriteQueue -> (Board, StorageValue) -> STM ()
 putWriteQueue = writeTChan
 
-checkWriteQueue :: WriteQueue -> STM (Maybe (Board, DepthParams, Side, StorageValue))
+checkWriteQueue :: WriteQueue -> STM (Maybe (Board, StorageValue))
 checkWriteQueue = tryReadTChan
 
 getFd :: FileType -> Storage FileDescriptor
@@ -313,20 +313,16 @@ lookupFileB bstr = do
           
 
 -- | Returns: (cached result, stats
-lookupFile :: Board -> DepthParams -> Side -> Storage (Maybe Score, Maybe Stats)
-lookupFile board depth side = Monitoring.timed "cache.lookup.file" $ do
+lookupFile :: Board -> DepthParams -> Storage (Maybe PerBoardData)
+lookupFile board depth = Monitoring.timed "cache.lookup.file" $ do
   mbRecord <- lookupFileB (encodeBoard board)
   case mbRecord of
-    Nothing -> return (Nothing, Nothing)
+    Nothing -> return Nothing
     Just record -> do
-      let cached =
-            if ciDepth (boardScores record) >= dpLast depth
-              then case side of
-                     First -> cisScore `fmap` ciFirst (boardScores record)
-                     Second -> cisScore `fmap` ciSecond (boardScores record)
+      return $
+            if itemDepth record >= dpLast depth
+              then Just record
               else Nothing
-          stats = boardStats record
-      return (cached, stats)
 
 lookupStatsFile :: Board -> Storage (Maybe Stats)
 lookupStatsFile board = Monitoring.timed "stats.lookup.file" $ do
@@ -414,20 +410,17 @@ putRecordFileB bstr newData = do
       writeBytes DataFile empty
       return newBlockNumber
 
-putRecordFile :: Board -> DepthParams -> Side -> StorageValue -> Storage ()
-putRecordFile board depth side value = Monitoring.timed "cache.put.file" $ do
+putRecordFile :: Board -> StorageValue -> Storage ()
+putRecordFile board value = Monitoring.timed "cache.put.file" $ do
   let bstr = encodeBoard board
-      newData = PerBoardData item Nothing
-      item = case side of
-               First -> CacheItem {ciFirst = Just value, ciSecond = Nothing, ciDepth = dpLast depth}
-               Second -> CacheItem {ciFirst = Nothing, ciSecond = Just value, ciDepth = dpLast depth}
-  putRecordFileB bstr newData
+  putRecordFileB bstr value
 
 putStatsFile :: Board -> Stats -> Storage ()
 putStatsFile board stats = do
-  let newData = PerBoardData mempty (Just stats)
-      bstr = encodeBoard board
-  putRecordFileB bstr newData
+  return ()
+--   let newData = PerBoardData mempty (Just stats)
+--       bstr = encodeBoard board
+--   putRecordFileB bstr newData
 
 initFile :: Storage ()
 initFile = do

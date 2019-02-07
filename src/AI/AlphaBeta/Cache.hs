@@ -10,7 +10,6 @@ module AI.AlphaBeta.Cache
   ( loadAiCache,
     lookupAiCache,
     putAiCache,
-    putAiCache'
   ) where
 
 import Control.Monad
@@ -134,10 +133,10 @@ cacheDumper rules params handle = do
       mbRecord <- liftIO $ atomically $ checkWriteQueue (aichWriteQueue handle)
       case mbRecord of
         Nothing -> return False
-        Just (board, depth, side, value) -> do
+        Just (board, value) -> do
           Monitoring.increment "cache.records.writen"
           runStorage handle $
-              putRecordFile board depth side value
+              putRecordFile board value
           return True
 
     liftIO $ threadDelay $ 30 * 1000 * 1000
@@ -156,56 +155,26 @@ normalize bsize (bc,bk,side) =
 
 -- | Look up for item in the cache. First lookup in the memory,
 -- then in the file (if it is open).
-lookupAiCache :: (GameRules rules, Evaluator eval) => AlphaBetaParams -> Board -> DepthParams -> Side -> AICacheHandle rules eval -> Checkers (Maybe CacheItemSide)
-lookupAiCache params board depth side handle = do
-    -- let bsize = boardSize (aichRules handle)
-    -- let (bc, bk, side') = normalize bsize (boardCounts board, boardKey board, side)
-    -- let fixSign = if side' == side then id else negate
-    let bc = boardCounts board
-        bk = boardKey board
-    (cachedScore, cachedStats) <- lookupMemory board side
-    case (cachedScore, cachedStats) of
-      (Just result, Nothing) -> do
+lookupAiCache :: (GameRules rules, Evaluator eval) => AlphaBetaParams -> Board -> DepthParams -> AICacheHandle rules eval -> Checkers (Maybe PerBoardData)
+lookupAiCache params board depth handle = do
+    mbItem <- lookupMemory board
+    case mbItem of
+      Just item -> do
         Monitoring.increment "cache.hit.memory"
-        queueCleanup bc bk
-        return cachedScore
-      (Nothing, Just stats) -> do
-        Monitoring.increment "stats.hit.memory"
-        return $ Just $ CacheItemSide (avg stats) Exact
-      (Just _, Just stats) -> do
-        Monitoring.increment "stats.hit.memory"
-        return $ Just $ CacheItemSide (avg stats) Exact
-      (Nothing, Nothing) -> do
-        (mbCached, mbStats) <- lookupFile' board depth side
-        let mbStats' = checkStats =<< mbStats
-        case (mbCached, mbStats') of
-          (Nothing, Nothing) -> do
+        return $ Just item
+      Nothing -> do
+        mbFile <- lookupFile' board depth
+        case mbFile of
+          Nothing -> do
             Monitoring.increment "cache.miss"
             return Nothing
-          (Nothing, Just stats) -> do
-            Monitoring.increment "stats.hit.file"
-            let score = avg stats
-            let result = CacheItemSide score Exact
-            putAiCache' params board depth side result handle
-            return $ Just result
-          (Just score, Nothing) -> do
-            let result = CacheItemSide score Exact
-            Monitoring.increment "cache.hit.file"
-            putAiCache' params board depth side result handle
-            return $ Just result
-          (Just _, Just stats) -> do
-            Monitoring.increment "stats.hit.file"
-            let score = avg stats
-            let result = CacheItemSide score Exact
-            putAiCache' params board depth side result handle
-            return $ Just result
+          Just file -> do
+            let mbStats = checkStats =<< boardStats file
+            let file' = file {boardStats = mbStats}
+            putAiCache params board file' handle
+            return $ Just file'
 
   where
-    queueCleanup bc bk = return ()
---     queueCleanup bc bk = do
---       let key = (bc, bk)
---       now <- liftIO $ getTime Monotonic
---       liftIO $ atomically $ putCleanupQueue (aichCleanupQueue handle) key now
 
     avg :: Stats -> Score
     avg s =
@@ -218,65 +187,52 @@ lookupAiCache params board depth side handle = do
       | statsCount s < 10 = Nothing
       | otherwise = Just s
 
-    lookupMemory :: Board -> Side -> Checkers (Maybe CacheItemSide, Maybe Stats)
-    lookupMemory board side = Monitoring.timed "cache.lookup.memory" $ do
+    lookupMemory :: Board -> Checkers (Maybe PerBoardData)
+    lookupMemory board = Monitoring.timed "cache.lookup.memory" $ do
       cfg <- asks (gcAiConfig . csConfig)
       let cache = aichData handle
       mbItem <- liftIO $ lookupBoardMap cache board 
       case mbItem of
-        Nothing -> return (Nothing, Nothing)
-        Just (PerBoardData {..}) ->
-          if ciDepth boardScores >= dpLast depth
-            then case side of
-                   First -> return (ciFirst boardScores, boardStats)
-                   Second -> return (ciSecond boardScores, boardStats)
-            else return (Nothing, boardStats)
+        Nothing -> return Nothing
+        Just item@(PerBoardData {..}) ->
+          if itemDepth >= dpLast depth
+            then return $ Just item
+            else return Nothing
 
-    lookupFile' :: Board -> DepthParams -> Side -> Checkers (Maybe Score, Maybe Stats)
-    lookupFile' board depth side = do
+    lookupFile' :: Board -> DepthParams -> Checkers (Maybe PerBoardData)
+    lookupFile' board depth = do
       let bc = boardCounts board
       let total = bcFirstMen bc + bcSecondMen bc + bcFirstKings bc + bcSecondKings bc
       cfg <- asks (gcAiConfig . csConfig)
       if total <= aiUseCacheMaxPieces cfg && dpTarget depth >= aiUseCacheMaxDepth cfg
-        then runStorage handle (lookupFile board depth side)
+        then runStorage handle (lookupFile board depth)
               `catch`
                   \(e :: SomeException) -> do
                       $reportError "Exception: lookupFile: {}" (Single $ show e)
-                      return (Nothing, Nothing)
-        else return (Nothing, Nothing)
+                      return Nothing
+        else return Nothing
 
 -- | Put an item to the cache.
 -- It is always writen to the memory,
 -- and it is writen to the file if it is open.
-putAiCache' :: GameRules rules => AlphaBetaParams -> Board -> DepthParams -> Side -> StorageValue -> AICacheHandle rules eval -> Checkers ()
-putAiCache' params board depth side sideItem handle = do
+putAiCache :: GameRules rules => AlphaBetaParams -> Board -> StorageValue -> AICacheHandle rules eval -> Checkers ()
+putAiCache params board newItem handle = do
   let bc = boardCounts board
       bk = boardKey board
   let bsize = boardSize (aichRules handle)
-  --let (bc', bk', side') = normalize bsize (bc, bk, side)
   let total = bcFirstMen bc + bcSecondMen bc + bcFirstKings bc + bcSecondKings bc
+  let depth = itemDepth newItem
   cfg <- asks (gcAiConfig . csConfig)
-  let needWriteFile = total <= aiUpdateCacheMaxPieces cfg && dpTarget depth > aiUpdateCacheMaxDepth cfg
+  let needWriteFile = total <= aiUpdateCacheMaxPieces cfg && depth > aiUpdateCacheMaxDepth cfg
   Monitoring.timed "cache.put.memory" $ do
     now <- liftIO $ getTime Monotonic
     Monitoring.increment "cache.records.put"
     fileCacheEnabled <- asks (aiStoreCache . gcAiConfig . csConfig)
     let cache = aichData handle
-    let item = case side of
-                 First -> CacheItem {ciFirst = Just sideItem, ciSecond = Nothing, ciDepth = dpLast depth}
-                 Second -> CacheItem {ciFirst = Nothing, ciSecond = Just sideItem, ciDepth = dpLast depth}
-
-        init = PerBoardData item Nothing
-
-    liftIO $ putBoardMapWith cache (<>) board init
+    liftIO $ putBoardMapWith cache (<>) board newItem
 
     liftIO $ atomically $ do
       when (fileCacheEnabled && needWriteFile) $
-          putWriteQueue (aichWriteQueue handle) (board, depth, side, sideItem)
+          putWriteQueue (aichWriteQueue handle) (board, newItem)
       -- putCleanupQueue (aichCleanupQueue handle) (bc, bk) now
-
-
-putAiCache :: GameRules rules => AlphaBetaParams -> Board -> DepthParams -> Side -> CacheItemSide -> [Move] -> AICacheHandle rules eval -> Checkers ()
-putAiCache params board depth side score moves handle = do
-  putAiCache' params board depth side score handle
 

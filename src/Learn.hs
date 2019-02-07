@@ -42,7 +42,7 @@ doLearn' rules eval var params gameRec = do
   where
     go boards lastBoard (Just result) [] = (resultToScore result, lastBoard : boards)
     go boards lastBoard Nothing [] =
-      let score = evalBoard eval First First lastBoard
+      let score = evalBoard eval First lastBoard
       in  (score, lastBoard : boards)
     go boards board0 mbResult (moveRec : rest) =
       let board1 = case mrFirst moveRec of
