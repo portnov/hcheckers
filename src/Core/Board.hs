@@ -268,8 +268,8 @@ myCounts :: Side -> Board -> (Int, Int)
 myCounts side board =
   let bk = boardKey board
   in  case side of
-        First -> (I8.size (bkFirstMen bk), I8.size (bkFirstKings bk))
-        Second -> (I8.size (bkSecondMen bk), I8.size (bkSecondKings bk))
+        First -> (IS.size (bkFirstMen bk), IS.size (bkFirstKings bk))
+        Second -> (IS.size (bkSecondMen bk), IS.size (bkSecondKings bk))
 
 catMoves :: Move -> Move -> Move
 catMoves m1 m2 =
