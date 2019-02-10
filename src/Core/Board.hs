@@ -267,6 +267,11 @@ myLabelsCount' side board w =
   (sum $ map w $ myMen side board,
    sum $ map w $ myKings side board)
 
+myAddressesCount' :: Integral i => Side -> Board -> (Address -> i) -> (i, i)
+myAddressesCount' side board w =
+  (sum $ map w $ myMenA side board,
+   sum $ map w $ myKingsA side board)
+
 myCounts :: Side -> Board -> (Int, Int)
 myCounts side board =
   case side of

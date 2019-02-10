@@ -21,6 +21,7 @@ data SimpleEvaluator = SimpleEvaluator {
     seOppositeSideWeight :: ScoreBase,
     seBackedWeight :: ScoreBase,
     seAsymetryWeight :: ScoreBase,
+    sePreKingWeight :: ScoreBase,
     seKingCoef :: ScoreBase,
     seHelpedKingCoef :: ScoreBase
   }
@@ -35,6 +36,7 @@ defaultEvaluator rules = SimpleEvaluator
   , seOppositeSideWeight = 4
   , seBackedWeight       = 2
   , seAsymetryWeight     = 1
+  , sePreKingWeight      = 3
   , seKingCoef           = 3
   , seHelpedKingCoef     = 5
   }
@@ -46,6 +48,7 @@ data PreScore = PreScore {
     , psTemp :: ScoreBase
     , psBacked :: ScoreBase
     , psAsymetry :: ScoreBase
+    , psPreKing :: ScoreBase
   }
 
 sub :: PreScore -> PreScore -> PreScore
@@ -56,6 +59,7 @@ sub ps1 ps2 = PreScore
   , psTemp     = psTemp ps1 - psTemp ps2
   , psBacked   = psBacked ps1 - psBacked ps2
   , psAsymetry = psAsymetry ps1 - psAsymetry ps2
+  , psPreKing  = psPreKing ps1 - psPreKing ps2
   }
 
 instance Default PreScore where
@@ -66,6 +70,7 @@ instance Default PreScore where
           , psTemp = 0
           , psBacked = 0
           , psAsymetry = 0
+          , psPreKing = 0
         }
 
 preEval :: SimpleEvaluator -> Side -> Board -> PreScore
@@ -118,6 +123,18 @@ preEval (SimpleEvaluator { seRules = SomeRules rules, ..}) side board =
     opponentSideCount =
       let (men, kings) = myLabelsCount' side board tempNumber in men
 
+    preKing board src = sum $ map check [ForwardLeft, ForwardRight]
+      where
+        check dir =
+          case myNeighbour rules side dir src of
+            Nothing -> 0
+            Just dst -> if isLastHorizontal side dst && isFree dst board
+                          then 1
+                          else 0
+
+    preKings =
+      let (men, kings) = myAddressesCount' side board (preKing board) in men
+
     mobility = mobilityScore rules side board
 
     centerScore =
@@ -131,6 +148,7 @@ preEval (SimpleEvaluator { seRules = SomeRules rules, ..}) side board =
       , psTemp     = fromIntegral opponentSideCount
       , psBacked   = fromIntegral backedScore
       , psAsymetry = fromIntegral asymetry
+      , psPreKing  = fromIntegral preKings
       }
 
 preEvalBoth :: SimpleEvaluator -> Board -> PreScore
@@ -158,7 +176,8 @@ instance Evaluator SimpleEvaluator where
               seOppositeSideWeight * psTemp ps +
               seMobilityWeight * psMobility ps +
               seBackedWeight * psBacked ps +
-              seAsymetryWeight * psAsymetry ps
+              seAsymetryWeight * psAsymetry ps +
+              sePreKingWeight * psPreKing ps
             else 0
 
         myNumeric = psNumeric ps1
