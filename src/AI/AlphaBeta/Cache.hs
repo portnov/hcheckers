@@ -218,7 +218,6 @@ lookupAiCache params board depth handle = do
 putAiCache :: GameRules rules => AlphaBetaParams -> Board -> StorageValue -> AICacheHandle rules eval -> Checkers ()
 putAiCache params board newItem handle = do
   let bc = calcBoardCounts board
-      bk = boardKey board
   let bsize = boardSize (aichRules handle)
   let total = bcFirstMen bc + bcSecondMen bc + bcFirstKings bc + bcSecondKings bc
   let depth = itemDepth newItem

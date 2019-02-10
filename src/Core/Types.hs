@@ -156,17 +156,24 @@ type LabelSet = IS.IntSet
 
 -- | Board describes current position on the board.
 data Board = Board {
-    bAddresses :: LabelMap Address,
-    bCaptured :: LabelSet,
-    boardKey ::  ! BoardKey,
-    bSize :: {-# UNPACK #-} ! BoardSize,
-    boardHash :: {-# UNPACK #-} ! BoardHash,
-    randomTable :: ! RandomTable
+    bAddresses :: LabelMap Address
+  , bCaptured :: LabelSet
+  , bFirstMen :: LabelSet
+  , bSecondMen :: LabelSet
+  , bFirstKings :: LabelSet
+  , bSecondKings :: LabelSet
+  , bSize :: {-# UNPACK #-} ! BoardSize
+  , boardHash :: {-# UNPACK #-} ! BoardHash
+  , randomTable :: ! RandomTable
   }
   deriving (Typeable)
 
 instance Eq Board where
-  b1 == b2 = boardKey b1 == boardKey b2
+  b1 == b2 = 
+    bFirstMen b1 == bFirstMen b2 &&
+    bSecondMen b1 == bSecondMen b2 &&
+    bFirstKings b1 == bFirstKings b2 &&
+    bSecondKings b1 == bSecondKings b2
 
 -- | Statistic information about the board.
 -- Can be used as a part of key in some caches.

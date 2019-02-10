@@ -33,13 +33,11 @@ unboxPiece (Just (Piece King Second)) = 4
 
 calcBoardCounts :: Board -> BoardCounts
 calcBoardCounts board = BoardCounts {
-                      bcFirstMen = IS.size $ bkFirstMen bk
-                    , bcFirstKings = IS.size $ bkFirstKings bk
-                    , bcSecondMen = IS.size $ bkSecondMen bk
-                    , bcSecondKings = IS.size $ bkSecondKings bk
+                      bcFirstMen = IS.size $ bFirstMen board
+                    , bcFirstKings = IS.size $ bFirstKings board
+                    , bcSecondMen = IS.size $ bSecondMen board
+                    , bcSecondKings = IS.size $ bSecondKings board
                   }
-  where
-    bk = boardKey board
 
 insertBoardCounts :: Piece -> BoardCounts -> BoardCounts
 insertBoardCounts p !bc =
@@ -68,6 +66,18 @@ removeBoardKey a (Piece Man First) !bk = bk {bkFirstMen = deleteLabelSet (aLabel
 removeBoardKey a (Piece Man Second) !bk = bk {bkSecondMen = deleteLabelSet (aLabel a) (bkSecondMen bk)}
 removeBoardKey a (Piece King First) !bk = bk {bkFirstKings = deleteLabelSet (aLabel a) (bkFirstKings bk)}
 removeBoardKey a (Piece King Second) !bk = bk {bkSecondKings = deleteLabelSet (aLabel a) (bkSecondKings bk)}
+
+insertBoard :: Address -> Piece -> Board -> Board
+insertBoard a (Piece Man First) b = b {bFirstMen = insertLabelSet (aLabel a) (bFirstMen b)}
+insertBoard a (Piece Man Second) b = b {bSecondMen = insertLabelSet (aLabel a) (bSecondMen b)}
+insertBoard a (Piece King First) b = b {bFirstKings = insertLabelSet (aLabel a) (bFirstKings b)}
+insertBoard a (Piece King Second) b = b {bSecondKings = insertLabelSet (aLabel a) (bSecondKings b)}
+
+removeBoard :: Address -> Piece -> Board -> Board
+removeBoard a (Piece Man First) b = b {bFirstMen = deleteLabelSet (aLabel a) (bFirstMen b)}
+removeBoard a (Piece Man Second) b = b {bSecondMen = deleteLabelSet (aLabel a) (bSecondMen b)}
+removeBoard a (Piece King First) b = b {bFirstKings = deleteLabelSet (aLabel a) (bFirstKings b)}
+removeBoard a (Piece King Second) b = b {bSecondKings = deleteLabelSet (aLabel a) (bSecondKings b)}
 
 newTBoardMap :: IO (TBoardMap a)
 newTBoardMap = atomically $ SM.new
@@ -203,5 +213,9 @@ instance Show BoardKey where
               (show $ labelSetToList $ bkSecondKings bk)
 
 instance Show Board where
-  show board = show $ boardKey board
+  show b = printf "{First Men: %s; Second Men: %s; First Kings: %s; Second Kings: %s}"
+              (show $ labelSetToList $ bFirstMen b)
+              (show $ labelSetToList $ bSecondMen b)
+              (show $ labelSetToList $ bFirstKings b)
+              (show $ labelSetToList $ bSecondKings b)
 

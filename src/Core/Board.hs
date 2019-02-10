@@ -203,9 +203,8 @@ isOpponentAt side addr board =
 
 isFree :: Address -> Board -> Bool
 isFree addr b =
-  let bk = boardKey b
-      label = aLabel addr
-  in  and [not (label `labelSetMember` set) | set <- [bkFirstMen bk, bkSecondMen bk, bkFirstKings bk, bkSecondKings bk]]
+  let label = aLabel addr
+  in  and [not (label `labelSetMember` set) | set <- [bFirstMen b, bSecondMen b, bFirstKings b, bSecondKings b]]
 
 isFree' :: Label -> Board -> Bool
 isFree' l b = isFree (resolve l b) b
@@ -225,8 +224,8 @@ allMyLabels side board = myMen side board ++ myKings side board
 --     check _ = False
 
 myMen :: Side -> Board -> [Label]
-myMen First board = labelSetToList $ bkFirstMen $ boardKey board
-myMen Second board = labelSetToList $ bkSecondMen $ boardKey board
+myMen First board = labelSetToList $ bFirstMen board
+myMen Second board = labelSetToList $ bSecondMen board
 -- myMen side board = 
 --     [unpackIndex i | (i, p) <- A.assocs (bPieces board), check (boxPiece p)]
 --   where
@@ -238,8 +237,8 @@ myMenA side board =
   map (\l -> resolve l board) $ myMen side board
 
 myKings :: Side -> Board -> [Label]
-myKings First board = labelSetToList $ bkFirstKings $ boardKey board
-myKings Second board = labelSetToList $ bkSecondKings $ boardKey board
+myKings First board = labelSetToList $ bFirstKings board
+myKings Second board = labelSetToList $ bSecondKings board
 -- myKings side board =
 --     [unpackIndex i | (i, p) <- A.assocs (bPieces board), check (boxPiece p)]
 --   where
@@ -271,10 +270,9 @@ myLabelsCount' side board w =
 
 myCounts :: Side -> Board -> (Int, Int)
 myCounts side board =
-  let bk = boardKey board
-  in  case side of
-        First -> (IS.size (bkFirstMen bk), IS.size (bkFirstKings bk))
-        Second -> (IS.size (bkSecondMen bk), IS.size (bkSecondKings bk))
+  case side of
+        First -> (IS.size (bFirstMen board), IS.size (bFirstKings board))
+        Second -> (IS.size (bSecondMen board), IS.size (bSecondKings board))
 
 catMoves :: Move -> Move -> Move
 catMoves m1 m2 =
@@ -500,14 +498,17 @@ buildBoard rnd orient bsize@(nrows, ncols) =
       board = Board {
                 bAddresses = addressByLabel,
                 bCaptured = emptyLabelSet,
-                boardKey = key,
+                bFirstMen = emptyLabelSet,
+                bSecondMen = emptyLabelSet,
+                bFirstKings = emptyLabelSet,
+                bSecondKings = emptyLabelSet,
                 bSize = bsize,
                 boardHash = 0,
                 randomTable = table
               }
 
       counts = BoardCounts 0 0 0 0
-      key = BoardKey IS.empty IS.empty IS.empty IS.empty
+      -- key = BoardKey IS.empty IS.empty IS.empty IS.empty
 
   in  board
 
@@ -516,19 +517,18 @@ resolve label board = fromMaybe (error $ "resolve: unknown field: " ++ show labe
 
 getPiece :: Address -> Board -> Maybe Piece
 getPiece a b
-  | aLabel a `labelSetMember` (bkFirstKings $ boardKey b) = Just $ Piece King First
-  | aLabel a `labelSetMember` (bkSecondKings $ boardKey b) = Just $ Piece King Second
-  | aLabel a `labelSetMember` (bkFirstMen $ boardKey b) = Just $ Piece Man First
-  | aLabel a `labelSetMember` (bkSecondMen $ boardKey b) = Just $ Piece Man Second
+  | aLabel a `labelSetMember` (bFirstKings b) = Just $ Piece King First
+  | aLabel a `labelSetMember` (bSecondKings b) = Just $ Piece King Second
+  | aLabel a `labelSetMember` (bFirstMen b) = Just $ Piece Man First
+  | aLabel a `labelSetMember` (bSecondMen b) = Just $ Piece Man Second
   | otherwise = Nothing
 
 isPieceAt :: Address -> Board -> Side -> Bool
 isPieceAt a b side =
-  let bk = boardKey b
-      label = aLabel a
+  let label = aLabel a
   in  case side of
-        First -> label `labelSetMember` bkFirstMen bk || label `labelSetMember` bkFirstKings bk
-        Second -> label `labelSetMember` bkSecondMen bk || label `labelSetMember` bkSecondKings bk
+        First -> label `labelSetMember` bFirstMen b || label `labelSetMember` bFirstKings b
+        Second -> label `labelSetMember` bSecondMen b || label `labelSetMember` bSecondKings b
 
 getPiece_ :: String -> Address -> Board -> Piece
 getPiece_ name addr board =
@@ -553,13 +553,12 @@ setPiece a p b = board
     b1 = if isFree a b
            then b
            else removePiece a b
-    board = b1 {
-              boardKey = key,
+    b2 = case getPiece a b of
+           Nothing -> insertBoard a p b1
+           Just old -> insertBoard a p $ removeBoard a old b1
+    board = b2 {
               boardHash = updateBoardHash b1 (aLabel a) p
             }
-    key = case getPiece a b of
-            Nothing -> insertBoardKey a p (boardKey b1)
-            Just old -> insertBoardKey a p $ removeBoardKey a old (boardKey b1)
 
 removePiece :: Address -> Board -> Board
 removePiece a b = board
@@ -567,12 +566,11 @@ removePiece a b = board
     board = case getPiece a b of
               Nothing -> error $ printf "removePiece: there is no piece at %s; board: %s" (show a) (show b)
               Just piece ->
-                let b' = b {
-                          boardKey = key,
+                let b1 = removeBoard a piece b
+                    b2 = b1 {
                           boardHash = updateBoardHash b (aLabel a) piece
                         }
-                    key = removeBoardKey a piece (boardKey b)
-                in  b'
+                in  b2
 
 removePiece' :: Label -> Board -> Board
 removePiece' l b = removePiece (resolve l b) b
@@ -637,12 +635,10 @@ parseMoveRep rules side board (FullMoveRep from steps) =
 
 boardRep :: Board -> BoardRep
 boardRep board = BoardRep $
-    [(label, Piece Man First) | label <- labelSetToList (bkFirstMen bk)] ++
-    [(label, Piece Man Second) | label <- labelSetToList (bkSecondMen bk)] ++
-    [(label, Piece King First) | label <- labelSetToList (bkFirstKings bk)] ++
-    [(label, Piece King Second) | label <- labelSetToList (bkSecondKings bk)]
-  where
-    bk = boardKey board
+    [(label, Piece Man First) | label <- labelSetToList (bFirstMen board)] ++
+    [(label, Piece Man Second) | label <- labelSetToList (bSecondMen board)] ++
+    [(label, Piece King First) | label <- labelSetToList (bFirstKings board)] ++
+    [(label, Piece King Second) | label <- labelSetToList (bSecondKings board)]
 
 parseBoardRep :: (GameRules rules, RandomTableProvider rnd) => rnd -> rules -> BoardRep -> Board
 parseBoardRep rnd rules (BoardRep list) = foldr set (buildBoard rnd orient bsize) list
