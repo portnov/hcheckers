@@ -51,6 +51,7 @@ instance GameRules Canadian where
   pdnId _ = "27"
 
   possibleMoves (Canadian rules) side board = gPossibleMoves rules side board
+  mobilityScore (Canadian rules) side board = gMobilityScore rules side board
 
 canadian :: Canadian
 canadian = Canadian $

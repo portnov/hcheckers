@@ -390,6 +390,10 @@ class (Typeable g, Show g, HasBoardOrientation g) => GameRules g where
   parseNotation :: g -> Notation -> Either String Label
 
   possibleMoves :: g -> Side -> Board -> [PossibleMove]
+
+  mobilityScore :: g -> Side -> Board -> Int
+  mobilityScore g side board = length $ possibleMoves g side board
+
   updateRules :: g -> Value -> g
   getGameResult :: g -> Board -> Maybe GameResult
   rulesName :: g -> String

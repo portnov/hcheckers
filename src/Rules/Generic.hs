@@ -40,6 +40,7 @@ initState piece board src = CaptureState Nothing emptyLabelSet piece board src s
 -- | An `Abstract class` for game rules
 data GenericRules = GenericRules {
     gPossibleMoves :: Side -> Board -> [PossibleMove]
+  , gMobilityScore :: Side -> Board -> Int
   , gPossibleSimpleMoves1 :: Board -> Address -> [PossibleMove]
   , gPossibleCaptures1 :: Board -> Address -> [PossibleMove]
   , gManSimpleMoves :: Side -> Board -> Address -> [PossibleMove]
@@ -162,6 +163,12 @@ abstractRules =
 --         King -> let captures = kingCaptures' rules side board addr
 --                 in  searchMoves rules side board True ([], captures ++ accCaptures) rest
 
+    mobility rules side board =
+      let (men, kings) = myCounts side board
+      in  if kings > 0
+            then kings * 4
+            else sum $ map (manSimpleMovesCount rules side board) (myMenA side board)
+
     manCaptures' rules side board src =
       gManCaptures rules $ initState (Piece Man side) board src
 
@@ -191,6 +198,13 @@ abstractRules =
           case myNeighbour rules side dir src of
             Nothing -> False
             Just dst -> isFree dst board
+
+    manSimpleMovesCount rules side board src = sum $ map check (gManSimpleMoveDirections rules)
+      where
+        check dir =
+          case myNeighbour rules side dir src of
+            Nothing -> 0
+            Just dst -> if isFree dst board then 1 else 0
 
     manSimpleMoves rules side board src =
         mapMaybe check (gManSimpleMoveDirections rules)
@@ -348,6 +362,7 @@ abstractRules =
 
     rules this = GenericRules {
       gPossibleMoves = possibleMoves this
+    , gMobilityScore = mobility this
     , gPossibleSimpleMoves1 = possibleSimpleMoves1 this
     , gPossibleCaptures1 = possibleCaptures1 this
     , gManSimpleMoves = manSimpleMoves this

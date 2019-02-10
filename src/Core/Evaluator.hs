@@ -30,9 +30,9 @@ defaultEvaluator :: GameRules rules => rules -> SimpleEvaluator
 defaultEvaluator rules = SimpleEvaluator
   { seRules              = SomeRules rules
   , seUsePositionalScore = True
-  , seMobilityWeight     = 2
+  , seMobilityWeight     = 3
   , seCenterWeight       = 4
-  , seOppositeSideWeight = 3
+  , seOppositeSideWeight = 4
   , seBackedWeight       = 2
   , seAsymetryWeight     = 1
   , seKingCoef           = 3
@@ -118,7 +118,7 @@ preEval (SimpleEvaluator { seRules = SomeRules rules, ..}) side board =
     opponentSideCount =
       let (men, kings) = myLabelsCount' side board tempNumber in men
 
-    mobility = length (possibleMoves rules side board)
+    mobility = mobilityScore rules side board
 
     centerScore =
       let (men, kings) = myLabelsCount side board isCenter
@@ -126,7 +126,7 @@ preEval (SimpleEvaluator { seRules = SomeRules rules, ..}) side board =
   in
     PreScore
       { psNumeric  = numericScore
-      , psMobility = 0 -- fromIntegral mobility
+      , psMobility = fromIntegral mobility
       , psCenter   = centerScore
       , psTemp     = fromIntegral opponentSideCount
       , psBacked   = fromIntegral backedScore
