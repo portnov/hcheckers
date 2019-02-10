@@ -334,9 +334,9 @@ data BoardRep = BoardRep [(Label, Piece)]
 -- which moves are possible
 data PossibleMove = PossibleMove {
     pmBegin :: ! Address
-  , pmEnd :: ! Address
-  , pmVictims :: ! [Address] -- ^ list of captured fields
-  , pmMove :: ! Move
+  , pmEnd :: Address
+  , pmVictims :: [Address] -- ^ list of captured fields
+  , pmMove :: Move
   , pmPromote :: ! Bool      -- ^ is there any promotion in the move
   , pmResult :: ! [MoveAction]
   }

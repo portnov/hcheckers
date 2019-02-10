@@ -126,7 +126,7 @@ preEval (SimpleEvaluator { seRules = SomeRules rules, ..}) side board =
   in
     PreScore
       { psNumeric  = numericScore
-      , psMobility = fromIntegral mobility
+      , psMobility = 0 -- fromIntegral mobility
       , psCenter   = centerScore
       , psTemp     = fromIntegral opponentSideCount
       , psBacked   = fromIntegral backedScore

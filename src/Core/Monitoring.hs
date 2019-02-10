@@ -24,3 +24,7 @@ timed name action = do
     then Metrics.timed name action
     else action
 
+distribution :: (MonadIO m, Metrics.MonadMetrics m, HasMetricsConfig m) => T.Text -> Double -> m ()
+distribution name x =
+  ifMetricsEnabled $ Metrics.distribution name x
+

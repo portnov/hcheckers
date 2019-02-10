@@ -97,8 +97,6 @@ getPossibleMoves handle side board = Monitoring.timed "ai.possible_moves.duratio
 --     (result, hit) <- liftIO $ do
 --         let memo = aichPossibleMoves handle
 --         let rules = aichRules handle
---         let bc = boardCounts board
---             bk = boardKey board
 --         let moves = possibleMoves rules side board
 --         mbItem <- lookupBoardMap memo board
 --         case mbItem of
@@ -560,13 +558,13 @@ updateDepth params moves dp
                   let delta = nMoves - 1
                   let target = min (dpTarget dp + 1) (dpMax dp - delta)
                   let indent = replicate (2*dpCurrent dp) ' '
-                  $debug "{}| there is only one move, increase target depth to {}"
+                  $trace "{}| there is only one move, increase target depth to {}"
                           (indent, target)
                   return $ dp {dpCurrent = dpCurrent dp + 1, dpTarget = target, dpForcedMode = True}
-    | nMoves > abMovesHighBound params = do
+    | nMoves > abMovesHighBound params && isQuiescene moves = do
                   let target = max (dpCurrent dp + 1) (dpMin dp)
                   let indent = replicate (2*dpCurrent dp) ' '
-                  $debug "{}| there are too many moves, decrease target depth to {}"
+                  $trace "{}| there are too many moves, decrease target depth to {}"
                           (indent, target)
                   return $ dp {dpCurrent = dpCurrent dp + 1, dpTarget = target}
     | otherwise = return $ dp {dpCurrent = dpCurrent dp + 1}
@@ -618,7 +616,7 @@ scoreAB var params input
       dp' <- updateDepth params moves dp
       let prevMove = siPrevMove input
       moves' <- sortMoves prevMove moves
-      out <- iterateMoves moves' dp'
+      out <- iterateMoves (zip [1..] moves') dp'
       pop
       return out
 
@@ -648,7 +646,7 @@ scoreAB var params input
     evalMove mbPrevMove move = do
       let victims = pmVictims move
           nVictims = length victims
-          promotion = if isPromotion move then 2 else 0
+          promotion = if isPromotion move then 1 else 0
           attackPrevPiece = case mbPrevMove of
                               Nothing -> 0
                               Just prevMove -> if pmEnd prevMove `elem` victims
@@ -656,19 +654,20 @@ scoreAB var params input
                                                  else 0
 
       let board' = applyMoveActions (pmResult move) board
-      mbCached <- lift $ lookupAiCache params board' dp  var
+      let dp0 = dp {dpCurrent = dpTarget dp}
+      mbCached <- lift $ lookupAiCache params board' dp0 var
       let primeVariation = if isJust mbCached
                              then 5
                              else 0
         
-      return $ nVictims + promotion + attackPrevPiece {-+ primeVariation-}
+      return $ {-nVictims +-} promotion + attackPrevPiece {-+ primeVariation-}
 
     sortMoves :: Maybe PossibleMove -> [PossibleMove] -> ScoreM rules eval [PossibleMove]
-    sortMoves mbPrevMove moves = do
-      interest <- mapM (evalMove mbPrevMove) moves
-      if any (> 0) interest
-        then return $ map fst $ sortOn (negate . snd) $ zip moves interest
-        else return moves
+    sortMoves mbPrevMove moves = return moves
+--       interest <- mapM (evalMove mbPrevMove) moves
+--       if any (> 0) interest
+--         then return $ map fst $ sortOn (negate . snd) $ zip moves interest
+--         else return moves
 
     distance :: PossibleMove -> PossibleMove -> Line
     distance prev pm =
@@ -733,13 +732,13 @@ scoreAB var params input
             else return out
 
 
-    iterateMoves :: [PossibleMove] -> DepthParams -> ScoreM rules eval ScoreOutput
+    iterateMoves :: [(Int,PossibleMove)] -> DepthParams -> ScoreM rules eval ScoreOutput
     iterateMoves [] _ = do
       best <- getBest
       $trace "{}`—All moves considered at this level, return best = {}" (indent, show best)
       quiescene <- checkQuiescene
       return $ ScoreOutput best quiescene
-    iterateMoves (move : moves) dp = do
+    iterateMoves ((i,move) : moves) dp = do
       timeout <- isTimeExhaused
       when timeout $ do
         -- $info "Timeout exhaused for depth {}." (Single $ dpCurrent dp)
@@ -769,6 +768,7 @@ scoreAB var params input
              setBest score
              if (maximize && score >= beta) || (minimize && score <= alpha)
                then do
+                    Monitoring.distribution "ai.section.at" $ fromIntegral i
                     $trace "{}`—Return {} for depth {} = {}" (indent, bestStr, dpCurrent dp, show score)
                     quiescene <- checkQuiescene
                     return $ ScoreOutput score quiescene

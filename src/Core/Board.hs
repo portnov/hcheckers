@@ -254,6 +254,11 @@ allMyAddresses :: Side -> Board -> [Address]
 allMyAddresses side board =
   map (\l -> resolve l board) $ allMyLabels side board
 
+allMyPieces :: Side -> Board -> [(Address, PieceKind)]
+allMyPieces side board =
+  [(resolve l board, King) | l <- myKings side board] ++
+  [(resolve l board, Man) | l <- myMen side board]
+
 myLabelsCount :: Side -> Board -> (Label -> Bool) -> (Int, Int)
 myLabelsCount side board p =
   (length $ filter p $ myMen side board,
