@@ -118,9 +118,12 @@ abstractRules :: GenericRules -> GenericRules
 abstractRules =
   let
     possibleMoves rules side board =
+      -- let (simpleMoves, captures) = searchMoves rules side board False ([], [])
       let simpleMoves = concatMap (gManSimpleMoves rules side board) (filter (manHasSimpleMoves rules side board) $ myMenA side board) ++
                         concatMap (gKingSimpleMoves rules side board) (myKingsA side board)
-          captures = concatMap (gPossibleCaptures1 rules board) (allMyAddresses side board)
+          captures = concatMap (manCaptures' rules side board) (filter (manHasCaptures rules side board) $ myMenA side board) ++
+                     concatMap (kingCaptures' rules side board) (myKingsA side board)
+          -- concatMap (gPossibleCaptures1 rules board) (allMyAddresses side board)
       in  if gCaptureMax rules
             then
               if null captures
@@ -132,6 +135,38 @@ abstractRules =
             else if null captures
                    then simpleMoves
                    else captures
+
+--     searchMoves _ _ _ _ (accSimple, accCaptures) [] = (accSimple, accCaptures)
+--     searchMoves rules side board False (accSimple, accCaptures) ((addr, pieceKind) : rest) =
+--       case pieceKind of
+--         Man | manHasCaptures rules side board addr ->
+--                  let captures = manCaptures' rules side board addr
+--                  in  searchMoves rules side board True ([], captures ++ accCaptures) rest
+--             | manHasSimpleMoves rules side board addr ->
+--                  let moves = gManSimpleMoves rules side board addr
+--                  in  searchMoves rules side board False (moves ++ accSimple, accCaptures) rest
+--             | otherwise ->
+--                  searchMoves rules side board False (accSimple, accCaptures) rest
+--         King -> let captures = kingCaptures' rules side board addr
+--                     simple   = gKingSimpleMoves rules side board addr
+--                 in  if null captures
+--                       then searchMoves rules side board False (simple ++ accSimple, accCaptures) rest
+--                       else searchMoves rules side board True ([], captures ++ accCaptures) rest
+--     searchMoves rules side board True (accSimple, accCaptures) ((addr, pieceKind) : rest) =
+--       case pieceKind of
+--         Man | manHasCaptures rules side board addr ->
+--                 let captures = manCaptures' rules side board addr
+--                 in  searchMoves rules side board True ([], captures ++ accCaptures) rest
+--             | otherwise ->
+--                 searchMoves rules side board True (accSimple, accCaptures) rest
+--         King -> let captures = kingCaptures' rules side board addr
+--                 in  searchMoves rules side board True ([], captures ++ accCaptures) rest
+
+    manCaptures' rules side board src =
+      gManCaptures rules $ initState (Piece Man side) board src
+
+    kingCaptures' rules side board src =
+      gKingCaptures rules $ initState (Piece King side) board src
 
     possibleSimpleMoves1 rules board src =
       case getPiece src board of
@@ -182,6 +217,18 @@ abstractRules =
       case ctPiece of
         (Piece Man _) -> gManCaptures1 rules ct
         (Piece King _) -> gKingCaptures1 rules ct
+
+    manHasCaptures rules side board src = any check (gManCaptureDirections rules)
+      where
+        check dir =
+          case myNeighbour rules side dir src of
+            Nothing -> False
+            Just victimAddr ->
+              if isPieceAt victimAddr board (opposite side)
+                then case myNeighbour rules side dir victimAddr of
+                       Nothing -> False
+                       Just dst -> isFree dst board
+                else False
 
     manCaptures1 rules (CaptureState {..}) =
         mapMaybe (check ctCurrent) $ filter allowedDir (gManCaptureDirections rules)
