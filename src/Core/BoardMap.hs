@@ -68,16 +68,40 @@ removeBoardKey a (Piece King First) !bk = bk {bkFirstKings = deleteLabelSet (aLa
 removeBoardKey a (Piece King Second) !bk = bk {bkSecondKings = deleteLabelSet (aLabel a) (bkSecondKings bk)}
 
 insertBoard :: Address -> Piece -> Board -> Board
-insertBoard a (Piece Man First) b = b {bFirstMen = insertLabelSet (aLabel a) (bFirstMen b)}
-insertBoard a (Piece Man Second) b = b {bSecondMen = insertLabelSet (aLabel a) (bSecondMen b)}
-insertBoard a (Piece King First) b = b {bFirstKings = insertLabelSet (aLabel a) (bFirstKings b)}
-insertBoard a (Piece King Second) b = b {bSecondKings = insertLabelSet (aLabel a) (bSecondKings b)}
+insertBoard a (Piece Man First) b = b {
+    bFirstMen = insertLabelSet (aLabel a) (bFirstMen b),
+    bOccupied = insertLabelSet (aLabel a) (bOccupied b)
+  }
+insertBoard a (Piece Man Second) b = b {
+    bSecondMen = insertLabelSet (aLabel a) (bSecondMen b),
+    bOccupied = insertLabelSet (aLabel a) (bOccupied b)
+  }
+insertBoard a (Piece King First) b = b {
+    bFirstKings = insertLabelSet (aLabel a) (bFirstKings b),
+    bOccupied = insertLabelSet (aLabel a) (bOccupied b)
+  }
+insertBoard a (Piece King Second) b = b {
+    bSecondKings = insertLabelSet (aLabel a) (bSecondKings b),
+    bOccupied = insertLabelSet (aLabel a) (bOccupied b)
+  }
 
 removeBoard :: Address -> Piece -> Board -> Board
-removeBoard a (Piece Man First) b = b {bFirstMen = deleteLabelSet (aLabel a) (bFirstMen b)}
-removeBoard a (Piece Man Second) b = b {bSecondMen = deleteLabelSet (aLabel a) (bSecondMen b)}
-removeBoard a (Piece King First) b = b {bFirstKings = deleteLabelSet (aLabel a) (bFirstKings b)}
-removeBoard a (Piece King Second) b = b {bSecondKings = deleteLabelSet (aLabel a) (bSecondKings b)}
+removeBoard a (Piece Man First) b = b {
+    bFirstMen = deleteLabelSet (aLabel a) (bFirstMen b),
+    bOccupied = deleteLabelSet (aLabel a) (bOccupied b)
+  }
+removeBoard a (Piece Man Second) b = b {
+    bSecondMen = deleteLabelSet (aLabel a) (bSecondMen b),
+    bOccupied = deleteLabelSet (aLabel a) (bOccupied b)
+  }
+removeBoard a (Piece King First) b = b {
+    bFirstKings = deleteLabelSet (aLabel a) (bFirstKings b),
+    bOccupied = deleteLabelSet (aLabel a) (bOccupied b)
+  }
+removeBoard a (Piece King Second) b = b {
+    bSecondKings = deleteLabelSet (aLabel a) (bSecondKings b),
+    bOccupied = deleteLabelSet (aLabel a) (bOccupied b)
+  }
 
 newTBoardMap :: IO (TBoardMap a)
 newTBoardMap = atomically $ SM.new

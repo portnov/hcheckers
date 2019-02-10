@@ -203,8 +203,7 @@ isOpponentAt side addr board =
 
 isFree :: Address -> Board -> Bool
 isFree addr b =
-  let label = aLabel addr
-  in  and [not (label `labelSetMember` set) | set <- [bFirstMen b, bSecondMen b, bFirstKings b, bSecondKings b]]
+  not $ aLabel addr `labelSetMember` bOccupied b
 
 isFree' :: Label -> Board -> Bool
 isFree' l b = isFree (resolve l b) b
@@ -498,6 +497,7 @@ buildBoard rnd orient bsize@(nrows, ncols) =
       board = Board {
                 bAddresses = addressByLabel,
                 bCaptured = emptyLabelSet,
+                bOccupied = emptyLabelSet,
                 bFirstMen = emptyLabelSet,
                 bSecondMen = emptyLabelSet,
                 bFirstKings = emptyLabelSet,
@@ -517,10 +517,10 @@ resolve label board = fromMaybe (error $ "resolve: unknown field: " ++ show labe
 
 getPiece :: Address -> Board -> Maybe Piece
 getPiece a b
-  | aLabel a `labelSetMember` (bFirstKings b) = Just $ Piece King First
-  | aLabel a `labelSetMember` (bSecondKings b) = Just $ Piece King Second
-  | aLabel a `labelSetMember` (bFirstMen b) = Just $ Piece Man First
-  | aLabel a `labelSetMember` (bSecondMen b) = Just $ Piece Man Second
+  | aLabel a `labelSetMember` bFirstKings b = Just $ Piece King First
+  | aLabel a `labelSetMember` bSecondKings b = Just $ Piece King Second
+  | aLabel a `labelSetMember` bFirstMen b = Just $ Piece Man First
+  | aLabel a `labelSetMember` bSecondMen b = Just $ Piece Man Second
   | otherwise = Nothing
 
 isPieceAt :: Address -> Board -> Side -> Bool

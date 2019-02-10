@@ -158,6 +158,7 @@ type LabelSet = IS.IntSet
 data Board = Board {
     bAddresses :: LabelMap Address
   , bCaptured :: LabelSet
+  , bOccupied :: LabelSet
   , bFirstMen :: LabelSet
   , bSecondMen :: LabelSet
   , bFirstKings :: LabelSet
