@@ -656,18 +656,24 @@ scoreAB var params input
       let board' = applyMoveActions (pmResult move) board
       let dp0 = dp {dpCurrent = dpTarget dp}
       mbCached <- lift $ lookupAiCache params board' dp0 var
-      let primeVariation = if isJust mbCached
-                             then 5
-                             else 0
+      let primeVariation = case mbCached of
+                             Nothing -> 0
+                             Just item ->
+                              let score = sNumeric (itemScore item)
+                                  scoreSigned = if maximize then score else negate score
+                              in  fromIntegral $ 1 + 5 * scoreSigned
         
-      return $ {-nVictims +-} promotion + attackPrevPiece {-+ primeVariation-}
+      return $ nVictims + promotion + attackPrevPiece + primeVariation
 
     sortMoves :: Maybe PossibleMove -> [PossibleMove] -> ScoreM rules eval [PossibleMove]
-    sortMoves mbPrevMove moves = return moves
---       interest <- mapM (evalMove mbPrevMove) moves
---       if any (> 0) interest
---         then return $ map fst $ sortOn (negate . snd) $ zip moves interest
---         else return moves
+    sortMoves mbPrevMove moves =
+      if length moves >= abMovesHighBound params
+        then do
+          interest <- mapM (evalMove mbPrevMove) moves
+          if any (> 0) interest
+            then return $ map fst $ sortOn (negate . snd) $ zip moves interest
+            else return moves
+        else return moves
 
     distance :: PossibleMove -> PossibleMove -> Line
     distance prev pm =
