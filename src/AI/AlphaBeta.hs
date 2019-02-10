@@ -597,7 +597,7 @@ scoreAB var params input
   | isTargetDepth dp = do
       -- target depth is achieved, calculate score of current board directly
       evaluator <- gets ssEvaluator
-      let score0 = evalBoard evaluator First board
+      let score0 = evalBoard' evaluator board
       $trace "    X Side: {}, A = {}, B = {}, score0 = {}" (show side, show alpha, show beta, show score0)
       quiescene <- checkQuiescene
       return $ ScoreOutput score0 quiescene
@@ -627,6 +627,15 @@ scoreAB var params input
     alpha = siAlpha input
     beta = siBeta input
     board = siBoard input
+
+    evalBoard' :: eval -> Board -> Score
+    evalBoard' evaluator board = result
+      where
+        score = evalBoard evaluator First board
+        result
+          | maximize && sNumeric score == sNumeric win   = score - Score 0 (fromIntegral $ dpCurrent dp)
+          | minimize && sNumeric score == sNumeric loose = score + Score 0 (fromIntegral $ dpCurrent dp)
+          | otherwise = score
 
     checkQuiescene :: ScoreM rules eval Bool
     checkQuiescene = do
