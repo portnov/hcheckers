@@ -16,7 +16,9 @@ class UiLogHandler(logging.Handler):
         self.list_widget = list_widget
 
     def get_icon(self, record):
-        if record.levelno == logging.INFO:
+        if record.levelno == logging.DEBUG:
+            return QIcon.fromTheme("document-properties")
+        elif record.levelno == logging.INFO:
             return QIcon.fromTheme("dialog-information")
         elif record.levelno == logging.ERROR:
             return QIcon.fromTheme("dialog-error")

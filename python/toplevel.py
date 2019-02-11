@@ -412,7 +412,9 @@ class Checkers(QMainWindow):
         item = QListWidgetItem(self.log)
         item.setText(message)
         icon = None
-        if level == "INFO":
+        if level == "DEBUG":
+            icon = QIcon.fromTheme("document-properties")
+        elif level == "INFO":
             icon = QIcon.fromTheme("dialog-information")
         elif level == "ERROR":
             icon = QIcon.fromTheme("dialog-error")
