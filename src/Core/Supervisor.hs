@@ -418,7 +418,7 @@ letAiMove gameId side mbBoard = do
       rules <- getRules gameId
       withAiStorage rules ai $ \storage -> do
         timed "Selecting AI move" $ do
-            aiMoves <- chooseMove ai storage side board
+            aiMoves <- chooseMove ai storage gameId side board
             if null aiMoves
               then do
                 $info "AI failed to move." ()

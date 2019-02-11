@@ -63,8 +63,15 @@ doLearn' rules eval var params gameRec = do
     resultToScore SecondWin = loose
     resultToScore Draw = 0
 
-doLearn :: (GameRules rules, Evaluator eval) => rules -> eval -> AICacheHandle rules eval -> AlphaBetaParams -> GameRecord -> Checkers ()
-doLearn rules eval var params gameRec = do
+doLearn :: (GameRules rules, Evaluator eval)
+        => rules
+        -> eval
+        -> AICacheHandle rules eval
+        -> AlphaBetaParams
+        -> GameId
+        -> GameRecord
+        -> Checkers ()
+doLearn rules eval var params gameId gameRec = do
     sup <- askSupervisor
     supervisor <- liftIO $ atomically $ readTVar sup
     let startBoard = initBoardFromTags supervisor (SomeRules rules) (grTags gameRec)
@@ -88,7 +95,7 @@ doLearn rules eval var params gameRec = do
               then Metrics.increment "learn.hit"
               else Metrics.increment "learn.miss"
             let (board1, _,_) = applyMove rules First move1 board0
-            (predict2, score2) <- processMove rules eval var params Second move1 board1
+            (predict2, score2) <- processMove rules eval var params gameId Second move1 board1
             return (board1, predict2, score2)
       case mrSecond moveRec of
         Nothing -> return (score2, board0 : board1 : boards)
@@ -98,7 +105,7 @@ doLearn rules eval var params gameRec = do
             then Metrics.increment "learn.hit"
             else Metrics.increment "learn.miss"
           let (board2, _, _) = applyMove rules Second move2 board1
-          (predict1, score1) <- processMove rules eval var params First move2 board2
+          (predict1, score1) <- processMove rules eval var params gameId First move2 board2
           go (score1, board0 : board1 : boards) board2 predict1 rest
 
 processMove :: (GameRules rules, Evaluator eval)
@@ -106,13 +113,14 @@ processMove :: (GameRules rules, Evaluator eval)
             -> eval
             -> AICacheHandle rules eval
             -> AlphaBetaParams
+            -> GameId
             -> Side
             -> Move
             -> Board
             -> Checkers ([PossibleMove], Score)
-processMove rules eval var params side move board = do
+processMove rules eval var params gameId side move board = do
   let ai = AlphaBeta params rules eval
-  (moves, score) <- runAI ai var side board
+  (moves, score) <- runAI ai var gameId side board
   $info "Processed: side {}, move: {}, depth: {} => score {}; we think next best moves are: {}" (show side, show move, abDepth params, show score, show moves)
   return (moves, score)
 
@@ -124,7 +132,7 @@ learnPdn ai@(AlphaBeta params rules eval) path = do
   forM_ (zip [1.. ] pdn) $ \(i, gameRec) -> do
     -- liftIO $ print pdn
     $info "Processing game {}/{}..." (i :: Int, n)
-    doLearn rules eval cache params gameRec
+    doLearn rules eval cache params (show i) gameRec
     -- saveAiCache rules params cache
     return ()
 

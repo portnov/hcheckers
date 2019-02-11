@@ -19,6 +19,7 @@ import Control.Monad
 import Control.Monad.State
 import Control.Monad.Except
 import Control.Concurrent.STM
+import qualified Data.Map as M
 import Data.Maybe
 import Data.List (sortOn)
 import Data.Text.Format.Heavy
@@ -57,8 +58,8 @@ instance (GameRules rules, Evaluator eval) => GameAi (AlphaBeta rules eval) wher
       -- saveAiCache rules params cache
       return ()
 
-  chooseMove ai storage side board = do
-    (moves, _) <- runAI ai storage side board
+  chooseMove ai storage gameId side board = do
+    (moves, _) <- runAI ai storage gameId side board
     -- liftIO $ atomically $ writeTVar (aichCurrentCounts storage) $ calcBoardCounts board
     return moves
 
@@ -75,7 +76,7 @@ scoreMove (ScoreMoveInput {..}) = do
      let AlphaBeta params rules eval = smiAi
      score <- Monitoring.timed "ai.score.move" $ do
                 let board' = applyMoveActions (pmResult smiMove) smiBoard
-                score <- doScore rules eval smiCache params (opposite smiSide) smiDepth board' smiAlpha smiBeta
+                score <- doScore rules eval smiCache params smiGameId (opposite smiSide) smiDepth board' smiAlpha smiBeta
                           `catchError` (\(e :: Error) -> do
                                         $info "doScore: move {}, depth {}: {}" (show smiMove, dpTarget smiDepth, show e)
                                         throwError e
@@ -88,6 +89,17 @@ scoreMove (ScoreMoveInput {..}) = do
 type DepthIterationInput = (AlphaBetaParams, [PossibleMove], Maybe DepthIterationOutput)
 type DepthIterationOutput = [(PossibleMove, Score)]
 type AiOutput = ([PossibleMove], Score)
+
+rememberScoreShift :: AICacheHandle rules eval -> GameId -> ScoreBase -> Checkers ()
+rememberScoreShift handle gameId shift = liftIO $ atomically $ do
+  shifts <- readTVar (aichLastMoveScoreShift handle)
+  let shifts' = M.insert gameId shift shifts
+  writeTVar (aichLastMoveScoreShift handle) shifts'
+
+getLastScoreShift :: AICacheHandle rules eval -> GameId -> Checkers (Maybe ScoreBase)
+getLastScoreShift handle gameId = liftIO $ atomically $ do
+  shifts <- readTVar (aichLastMoveScoreShift handle)
+  return $ M.lookup gameId shifts
 
 getPossibleMoves :: GameRules rules => AICacheHandle rules eval -> Side -> Board -> Checkers [PossibleMove]
 getPossibleMoves handle side board = Monitoring.timed "ai.possible_moves.duration" $ do
@@ -167,11 +179,21 @@ getPossibleMoves handle side board = Monitoring.timed "ai.possible_moves.duratio
 --       already considered the interval on that side, then we know that the real score equals
 --       exactly to the bound.
 --
-runAI :: (GameRules rules, Evaluator eval) => AlphaBeta rules eval -> AICacheHandle rules eval -> Side -> Board -> Checkers AiOutput
-runAI ai@(AlphaBeta params rules eval) handle side board = do
+runAI :: (GameRules rules, Evaluator eval)
+      => AlphaBeta rules eval
+      -> AICacheHandle rules eval
+      -> GameId
+      -> Side
+      -> Board
+      -> Checkers AiOutput
+runAI ai@(AlphaBeta params rules eval) handle gameId side board = do
     preOptions <- preselect
     options <- depthDriver preOptions
-    select options
+    output <- select options
+    let bestScore = sNumeric $ snd output
+    let shift = bestScore - sNumeric score0
+    rememberScoreShift handle gameId shift
+    return output
   where
     maximize = side == First
     minimize = not maximize
@@ -236,10 +258,7 @@ runAI ai@(AlphaBeta params rules eval) handle side board = do
       if length moves <= 1 -- Just one move possible
         then do
           $info "There is only one move possible; just do it." ()
-          -- currently we do not use results of evaluating of all moves
-          -- when evaluating deeper parts of the tree (it is hard due to alpha-beta restrictions).
-          -- It means we are not going to use that Score value anyway.
-          return ([(move, 0) | move <- moves], Nothing)
+          return ([(move, score0) | move <- moves], Nothing)
                                                              
         else do
           let var = aichData handle
@@ -257,7 +276,7 @@ runAI ai@(AlphaBeta params rules eval) handle side board = do
                                     dpTarget = min (dpMax dp) (dpTarget dp + 1)
                                   }
                 | otherwise = dp
-          result <- widthController True True prevResult moves dp' initInterval
+          result <- widthController True True prevResult moves dp' =<< initInterval
           -- In some corner cases, there might be 1 or 2 possible moves,
           -- so the timeout would allow us to calculate with very big depth;
           -- too big depth does not decide anything in such situations.
@@ -270,16 +289,26 @@ runAI ai@(AlphaBeta params rules eval) handle side board = do
     score0 = evalBoard eval First board
 
     -- | Initial (alpha, beta) interval
-    initInterval :: (Score, Score)
-    initInterval =
+    initInterval :: Checkers (Score, Score)
+    initInterval = do
       let delta
             | abs score0 < 4 = 1
             | abs score0 < 8 = 2
             | otherwise = 4
-      in  (score0 - delta, score0 + delta)
---       in  if maximize
---             then (prevScore score0, score0 + delta)
---             else (score0 - delta, nextScore score0)
+      mbPrevShift <- getLastScoreShift handle gameId
+      case mbPrevShift of
+        Nothing -> do
+            let alpha = score0 - delta
+                beta  = score0 + delta
+            $debug "Score0 = {}, delta = {} => initial interval ({}, {})" (score0, delta, alpha, beta)
+            return (alpha, beta)
+        Just shift -> do
+            let (alpha, beta)
+                  | shift >= 0 = (score0 - delta, score0 + (Score shift 0) + delta)
+                  | otherwise  = (score0 + (Score shift 0) - delta, score0 + delta)
+            $debug "Score0 = {}, delta = {}, shift in previous move = {} => initial interval ({}, {})"
+                              (score0, delta, shift, alpha, beta)
+            return (alpha, beta)
 
     selectScale :: Score -> ScoreBase
     selectScale s
@@ -413,13 +442,14 @@ doScore :: (GameRules rules, Evaluator eval)
         -> eval
         -> AICacheHandle rules eval
         -> AlphaBetaParams
+        -> GameId
         -> Side
         -> DepthParams
         -> Board
         -> Score -- ^ Alpha
         -> Score -- ^ Beta
         -> Checkers Score
-doScore rules eval var params side dp board alpha beta = do
+doScore rules eval var params gameId side dp board alpha beta = do
     initState <- mkInitState
     out <- evalStateT (cachedScoreAB var params input) initState
     return $ soScore out
@@ -430,12 +460,13 @@ doScore rules eval var params side dp board alpha beta = do
       let timeout = case abBaseTime params of
                       Nothing -> Nothing
                       Just sec -> Just $ TimeSpec (fromIntegral sec) 0
-      return $ ScoreState rules eval [loose] now timeout
+      return $ ScoreState rules eval gameId [loose] now timeout
 
 -- | State of ScoreM monad.
 data ScoreState rules eval = ScoreState {
     ssRules :: rules
   , ssEvaluator :: eval
+  , ssGameId :: GameId
   , ssBestScores :: [Score] -- ^ At each level of depth-first search, there is own "best score"
   , ssStartTime :: TimeSpec -- ^ Start time of calculation
   , ssTimeout :: Maybe TimeSpec -- ^ Nothing for "no timeout"

@@ -105,11 +105,13 @@ loadAiCache scoreMove (AlphaBeta params rules eval) = do
                    }
   counts <- liftIO $ atomically $ newTVar $ BoardCounts 50 50 50 50
   moves <- liftIO newTBoardMap
+  scoreShift <- liftIO $ atomically $ newTVar M.empty
   let handle = AICacheHandle {
       aichRules = rules,
       aichData = cache,
       aichProcessor = processor,
       aichPossibleMoves = moves,
+      aichLastMoveScoreShift = scoreShift,
       aichWriteQueue = writeQueue,
       aichCleanupQueue = cleanupQueue,
       aichCurrentCounts = counts,

@@ -33,6 +33,7 @@ import Control.Monad.Reader
 import qualified Control.Monad.Metrics as Metrics
 import Control.Concurrent.STM
 import qualified Data.HashPSQ as PQ
+import qualified Data.Map as M
 import Data.Word
 import Data.Binary
 import Data.Store
@@ -147,6 +148,7 @@ type StorageValue = PerBoardData
 data ScoreMoveInput rules eval = ScoreMoveInput {
     smiAi :: AlphaBeta rules eval
   , smiCache :: AICacheHandle rules eval
+  , smiGameId :: GameId
   , smiSide :: Side 
   , smiDepth :: DepthParams
   , smiBoard :: Board
@@ -172,6 +174,7 @@ data AICacheHandle rules eval = AICacheHandle {
   , aichData :: AIData
   , aichProcessor ::  Processor [MoveAction] (ScoreMoveInput rules eval) (PossibleMove, Score)
   , aichPossibleMoves :: MovesMemo
+  , aichLastMoveScoreShift :: TVar (M.Map GameId ScoreBase)
   , aichWriteQueue :: WriteQueue
   , aichCleanupQueue :: CleanupQueue
   , aichCurrentCounts :: TVar BoardCounts

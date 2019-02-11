@@ -520,7 +520,7 @@ class (Show ai, Typeable (AiStorage ai)) => GameAi ai where
   
   updateAi :: ai -> Value -> ai
 
-  chooseMove :: ai -> AiStorage ai -> Side -> Board -> Checkers [PossibleMove]
+  chooseMove :: ai -> AiStorage ai -> GameId -> Side -> Board -> Checkers [PossibleMove]
 
   -- | Answer for a draw request.
   -- Default implementation always accepts the draw.
