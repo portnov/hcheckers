@@ -2,11 +2,13 @@
 module Main where
 
 import Control.Monad.Reader
+import Control.Concurrent.STM
 import Data.Default
 import System.Environment
 import System.Log.Heavy
 
 import Core.Types
+import Core.Board
 import AI.AlphaBeta.Types
 import AI.AlphaBeta.Persistent
 import Core.Rest
@@ -39,22 +41,18 @@ main = do
       idx <- loadIndexIO path
       print path
 
---     ["test"] -> do
---       let rules = russian
---           eval = ai
---           depth = 2
---           params = def {
---                      abDepth = depth
---                    , abCombinationDepth = 0
---                    }
---           ai = AlphaBeta params rules
---       withCheckers $ do
---         aich <- loadAiCache scoreMove ai
---         let score0 = Score 5 2
---         let board = board8
---         putAiCache params board 2 Second score0 [] aich
---         res <- lookupAiCache params board 2 Second aich
---         liftIO $ print res
+    ["test"] -> do
+      withCheckers $ do
+        sh <- asks csSupervisor
+        st <- liftIO $ atomically $ readTVar sh
+        let b = movePiece' "c3" "e5" $ board8 st
+            b' = flipBoard b
+            b'' = flipBoard b'
+        liftIO $ do
+          print b
+          print b'
+          print b''
+          print (b == b'')
     
     _ ->
       withCheckers $ do

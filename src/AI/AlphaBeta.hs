@@ -561,8 +561,10 @@ cachedScoreAB var params input = do
           -- that this score was not clamped by alpha or beta
           -- (so this is a real score, not alpha/beta bound)
           item = PerBoardData (dpLast dp) score bound Nothing
-      when (bound == Exact && soQuiescene out) $
+          item' = PerBoardData (dpLast dp) (negate score) bound Nothing
+      when (bound == Exact && soQuiescene out) $ do
           lift $ putAiCache params board item var
+          lift $ putAiCache params (flipBoard board) item' var
       return out
 
 -- | Check if target depth is reached

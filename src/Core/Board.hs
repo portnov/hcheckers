@@ -456,10 +456,19 @@ line7labels = ["a7", "c7", "e7", "g7"]
 line8labels :: [Label]
 line8labels = ["b8", "d8", "f8", "h8"]
 
+calcBoardHash :: Board -> BoardHash
+calcBoardHash board = foldr update 0 (boardAssocs board)
+  where
+    update (label, piece) hash = updateBoardHash' table hash label piece
+    table = randomTable board
+
+updateBoardHash' :: RandomTable -> BoardHash -> Label -> Piece -> BoardHash
+updateBoardHash' table hash (Label col row) piece =
+  hash `xor` (table A.! (unboxPiece (Just piece), mkIndex col row))
+
 updateBoardHash :: Board -> Label -> Piece -> BoardHash
-updateBoardHash board (Label col row) piece =
-  let table = randomTable board
-  in  boardHash board `xor` (table A.! (unboxPiece (Just piece), mkIndex col row))
+updateBoardHash board label piece =
+  updateBoardHash' (randomTable board) (boardHash board) label piece
 
 buildBoard :: RandomTableProvider rnd => rnd -> BoardOrientation -> BoardSize -> Board
 buildBoard rnd orient bsize@(nrows, ncols) =
@@ -638,12 +647,15 @@ parseMoveRep rules side board (FullMoveRep from steps) =
         Nothing -> error $ "parseMoveRep: invalid step: " ++ show step
         Just dir -> Step (playerDirection side dir) capture promote : parse (resolve dst board) steps
 
-boardRep :: Board -> BoardRep
-boardRep board = BoardRep $
+boardAssocs :: Board -> [(Label, Piece)]
+boardAssocs board = 
     [(label, Piece Man First) | label <- labelSetToList (bFirstMen board)] ++
     [(label, Piece Man Second) | label <- labelSetToList (bSecondMen board)] ++
     [(label, Piece King First) | label <- labelSetToList (bFirstKings board)] ++
     [(label, Piece King Second) | label <- labelSetToList (bSecondKings board)]
+
+boardRep :: Board -> BoardRep
+boardRep board = BoardRep $ boardAssocs board
 
 parseBoardRep :: (GameRules rules, RandomTableProvider rnd) => rnd -> rules -> BoardRep -> Board
 parseBoardRep rnd rules (BoardRep list) = foldr set (buildBoard rnd orient bsize) list
@@ -744,4 +756,21 @@ flipBoardCounts bc =
     bcFirstKings = bcSecondKings bc,
     bcSecondKings = bcFirstKings bc
   }
+
+flipBoard :: Board -> Board
+flipBoard b = b' {boardHash = hash}
+  where
+    b' = b {
+      bFirstMen = labelSetFromList $ map flipLabel (labelSetToList $ bSecondMen b),
+      bSecondMen = labelSetFromList $ map flipLabel (labelSetToList $ bFirstMen b),
+      bFirstKings = labelSetFromList $ map flipLabel (labelSetToList $ bSecondKings b),
+      bSecondKings = labelSetFromList $ map flipLabel (labelSetToList $ bFirstKings b),
+      bOccupied =  labelSetFromList $ map flipLabel (labelSetToList $ bOccupied b)
+    }
+
+    hash = calcBoardHash b'
+
+    (nrows, ncols) = bSize b
+
+    flipLabel (Label col row) = Label (ncols - col - 1) (nrows - row - 1)
 

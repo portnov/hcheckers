@@ -171,10 +171,20 @@ data Board = Board {
 
 instance Eq Board where
   b1 == b2 = 
+    boardHash b1 == boardHash b2 &&
     bFirstMen b1 == bFirstMen b2 &&
     bSecondMen b1 == bSecondMen b2 &&
     bFirstKings b1 == bFirstKings b2 &&
     bSecondKings b1 == bSecondKings b2
+
+boardEq :: Board -> Board -> Bool
+boardEq b1 b2 = 
+    boardHash b1 == boardHash b2 &&
+    bFirstMen b1 == bFirstMen b2 &&
+    bSecondMen b1 == bSecondMen b2 &&
+    bFirstKings b1 == bFirstKings b2 &&
+    bSecondKings b1 == bSecondKings b2 &&
+    bOccupied b1 == bOccupied b2
 
 -- | Statistic information about the board.
 -- Can be used as a part of key in some caches.
