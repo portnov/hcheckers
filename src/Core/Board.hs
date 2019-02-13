@@ -56,6 +56,9 @@ promoteK :: PieceKind -> PieceKind
 promoteK Man = King
 promoteK King = King
 
+opponentPiece :: Piece -> Piece
+opponentPiece (Piece k s) = Piece k (opposite s)
+
 allFields :: Board -> [FieldIndex]
 allFields b = IM.keys (bAddresses b)
 
@@ -516,13 +519,11 @@ buildBoard rnd orient bsize@(nrows, ncols) =
                 bSecondMen = emptyLabelSet,
                 bFirstKings = emptyLabelSet,
                 bSecondKings = emptyLabelSet,
+                boardKey = IM.empty,
                 bSize = bsize,
                 boardHash = 0,
                 randomTable = table
               }
-
-      counts = BoardCounts 0 0 0 0
-      -- key = BoardKey IS.empty IS.empty IS.empty IS.empty
 
   in  board
 
@@ -664,17 +665,6 @@ parseBoardRep rnd rules (BoardRep list) = foldr set (buildBoard rnd orient bsize
     bsize = boardSize rules
     orient = boardOrientation rules
 
-parseBoardKey :: (GameRules rules, RandomTableProvider rnd) => rnd -> rules -> BoardKey -> Board
-parseBoardKey rnd rules bk = foldr set (buildBoard rnd orient bsize) list
-  where
-    bsize = boardSize rules
-    orient = boardOrientation rules
-    list = [(lbl, Piece Man First) | lbl <- labelSetToList (bkFirstMen bk)] ++
-           [(lbl, Piece Man Second) | lbl <- labelSetToList (bkSecondMen bk)] ++
-           [(lbl, Piece King First) | lbl <- labelSetToList (bkFirstKings bk)] ++
-           [(lbl, Piece King Second) | lbl <- labelSetToList (bkSecondKings bk)]
-    set (label, piece) board = setPiece' label piece board
-
 -- | Generic implementation of @getGameResult@, which suits most rules.
 -- This can not, however, recognize draws.
 genericGameResult :: GameRules rules => rules -> Board -> Maybe GameResult
@@ -739,13 +729,9 @@ parseNumericNotation (nrows, ncols) t = parse (T.unpack t)
 
 flipBoardKey :: BoardSize -> BoardKey -> BoardKey
 flipBoardKey (nrows,ncols) bk =
-    bk {
-      bkFirstMen = labelSetFromList $ map flipLabel (labelSetToList $ bkSecondMen bk),
-      bkSecondMen = labelSetFromList $ map flipLabel (labelSetToList $ bkFirstMen bk),
-      bkFirstKings = labelSetFromList $ map flipLabel (labelSetToList $ bkSecondKings bk),
-      bkSecondKings = labelSetFromList $ map flipLabel (labelSetToList $ bkFirstKings bk)
-    }
+    IM.fromList $ map go $ IM.assocs bk
   where
+    go (k, p) = (labelIndex $ flipLabel $ unpackIndex k, opponentPiece p)
     flipLabel (Label col row) = Label (ncols - col - 1) (nrows - row - 1)
 
 flipBoardCounts :: BoardCounts -> BoardCounts

@@ -56,50 +56,52 @@ removeBoardCounts p !bc =
     Piece King Second -> bc {bcSecondKings = bcSecondKings bc - 1}
 
 insertBoardKey :: Address -> Piece -> BoardKey -> BoardKey
-insertBoardKey a (Piece Man First) !bk = bk {bkFirstMen = insertLabelSet (aLabel a) (bkFirstMen bk)}
-insertBoardKey a (Piece Man Second) !bk = bk {bkSecondMen = insertLabelSet (aLabel a) (bkSecondMen bk)}
-insertBoardKey a (Piece King First) !bk = bk {bkFirstKings = insertLabelSet (aLabel a) (bkFirstKings bk)}
-insertBoardKey a (Piece King Second) !bk = bk {bkSecondKings = insertLabelSet (aLabel a) (bkSecondKings bk)}
+insertBoardKey a p bk = IM.insert (aIndex a) p bk
 
 removeBoardKey :: Address -> Piece -> BoardKey -> BoardKey
-removeBoardKey a (Piece Man First) !bk = bk {bkFirstMen = deleteLabelSet (aLabel a) (bkFirstMen bk)}
-removeBoardKey a (Piece Man Second) !bk = bk {bkSecondMen = deleteLabelSet (aLabel a) (bkSecondMen bk)}
-removeBoardKey a (Piece King First) !bk = bk {bkFirstKings = deleteLabelSet (aLabel a) (bkFirstKings bk)}
-removeBoardKey a (Piece King Second) !bk = bk {bkSecondKings = deleteLabelSet (aLabel a) (bkSecondKings bk)}
+removeBoardKey a p bk = IM.delete (aIndex a) bk
 
 insertBoard :: Address -> Piece -> Board -> Board
-insertBoard a (Piece Man First) b = b {
+insertBoard a p@(Piece Man First) b = b {
     bFirstMen = insertLabelSet (aLabel a) (bFirstMen b),
+    boardKey = insertBoardKey a p (boardKey b),
     bOccupied = insertLabelSet (aLabel a) (bOccupied b)
   }
-insertBoard a (Piece Man Second) b = b {
+insertBoard a p@(Piece Man Second) b = b {
     bSecondMen = insertLabelSet (aLabel a) (bSecondMen b),
+    boardKey = insertBoardKey a p (boardKey b),
     bOccupied = insertLabelSet (aLabel a) (bOccupied b)
   }
-insertBoard a (Piece King First) b = b {
+insertBoard a p@(Piece King First) b = b {
     bFirstKings = insertLabelSet (aLabel a) (bFirstKings b),
+    boardKey = insertBoardKey a p (boardKey b),
     bOccupied = insertLabelSet (aLabel a) (bOccupied b)
   }
-insertBoard a (Piece King Second) b = b {
+insertBoard a p@(Piece King Second) b = b {
     bSecondKings = insertLabelSet (aLabel a) (bSecondKings b),
+    boardKey = insertBoardKey a p (boardKey b),
     bOccupied = insertLabelSet (aLabel a) (bOccupied b)
   }
 
 removeBoard :: Address -> Piece -> Board -> Board
-removeBoard a (Piece Man First) b = b {
+removeBoard a p@(Piece Man First) b = b {
     bFirstMen = deleteLabelSet (aLabel a) (bFirstMen b),
+    boardKey = removeBoardKey a p (boardKey b),
     bOccupied = deleteLabelSet (aLabel a) (bOccupied b)
   }
-removeBoard a (Piece Man Second) b = b {
+removeBoard a p@(Piece Man Second) b = b {
     bSecondMen = deleteLabelSet (aLabel a) (bSecondMen b),
+    boardKey = removeBoardKey a p (boardKey b),
     bOccupied = deleteLabelSet (aLabel a) (bOccupied b)
   }
-removeBoard a (Piece King First) b = b {
+removeBoard a p@(Piece King First) b = b {
     bFirstKings = deleteLabelSet (aLabel a) (bFirstKings b),
+    boardKey = removeBoardKey a p (boardKey b),
     bOccupied = deleteLabelSet (aLabel a) (bOccupied b)
   }
-removeBoard a (Piece King Second) b = b {
+removeBoard a p@(Piece King Second) b = b {
     bSecondKings = deleteLabelSet (aLabel a) (bSecondKings b),
+    boardKey = removeBoardKey a p (boardKey b),
     bOccupied = deleteLabelSet (aLabel a) (bOccupied b)
   }
 
@@ -108,18 +110,18 @@ newTBoardMap = atomically $ SM.new
 
 putBoardMap :: TBoardMap a -> Board -> a -> IO ()
 putBoardMap bmap board value = atomically $
-  SM.insert value board bmap
+  SM.insert value (boardKey board) bmap
 
 putBoardMapWith :: TBoardMap a -> (a -> a -> a) -> Board -> a -> IO ()
 putBoardMapWith bmap plus board value = atomically $ do
-  mbOld <- SM.lookup board bmap
+  mbOld <- SM.lookup (boardKey board) bmap
   case mbOld of
-    Nothing -> SM.insert value board bmap
-    Just old -> SM.insert (plus old value) board bmap
+    Nothing -> SM.insert value (boardKey board) bmap
+    Just old -> SM.insert (plus old value) (boardKey board) bmap
 
 lookupBoardMap :: TBoardMap a -> Board -> IO (Maybe a)
 lookupBoardMap bmap board = atomically $
-  SM.lookup board bmap
+  SM.lookup (boardKey board) bmap
 
 ------------------
 
@@ -135,6 +137,9 @@ aIndex a = fromIntegral (labelColumn l) * 16 + fromIntegral (labelRow l)
 
 mkIndex :: Line -> Line -> FieldIndex
 mkIndex col row =  fromIntegral col * 16 + fromIntegral row
+
+labelIndex :: Label -> FieldIndex
+labelIndex (Label col row) = mkIndex col row
 
 buildLabelMap :: Line -> Line -> [(Label, a)] -> LabelMap a
 buildLabelMap nrows ncols pairs =
@@ -192,49 +197,6 @@ labelSetMember (Label col row) set = IS.member (mkIndex col row) set
 
 instance Hashable IS.IntSet where
   hashWithSalt salt set = hashWithSalt salt (IS.toList set)
-
-instance Store BoardKey where
-  poke bk = do
-    poke (fromIntegral (IS.size (bkFirstMen bk)) :: Word8)
-    forM_ (labelSetToList $ bkFirstMen bk) poke
-    poke (fromIntegral (IS.size (bkSecondMen bk)) :: Word8)
-    forM_ (labelSetToList $ bkSecondMen bk) poke
-    poke (fromIntegral (IS.size (bkFirstKings bk)) :: Word8)
-    forM_ (labelSetToList $ bkFirstKings bk) poke
-    poke (fromIntegral (IS.size (bkSecondKings bk)) :: Word8)
-    forM_ (labelSetToList $ bkSecondKings bk) poke
-
-  peek = do
-    n <- peek :: Peek Word8
-    firstMen <- replicateM (fromIntegral n) peek
-    n <- peek :: Peek Word8
-    secondMen <- replicateM (fromIntegral n) peek
-    n <- peek :: Peek Word8
-    firstKings <- replicateM (fromIntegral n) peek
-    n <- peek :: Peek Word8
-    secondKings <- replicateM (fromIntegral n) peek
-    return $ BoardKey
-              (labelSetFromList firstMen)
-              (labelSetFromList secondMen)
-              (labelSetFromList firstKings)
-              (labelSetFromList secondKings)
-
-  size = VarSize $ \bk ->
-         4 + IS.size (bkFirstMen bk) +
-             IS.size (bkSecondMen bk) +
-             IS.size (bkFirstKings bk)  +
-             IS.size (bkSecondKings bk) 
-  
-instance Hashable BoardKey where
-  hashWithSalt salt bk =
-    salt `hashWithSalt` bkFirstMen bk `hashWithSalt` bkSecondMen bk `hashWithSalt` bkFirstKings bk `hashWithSalt` bkSecondKings bk
-
-instance Show BoardKey where
-  show bk = printf "{First Men: %s; Second Men: %s; First Kings: %s; Second Kings: %s}"
-              (show $ labelSetToList $ bkFirstMen bk)
-              (show $ labelSetToList $ bkSecondMen bk)
-              (show $ labelSetToList $ bkFirstKings bk)
-              (show $ labelSetToList $ bkSecondKings bk)
 
 instance Show Board where
   show b = printf "{First Men: %s; Second Men: %s; First Kings: %s; Second Kings: %s}"

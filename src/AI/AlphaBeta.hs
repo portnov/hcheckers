@@ -387,6 +387,7 @@ runAI ai@(AlphaBeta params rules eval) handle gameId side board = do
             ScoreMoveInput {
               smiAi = ai,
               smiCache = handle,
+              smiGameId = gameId,
               smiSide = side,
               smiDepth = dp,
               smiBoard = board,

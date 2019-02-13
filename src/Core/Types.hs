@@ -85,6 +85,10 @@ instance Show PieceKind where
   show Man = "M"
   show King = "K"
 
+instance Hashable PieceKind where
+  hashWithSalt salt Man = hashWithSalt salt (1 :: Int)
+  hashWithSalt salt King = hashWithSalt salt (2 :: Int)
+
 -- | There are two places at the board for players: top and bottom.
 data BoardSide = Top | Bottom
   deriving (Eq, Ord, Show, Generic, Typeable)
@@ -105,6 +109,10 @@ instance Show Side where
 
 instance Store Side
 
+instance Hashable Side where
+  hashWithSalt salt First = hashWithSalt salt (3 :: Int)
+  hashWithSalt salt Second = hashWithSalt salt (4 :: Int)
+
 -- | In most game rules, the side who moves first starts
 -- from the bottom of board; but there are some (well,
 -- english), in which first side starts from top.
@@ -119,6 +127,9 @@ data Piece = Piece {
 
 instance Show Piece where
   show (Piece k s) = show k ++ show s
+
+instance Hashable Piece where
+  hashWithSalt salt (Piece k s) = salt `hashWithSalt` k `hashWithSalt` s
 
 type UnboxedPiece = Word8
 
@@ -164,6 +175,7 @@ data Board = Board {
   , bFirstKings :: LabelSet
   , bSecondKings :: LabelSet
   , bSize :: {-# UNPACK #-} ! BoardSize
+  , boardKey :: BoardKey
   , boardHash :: {-# UNPACK #-} ! BoardHash
   , randomTable :: ! RandomTable
   }
@@ -207,15 +219,10 @@ instance Hashable BoardCounts where
 instance Hashable Board where
   hashWithSalt salt board = boardHash board
 
-data BoardKey = BoardKey {
-    bkFirstMen :: LabelSet
-  , bkSecondMen :: LabelSet
-  , bkFirstKings :: LabelSet
-  , bkSecondKings :: LabelSet
-  }
-  deriving (Eq, Ord, Typeable, Generic)
+type BoardKey = LabelMap Piece
 
-instance Binary BoardKey
+instance Hashable BoardKey where
+  hashWithSalt salt bk = hashWithSalt salt (IM.assocs bk)
 
 type BoardHash = Int
 type RandomTable = UArray (UnboxedPiece, FieldIndex) BoardHash
@@ -224,7 +231,7 @@ type BoardData = UArray FieldIndex UnboxedPiece
 class RandomTableProvider p where
   getRandomTable :: p -> RandomTable
 
-type TBoardMap a = SM.Map Board a
+type TBoardMap a = SM.Map BoardKey a
 
 -- | Direction on the board.
 -- For example, B2 is at UpRight of A1.

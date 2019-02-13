@@ -49,15 +49,6 @@ pFen rules = do
       then return $ Fen turn pieces1 pieces2
       else return $ Fen turn pieces2 pieces1
 
-fenToBoardKey :: Fen -> BoardKey
-fenToBoardKey fen =
-  BoardKey {
-    bkFirstMen = labelSetFromList [lbl | (lbl, Man) <- fenFirst fen],
-    bkSecondMen = labelSetFromList [lbl | (lbl, Man) <- fenSecond fen],
-    bkFirstKings = labelSetFromList [lbl | (lbl, King) <- fenFirst fen],
-    bkSecondKings = labelSetFromList [lbl | (lbl, King) <- fenSecond fen]
-  }
-
 fenToBoardRep :: Fen -> BoardRep
 fenToBoardRep fen =
   BoardRep $ [(lbl, Piece kind First) | (lbl, kind) <- fenFirst fen] ++
