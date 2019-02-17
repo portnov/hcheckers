@@ -58,6 +58,7 @@ data AlphaBetaParams = AlphaBetaParams {
     abDepth :: Int
   , abStartDepth :: Maybe Int
   , abCombinationDepth :: Int
+  , abDynamicDepth :: Int
   , abDeeperIfBad :: Bool
   , abMovesLowBound :: Int
   , abMovesHighBound :: Int
@@ -70,6 +71,7 @@ instance Default AlphaBetaParams where
           abDepth = 2
         , abStartDepth = Nothing
         , abCombinationDepth = 8
+        , abDynamicDepth = 8
         , abDeeperIfBad = False
         , abMovesLowBound = 4
         , abMovesHighBound = 8
@@ -78,10 +80,12 @@ instance Default AlphaBetaParams where
 
 -- Calculation depth parameters
 data DepthParams = DepthParams {
-    dpTarget :: Int     -- ^ Target depth: how deep we currently want to calculate the tree
+    dpInitialTarget :: Int
+  , dpTarget :: Int     -- ^ Target depth: how deep we currently want to calculate the tree
   , dpCurrent :: Int    -- ^ Currently achieved depth
   , dpMax :: Int        -- ^ Maximum allowed depth
   , dpMin :: Int        -- ^ Minimum allowed depth
+  , dpStaticMode :: Bool
   , dpForcedMode :: Bool
   }
   deriving (Eq, Ord, Show, Typeable, Generic)

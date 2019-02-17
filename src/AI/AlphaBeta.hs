@@ -21,6 +21,7 @@ import Control.Monad.Except
 import Control.Concurrent.STM
 import qualified Data.Map as M
 import Data.Maybe
+import Data.Default
 import Data.List (sortOn)
 import Data.Text.Format.Heavy
 import Data.Aeson
@@ -30,7 +31,6 @@ import System.Clock
 
 import Core.Types
 import Core.Board
-import Core.BoardMap
 import Core.Parallel
 import qualified Core.Monitoring as Monitoring
 import AI.AlphaBeta.Types
@@ -41,6 +41,7 @@ instance FromJSON AlphaBetaParams where
       <$> v .: "depth"
       <*> v .:? "start_depth"
       <*> v .:? "max_combination_depth" .!= 8
+      <*> v .:? "dynamic_depth" .!= abDynamicDepth def
       <*> v .:? "deeper_if_bad" .!= False
       <*> v .:? "moves_bound_low" .!= 4
       <*> v .:? "moves_bound_high" .!= 8
@@ -264,10 +265,12 @@ runAI ai@(AlphaBeta params rules eval) handle gameId side board = do
           let var = aichData handle
           $info "Selecting a move. Side = {}, depth = {}, number of possible moves = {}" (show side, depth, length moves)
           dp <- updateDepth params moves $ DepthParams {
-                     dpTarget = depth
+                     dpInitialTarget = depth
+                   , dpTarget = depth
                    , dpCurrent = -1
                    , dpMax = abCombinationDepth params + depth
                    , dpMin = fromMaybe depth (abStartDepth params)
+                   , dpStaticMode = False
                    , dpForcedMode = False
                    }
           let needDeeper = abDeeperIfBad params && score0 `worseThan` 0
@@ -588,13 +591,14 @@ isTargetDepth dp = dpCurrent dp >= dpTarget dp
 --
 updateDepth :: (Monad m, HasLogging m, MonadIO m) => AlphaBetaParams -> [PossibleMove] -> DepthParams -> m DepthParams
 updateDepth params moves dp
-    | forced = do
+    | deepen = do
                   let delta = nMoves - 1
                   let target = min (dpTarget dp + 1) (dpMax dp - delta)
                   let indent = replicate (2*dpCurrent dp) ' '
+                  let static = dpCurrent dp > dpInitialTarget dp + abDynamicDepth params
                   $trace "{}| there is only one move, increase target depth to {}"
                           (indent, target)
-                  return $ dp {dpCurrent = dpCurrent dp + 1, dpTarget = target, dpForcedMode = True}
+                  return $ dp {dpCurrent = dpCurrent dp + 1, dpTarget = target, dpForcedMode = True, dpStaticMode = static}
     | nMoves > abMovesHighBound params && isQuiescene moves = do
                   let target = max (dpCurrent dp + 1) (dpMin dp)
                   let indent = replicate (2*dpCurrent dp) ' '
@@ -604,7 +608,9 @@ updateDepth params moves dp
     | otherwise = return $ dp {dpCurrent = dpCurrent dp + 1}
   where
     nMoves = length moves
-    forced = any isCapture moves || any isPromotion moves || nMoves <= abMovesLowBound params
+    deepen = if dpCurrent dp <= dpInitialTarget dp
+               then nMoves <= abMovesLowBound params
+               else any isCapture moves || any isPromotion moves
 
 isQuiescene :: [PossibleMove] -> Bool
 isQuiescene moves = not (any isCapture moves || any isPromotion moves)
@@ -636,8 +642,13 @@ scoreAB var params input
       quiescene <- checkQuiescene
       return $ ScoreOutput score0 quiescene
   | otherwise = do
+      evaluator <- gets ssEvaluator
       -- first, let "best" be the worse possible value
-      let best = if maximize then alpha else beta -- we assume alpha <= beta
+      let best
+            | dpStaticMode dp = evalBoard' evaluator board
+            | maximize = alpha
+            | otherwise = beta
+            
       push best
       $trace "{}V Side: {}, A = {}, B = {}" (indent, show side, show alpha, show beta)
       rules <- gets ssRules
