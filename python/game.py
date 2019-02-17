@@ -33,6 +33,7 @@ class AI(object):
         self.title = "Default AI"
         self.depth = 2
         self.max_combination_depth = 6
+        self.dynamic_depth = 6
         self.deeper_if_bad = False
         self.moves_bound_low = 4
         self.moves_bound_high = 8
@@ -50,6 +51,7 @@ class AI(object):
         ai.title = settings.value("title")
         ai.depth = settings.value("depth", type=int)
         ai.max_combination_depth = settings.value("max_combination_depth", type=int)
+        ai.dynamic_depth = settings.value("dynamic_depth", type=int)
         ai.start_depth = settings.value("start_depth", type=int)
         ai.deeper_if_bad = settings.value("deeper_if_bad", type=bool)
         ai.moves_bound_low = settings.value("moves_bound_low", type=int)
@@ -78,6 +80,7 @@ class AI(object):
         settings.setValue("title", self.title)
         settings.setValue("depth", self.depth)
         settings.setValue("max_combination_depth", self.max_combination_depth)
+        settings.setValue("dynamic_depth", self.dynamic_depth)
         settings.setValue("start_depth", self.start_depth)
         settings.setValue("deeper_if_bad", self.deeper_if_bad)
         settings.setValue("moves_bound_low", self.moves_bound_low)
@@ -91,6 +94,7 @@ class AI(object):
             "depth": self.depth,
             "start_depth": self.start_depth,
             "max_combination_depth": self.max_combination_depth,
+            "dynamic_depth": self.dynamic_depth,
             "deeper_if_bad": self.deeper_if_bad,
             "moves_bound_low": self.moves_bound_low,
             "moves_bound_high": self.moves_bound_high,

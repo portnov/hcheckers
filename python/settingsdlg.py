@@ -79,9 +79,14 @@ class AiEditorWidget(QWidget):
         layout.addRow(_("Minimum depth"), self.start_depth)
 
         self.max_combination_depth = QSpinBox(self)
-        self.max_combination_depth.setRange(0, 20)
+        self.max_combination_depth.setRange(0, 24)
         self.max_combination_depth.valueChanged.connect(self.edited)
-        layout.addRow(_("Combination depth"), self.max_combination_depth)
+        layout.addRow(_("Forced mode depth"), self.max_combination_depth)
+
+        self.dynamic_depth = QSpinBox(self)
+        self.dynamic_depth.setRange(0, 24)
+        self.dynamic_depth.valueChanged.connect(self.edited)
+        layout.addRow(_("Static search mode threshold"), self.dynamic_depth)
 
         self.deeper_if_bad = QCheckBox(self)
         self.deeper_if_bad.stateChanged.connect(self.edited)
@@ -124,6 +129,7 @@ class AiEditorWidget(QWidget):
         if ai.start_depth is not None:
             self.start_depth.setValue(ai.start_depth)
         self.max_combination_depth.setValue(ai.max_combination_depth)
+        self.dynamic_depth.setValue(ai.dynamic_depth)
         self.deeper_if_bad.setCheckState(Qt.Checked if ai.deeper_if_bad else Qt.Unchecked)
         self.moves_bound_low.setValue(ai.moves_bound_low)
         self.moves_bound_high.setValue(ai.moves_bound_high)
@@ -137,6 +143,7 @@ class AiEditorWidget(QWidget):
         ai.depth = self.depth.value()
         ai.start_depth = self.start_depth.value()
         ai.max_combination_depth = self.max_combination_depth.value()
+        ai.dynamic_depth = self.dynamic_depth.value()
         ai.deeper_if_bad = self.deeper_if_bad.checkState() == Qt.Checked
         ai.moves_bound_low = self.moves_bound_low.value()
         ai.moves_bound_high = self.moves_bound_high.value()
