@@ -153,6 +153,7 @@ data ScoreMoveInput rules eval = ScoreMoveInput {
     smiAi :: AlphaBeta rules eval
   , smiCache :: AICacheHandle rules eval
   , smiGameId :: GameId
+  , smiGlobalInterval :: TVar (Score, Score)
   , smiSide :: Side 
   , smiDepth :: DepthParams
   , smiBoard :: Board
