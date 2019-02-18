@@ -10,12 +10,15 @@ from common import *
 from field import Field
 from game import Game, RequestError
 
+ANIMATION_STEP_DURATION = 50
+ANIMATION_STEPS_PER_STEP = 10
+
 class MoveAnimation(QObject):
     def __init__(self, parent):
         QObject.__init__(self, parent)
         self.board = parent
         self.move = None
-        self.timer = parent.startTimer(50)
+        self.timer = parent.startTimer(ANIMATION_STEP_DURATION)
         self.steps = 10
         self.step = 0
         self.piece_position = None
@@ -32,12 +35,21 @@ class MoveAnimation(QObject):
         self.piece = piece
         self.piece_position = start_position
         self.step = 0
-        self.steps = 10 * len(move.steps)
+        self.steps = ANIMATION_STEPS_PER_STEP * len(move.steps)
         self.move = move
         self.captured_fields = [step.field for step in move.steps if step.capture == True]
         self.start_field = start_field
         self.end_field = end_field
         self.process_result = process_result
+        self.play_sound()
+
+    def play_sound(self):
+        n_captured = len(self.captured_fields)
+        steps = len(self.move.steps)
+        if n_captured:
+            self.board.theme.play_check(n_captured, ANIMATION_STEPS_PER_STEP * ANIMATION_STEP_DURATION)
+        else:
+            self.board.theme.play_move(steps, ANIMATION_STEPS_PER_STEP * ANIMATION_STEP_DURATION)
 
     def get_animated_step(self, progress):
         n = len(self.move.steps)

@@ -71,6 +71,7 @@ class Checkers(QMainWindow):
             raise Exception("Cant locate share directory")
         theme_name = self.settings.value("theme", "default")
         self.theme = Theme(join(self.share_dir, "themes", theme_name), None)
+        self.theme.enable_sound = self.settings.value("enable_sound", type=bool)
         self.server_url = self.settings.value("server_url", DEFAULT_SERVER_URL)
         self.game = Game(self.server_url)
         self.poll_timer = self.startTimer(500)

@@ -1,11 +1,12 @@
 
 import os
-from os.path import join, basename, isdir, exists
+from os.path import join, basename, isdir, exists, abspath
 import logging
 
-from PyQt5.QtCore import Qt, QSettings
+from PyQt5.QtCore import Qt, QSettings, QTimer
 from PyQt5.QtGui import QPixmap, QPainter, QColor
 from PyQt5.Qt import QSvgRenderer
+from PyQt5.QtMultimedia import QSound
 
 from common import *
 
@@ -46,6 +47,45 @@ class CachedPixmap(object):
                     self._pixmap = QPixmap(self.path).scaled(size, size)
             return self._pixmap
 
+class Sound(object):
+    def __init__(self, sound):
+        self.sound = sound
+        self.loop = 0
+        self.loops = 0
+        self.duration = 0
+
+        self.timer = QTimer()
+        self.timer.setSingleShot(False)
+        self.timer.timeout.connect(self._on_timer)
+
+    def is_defined(self):
+        return self.sound is not None
+
+    def play(self, loops, duration):
+        if self.sound is not None:
+            self.loop = 0
+            self.loops = loops
+            self.duration = duration
+            self.timer.start(self.duration)
+            self._play()
+
+    def _play(self):
+        self.sound.play()
+
+    def _on_timer(self):
+        self.sound.stop()
+        self.loop = self.loop + 1
+        if self.loop < self.loops:
+            self._play()
+        else:
+            self.timer.stop()
+
+    @classmethod
+    def get(cls, path):
+        if path is not None and exists(path):
+            return Sound(QSound(path))
+        else:
+            return Sound(None)
 
 class Theme(object):
     def __init__(self, path, size):
@@ -67,6 +107,10 @@ class Theme(object):
         self.man_white = CachedPixmap(join(path, settings.value("man_white", "manwhite.svg")))
         self.king_black = CachedPixmap(join(path, settings.value("king_black", "kingblack.svg")))
         self.king_white = CachedPixmap(join(path, settings.value("king_white", "kingwhite.svg")))
+
+        self.move_sound = Sound.get(abspath(join(path, settings.value("move_sound", "move.wav"))))
+        self.check_sound = Sound.get(abspath(join(path, settings.value("check_sound", "check.wav"))))
+        self.enable_sound = (self.move_sound.is_defined() or self.check_sound.is_defined())
 
         message_color = settings.value("message_color", "black")
         self.message_color = QColor(message_color)
@@ -128,6 +172,14 @@ class Theme(object):
 
     def get_field_size(self):
         return self.man_white.get(None).width()
+
+    def play_move(self, steps, duration):
+        if self.enable_sound:
+            self.move_sound.play(steps, duration)
+
+    def play_check(self, steps, duration):
+        if self.enable_sound:
+            self.check_sound.play(steps, duration)
 
     @classmethod
     def list_themes(cls, share_dir):

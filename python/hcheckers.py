@@ -27,7 +27,10 @@ def locate_locales():
     logging.info("Using locales at: {}".format(locales))
     return locales
 
-gettext.install("hcheckers", localedir=locate_locales(), unicode=True)
+if sys.version_info[0] == 2:
+    gettext.install("hcheckers", localedir=locate_locales(), unicode=True)
+else:
+    gettext.install("hcheckers", localedir=locate_locales())
 
 from PyQt5.QtWidgets import QApplication, QWidget
 

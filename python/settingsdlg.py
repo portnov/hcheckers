@@ -214,6 +214,10 @@ class ViewSettingsPage(QWidget):
             self.themes[theme.id] = theme
             self.theme.addItem(theme.name, theme.id)
         layout.addRow(_("Theme"), self.theme)
+
+        self.enable_sound = QCheckBox(self)
+        layout.addRow(_("Enable sounds"), self.enable_sound)
+
         self.setLayout(layout)
 
     def get_theme(self):
@@ -223,8 +227,10 @@ class ViewSettingsPage(QWidget):
     def load(self, settings):
         show_notation = settings.value("show_notation", type=bool)
         self.show_notation.setCheckState(Qt.Checked if show_notation else Qt.Unchecked)
+
         show_possible_moves = settings.value("show_possible_moves", type=bool)
         self.show_possible_moves.setCheckState(Qt.Checked if show_possible_moves else Qt.Unchecked)
+
         theme = settings.value("theme")
         theme_idx = self.theme.findData(theme)
         if theme_idx < 0:
@@ -232,10 +238,14 @@ class ViewSettingsPage(QWidget):
         if theme_idx >= 0:
             self.theme.setCurrentIndex(theme_idx)
 
+        enable_sound = settings.value("enable_sound", type=bool)
+        self.enable_sound.setCheckState(Qt.Checked if enable_sound else Qt.Unchecked)
+
     def save(self, settings):
         settings.setValue("show_notation", self.show_notation.checkState() == Qt.Checked)
         settings.setValue("show_possible_moves", self.show_possible_moves.checkState() == Qt.Checked)
         settings.setValue("theme", self.theme.currentData())
+        settings.setValue("enable_sound", self.enable_sound.checkState() == Qt.Checked)
 
 class GeneralPage(QWidget):
     def __init__(self, parent=None):
