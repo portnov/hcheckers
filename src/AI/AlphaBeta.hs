@@ -460,7 +460,7 @@ doScore rules eval var params gameId side dp board alpha beta = do
       let timeout = case abBaseTime params of
                       Nothing -> Nothing
                       Just sec -> Just $ TimeSpec (fromIntegral sec) 0
-      return $ ScoreState rules eval gameId [loose] now timeout
+      return $ ScoreState rules eval gameId [loose] M.empty now timeout
 
 clamp :: Ord a => a -> a -> a -> a
 clamp alpha beta score
@@ -662,13 +662,20 @@ scoreAB var params input
                              Just item ->
                               let score = sNumeric (itemScore item)
                                   scoreSigned = if maximize then score else negate score
-                              in  fromIntegral $ 1 + 5 * scoreSigned
+                              in  fromIntegral $ 1 + scoreSigned
+
+      goodCheck <- getGoodMove (dpCurrent dp)
+      let good = case goodCheck of
+                   Nothing -> 0
+                   Just (goodMove, goodScore)
+                     | goodMove == move -> if maximize then sNumeric goodScore else negate (sNumeric goodScore)
+                     | otherwise -> 0
         
-      return $ nVictims + promotion + attackPrevPiece + primeVariation
+      return $ nVictims + promotion + attackPrevPiece + primeVariation + fromIntegral good
 
     sortMoves :: Maybe PossibleMove -> [PossibleMove] -> ScoreM rules eval [PossibleMove]
     sortMoves mbPrevMove moves =
-      if length moves >= abMovesHighBound params
+      if length moves >= 4
         then do
           interest <- mapM (evalMove mbPrevMove) moves
           if any (> 0) interest
@@ -700,6 +707,22 @@ scoreAB var params input
       oldBest <- getBest
       $trace "{}| {} for depth {} : {} => {}" (indent, bestStr, dpCurrent dp, show oldBest, show best)
       modify $ \st -> st {ssBestScores = best : tail (ssBestScores st)}
+
+    rememberGoodMove :: Int -> PossibleMove -> Score -> ScoreM rules eval ()
+    rememberGoodMove depth move score = do
+      goodMoves <- gets ssBestMoves
+      let goodMoves' = case M.lookup depth goodMoves of
+                         Nothing -> M.insert depth (move, score) goodMoves
+                         Just (_, prevScore)
+                          | (maximize && score > prevScore) || (minimize && score < prevScore)
+                              -> M.insert depth (move, score) goodMoves
+                          | otherwise -> goodMoves
+      modify $ \st -> st {ssBestMoves = goodMoves'}
+
+    getGoodMove :: Int -> ScoreM rules eval (Maybe (PossibleMove, Score))
+    getGoodMove depth = do
+      goodMoves <- gets ssBestMoves
+      return $ M.lookup depth goodMoves
 
     opponentMoves :: ScoreM rules eval [PossibleMove]
     opponentMoves = do
@@ -775,6 +798,7 @@ scoreAB var params input
              setBest score
              if (maximize && score >= beta) || (minimize && score <= alpha)
                then do
+                    rememberGoodMove (dpCurrent dp) move score
                     Monitoring.distribution "ai.section.at" $ fromIntegral i
                     $trace "{}`—Return {} for depth {} = {}" (indent, bestStr, dpCurrent dp, show score)
                     quiescene <- checkQuiescene

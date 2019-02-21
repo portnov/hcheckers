@@ -249,6 +249,7 @@ data ScoreState rules eval = ScoreState {
   , ssEvaluator :: eval
   , ssGameId :: GameId
   , ssBestScores :: [Score] -- ^ At each level of depth-first search, there is own "best score"
+  , ssBestMoves :: M.Map Int (PossibleMove, Score)
   , ssStartTime :: TimeSpec -- ^ Start time of calculation
   , ssTimeout :: Maybe TimeSpec -- ^ Nothing for "no timeout"
   }
