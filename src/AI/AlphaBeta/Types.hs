@@ -24,11 +24,15 @@ module AI.AlphaBeta.Types
     MovesMemo,
     AICacheHandle (..),
     StorageState (..),
+    ScoreState (..), ScoreM (..),
+    ScoreInput (..), ScoreOutput (..),
+    DepthIterationInput, DepthIterationOutput,
+    AiOutput,
     Storage,
     runStorage
   ) where
 
-import Control.Monad.State
+import Control.Monad.State as St
 import Control.Monad.Reader
 import qualified Control.Monad.Metrics as Metrics
 import Control.Concurrent.STM
@@ -238,6 +242,59 @@ instance HasLogger (StateT StorageState IO) where
 
 instance Metrics.MonadMetrics (StateT StorageState IO) where
   getMetrics = gets ssMetrics
+
+-- | State of ScoreM monad.
+data ScoreState rules eval = ScoreState {
+    ssRules :: rules
+  , ssEvaluator :: eval
+  , ssGameId :: GameId
+  , ssBestScores :: [Score] -- ^ At each level of depth-first search, there is own "best score"
+  , ssStartTime :: TimeSpec -- ^ Start time of calculation
+  , ssTimeout :: Maybe TimeSpec -- ^ Nothing for "no timeout"
+  }
+
+-- | Input data for scoreAB method.
+data ScoreInput = ScoreInput {
+    siSide :: Side
+  , siDepth :: DepthParams
+  , siAlpha :: Score
+  , siBeta :: Score
+  , siBoard :: Board
+  , siPrevMove :: Maybe PossibleMove
+  }
+
+data ScoreOutput = ScoreOutput {
+    soScore :: Score
+  , soQuiescene :: Bool
+  }
+
+-- | ScoreM monad.
+type ScoreM rules eval a = StateT (ScoreState rules eval) Checkers a
+
+instance HasMetricsConfig (StateT (ScoreState rules eval) Checkers) where
+  isMetricsEnabled = lift isMetricsEnabled
+
+instance HasLogger (StateT (ScoreState rules eval) Checkers) where
+  getLogger = lift getLogger
+
+  localLogger logger actions = do
+    st <- St.get
+    (result, st') <- lift $ localLogger logger $ runStateT actions st
+    St.put st'
+    return result
+
+instance HasLogContext (StateT (ScoreState rules eval) Checkers) where
+  getLogContext = lift getLogContext
+
+  withLogContext frame actions = do
+    st <- St.get
+    (result, st') <- lift $ withLogContext frame $ runStateT actions st
+    St.put st'
+    return result
+
+type DepthIterationInput = (AlphaBetaParams, [PossibleMove], Maybe DepthIterationOutput)
+type DepthIterationOutput = [(PossibleMove, Score)]
+type AiOutput = ([PossibleMove], Score)
 
 runStorage :: (GameRules rules, Evaluator eval) => AICacheHandle rules eval -> Storage a -> Checkers a
 runStorage handle actions = do

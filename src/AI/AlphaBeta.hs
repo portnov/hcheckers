@@ -87,10 +87,6 @@ scoreMove (ScoreMoveInput {..}) = do
      
      return (smiMove, score)
 
-type DepthIterationInput = (AlphaBetaParams, [PossibleMove], Maybe DepthIterationOutput)
-type DepthIterationOutput = [(PossibleMove, Score)]
-type AiOutput = ([PossibleMove], Score)
-
 rememberScoreShift :: AICacheHandle rules eval -> GameId -> ScoreBase -> Checkers ()
 rememberScoreShift handle gameId shift = liftIO $ atomically $ do
   shifts <- readTVar (aichLastMoveScoreShift handle)
@@ -465,55 +461,6 @@ doScore rules eval var params gameId side dp board alpha beta = do
                       Nothing -> Nothing
                       Just sec -> Just $ TimeSpec (fromIntegral sec) 0
       return $ ScoreState rules eval gameId [loose] now timeout
-
--- | State of ScoreM monad.
-data ScoreState rules eval = ScoreState {
-    ssRules :: rules
-  , ssEvaluator :: eval
-  , ssGameId :: GameId
-  , ssBestScores :: [Score] -- ^ At each level of depth-first search, there is own "best score"
-  , ssStartTime :: TimeSpec -- ^ Start time of calculation
-  , ssTimeout :: Maybe TimeSpec -- ^ Nothing for "no timeout"
-  }
-
--- | Input data for scoreAB method.
-data ScoreInput = ScoreInput {
-    siSide :: Side
-  , siDepth :: DepthParams
-  , siAlpha :: Score
-  , siBeta :: Score
-  , siBoard :: Board
-  , siPrevMove :: Maybe PossibleMove
-  }
-
-data ScoreOutput = ScoreOutput {
-    soScore :: Score
-  , soQuiescene :: Bool
-  }
-
--- | ScoreM monad.
-type ScoreM rules eval a = StateT (ScoreState rules eval) Checkers a
-
-instance HasMetricsConfig (StateT (ScoreState rules eval) Checkers) where
-  isMetricsEnabled = lift isMetricsEnabled
-
-instance HasLogger (StateT (ScoreState rules eval) Checkers) where
-  getLogger = lift getLogger
-
-  localLogger logger actions = do
-    st <- get
-    (result, st') <- lift $ localLogger logger $ runStateT actions st
-    put st'
-    return result
-
-instance HasLogContext (StateT (ScoreState rules eval) Checkers) where
-  getLogContext = lift getLogContext
-
-  withLogContext frame actions = do
-    st <- get
-    (result, st') <- lift $ withLogContext frame $ runStateT actions st
-    put st'
-    return result
 
 clamp :: Ord a => a -> a -> a -> a
 clamp alpha beta score
