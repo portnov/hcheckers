@@ -174,8 +174,9 @@ data Board = Board {
   , bSecondMen :: LabelSet
   , bFirstKings :: LabelSet
   , bSecondKings :: LabelSet
+--   , boardCounts :: BoardCounts
   , bSize :: {-# UNPACK #-} ! BoardSize
-  , boardKey :: BoardKey
+  , boardKey ::  BoardKey
   , boardHash :: {-# UNPACK #-} ! BoardHash
   , randomTable :: ! RandomTable
   }
@@ -231,7 +232,7 @@ type BoardData = UArray FieldIndex UnboxedPiece
 class RandomTableProvider p where
   getRandomTable :: p -> RandomTable
 
-type TBoardMap a = SM.Map BoardKey a
+type TBoardMap a = SM.Map BoardHash a
 
 -- | Direction on the board.
 -- For example, B2 is at UpRight of A1.

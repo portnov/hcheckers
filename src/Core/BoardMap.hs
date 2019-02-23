@@ -40,7 +40,7 @@ calcBoardCounts board = BoardCounts {
                   }
 
 insertBoardCounts :: Piece -> BoardCounts -> BoardCounts
-insertBoardCounts p !bc =
+insertBoardCounts p bc =
   case p of
     Piece Man First -> bc {bcFirstMen = bcFirstMen bc + 1}
     Piece Man Second -> bc {bcSecondMen = bcSecondMen bc + 1}
@@ -48,7 +48,7 @@ insertBoardCounts p !bc =
     Piece King Second -> bc {bcSecondKings = bcSecondKings bc + 1}
 
 removeBoardCounts :: Piece -> BoardCounts -> BoardCounts
-removeBoardCounts p !bc =
+removeBoardCounts p bc =
   case p of
     Piece Man First -> bc {bcFirstMen = bcFirstMen bc - 1}
     Piece Man Second -> bc {bcSecondMen = bcSecondMen bc - 1}
@@ -66,21 +66,25 @@ insertBoard a p@(Piece Man First) b = b {
     bFirstMen = insertLabelSet (aLabel a) (bFirstMen b),
     boardKey = insertBoardKey a p (boardKey b),
     bOccupied = insertLabelSet (aLabel a) (bOccupied b)
+    -- boardCounts = insertBoardCounts p (boardCounts b)
   }
 insertBoard a p@(Piece Man Second) b = b {
     bSecondMen = insertLabelSet (aLabel a) (bSecondMen b),
     boardKey = insertBoardKey a p (boardKey b),
     bOccupied = insertLabelSet (aLabel a) (bOccupied b)
+--     boardCounts = insertBoardCounts p (boardCounts b)
   }
 insertBoard a p@(Piece King First) b = b {
     bFirstKings = insertLabelSet (aLabel a) (bFirstKings b),
     boardKey = insertBoardKey a p (boardKey b),
     bOccupied = insertLabelSet (aLabel a) (bOccupied b)
+--     boardCounts = insertBoardCounts p (boardCounts b)
   }
 insertBoard a p@(Piece King Second) b = b {
     bSecondKings = insertLabelSet (aLabel a) (bSecondKings b),
     boardKey = insertBoardKey a p (boardKey b),
     bOccupied = insertLabelSet (aLabel a) (bOccupied b)
+--     boardCounts = insertBoardCounts p (boardCounts b)
   }
 
 removeBoard :: Address -> Piece -> Board -> Board
@@ -88,40 +92,63 @@ removeBoard a p@(Piece Man First) b = b {
     bFirstMen = deleteLabelSet (aLabel a) (bFirstMen b),
     boardKey = removeBoardKey a p (boardKey b),
     bOccupied = deleteLabelSet (aLabel a) (bOccupied b)
+--     boardCounts = removeBoardCounts p (boardCounts b)
   }
 removeBoard a p@(Piece Man Second) b = b {
     bSecondMen = deleteLabelSet (aLabel a) (bSecondMen b),
     boardKey = removeBoardKey a p (boardKey b),
     bOccupied = deleteLabelSet (aLabel a) (bOccupied b)
+--     boardCounts = removeBoardCounts p (boardCounts b)
   }
 removeBoard a p@(Piece King First) b = b {
     bFirstKings = deleteLabelSet (aLabel a) (bFirstKings b),
     boardKey = removeBoardKey a p (boardKey b),
     bOccupied = deleteLabelSet (aLabel a) (bOccupied b)
+--     boardCounts = removeBoardCounts p (boardCounts b)
   }
 removeBoard a p@(Piece King Second) b = b {
     bSecondKings = deleteLabelSet (aLabel a) (bSecondKings b),
     boardKey = removeBoardKey a p (boardKey b),
     bOccupied = deleteLabelSet (aLabel a) (bOccupied b)
+--     boardCounts = removeBoardCounts p (boardCounts b)
   }
 
 newTBoardMap :: IO (TBoardMap a)
-newTBoardMap = atomically $ SM.new
+newTBoardMap = atomically SM.new
 
 putBoardMap :: TBoardMap a -> Board -> a -> IO ()
-putBoardMap bmap board value = atomically $
-  SM.insert value (boardKey board) bmap
+putBoardMap bmap board value = atomically $ do
+  SM.insert value (boardHash board) bmap
+--   mbByHash <- SM.lookup (boardCounts board) bmap
+--   case mbByHash of
+--     Just byHash -> SM.insert value (boardHash board) byHash
+--     Nothing -> do
+--       byHash <- SM.new
+--       SM.insert value (boardHash board) byHash
+--       SM.insert byHash (boardCounts board) bmap
 
 putBoardMapWith :: TBoardMap a -> (a -> a -> a) -> Board -> a -> IO ()
 putBoardMapWith bmap plus board value = atomically $ do
-  mbOld <- SM.lookup (boardKey board) bmap
-  case mbOld of
-    Nothing -> SM.insert value (boardKey board) bmap
-    Just old -> SM.insert (plus old value) (boardKey board) bmap
+    mbOld <- SM.lookup (boardHash board) bmap
+    case mbOld of
+      Nothing -> SM.insert value (boardHash board) bmap
+      Just old -> SM.insert (plus old value) (boardHash board) bmap
+--   mbByHash <- SM.lookup (boardCounts board) bmap
+--   byHash <- case mbByHash of
+--               Nothing -> SM.new
+--               Just byHash -> return byHash
+--   mbOld <- SM.lookup (boardHash board) byHash
+--   case mbOld of
+--     Nothing -> SM.insert value (boardHash board) byHash
+--     Just old -> SM.insert (plus old value) (boardHash board) byHash
 
 lookupBoardMap :: TBoardMap a -> Board -> IO (Maybe a)
-lookupBoardMap bmap board = atomically $
-  SM.lookup (boardKey board) bmap
+lookupBoardMap bmap board = atomically $ do
+  SM.lookup (boardHash board) bmap
+--   mbByHash <- SM.lookup (boardCounts board) bmap
+--   case mbByHash of
+--     Nothing -> return Nothing
+--     Just byHash -> SM.lookup (boardHash board) byHash
 
 ------------------
 

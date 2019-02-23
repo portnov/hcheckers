@@ -520,6 +520,7 @@ buildBoard rnd orient bsize@(nrows, ncols) =
                 bFirstKings = emptyLabelSet,
                 bSecondKings = emptyLabelSet,
                 boardKey = IM.empty,
+                -- boardCounts = BoardCounts 0 0 0 0,
                 bSize = bsize,
                 boardHash = 0,
                 randomTable = table
@@ -752,6 +753,7 @@ flipBoard b = b' {boardHash = hash}
       bFirstKings = labelSetFromList $ map flipLabel (labelSetToList $ bSecondKings b),
       bSecondKings = labelSetFromList $ map flipLabel (labelSetToList $ bFirstKings b),
       bOccupied =  labelSetFromList $ map flipLabel (labelSetToList $ bOccupied b)
+      -- boardCounts = flipBoardCounts (boardCounts b)
     }
 
     hash = calcBoardHash b'
