@@ -34,7 +34,7 @@ At the moment, HCheckers has most of core functionality implemented, but it
 still lacks a proper configuration subsystem and several other features. I hope
 to implement them soon.
 
-## (Planned) features
+## Features
 
 The code is general enough to implement a wide range of checkers variants.
 The following are implemented at the moment:
@@ -43,8 +43,9 @@ The following are implemented at the moment:
 * Simple russian (russian draughts without kings)
 * Diagonal russian (russian draughts with different initial setup)
 * Spancirety (russian draughts on 8x10 board)
-* English
+* English (checkers)
 * International draughts (10x10)
+* Brazilian (rules of international draughts on 8x8 board)
 * Canadian draughts (12x12)
 
 It is possible to implement different AI algorithms; currently there is only
