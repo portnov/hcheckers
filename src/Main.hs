@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE ViewPatterns #-}
 module Main where
 
 import Control.Monad.Reader
@@ -6,6 +7,7 @@ import Control.Concurrent.STM
 import Data.Default
 import System.Environment
 import System.Log.Heavy
+import Options.Applicative
 
 import Core.Types
 import Core.Board
@@ -13,16 +15,29 @@ import AI.AlphaBeta.Types
 import AI.AlphaBeta.Persistent
 import Core.Rest
 import Core.Checkers
+import Core.CmdLine
 
 import Learn
 import Rules.Russian
 
-main :: IO ()
-main = do
-  args <- getArgs
   -- let stdout = LoggingSettings $ filtering defaultLogFilter defStdoutSettings
       -- debug = LoggingSettings $ Filtering (\m -> lmLevel m == trace_level) ((defFileSettings "trace.log") {lsFormat = "{time} {source} [{thread}]: {message}\n"})
       -- settings = LoggingSettings $ ParallelLogSettings [stdout, debug]
+
+main :: IO ()
+main = do
+  cmd <- execParser parserInfo
+  case cmdSpecial cmd of
+    Nothing ->
+      withCheckers cmd $ do
+          cfg <- asks csConfig
+          let fltr = [([], gcLogLevel cfg)]
+          withLogContext (LogContextFrame [] (include fltr)) $
+              runRestServer
+    Just str -> special cmd (words str)
+
+special :: CmdLine -> [String] -> IO ()
+special cmd args =
   case args of
     ["learn", path] -> do
       let rules = russian
@@ -32,7 +47,7 @@ main = do
                    , abCombinationDepth = 9
                    }
           ai = AlphaBeta params rules (dfltEvaluator rules)
-      withCheckers $
+      withCheckers cmd $
           withLogContext (LogContextFrame [] (include defaultLogFilter)) $
             learnPdn ai path
 
@@ -42,7 +57,7 @@ main = do
       print path
 
     ["test"] -> do
-      withCheckers $ do
+      withCheckers cmd $ do
         sh <- asks csSupervisor
         st <- liftIO $ atomically $ readTVar sh
         let b = movePiece' "c3" "e5" $ board8 st
@@ -54,14 +69,6 @@ main = do
           print b''
           print (b == b'')
     
-    _ ->
-      withCheckers $ do
-          cfg <- asks csConfig
-          let fltr = [([], gcLogLevel cfg)]
-          withLogContext (LogContextFrame [] (include fltr)) $
-              runRestServer
-
-
 -- main :: IO ()
 -- main = do
 --   let a3 = resolve "a3" board8

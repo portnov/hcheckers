@@ -61,6 +61,7 @@ dependencies:
 - mwc-random
 - template-haskell
 - hsyslog
+- optparse-applicative
 
 flags:
   verbose:

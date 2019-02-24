@@ -9,6 +9,7 @@ import Data.Default
 import System.Log.Heavy
 
 import Core.Types
+import Core.Logging
 import Core.Supervisor
 
 instance ToJSON PlayerDirection where
@@ -166,6 +167,7 @@ instance FromJSON GeneralConfig where
   parseJSON = withObject "GeneralConfig" $ \v -> GeneralConfig
     <$> v .:? "host" .!= (gcHost def)
     <*> v .:? "port" .!= (gcPort def)
+    <*> v .:? "local" .!= (gcLocal def)
     <*> v .:? "enable_metrics" .!= (gcEnableMetrics def)
     <*> v .:? "metrics_port" .!= (gcMetricsPort def)
     <*> v .:? "log_path" .!= (gcLogFile def)
@@ -174,6 +176,7 @@ instance FromJSON GeneralConfig where
 
 instance FromJSON Level where
   parseJSON (String "debug") = return debug_level
+  parseJSON (String "verbose") = return verbose_level
   parseJSON (String "trace") = return trace_level
   parseJSON (String "info") = return info_level
   parseJSON (String "warning") = return warn_level

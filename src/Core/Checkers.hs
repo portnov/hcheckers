@@ -13,6 +13,7 @@ import qualified System.Remote.Monitoring as EKG
 import Lens.Micro ((^.))
 
 import Core.Types
+import Core.CmdLine
 import Core.Config
 import Core.Supervisor
 
@@ -20,10 +21,10 @@ isGameMessage :: LogMessage -> Bool
 isGameMessage msg = 
   isJust $ gameIdFromLogMsg msg
 
-withCheckers :: Checkers a -> IO a
-withCheckers actions = do
+withCheckers :: CmdLine -> Checkers a -> IO a
+withCheckers cmd actions = do
   supervisor <- mkSupervisor
-  cfg <- loadConfig
+  cfg <- loadConfig cmd
   print cfg
   logChan <- newChan
   metrics <- Metrics.initialize

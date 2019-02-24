@@ -687,6 +687,7 @@ instance Default AiConfig where
 data GeneralConfig = GeneralConfig {
     gcHost :: T.Text
   , gcPort :: Int
+  , gcLocal :: Bool
   , gcEnableMetrics :: Bool
   , gcMetricsPort :: Int
   , gcLogFile :: FilePath
@@ -698,6 +699,7 @@ data GeneralConfig = GeneralConfig {
 instance Default GeneralConfig where
   def = GeneralConfig {
     gcHost = "localhost",
+    gcLocal = False,
     gcPort = 8864,
     gcEnableMetrics = True,
     gcMetricsPort = 8000,
