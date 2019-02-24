@@ -32,6 +32,7 @@ import System.Clock
 import Core.Types
 import Core.Board
 import Core.Parallel
+import Core.Logging
 import qualified Core.Monitoring as Monitoring
 import AI.AlphaBeta.Types
 import AI.AlphaBeta.Cache
@@ -543,13 +544,13 @@ updateDepth params moves dp
                   let target = min (dpTarget dp + 1) (dpMax dp - delta)
                   let indent = replicate (2*dpCurrent dp) ' '
                   let static = dpCurrent dp > dpInitialTarget dp + abDynamicDepth params
-                  $trace "{}| there is only one move, increase target depth to {}"
+                  $verbose "{}| there is only one move, increase target depth to {}"
                           (indent, target)
                   return $ dp {dpCurrent = dpCurrent dp + 1, dpTarget = target, dpForcedMode = True, dpStaticMode = static}
     | nMoves > abMovesHighBound params && isQuiescene moves = do
                   let target = max (dpCurrent dp + 1) (dpMin dp)
                   let indent = replicate (2*dpCurrent dp) ' '
-                  $trace "{}| there are too many moves, decrease target depth to {}"
+                  $verbose "{}| there are too many moves, decrease target depth to {}"
                           (indent, target)
                   return $ dp {dpCurrent = dpCurrent dp + 1, dpTarget = target}
     | otherwise = return $ dp {dpCurrent = dpCurrent dp + 1}
@@ -585,7 +586,7 @@ scoreAB var params input
       -- target depth is achieved, calculate score of current board directly
       evaluator <- gets ssEvaluator
       let score0 = evalBoard' evaluator board
-      $trace "    X Side: {}, A = {}, B = {}, score0 = {}" (show side, show alpha, show beta, show score0)
+      $verbose "    X Side: {}, A = {}, B = {}, score0 = {}" (show side, show alpha, show beta, show score0)
       quiescene <- checkQuiescene
       return $ ScoreOutput score0 quiescene
   | otherwise = do
@@ -597,13 +598,13 @@ scoreAB var params input
             | otherwise = beta
             
       push best
-      $trace "{}V Side: {}, A = {}, B = {}" (indent, show side, show alpha, show beta)
+      $verbose "{}V Side: {}, A = {}, B = {}" (indent, show side, show alpha, show beta)
       rules <- gets ssRules
       moves <- lift $ getPossibleMoves var side board
 
       -- this actually means that corresponding side lost.
       when (null moves) $
-        $trace "{}`—No moves left." (Single indent)
+        $verbose "{}`—No moves left." (Single indent)
 
       dp' <- updateDepth params moves dp
       let prevMove = siPrevMove input
@@ -705,7 +706,7 @@ scoreAB var params input
     setBest :: Score -> ScoreM rules eval ()
     setBest best = do
       oldBest <- getBest
-      $trace "{}| {} for depth {} : {} => {}" (indent, bestStr, dpCurrent dp, show oldBest, show best)
+      $verbose "{}| {} for depth {} : {} => {}" (indent, bestStr, dpCurrent dp, show oldBest, show best)
       modify $ \st -> st {ssBestScores = best : tail (ssBestScores st)}
 
     rememberGoodMove :: Int -> PossibleMove -> Score -> ScoreM rules eval ()
@@ -765,7 +766,7 @@ scoreAB var params input
     iterateMoves :: [(Int,PossibleMove)] -> DepthParams -> ScoreM rules eval ScoreOutput
     iterateMoves [] _ = do
       best <- getBest
-      $trace "{}`—All moves considered at this level, return best = {}" (indent, show best)
+      $verbose "{}`—All moves considered at this level, return best = {}" (indent, show best)
       quiescene <- checkQuiescene
       return $ ScoreOutput best quiescene
     iterateMoves ((i,move) : moves) dp = do
@@ -773,7 +774,7 @@ scoreAB var params input
       when timeout $ do
         -- $info "Timeout exhaused for depth {}." (Single $ dpCurrent dp)
         throwError TimeExhaused
-      $trace "{}|+Check move of side {}: {}" (indent, show side, show move)
+      $verbose "{}|+Check move of side {}: {}" (indent, show side, show move)
       evaluator <- gets ssEvaluator
       rules <- gets ssRules
       best <- getBest
@@ -791,7 +792,7 @@ scoreAB var params input
                   }
       out <- cachedScoreAB var params input'
       let score = soScore out
-      $trace "{}| score for side {}: {}" (indent, show side, show score)
+      $verbose "{}| score for side {}: {}" (indent, show side, show score)
 
       if (maximize && score > best) || (minimize && score < best)
         then do
@@ -800,7 +801,7 @@ scoreAB var params input
                then do
                     rememberGoodMove (dpCurrent dp) move score
                     Monitoring.distribution "ai.section.at" $ fromIntegral i
-                    $trace "{}`—Return {} for depth {} = {}" (indent, bestStr, dpCurrent dp, show score)
+                    $verbose "{}`—Return {} for depth {} = {}" (indent, bestStr, dpCurrent dp, show score)
                     quiescene <- checkQuiescene
                     return $ ScoreOutput score quiescene
                     

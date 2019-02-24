@@ -59,6 +59,14 @@ dependencies:
 - microlens
 - random-access-file
 - mwc-random
+- template-haskell
+- hsyslog
+
+flags:
+  verbose:
+    description: enable verbose logging of move search
+    manual: false
+    default: false
 
 executables:
   hcheckersd:
@@ -70,5 +78,8 @@ executables:
     - -with-rtsopts=-N
     - -O2
     - -fwarn-unused-imports
+    when:
+      - condition: flag(verbose)
+        cpp-options: -DVERBOSE
     dependencies: []
 
