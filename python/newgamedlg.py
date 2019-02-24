@@ -92,6 +92,9 @@ class NewGameDialog(DialogBase):
         self.user_side.addItem(_("White"), FIRST)
         self.user_side.addItem(_("Black"), SECOND)
         layout.addRow(_("User plays"), self.user_side)
+        user_side = settings.value("user_side", type=int)
+        if user_side is not None:
+            self.user_side.setCurrentIndex(user_side)
 
         self.board_type = QComboBox(self)
         self.board_type.addItem(_("Use default initial position"), DEFAULT_BOARD)
@@ -189,6 +192,7 @@ class NewGameDialog(DialogBase):
     def _on_accept(self):
         self.settings.setValue("ai", self.ai.currentText())
         self.settings.setValue("rules", self.rules.currentData())
+        self.settings.setValue("user_side", self.user_side.currentIndex())
         self.accept()
 
     def get_settings(self):
