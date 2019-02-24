@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2019-02-24 20:56+YEKT\n"
+"POT-Creation-Date: 2019-02-24 21:00+YEKT\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -325,6 +325,10 @@ msgstr ""
 
 #: toplevel.py:60
 msgid "Awaiting a turn from another side."
+msgstr ""
+
+#: toplevel.py:82
+msgid "Could not start local server; exit code is {}"
 msgstr ""
 
 #: toplevel.py:84 toplevel.py:496 toplevel.py:501

@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: 0.1.0.0\n"
-"POT-Creation-Date: 2019-02-24 20:56+YEKT\n"
+"POT-Creation-Date: 2019-02-24 21:00+YEKT\n"
 "PO-Revision-Date: 2018-11-07 22:30+5\n"
 "Last-Translator: Ilya Portnov <portnov84@rambler.ru>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -326,6 +326,10 @@ msgstr "Ваш ход."
 #: toplevel.py:60
 msgid "Awaiting a turn from another side."
 msgstr "Ожидаем хода другой стороны."
+
+#: toplevel.py:82
+msgid "Could not start local server; exit code is {}"
+msgstr "Не могу запустить локальный сервер; код выхода {}"
 
 #: toplevel.py:84 toplevel.py:496 toplevel.py:501
 msgid "Exception"
