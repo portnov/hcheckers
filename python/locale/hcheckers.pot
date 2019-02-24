@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2019-01-05 22:31+YEKT\n"
+"POT-Creation-Date: 2019-02-24 16:29+YEKT\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -15,27 +15,27 @@ msgstr ""
 "Generated-By: pygettext.py 1.5\n"
 
 
-#: board.py:424
+#: board.py:469
 msgid "Piece at {} does not have moves"
 msgstr ""
 
-#: board.py:430
+#: board.py:475
 msgid "Possible target fields: {}"
 msgstr ""
 
-#: board.py:454
+#: board.py:499
 msgid "Piece at {} cannot be moved to {}"
 msgstr ""
 
-#: board.py:457
+#: board.py:502
 msgid "Field {} does not belong to you"
 msgstr ""
 
-#: board.py:534
+#: board.py:581
 msgid "Awaiting a response about draw."
 msgstr ""
 
-#: board.py:537
+#: board.py:584
 msgid "Another side have offered a draw. You have to accept or decline it."
 msgstr ""
 
@@ -80,62 +80,66 @@ msgid "International draughts"
 msgstr ""
 
 #: common.py:237
-msgid "Canadian draughts"
+msgid "Brazilian draughts"
 msgstr ""
 
 #: common.py:238
-msgid "Spancirety draughts"
+msgid "Canadian draughts"
 msgstr ""
 
 #: common.py:239
+msgid "Spancirety draughts"
+msgstr ""
+
+#: common.py:240
 msgid "Diagonal draughts"
 msgstr ""
 
-#: game.py:98
+#: game.py:106
 msgid "Beginner"
 msgstr ""
 
-#: game.py:99
+#: game.py:107
 msgid "Novice"
 msgstr ""
 
-#: game.py:100
+#: game.py:108
 msgid "Average"
 msgstr ""
 
-#: game.py:101
+#: game.py:109
 msgid "Good"
 msgstr ""
 
-#: game.py:102
+#: game.py:110
 msgid "Master"
 msgstr ""
 
-#: game.py:187 game.py:222 game.py:224 lobby.py:34 newgamedlg.py:92
+#: game.py:195 game.py:230 game.py:232 lobby.py:34 newgamedlg.py:92
 msgid "White"
 msgstr ""
 
-#: game.py:189 game.py:222 game.py:224 lobby.py:34 newgamedlg.py:93
+#: game.py:197 game.py:230 game.py:232 lobby.py:34 newgamedlg.py:93
 msgid "Black"
 msgstr ""
 
-#: game.py:191
+#: game.py:199
 msgid "Newly created game ID: {}. First side to move: {}."
 msgstr ""
 
-#: game.py:326
+#: game.py:334
 msgid "Offer for a draw posted."
 msgstr ""
 
-#: game.py:341
+#: game.py:349
 msgid "You accepted draw."
 msgstr ""
 
-#: game.py:343
+#: game.py:351
 msgid "You declined draw."
 msgstr ""
 
-#: game.py:353
+#: game.py:361
 msgid "Game #{}: you capitulated."
 msgstr ""
 
@@ -228,62 +232,74 @@ msgid "Minimum depth"
 msgstr ""
 
 #: settingsdlg.py:84
-msgid "Combination depth"
+msgid "Forced mode depth"
 msgstr ""
 
 #: settingsdlg.py:89
+msgid "Static search mode threshold"
+msgstr ""
+
+#: settingsdlg.py:93
+msgid "Think better if situation seem bad"
+msgstr ""
+
+#: settingsdlg.py:98
 msgid "`Few moves' mode bound"
 msgstr ""
 
-#: settingsdlg.py:94
+#: settingsdlg.py:103
 msgid "`Too many moves' mode bound"
 msgstr ""
 
-#: settingsdlg.py:97
+#: settingsdlg.py:106
 msgid "Use positional score"
 msgstr ""
 
-#: settingsdlg.py:101
+#: settingsdlg.py:110
 msgid "Continue thinking while there is time"
 msgstr ""
 
-#: settingsdlg.py:109
+#: settingsdlg.py:118
 msgid "Timeout (seconds)"
 msgstr ""
 
-#: settingsdlg.py:150
+#: settingsdlg.py:163
 msgid "Add AI preset"
 msgstr ""
 
-#: settingsdlg.py:154
+#: settingsdlg.py:167
 msgid "Delete AI preset"
 msgstr ""
 
-#: settingsdlg.py:195
+#: settingsdlg.py:208
 msgid "Show fields notation"
 msgstr ""
 
-#: settingsdlg.py:197
+#: settingsdlg.py:210
 msgid "Show possible moves"
 msgstr ""
 
-#: settingsdlg.py:203
+#: settingsdlg.py:216
 msgid "Theme"
 msgstr ""
 
-#: settingsdlg.py:231
+#: settingsdlg.py:219
+msgid "Enable sounds"
+msgstr ""
+
+#: settingsdlg.py:254
 msgid "Server URL"
 msgstr ""
 
-#: settingsdlg.py:251
+#: settingsdlg.py:274
 msgid "General"
 msgstr ""
 
-#: settingsdlg.py:253
+#: settingsdlg.py:276
 msgid "View Settings"
 msgstr ""
 
-#: settingsdlg.py:255
+#: settingsdlg.py:278
 msgid "AI Presets"
 msgstr ""
 
@@ -299,135 +315,139 @@ msgstr ""
 msgid "Awaiting a turn from another side."
 msgstr ""
 
-#: toplevel.py:110
+#: toplevel.py:111
 msgid "History"
 msgstr ""
 
-#: toplevel.py:119
+#: toplevel.py:120
 msgid "Log"
 msgstr ""
 
-#: toplevel.py:162
+#: toplevel.py:163
 msgid "&Game"
 msgstr ""
 
-#: toplevel.py:163
+#: toplevel.py:164
 msgid "&New Game"
 msgstr ""
 
-#: toplevel.py:164
+#: toplevel.py:165
 msgid "&Save Position"
 msgstr ""
 
-#: toplevel.py:165
+#: toplevel.py:166
 msgid "&Undo"
 msgstr ""
 
-#: toplevel.py:166
+#: toplevel.py:167
 msgid "Offer a &draw"
 msgstr ""
 
-#: toplevel.py:167
+#: toplevel.py:168
 msgid "Capitulate"
 msgstr ""
 
-#: toplevel.py:171
+#: toplevel.py:172
 msgid "&Clear log"
 msgstr ""
 
-#: toplevel.py:172
+#: toplevel.py:173
 msgid "Copy selected log record"
 msgstr ""
 
-#: toplevel.py:173
+#: toplevel.py:174
 msgid "Save &log..."
 msgstr ""
 
-#: toplevel.py:178
+#: toplevel.py:179
 msgid "Start &Game"
 msgstr ""
 
-#: toplevel.py:180
+#: toplevel.py:181
 msgid "Se&ttings"
 msgstr ""
 
-#: toplevel.py:182
+#: toplevel.py:183
 msgid "&Position"
 msgstr ""
 
-#: toplevel.py:185
+#: toplevel.py:186
 msgid "Put &white piece"
 msgstr ""
 
-#: toplevel.py:186
+#: toplevel.py:187
 msgid "Put &black piece"
 msgstr ""
 
-#: toplevel.py:187
+#: toplevel.py:188
 msgid "&Remove piece"
 msgstr ""
 
-#: toplevel.py:192
+#: toplevel.py:193
 msgid "&View"
 msgstr ""
 
-#: toplevel.py:193
+#: toplevel.py:194
 msgid "&Flip board"
 msgstr ""
 
-#: toplevel.py:264 toplevel.py:275 toplevel.py:289
+#: toplevel.py:272 toplevel.py:283 toplevel.py:299
 msgid "Rules: {}"
 msgstr ""
 
-#: toplevel.py:265
+#: toplevel.py:273
 msgid "AI: {}"
 msgstr ""
 
-#: toplevel.py:269
+#: toplevel.py:277
 msgid "New game ID: {}"
 msgstr ""
 
-#: toplevel.py:279
+#: toplevel.py:287
 msgid "Waiting for another side to join the game."
 msgstr ""
 
-#: toplevel.py:302 toplevel.py:427
+#: toplevel.py:313 toplevel.py:448
 msgid "Save file"
 msgstr ""
 
-#: toplevel.py:323
+#: toplevel.py:334
 msgid "Nothing to undo."
 msgstr ""
 
-#: toplevel.py:358 toplevel.py:360
+#: toplevel.py:369 toplevel.py:371
 msgid "{} win"
 msgstr ""
 
-#: toplevel.py:362
+#: toplevel.py:373
 msgid "Draw"
 msgstr ""
 
-#: toplevel.py:368
+#: toplevel.py:379
 msgid "Game result: {}"
 msgstr ""
 
-#: toplevel.py:370
+#: toplevel.py:382
 msgid "Game over."
 msgstr ""
 
-#: toplevel.py:381
+#: toplevel.py:397
 msgid "Accept the draw?"
 msgstr ""
 
-#: toplevel.py:382
+#: toplevel.py:398
 msgid "Another side have offered you a draw. Do you wish to accept it?"
 msgstr ""
 
-#: toplevel.py:421
+#: toplevel.py:442
 msgid "Log has been cleared."
 msgstr ""
 
-#: toplevel.py:456
+#: toplevel.py:475
+msgid "Settings have been updated."
+msgstr ""
+
+#: toplevel.py:478
 msgid ""
 "Unexpected response received from the server.\n"
 "Request URL: {}\n"
@@ -435,11 +455,11 @@ msgid ""
 "Response message: {}"
 msgstr ""
 
-#: toplevel.py:457 toplevel.py:462
+#: toplevel.py:479 toplevel.py:484
 msgid "Exception"
 msgstr ""
 
-#: toplevel.py:461
+#: toplevel.py:483
 msgid ""
 "An exception occured while connecting to the server.\n"
 "Request URL: {}\n"
