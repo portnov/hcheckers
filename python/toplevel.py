@@ -511,13 +511,15 @@ class Checkers(QMainWindow):
                 logging.exception(e)
                 print(e)
 
-        try:
-            self.game.shutdown()
-        except RequestError as e:
-            self._handle_game_error(e.rs)
-        except Exception as e:
-            logging.exception(e)
-            print(e)
+        use_local_server = self.settings.value("use_local_server", type=bool)
+        if use_local_server:
+            try:
+                self.game.shutdown()
+            except RequestError as e:
+                self._handle_game_error(e.rs)
+            except Exception as e:
+                logging.exception(e)
+                print(e)
 
         self.settings.setValue("geometry", self.saveGeometry())
         self.settings.setValue("windowState", self.saveState())
