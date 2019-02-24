@@ -290,10 +290,10 @@ runAI ai@(AlphaBeta params rules eval) handle gameId side board = do
     -- | Initial (alpha, beta) interval
     initInterval :: Checkers (Score, Score)
     initInterval = do
-      let delta
-            | abs score0 < 4 = 1
-            | abs score0 < 8 = 2
-            | otherwise = 4
+      let delta = 1
+--             | abs score0 < 4 = 1
+--             | abs score0 < 8 = 2
+--             | otherwise = 4
       mbPrevShift <- getLastScoreShift handle gameId
       case mbPrevShift of
         Nothing -> do
