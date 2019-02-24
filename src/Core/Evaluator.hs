@@ -103,9 +103,9 @@ preEval (SimpleEvaluator { seRules = SomeRules rules, ..}) side board =
       in  abs $ (leftMen + leftKings) - (rightMen + rightKings)
 
     isBackedAt addr dir =
-      case getNeighbourPiece (myDirection rules side dir) addr board of
-        Nothing -> False
-        Just p  -> pieceSide p == side
+      case myNeighbour rules side dir addr of
+        Nothing -> True
+        Just back -> isPieceAt back board side
 
     backedScoreOf addr =
       length $ filter (isBackedAt addr) [BackwardLeft, BackwardRight]
