@@ -234,6 +234,7 @@ supported_rules = [
         ("simple", _("Simple draughts")),
         ("english", _("English draughts")), 
         ("international", _("International draughts")),
+        ("brazilian", _("Brazilian draughts")),
         ("canadian", _("Canadian draughts")),
         ("spancirety", _("Spancirety draughts")), 
         ("diagonal", _("Diagonal draughts"))

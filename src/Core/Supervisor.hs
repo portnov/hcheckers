@@ -47,6 +47,7 @@ import Rules.Russian
 import Rules.Simple
 import Rules.English
 import Rules.International
+import Rules.Brazilian
 import Rules.Canadian
 import Rules.Spancirety
 import Rules.Diagonal
@@ -110,6 +111,7 @@ supportedRules =
    ("simple", SomeRules simple),
    ("english", SomeRules english),
    ("international", SomeRules international),
+   ("brazilian", SomeRules brazilian),
    ("canadian", SomeRules canadian),
    ("spancirety", SomeRules spancirety),
    ("diagonal", SomeRules diagonal)]
