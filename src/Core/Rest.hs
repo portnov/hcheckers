@@ -4,6 +4,7 @@
 module Core.Rest where
 
 import           Control.Monad.Reader
+import Control.Concurrent
 import Control.Concurrent.STM
 import qualified Data.Text                     as T
 import qualified Data.Text.Lazy                as TL
@@ -13,6 +14,7 @@ import           Web.Scotty.Trans
 import           Network.HTTP.Types.Status
 import           System.Log.Heavy
 import           System.Log.Heavy.TH
+import System.Exit
 
 import           Core.Types
 import           Core.Board
@@ -80,8 +82,8 @@ boardRq _ _ (NewGameRq { rqBoard = Nothing, rqFen = Nothing, rqPdn = Nothing }) 
 boardRq _ _ _ =
   raise $ InvalidBoard "only one of fields must be filled: board, fen, pdn"
 
-restServer :: ScottyT Error Checkers ()
-restServer = do
+restServer :: MVar () -> ScottyT Error Checkers ()
+restServer shutdownVar = do
 
   defaultHandler transformError
 
@@ -219,6 +221,14 @@ restServer = do
     (size, orientation, notation) <- liftCheckers_ $ getNotation rules
     json $ Response (NotationRs size orientation notation) []
 
+  post "/server/shutdown" $ do
+    isLocal <- lift $ asks (gcLocal . csConfig)
+    if isLocal
+      then do
+        json $ Response ShutdownRs []
+        liftIO $ putMVar shutdownVar ()
+      else error400 "Server is not running in local mode"
+
 runRestServer :: Checkers ()
 runRestServer = do
   cs <- ask
@@ -228,5 +238,9 @@ runRestServer = do
           Right response -> return response
           Left  err      -> fail $ show err
   port <- asks (gcPort . csConfig)
-  scottyT (fromIntegral port) getResponse restServer
+  shutdownVar <- liftIO newEmptyMVar
+  forkCheckers $ scottyT (fromIntegral port) getResponse (restServer shutdownVar)
+  liftIO $ takeMVar shutdownVar
+  -- REST thread should be able to write the response to Shutdown request.
+  liftIO $ threadDelay (1000 * 1000)
 

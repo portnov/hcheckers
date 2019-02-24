@@ -4,6 +4,9 @@ from os.path import join, exists, dirname
 import os
 import re
 import logging
+import subprocess
+import shlex
+import time
 
 from PyQt5.QtGui import QPainter, QPixmap, QIcon
 from PyQt5.QtCore import QRect, QSize, Qt, QObject, QTimer, pyqtSignal, QSettings
@@ -28,6 +31,7 @@ class Checkers(QMainWindow):
         self._game_active = False
         self._connection_failed = False
         self._poll_try_number = 0
+        self._start_server()
         self._prepare()
         self._gui_setup()
         self._setup_actions()
@@ -65,6 +69,19 @@ class Checkers(QMainWindow):
         self.board.locked = not value
 
     game_active = property(get_game_active, set_game_active)
+
+    def _start_server(self):
+        use_local_server = self.settings.value("use_local_server", type=bool)
+        if use_local_server:
+            server_path = self.settings.value("local_server_path")
+            logging.info(_("Running local server: {}".format(server_path)))
+            server = subprocess.Popen(server_path, shell=True)
+            time.sleep(1)
+            server.poll()
+            if server.returncode is not None:
+                message = _("Could not start local server; exit code is {}".format(server.returncode))
+                logging.error(message)
+                QMessageBox.critical(self, _("Exception"), message)
 
     def _prepare(self):
         if self.share_dir is None:
@@ -493,6 +510,14 @@ class Checkers(QMainWindow):
             except Exception as e:
                 logging.exception(e)
                 print(e)
+
+        try:
+            self.game.shutdown()
+        except RequestError as e:
+            self._handle_game_error(e.rs)
+        except Exception as e:
+            logging.exception(e)
+            print(e)
 
         self.settings.setValue("geometry", self.saveGeometry())
         self.settings.setValue("windowState", self.saveState())

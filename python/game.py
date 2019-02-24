@@ -361,6 +361,11 @@ class Game(object):
         logging.info(_("Game #{}: you capitulated.").format(self.game_id))
         return messages
     
+    def shutdown(self):
+        url = join(self.base_url, "server", "shutdown")
+        rs = self.post(url)
+        logging.info(_("Server shutdown requested."))
+    
     def begin_move(self, src, dst):
         if self.move_thread is not None:
             raise Exception("it seems get_move_result() was not called after previous begin_move()")

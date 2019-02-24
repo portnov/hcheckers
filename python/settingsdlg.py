@@ -251,17 +251,42 @@ class GeneralPage(QWidget):
     def __init__(self, parent=None):
         QWidget.__init__(self, parent)
         layout = QFormLayout()
+
         self.server_url = MandatoryField(_("Server URL"), QLineEdit(self))
         self.server_url.add_to_form(layout)
+
+        self.use_local_server = QCheckBox(self)
+        layout.addRow(_("Use local server"), self.use_local_server)
+
+        self.local_server_path = MandatoryField(_("Local server executable path"), QLineEdit(self))
+        self.local_server_path.add_to_form(layout)
+
+        self.use_local_server.stateChanged.connect(self._on_use_local_server)
+
         self.setLayout(layout)
+
+    def _on_use_local_server(self):
+        use = self.use_local_server.checkState() == Qt.Checked
+        self.local_server_path.widget.setEnabled(use)
+        self.local_server_path.is_mandatory = use
 
     def load(self, settings):
         url = settings.value("server_url", DEFAULT_SERVER_URL)
         self.server_url.widget.setText(url)
 
+        use_local_server = settings.value("use_local_server", type=bool)
+        self.use_local_server.setCheckState(Qt.Checked if use_local_server else Qt.Unchecked)
+
+        path = settings.value("local_server_path", "hcheckersd --local")
+        self.local_server_path.widget.setText(path)
+        self.local_server_path.widget.setEnabled(use_local_server)
+        self.local_server_path.widget.is_mandatory = use_local_server
+
     def save(self, settings):
         settings.setValue("server_url", self.server_url.widget.text())
-
+        use_local_server = self.use_local_server.checkState() == Qt.Checked
+        settings.setValue("use_local_server", use_local_server)
+        settings.setValue("local_server_path", self.local_server_path.widget.text())
 
 class SettingsDialog(DialogBase):
     def __init__(self, settings, share_dir, parent=None):

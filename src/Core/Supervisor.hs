@@ -91,6 +91,7 @@ data RsPayload =
   | CapitulateRs
   | DrawRqRs
   | DrawAcceptRs Bool
+  | ShutdownRs
   deriving (Eq, Show, Generic)
 
 -- | Create supervisor handle
