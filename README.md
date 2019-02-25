@@ -28,11 +28,6 @@ it actually does not know how to play checkers - it only knows the rules.
   in C++ with economy of every bit of memory.
 * Fun of game. HCheckers can play well enough for not-so-seasoned draughtsmen.
 
-## Current state
-
-At the moment, HCheckers has most of core functionality implemented, but it
-still lacks a proper configuration subsystem and several other features. I hope
-to implement them soon.
 
 ## Features
 
@@ -54,6 +49,17 @@ parameters, which can be tuned to choose between better play and performance.
 
 HCheckers can use persistent cache; it can help in calculating more turns, but
 it can grow very large and eat a lot of RAM.
+
+## Current state
+
+At the moment, HCheckers has most of core functionality implemented.
+Most wanted planned things to do are:
+
+* User documentation (#22)
+* Code documentation (#1)
+* Spectators support (#9)
+* Distributed computing support (#17)
+* Packaging (#23, #24)
 
 ## Installation
 
