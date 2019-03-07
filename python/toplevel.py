@@ -10,7 +10,7 @@ import time
 
 from PyQt5.QtGui import QPainter, QPixmap, QIcon
 from PyQt5.QtCore import QRect, QSize, Qt, QObject, QTimer, pyqtSignal, QSettings
-from PyQt5.QtWidgets import QApplication, QWidget, QToolBar, QMainWindow, QDialog, QVBoxLayout, QAction, QActionGroup, QLabel, QFileDialog, QFrame, QDockWidget, QMessageBox, QListWidget, QListWidgetItem, QMenu
+from PyQt5.QtWidgets import QApplication, QWidget, QToolBar, QMainWindow, QDialog, QVBoxLayout, QAction, QActionGroup, QLabel, QFileDialog, QFrame, QDockWidget, QMessageBox, QListWidget, QListWidgetItem, QMenu, QSplashScreen
 
 from field import Field
 from game import Game, AI, RequestError
@@ -31,6 +31,8 @@ class Checkers(QMainWindow):
         self._game_active = False
         self._connection_failed = False
         self._poll_try_number = 0
+        self.splashscreen = None
+        self._show_splashcreen(_("Starting HCheckers..."))
         self._start_server()
         self._prepare()
         self._gui_setup()
@@ -73,6 +75,8 @@ class Checkers(QMainWindow):
     def _start_server(self):
         use_local_server = self.settings.value("use_local_server", type=bool)
         if use_local_server:
+            self.splashscreen.showMessage(_("Starting local server..."))
+            QApplication.processEvents()
             server_path = self.settings.value("local_server_path")
             logging.info(_("Running local server: {}".format(server_path)))
             server = subprocess.Popen(server_path, shell=True)
@@ -150,10 +154,10 @@ class Checkers(QMainWindow):
 
         self.board.server_log.connect(self._on_server_log)
 
-        geometry = self.settings.value("geometry")
+        geometry = self.settings.value("UI/geometry")
         if geometry is not None:
             self.restoreGeometry(geometry)
-        state = self.settings.value("windowState")
+        state = self.settings.value("UI/windowState")
         if state is not None:
             self.restoreState(state)
     
@@ -259,13 +263,28 @@ class Checkers(QMainWindow):
 
     @handling_error
     def _default_new_game(self):
+        self.splashscreen.finish(self)
         self._on_new_game()
+
+    def _show_splashcreen(self, message=None):
+        splash_pix = self._icon("splashscreen.svg").pixmap(QSize(1024, 1024))
+        self.splashscreen = QSplashScreen(splash_pix, Qt.WindowStaysOnTopHint)
+        self.splashscreen.show()
+        QApplication.processEvents()
+        if message is not None:
+            self.splashscreen.showMessage(message)
+            QApplication.processEvents()
 
     @handling_error
     def _on_new_game(self, checked=None):
         dialog = NewGameDialog(self.settings, self.game, self)
         result = dialog.exec_()
+
+
         if result == QDialog.Accepted:
+            # Show splashcreen after user pressed Ok in the "new game" dialog
+            self._show_splashcreen(_("Starting new game..."))
+
             if self.game.is_active():
                 self.game.capitulate()
             self.board.text_message = None
@@ -324,6 +343,10 @@ class Checkers(QMainWindow):
             self.board.theme = self.board.theme
             #self.board.repaint()
             self.history.fill()
+
+        if self.splashscreen:
+            self.splashscreen.finish(self)
+
 
     @handling_error
     def _on_save_game(self, checked=None):
@@ -521,8 +544,8 @@ class Checkers(QMainWindow):
                 logging.exception(e)
                 print(e)
 
-        self.settings.setValue("geometry", self.saveGeometry())
-        self.settings.setValue("windowState", self.saveState())
+        self.settings.setValue("UI/geometry", self.saveGeometry())
+        self.settings.setValue("UI/windowState", self.saveState())
         QMainWindow.closeEvent(self, ev)
 
     @handling_error
