@@ -99,6 +99,7 @@ I will put debian package into github's releases once I'm sure it is correctly w
 To install a package, do
 
 ```
+$ sudo apt install python3-pyqt5 python3-pyqt5.qtsvg python3-pyqt5.qtmultimedia
 $ sudo dpkg -i deb_dist/python3-hcheckers_0.1.0.0-1_all.deb
 ```
 
