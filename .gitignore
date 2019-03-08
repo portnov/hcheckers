@@ -3,8 +3,15 @@ hcheckers.cabal
 *~
 *.o
 *.hi
+*.dyn_o
+*.dyn_hi
 *.swp
 *.pyc
 *.mo
+*.log
 docker/build
 __pycache__/
+python/dist/
+python/deb_dist/
+python/hcheckers.egg-info/
+python/hcheckers*.tar.gz

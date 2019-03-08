@@ -63,11 +63,59 @@ Most wanted planned things to do are:
 
 ## Installation
 
+### Server part
+
+For the server part, the only "easily distributed" form for now is the docker container.
+
+```
+$ git clone https://github.com/portnov/hcheckers.git
+$ cd hcheckers/docker/
+$ ./build-builder.sh
+$ ./build.sh
+$ ./run.sh
+```
+
+### Client part
+
+Python client can be installed in two ways:
+
+1) Via `pip`:
+
+```
+$ cd hcheckers/python/
+$ sudo pip3 install .
+```
+
+2) Using debian package (on debian-based systems). To build a debian package, execute
+
+```
+$ sudo apt-get install python3-stdeb
+$ cd hcheckers/python/
+$ ./build_deb.sh
+```
+
+I will put debian package into github's releases once I'm sure it is correctly working.
+
+To install a package, do
+
+```
+$ sudo dpkg -i deb_dist/python3-hcheckers_0.1.0.0-1_all.deb
+```
+
+After client is installed (either via `pip` or `deb` package), you can run it with
+
+```
+$ hcheckersc.py
+```
+
+## Running development version
+
+You can run HCheckers without actually installing it; it is mostly useful while developing it.
+
 ```
 $ sudo apt-get install stack
-$ git clone https://github.com/portnov/hcheckers.git
 $ cd hcheckers/
-$ stack install
+$ stack build
 ```
 
 Run server:
@@ -79,6 +127,6 @@ $ stack exec hcheckersd
 Run client:
 ```
 $ cd python/
-$ python hcheckers.py
+$ python hcheckersc.py
 ```
 
