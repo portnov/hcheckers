@@ -6,9 +6,9 @@ from PyQt5.QtGui import QPainter, QPixmap
 from PyQt5.QtCore import QRect, QSize, Qt, QObject, QTimer, pyqtSignal
 from PyQt5.QtWidgets import QApplication, QWidget
 
-from common import *
-from field import Field
-from game import Game, RequestError
+from hcheckers.common import *
+from hcheckers.field import Field
+from hcheckers.game import Game, RequestError
 
 ANIMATION_STEP_DURATION = 50
 ANIMATION_STEPS_PER_STEP = 10

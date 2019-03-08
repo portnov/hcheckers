@@ -12,14 +12,14 @@ from PyQt5.QtGui import QPainter, QPixmap, QIcon
 from PyQt5.QtCore import QRect, QSize, Qt, QObject, QTimer, pyqtSignal, QSettings
 from PyQt5.QtWidgets import QApplication, QWidget, QToolBar, QMainWindow, QDialog, QVBoxLayout, QAction, QActionGroup, QLabel, QFileDialog, QFrame, QDockWidget, QMessageBox, QListWidget, QListWidgetItem, QMenu, QSplashScreen
 
-from field import Field
-from game import Game, AI, RequestError
-from board import Board
-from theme import Theme
-from history import HistoryWidget
-from newgamedlg import *
-from settingsdlg import SettingsDialog
-from logutils import *
+from hcheckers.field import Field
+from hcheckers.game import Game, AI, RequestError
+from hcheckers.board import Board
+from hcheckers.theme import Theme
+from hcheckers.history import HistoryWidget
+from hcheckers.newgamedlg import *
+from hcheckers.settingsdlg import SettingsDialog
+from hcheckers.logutils import *
 
 class Checkers(QMainWindow):
     def __init__(self, share_dir):
@@ -426,11 +426,11 @@ class Checkers(QMainWindow):
             self.request_draw_action.setEnabled(False)
             self.capitulate_action.setEnabled(False)
         elif isinstance(message, OtherSideMove):
-            self.message.setText(unicode(message))
+            self.message.setText(str(message))
             self.history.fill()
             self.my_turn = True
         elif isinstance(message, WaitingMove):
-            text = unicode(message)
+            text = str(message)
             self.statusBar().showMessage(text)
             self.board.text_message = text
         elif isinstance(message, DrawRequestedMessage):
@@ -441,7 +441,7 @@ class Checkers(QMainWindow):
             else:
                 self._on_decline_draw()
         elif isinstance(message, DrawResponseMessage):
-            text = unicode(message)
+            text = str(message)
             self.message.setText(text)
             self.board.text_message = text
             self.board.repaint()

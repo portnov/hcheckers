@@ -3,8 +3,8 @@ from PyQt5.QtGui import QPainter, QPixmap
 from PyQt5.QtCore import QRect, QSize, Qt, QObject, QTimer, pyqtSignal, QSettings
 from PyQt5.QtWidgets import QWidget, QDialog, QVBoxLayout, QFormLayout, QLineEdit, QComboBox, QGroupBox, QCheckBox, QDialogButtonBox, QTableWidget, QTableWidgetItem, QAbstractItemView, QTableView
 
-from common import *
-from game import Game
+from hcheckers.common import *
+from hcheckers.game import Game
 
 class SelectedGame(object):
     def __init__(self):

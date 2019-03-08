@@ -3,9 +3,9 @@ from PyQt5.QtGui import QPainter, QPixmap, QIcon
 from PyQt5.QtCore import QRect, QSize, Qt, QObject, QTimer, pyqtSignal, QSettings
 from PyQt5.QtWidgets import QWidget, QDialog, QPushButton, QVBoxLayout, QHBoxLayout, QFormLayout, QLineEdit, QComboBox, QGroupBox, QCheckBox, QDialogButtonBox, QFileDialog, QListWidget, QListWidgetItem, QSpinBox, QToolBar, QAction, QTabWidget
 
-from common import *
-from game import AI, GameSettings
-from theme import *
+from hcheckers.common import *
+from hcheckers.game import AI, GameSettings
+from hcheckers.theme import *
 
 class AiListWidget(QListWidget):
     def __init__(self, parent=None):

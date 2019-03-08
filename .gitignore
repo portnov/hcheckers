@@ -7,3 +7,4 @@ hcheckers.cabal
 *.pyc
 *.mo
 docker/build
+__pycache__/

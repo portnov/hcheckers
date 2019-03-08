@@ -6,7 +6,7 @@ import requests
 import logging
 from threading import Thread, Lock
 
-from common import *
+from hcheckers.common import *
 
 class MoveRequest(Thread):
     def __init__(self, owner, url, rq):

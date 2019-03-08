@@ -134,34 +134,34 @@ class OtherSideMove(Message):
         self.board = board
         self.move = move
 
-    def __unicode__(self):
+    def __str__(self):
         return _("Other side move: {}").format(self.board.show_move(self.move))
 
 
 class UndoMessage(Message):
-    def __unicode__(self):
+    def __str__(self):
         return _("Other side requested undo")
 
 class GameResultMessage(Message):
     def __init__(self, result):
         self.result = result
 
-    def __unicode__(self):
+    def __str__(self):
         return "Game result: {}".format(self.result)
 
 class WaitingMove(Message):
-    def __unicode__(self):
+    def __str__(self):
         return _("Wating for another side turn")
 
 class DrawRequestedMessage(Message):
-    def __unicode__(self):
+    def __str__(self):
         return _("Another side have offered a draw")
 
 class DrawResponseMessage(Message):
     def __init__(self, result):
         self.result = result
 
-    def __unicode__(self):
+    def __str__(self):
         if self.result:
             return _("Another side accepted the draw.")
         else:

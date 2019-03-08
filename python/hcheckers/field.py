@@ -3,7 +3,7 @@ from PyQt5.QtGui import QPainter, QPixmap
 from PyQt5.QtCore import QRect, Qt
 from PyQt5.QtWidgets import QApplication, QWidget
 
-import common
+from hcheckers import common
 
 class Field(object):
     def __init__(self):

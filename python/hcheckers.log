@@ -1,0 +1,620 @@
+08-Mar-2019 21:52:01 [INFO] Core.Rest [1|]: Created new game #1; First turn: 1; initial board: Nothing
+08-Mar-2019 21:52:01 [INFO] Core.Rest [1|]: Attached AI: AlphaBeta (AlphaBetaParams {abDepth = 4, abStartDepth = Just 4, abCombinationDepth = 2, abDynamicDepth = 2, abDeeperIfBad = False, abMovesLowBound = 4, abMovesHighBound = 8, abBaseTime = Nothing}) russian SimpleEvaluator {seRules = russian, seUsePositionalScore = True, seMobilityWeight = 3, seCenterWeight = 4, seOppositeSideWeight = 4, seBackedWeight = 2, seAsymetryWeight = 1, sePreKingWeight = 3, seKingCoef = 3, seHelpedKingCoef = 5} to game #1 as 2
+08-Mar-2019 21:52:01 [INFO] Core.Rest [1|]: Attached player `portnov' to game #1 as 1
+08-Mar-2019 21:55:36 [INFO] Core.Rest [2|]: Created new game #2; First turn: 1; initial board: Nothing
+08-Mar-2019 21:55:36 [INFO] Core.Rest [2|]: Attached player `portnov' to game #2 as 1
+08-Mar-2019 21:55:36 [INFO] Core.Rest [2|]: Attached AI: AlphaBeta (AlphaBetaParams {abDepth = 4, abStartDepth = Just 4, abCombinationDepth = 2, abDynamicDepth = 2, abDeeperIfBad = False, abMovesLowBound = 4, abMovesHighBound = 8, abBaseTime = Nothing}) russian SimpleEvaluator {seRules = russian, seUsePositionalScore = True, seMobilityWeight = 3, seCenterWeight = 4, seOppositeSideWeight = 4, seBackedWeight = 2, seAsymetryWeight = 1, sePreKingWeight = 3, seKingCoef = 3, seHelpedKingCoef = 5} to game #2 as 2
+08-Mar-2019 21:55:45 [INFO] AI.AlphaBeta [2|]: Selecting a move. Side = 2, depth = 4, number of possible moves = 7
+08-Mar-2019 21:55:45 [DEBUG] AI.AlphaBeta [2|]: Score0 = 0/5, delta = 1/0 => initial interval (-1/5, 1/5)
+08-Mar-2019 21:55:45 [INFO] AI.AlphaBeta [2|]: `- Considering scores interval: [-1/5 - 1/5], depth = 4
+08-Mar-2019 21:55:45 [INFO] AI.AlphaBeta [1|4]: Check: b6-c5 (depth 4) => 0/-5
+08-Mar-2019 21:55:45 [INFO] AI.AlphaBeta [1|4]: Check: f6-g5 (depth 4) => 0/6
+08-Mar-2019 21:55:45 [INFO] AI.AlphaBeta [1|1]: Check: d6-e5 (depth 4) => 0/-6
+08-Mar-2019 21:55:45 [INFO] AI.AlphaBeta [1|1]: Check: f6-e5 (depth 4) => 0/6
+08-Mar-2019 21:55:45 [INFO] AI.AlphaBeta [1|2]: Check: h6-g5 (depth 4) => 0/13
+08-Mar-2019 21:55:45 [INFO] AI.AlphaBeta [1|2]: Check: b6-a5 (depth 4) => 0/13
+08-Mar-2019 21:55:45 [INFO] AI.AlphaBeta [1|3]: Check: d6-c5 (depth 4) => 0/-10
+08-Mar-2019 21:55:45 [INFO] Core.Supervisor [2|]: AI returned 1 move(s), selected: d6-c5
+08-Mar-2019 21:55:45 [DEBUG] Core.Supervisor [2|]: Messages: [MoveNotify {nDestination = 1, nSource = 2, nMove = [d6] c5, nBoard = BoardRep [(a1,M1),(a3,M1),(b2,M1),(c1,M1),(d2,M1),(d4,M1),(e1,M1),(e3,M1),(f2,M1),(g1,M1),(g3,M1),(h2,M1),(a7,M2),(b6,M2),(b8,M2),(c5,M2),(c7,M2),(d8,M2),(e7,M2),(f6,M2),(f8,M2),(g7,M2),(h6,M2),(h8,M2)]}]
+08-Mar-2019 21:55:45 [DEBUG] Core.Types [2|]: Selecting AI move: 0s + 51402963ns
+08-Mar-2019 21:55:51 [INFO] AI.AlphaBeta [2|]: Selecting a move. Side = 2, depth = 4, number of possible moves = 7
+08-Mar-2019 21:55:51 [INFO] AI.AlphaBeta [1|4]: Check: c5-b4 (depth 4) => 1/9
+08-Mar-2019 21:55:51 [INFO] AI.AlphaBeta [1|4]: Check: f6-e5 (depth 4) => 1/9
+08-Mar-2019 21:55:51 [INFO] AI.AlphaBeta [1|4]: Check: h6-g5 (depth 4) => 1/-24
+08-Mar-2019 21:55:51 [DEBUG] AI.AlphaBeta [2|]: Score0 = 0/9, delta = 1/0, shift in previous move = 0 => initial interval (-1/9, 1/9)
+08-Mar-2019 21:55:51 [INFO] AI.AlphaBeta [2|]: `- Considering scores interval: [-1/9 - 1/9], depth = 4
+08-Mar-2019 21:55:51 [INFO] AI.AlphaBeta [1|1]: Check: b6-a5 (depth 4) => 0/-10
+08-Mar-2019 21:55:51 [INFO] AI.AlphaBeta [1|2]: Check: e7-d6 (depth 4) => 0/4
+08-Mar-2019 21:55:51 [INFO] Core.Supervisor [2|]: AI returned 1 move(s), selected: b6-a5
+08-Mar-2019 21:55:51 [DEBUG] Core.Supervisor [2|]: Messages: [MoveNotify {nDestination = 1, nSource = 2, nMove = [b6] a5, nBoard = BoardRep [(a1,M1),(a3,M1),(b2,M1),(c1,M1),(d2,M1),(d4,M1),(e1,M1),(e3,M1),(f2,M1),(f4,M1),(g1,M1),(h2,M1),(a5,M2),(a7,M2),(b8,M2),(c5,M2),(c7,M2),(d8,M2),(e7,M2),(f6,M2),(f8,M2),(g7,M2),(h6,M2),(h8,M2)]}]
+08-Mar-2019 21:55:51 [DEBUG] Core.Types [2|]: Selecting AI move: 0s + 43639213ns
+08-Mar-2019 21:55:51 [INFO] AI.AlphaBeta [1|3]: Check: c7-d6 (depth 4) => 0/6
+08-Mar-2019 21:55:51 [INFO] AI.AlphaBeta [1|1]: Check: f6-g5 (depth 4) => 0/9
+08-Mar-2019 21:56:35 [INFO] Core.Rest [1|]: Created new game #1; First turn: 1; initial board: Nothing
+08-Mar-2019 21:56:35 [INFO] Core.Rest [1|]: Attached player `portnov' to game #1 as 1
+08-Mar-2019 21:56:35 [INFO] Core.Rest [1|]: Attached AI: AlphaBeta (AlphaBetaParams {abDepth = 4, abStartDepth = Just 4, abCombinationDepth = 2, abDynamicDepth = 2, abDeeperIfBad = False, abMovesLowBound = 4, abMovesHighBound = 8, abBaseTime = Nothing}) russian SimpleEvaluator {seRules = russian, seUsePositionalScore = True, seMobilityWeight = 3, seCenterWeight = 4, seOppositeSideWeight = 4, seBackedWeight = 2, seAsymetryWeight = 1, sePreKingWeight = 3, seKingCoef = 3, seHelpedKingCoef = 5} to game #1 as 2
+08-Mar-2019 21:56:38 [INFO] AI.AlphaBeta [1|]: Selecting a move. Side = 2, depth = 4, number of possible moves = 7
+08-Mar-2019 21:56:38 [DEBUG] AI.AlphaBeta [1|]: Score0 = 0/5, delta = 1/0 => initial interval (-1/5, 1/5)
+08-Mar-2019 21:56:38 [INFO] AI.AlphaBeta [1|]: `- Considering scores interval: [-1/5 - 1/5], depth = 4
+08-Mar-2019 21:56:38 [INFO] AI.AlphaBeta [1|2]: Check: b6-a5 (depth 4) => 0/13
+08-Mar-2019 21:56:38 [INFO] AI.AlphaBeta [1|2]: Check: h6-g5 (depth 4) => 1/-7
+08-Mar-2019 21:56:38 [INFO] Core.Supervisor [1|]: AI returned 1 move(s), selected: b6-c5
+08-Mar-2019 21:56:38 [DEBUG] Core.Supervisor [1|]: Messages: [MoveNotify {nDestination = 1, nSource = 2, nMove = [b6] c5, nBoard = BoardRep [(a1,M1),(a3,M1),(b2,M1),(c1,M1),(c3,M1),(d2,M1),(e1,M1),(f2,M1),(f4,M1),(g1,M1),(g3,M1),(h2,M1),(a7,M2),(b8,M2),(c5,M2),(c7,M2),(d6,M2),(d8,M2),(e7,M2),(f6,M2),(f8,M2),(g7,M2),(h6,M2),(h8,M2)]}]
+08-Mar-2019 21:56:38 [DEBUG] Core.Types [1|]: Selecting AI move: 0s + 47073904ns
+08-Mar-2019 21:56:38 [INFO] AI.AlphaBeta [1|3]: Check: d6-c5 (depth 4) => 0/-12
+08-Mar-2019 21:56:38 [INFO] AI.AlphaBeta [1|4]: Check: b6-c5 (depth 4) => 0/-14
+08-Mar-2019 21:56:38 [INFO] AI.AlphaBeta [1|1]: Check: f6-e5 (depth 4) => 0/18
+08-Mar-2019 21:56:38 [INFO] AI.AlphaBeta [1|1]: Check: d6-e5 (depth 4) => 0/8
+08-Mar-2019 21:56:38 [INFO] AI.AlphaBeta [1|1]: Check: f6-g5 (depth 4) => 0/0
+08-Mar-2019 21:56:47 [INFO] AI.AlphaBeta [1|]: Selecting a move. Side = 2, depth = 4, number of possible moves = 8
+08-Mar-2019 21:56:47 [DEBUG] AI.AlphaBeta [1|]: Score0 = 0/-14, delta = 1/0, shift in previous move = 0 => initial interval (-1/-14, 1/-14)
+08-Mar-2019 21:56:47 [INFO] AI.AlphaBeta [1|]: `- Considering scores interval: [-1/-14 - 1/-14], depth = 4
+08-Mar-2019 21:56:47 [INFO] AI.AlphaBeta [1|2]: Check: c5-d4 (depth 4) => 0/6
+08-Mar-2019 21:56:47 [INFO] AI.AlphaBeta [1|2]: Check: d6-e5 (depth 4) => 1/-14
+08-Mar-2019 21:56:47 [INFO] AI.AlphaBeta [1|2]: Check: f6-g5 (depth 4) => 0/-9
+08-Mar-2019 21:56:47 [INFO] AI.AlphaBeta [1|2]: Check: f6-e5 (depth 4) => 0/19
+08-Mar-2019 21:56:47 [INFO] Core.Supervisor [1|]: AI returned 2 move(s), selected: a7-b6
+08-Mar-2019 21:56:47 [DEBUG] Core.Supervisor [1|]: Messages: [MoveNotify {nDestination = 1, nSource = 2, nMove = [a7] b6, nBoard = BoardRep [(a1,M1),(a3,M1),(b2,M1),(c1,M1),(c3,M1),(d2,M1),(e1,M1),(f2,M1),(f4,M1),(g1,M1),(h2,M1),(h4,M1),(b6,M2),(b8,M2),(c5,M2),(c7,M2),(d6,M2),(d8,M2),(e7,M2),(f6,M2),(f8,M2),(g7,M2),(h6,M2),(h8,M2)]}]
+08-Mar-2019 21:56:47 [DEBUG] Core.Types [1|]: Selecting AI move: 0s + 47849683ns
+08-Mar-2019 21:56:47 [INFO] AI.AlphaBeta [1|3]: Check: c5-b4 (depth 4) => 1/-18
+08-Mar-2019 21:56:47 [INFO] AI.AlphaBeta [1|3]: Check: h6-g5 (depth 4) => 1/-18
+08-Mar-2019 21:56:47 [INFO] AI.AlphaBeta [1|1]: Check: c7-b6 (depth 4) => 0/-12
+08-Mar-2019 21:56:47 [INFO] AI.AlphaBeta [1|4]: Check: a7-b6 (depth 4) => 0/-12
+08-Mar-2019 21:57:03 [INFO] AI.AlphaBeta [1|]: Selecting a move. Side = 2, depth = 4, number of possible moves = 7
+08-Mar-2019 21:57:03 [DEBUG] AI.AlphaBeta [1|]: Score0 = 0/-25, delta = 1/0, shift in previous move = 0 => initial interval (-1/-25, 1/-25)
+08-Mar-2019 21:57:03 [INFO] AI.AlphaBeta [1|]: `- Considering scores interval: [-1/-25 - 1/-25], depth = 4
+08-Mar-2019 21:57:03 [INFO] AI.AlphaBeta [1|2]: Check: b6-a5 (depth 4) => 0/27
+08-Mar-2019 21:57:03 [INFO] AI.AlphaBeta [1|2]: Check: f6-e5 (depth 4) => 0/10
+08-Mar-2019 21:57:03 [INFO] AI.AlphaBeta [1|3]: Check: d6-e5 (depth 4) => 1/-25
+08-Mar-2019 21:57:03 [INFO] AI.AlphaBeta [1|3]: Check: f6-g5 (depth 4) => 0/-12
+08-Mar-2019 21:57:03 [INFO] AI.AlphaBeta [1|3]: Check: h6-g5 (depth 4) => 1/-26
+08-Mar-2019 21:57:03 [INFO] Core.Supervisor [1|]: AI returned 1 move(s), selected: f6-g5
+08-Mar-2019 21:57:03 [DEBUG] Core.Supervisor [1|]: Messages: [MoveNotify {nDestination = 1, nSource = 2, nMove = [f6] g5, nBoard = BoardRep [(a1,M1),(a3,M1),(b2,M1),(b4,M1),(c1,M1),(d2,M1),(e1,M1),(f2,M1),(f4,M1),(g1,M1),(h2,M1),(h4,M1),(b6,M2),(b8,M2),(c5,M2),(c7,M2),(d6,M2),(d8,M2),(e7,M2),(f8,M2),(g5,M2),(g7,M2),(h6,M2),(h8,M2)]}]
+08-Mar-2019 21:57:03 [DEBUG] Core.Types [1|]: Selecting AI move: 0s + 41042589ns
+08-Mar-2019 21:57:03 [INFO] AI.AlphaBeta [1|1]: Check: c5-d4 (depth 4) => 1/-25
+08-Mar-2019 21:57:03 [INFO] AI.AlphaBeta [1|4]: Check: b8-a7 (depth 4) => 1/-25
+08-Mar-2019 21:57:06 [INFO] AI.AlphaBeta [1|]: Selecting a move. Side = 2, depth = 4, number of possible moves = 2
+08-Mar-2019 21:57:06 [DEBUG] AI.AlphaBeta [1|]: Score0 = 1/23, delta = 1/0, shift in previous move = 0 => initial interval (0/23, 2/23)
+08-Mar-2019 21:57:06 [INFO] AI.AlphaBeta [1|]: `- Considering scores interval: [0/23 - 2/23], depth = 5
+08-Mar-2019 21:57:06 [INFO] AI.AlphaBeta [1|]: Some moves (2 of them) are `too good'; consider better scores interval: [-4/22 - 0/22]
+08-Mar-2019 21:57:06 [INFO] AI.AlphaBeta [1|]: `- Considering scores interval: [-4/22 - 0/22], depth = 5
+08-Mar-2019 21:57:06 [INFO] AI.AlphaBeta [1|2]: Check: e7xe3 (depth 5) => 0/-17
+08-Mar-2019 21:57:06 [INFO] Core.Supervisor [1|]: AI returned 1 move(s), selected: g7xg3
+08-Mar-2019 21:57:06 [DEBUG] Core.Supervisor [1|]: Messages: [MoveNotify {nDestination = 1, nSource = 2, nMove = [g7] f6[X].e5.f4[X].g3, nBoard = BoardRep [(a1,M1),(a3,M1),(b2,M1),(b4,M1),(c1,M1),(d2,M1),(e1,M1),(f2,M1),(g1,M1),(h2,M1),(b6,M2),(b8,M2),(c5,M2),(c7,M2),(d6,M2),(d8,M2),(e7,M2),(f8,M2),(g3,M2),(h6,M2),(h8,M2)]}]
+08-Mar-2019 21:57:06 [DEBUG] Core.Types [1|]: Selecting AI move: 0s + 47503593ns
+08-Mar-2019 21:57:06 [INFO] AI.AlphaBeta [1|3]: Check: g7xg3 (depth 5) => 0/23
+08-Mar-2019 21:57:06 [INFO] AI.AlphaBeta [1|1]: Check: g7xg3 (depth 5) => 0/-21
+08-Mar-2019 21:57:06 [INFO] AI.AlphaBeta [1|4]: Check: e7xe3 (depth 5) => 0/23
+08-Mar-2019 21:57:10 [INFO] AI.AlphaBeta [1|]: Selecting a move. Side = 2, depth = 4, number of possible moves = 8
+08-Mar-2019 21:57:10 [DEBUG] AI.AlphaBeta [1|]: Score0 = 0/-3, delta = 1/0, shift in previous move = -1 => initial interval (-2/-3, 1/-3)
+08-Mar-2019 21:57:10 [INFO] AI.AlphaBeta [1|]: `- Considering scores interval: [-2/-3 - 1/-3], depth = 4
+08-Mar-2019 21:57:10 [INFO] AI.AlphaBeta [1|2]: Check: c5-d4 (depth 4) => 1/-3
+08-Mar-2019 21:57:10 [INFO] AI.AlphaBeta [1|2]: Check: f8-g7 (depth 4) => 1/-3
+08-Mar-2019 21:57:10 [INFO] AI.AlphaBeta [1|3]: Check: b8-a7 (depth 4) => 1/-3
+08-Mar-2019 21:57:10 [INFO] AI.AlphaBeta [1|3]: Check: h8-g7 (depth 4) => 0/-18
+08-Mar-2019 21:57:10 [INFO] AI.AlphaBeta [1|1]: Check: d6-e5 (depth 4) => 1/-3
+08-Mar-2019 21:57:10 [INFO] AI.AlphaBeta [1|1]: Check: e7-f6 (depth 4) => 0/-18
+08-Mar-2019 21:57:10 [INFO] AI.AlphaBeta [1|4]: Check: b6-a5 (depth 4) => 0/39
+08-Mar-2019 21:57:10 [INFO] AI.AlphaBeta [1|4]: Check: h6-g5 (depth 4) => 1/-28
+08-Mar-2019 21:57:10 [INFO] Core.Supervisor [1|]: AI returned 2 move(s), selected: h8-g7
+08-Mar-2019 21:57:10 [DEBUG] Core.Supervisor [1|]: Messages: [MoveNotify {nDestination = 1, nSource = 2, nMove = [h8] g7, nBoard = BoardRep [(a1,M1),(a3,M1),(b2,M1),(b4,M1),(c1,M1),(d2,M1),(e1,M1),(f2,M1),(f4,M1),(g1,M1),(b6,M2),(b8,M2),(c5,M2),(c7,M2),(d6,M2),(d8,M2),(e7,M2),(f8,M2),(g7,M2),(h6,M2)]}]
+08-Mar-2019 21:57:10 [DEBUG] Core.Types [1|]: Selecting AI move: 0s + 70899437ns
+08-Mar-2019 21:57:13 [INFO] AI.AlphaBeta [1|]: Selecting a move. Side = 2, depth = 4, number of possible moves = 7
+08-Mar-2019 21:57:13 [DEBUG] AI.AlphaBeta [1|]: Score0 = 0/0, delta = 1/0, shift in previous move = 0 => initial interval (-1/0, 1/0)
+08-Mar-2019 21:57:13 [INFO] AI.AlphaBeta [1|]: `- Considering scores interval: [-1/0 - 1/0], depth = 4
+08-Mar-2019 21:57:13 [INFO] AI.AlphaBeta [1|1]: Check: d6-e5 (depth 4) => 1/0
+08-Mar-2019 21:57:13 [INFO] AI.AlphaBeta [1|2]: Check: b8-a7 (depth 4) => 1/0
+08-Mar-2019 21:57:13 [INFO] AI.AlphaBeta [1|3]: Check: c5-d4 (depth 4) => 1/0
+08-Mar-2019 21:57:13 [INFO] AI.AlphaBeta [1|3]: Check: e7-f6 (depth 4) => 0/-12
+08-Mar-2019 21:57:13 [INFO] Core.Supervisor [1|]: AI returned 1 move(s), selected: e7-f6
+08-Mar-2019 21:57:13 [DEBUG] Core.Supervisor [1|]: Messages: [MoveNotify {nDestination = 1, nSource = 2, nMove = [e7] f6, nBoard = BoardRep [(a1,M1),(a3,M1),(b2,M1),(b4,M1),(c1,M1),(d2,M1),(e1,M1),(e3,M1),(f4,M1),(g1,M1),(b6,M2),(b8,M2),(c5,M2),(c7,M2),(d6,M2),(d8,M2),(f6,M2),(f8,M2),(g7,M2),(h6,M2)]}]
+08-Mar-2019 21:57:13 [DEBUG] Core.Types [1|]: Selecting AI move: 0s + 37627996ns
+08-Mar-2019 21:57:13 [INFO] AI.AlphaBeta [1|1]: Check: g7-f6 (depth 4) => 0/-11
+08-Mar-2019 21:57:13 [INFO] AI.AlphaBeta [1|4]: Check: b6-a5 (depth 4) => 0/23
+08-Mar-2019 21:57:13 [INFO] AI.AlphaBeta [1|4]: Check: h6-g5 (depth 4) => 1/-16
+08-Mar-2019 21:57:16 [INFO] AI.AlphaBeta [1|]: Selecting a move. Side = 2, depth = 4, number of possible moves = 9
+08-Mar-2019 21:57:16 [INFO] AI.AlphaBeta [1|4]: Check: b8-a7 (depth 4) => 0/-10
+08-Mar-2019 21:57:16 [INFO] AI.AlphaBeta [1|4]: Check: f8-e7 (depth 4) => 0/-18
+08-Mar-2019 21:57:16 [INFO] AI.AlphaBeta [1|3]: Check: c5-d4 (depth 4) => -1/-11
+08-Mar-2019 21:57:16 [INFO] AI.AlphaBeta [1|3]: Check: d8-e7 (depth 4) => 0/-16
+08-Mar-2019 21:57:16 [INFO] AI.AlphaBeta [1|3]: Check: h6-g5 (depth 4) => 1/-23
+08-Mar-2019 21:57:16 [INFO] AI.AlphaBeta [1|1]: Check: d6-e5 (depth 4) => 0/-1
+08-Mar-2019 21:57:16 [INFO] AI.AlphaBeta [1|1]: Check: f6-g5 (depth 4) => 0/-10
+08-Mar-2019 21:57:16 [DEBUG] AI.AlphaBeta [1|]: Score0 = 0/-11, delta = 1/0, shift in previous move = 0 => initial interval (-1/-11, 1/-11)
+08-Mar-2019 21:57:16 [INFO] AI.AlphaBeta [1|]: `- Considering scores interval: [-1/-11 - 1/-11], depth = 4
+08-Mar-2019 21:57:16 [INFO] AI.AlphaBeta [1|2]: Check: b6-a5 (depth 4) => 0/-8
+08-Mar-2019 21:57:16 [INFO] AI.AlphaBeta [1|2]: Check: f6-e5 (depth 4) => 0/-29
+08-Mar-2019 21:57:16 [INFO] AI.AlphaBeta [1|]: Exactly one move is `too good'; do that move.
+08-Mar-2019 21:57:16 [INFO] Core.Supervisor [1|]: AI returned 1 move(s), selected: c5-d4
+08-Mar-2019 21:57:16 [DEBUG] Core.Supervisor [1|]: Messages: [MoveNotify {nDestination = 1, nSource = 2, nMove = [c5] d4, nBoard = BoardRep [(a1,M1),(a3,M1),(b2,M1),(b4,M1),(c1,M1),(d2,M1),(e3,M1),(f2,M1),(f4,M1),(g1,M1),(b6,M2),(b8,M2),(c7,M2),(d4,M2),(d6,M2),(d8,M2),(f6,M2),(f8,M2),(g7,M2),(h6,M2)]}]
+08-Mar-2019 21:57:16 [DEBUG] Core.Types [1|]: Selecting AI move: 0s + 48841319ns
+08-Mar-2019 21:57:22 [INFO] AI.AlphaBeta [1|]: Selecting a move. Side = 2, depth = 4, number of possible moves = 7
+08-Mar-2019 21:57:22 [INFO] AI.AlphaBeta [1|3]: Check: b8-a7 (depth 4) => 3/67
+08-Mar-2019 21:57:22 [INFO] AI.AlphaBeta [1|1]: Check: b6-a5 (depth 4) => 3/71
+08-Mar-2019 21:57:22 [INFO] AI.AlphaBeta [1|1]: Check: g7-f6 (depth 4) => 3/32
+08-Mar-2019 21:57:22 [INFO] AI.AlphaBeta [1|2]: Check: f8-e7 (depth 4) => 3/34
+08-Mar-2019 21:57:22 [DEBUG] AI.AlphaBeta [1|]: Score0 = 3/62, delta = 1/0, shift in previous move = -1 => initial interval (1/62, 4/62)
+08-Mar-2019 21:57:22 [INFO] AI.AlphaBeta [1|]: `- Considering scores interval: [1/62 - 4/62], depth = 4
+08-Mar-2019 21:57:22 [INFO] AI.AlphaBeta [1|2]: Check: b6-c5 (depth 4) => 1/62
+08-Mar-2019 21:57:22 [INFO] AI.AlphaBeta [1|2]: Check: d8-e7 (depth 4) => 2/55
+08-Mar-2019 21:57:22 [INFO] AI.AlphaBeta [1|4]: Check: c7-d6 (depth 4) => 3/52
+08-Mar-2019 21:57:22 [INFO] AI.AlphaBeta [1|]: Exactly one move is `too good'; do that move.
+08-Mar-2019 21:57:22 [INFO] Core.Supervisor [1|]: AI returned 1 move(s), selected: b6-c5
+08-Mar-2019 21:57:22 [DEBUG] Core.Supervisor [1|]: Messages: [MoveNotify {nDestination = 1, nSource = 2, nMove = [b6] c5, nBoard = BoardRep [(a1,M1),(a3,M1),(b2,M1),(b4,M1),(c1,M1),(d2,M1),(f2,M1),(f4,M1),(g1,M1),(g5,M1),(b8,M2),(c5,M2),(c7,M2),(d8,M2),(f8,M2),(g7,M2),(h6,M2)]}]
+08-Mar-2019 21:57:22 [DEBUG] Core.Types [1|]: Selecting AI move: 0s + 72343539ns
+08-Mar-2019 21:57:27 [INFO] AI.AlphaBeta [1|]: Selecting a move. Side = 2, depth = 4, number of possible moves = 3
+08-Mar-2019 21:57:27 [INFO] AI.AlphaBeta [1|3]: Check: c7xb4(K) (depth 4) => 1/93
+08-Mar-2019 21:57:27 [INFO] AI.AlphaBeta [1|1]: Check: c7xc3(K) (depth 4) => 1/93
+08-Mar-2019 21:57:27 [INFO] AI.AlphaBeta [1|4]: Check: c7xa5(K) (depth 4) => -5/8
+08-Mar-2019 21:57:27 [DEBUG] AI.AlphaBeta [1|]: Score0 = 4/93, delta = 1/0, shift in previous move = -2 => initial interval (1/93, 5/93)
+08-Mar-2019 21:57:27 [INFO] AI.AlphaBeta [1|]: `- Considering scores interval: [1/93 - 5/93], depth = 4
+08-Mar-2019 21:57:27 [INFO] AI.AlphaBeta [1|]: Some moves (3 of them) are `too good'; consider better scores interval: [-7/92 - 1/92]
+08-Mar-2019 21:57:27 [INFO] AI.AlphaBeta [1|]: `- Considering scores interval: [-7/92 - 1/92], depth = 4
+08-Mar-2019 21:57:27 [INFO] AI.AlphaBeta [1|2]: Check: c7xc3(K) (depth 4) => 0/-9
+08-Mar-2019 21:57:27 [INFO] Core.Supervisor [1|]: AI returned 1 move(s), selected: c7xa5(K)
+08-Mar-2019 21:57:27 [DEBUG] Core.Supervisor [1|]: Messages: [MoveNotify {nDestination = 1, nSource = 2, nMove = [c7] d6[X].e5.f4[X].g3.f2[X].e1[K].d2[X].c3.b4.a5, nBoard = BoardRep [(a1,M1),(a3,M1),(b2,M1),(c1,M1),(g1,M1),(g5,M1),(b8,M2),(d8,M2),(f8,M2),(g7,M2),(h6,M2),(a5,K2)]}]
+08-Mar-2019 21:57:27 [DEBUG] Core.Types [1|]: Selecting AI move: 0s + 11187530ns
+08-Mar-2019 21:57:27 [INFO] AI.AlphaBeta [1|4]: Check: c7xa5(K) (depth 4) => 1/93
+08-Mar-2019 21:57:27 [INFO] AI.AlphaBeta [1|3]: Check: c7xb4(K) (depth 4) => 0/-5
+08-Mar-2019 21:58:13 [INFO] Core.Rest [1|]: Created new game #1; First turn: 1; initial board: Nothing
+08-Mar-2019 21:58:13 [INFO] Core.Rest [1|]: Attached player `portnov' to game #1 as 1
+08-Mar-2019 21:58:13 [INFO] Core.Rest [1|]: Attached AI: AlphaBeta (AlphaBetaParams {abDepth = 4, abStartDepth = Just 4, abCombinationDepth = 2, abDynamicDepth = 2, abDeeperIfBad = False, abMovesLowBound = 4, abMovesHighBound = 8, abBaseTime = Nothing}) russian SimpleEvaluator {seRules = russian, seUsePositionalScore = True, seMobilityWeight = 3, seCenterWeight = 4, seOppositeSideWeight = 4, seBackedWeight = 2, seAsymetryWeight = 1, sePreKingWeight = 3, seKingCoef = 3, seHelpedKingCoef = 5} to game #1 as 2
+08-Mar-2019 22:01:18 [INFO] Core.Rest [1|]: Created new game #1; First turn: 1; initial board: Nothing
+08-Mar-2019 22:01:18 [INFO] Core.Rest [1|]: Attached player `portnov' to game #1 as 1
+08-Mar-2019 22:01:18 [INFO] Core.Rest [1|]: Attached AI: AlphaBeta (AlphaBetaParams {abDepth = 4, abStartDepth = Just 4, abCombinationDepth = 2, abDynamicDepth = 2, abDeeperIfBad = False, abMovesLowBound = 4, abMovesHighBound = 8, abBaseTime = Nothing}) russian SimpleEvaluator {seRules = russian, seUsePositionalScore = True, seMobilityWeight = 3, seCenterWeight = 4, seOppositeSideWeight = 4, seBackedWeight = 2, seAsymetryWeight = 1, sePreKingWeight = 3, seKingCoef = 3, seHelpedKingCoef = 5} to game #1 as 2
+08-Mar-2019 22:06:32 [INFO] Core.Rest [1|]: Created new game #1; First turn: 1; initial board: Nothing
+08-Mar-2019 22:06:32 [INFO] Core.Rest [1|]: Attached AI: AlphaBeta (AlphaBetaParams {abDepth = 4, abStartDepth = Just 4, abCombinationDepth = 2, abDynamicDepth = 2, abDeeperIfBad = False, abMovesLowBound = 4, abMovesHighBound = 8, abBaseTime = Nothing}) russian SimpleEvaluator {seRules = russian, seUsePositionalScore = True, seMobilityWeight = 3, seCenterWeight = 4, seOppositeSideWeight = 4, seBackedWeight = 2, seAsymetryWeight = 1, sePreKingWeight = 3, seKingCoef = 3, seHelpedKingCoef = 5} to game #1 as 2
+08-Mar-2019 22:06:32 [INFO] Core.Rest [1|]: Attached player `portnov' to game #1 as 1
+08-Mar-2019 22:06:48 [INFO] AI.AlphaBeta [1|]: Selecting a move. Side = 2, depth = 4, number of possible moves = 7
+08-Mar-2019 22:06:48 [INFO] AI.AlphaBeta [1|4]: Check: b6-c5 (depth 4) => 0/-5
+08-Mar-2019 22:06:48 [INFO] AI.AlphaBeta [1|4]: Check: f6-g5 (depth 4) => 0/-5
+08-Mar-2019 22:06:48 [INFO] AI.AlphaBeta [1|1]: Check: d6-e5 (depth 4) => 0/0
+08-Mar-2019 22:06:48 [DEBUG] AI.AlphaBeta [1|]: Score0 = 0/7, delta = 1/0 => initial interval (-1/7, 1/7)
+08-Mar-2019 22:06:48 [INFO] AI.AlphaBeta [1|]: `- Considering scores interval: [-1/7 - 1/7], depth = 4
+08-Mar-2019 22:06:48 [INFO] Core.Supervisor [1|]: AI returned 1 move(s), selected: h6-g5
+08-Mar-2019 22:06:48 [DEBUG] Core.Supervisor [1|]: Messages: [MoveNotify {nDestination = 1, nSource = 2, nMove = [h6] g5, nBoard = BoardRep [(a1,M1),(a3,M1),(b2,M1),(c1,M1),(c3,M1),(d2,M1),(d4,M1),(e1,M1),(f2,M1),(g1,M1),(g3,M1),(h2,M1),(a7,M2),(b6,M2),(b8,M2),(c7,M2),(d6,M2),(d8,M2),(e7,M2),(f6,M2),(f8,M2),(g5,M2),(g7,M2),(h8,M2)]}]
+08-Mar-2019 22:06:48 [DEBUG] Core.Types [1|]: Selecting AI move: 0s + 25006786ns
+08-Mar-2019 22:06:48 [INFO] AI.AlphaBeta [1|2]: Check: b6-a5 (depth 4) => 0/16
+08-Mar-2019 22:06:48 [INFO] AI.AlphaBeta [1|2]: Check: f6-e5 (depth 4) => 0/10
+08-Mar-2019 22:06:48 [INFO] AI.AlphaBeta [1|2]: Check: h6-g5 (depth 4) => 0/-15
+08-Mar-2019 22:06:48 [INFO] AI.AlphaBeta [1|3]: Check: d6-c5 (depth 4) => 0/-3
+08-Mar-2019 22:06:51 [INFO] AI.AlphaBeta [1|]: Selecting a move. Side = 2, depth = 4, number of possible moves = 7
+08-Mar-2019 22:06:51 [DEBUG] AI.AlphaBeta [1|]: Score0 = 0/-21, delta = 1/0, shift in previous move = 0 => initial interval (-1/-21, 1/-21)
+08-Mar-2019 22:06:51 [INFO] AI.AlphaBeta [1|]: `- Considering scores interval: [-1/-21 - 1/-21], depth = 4
+08-Mar-2019 22:06:51 [INFO] AI.AlphaBeta [1|4]: Check: b6-c5 (depth 4) => 0/-24
+08-Mar-2019 22:06:51 [INFO] AI.AlphaBeta [1|4]: Check: f6-e5 (depth 4) => 1/-21
+08-Mar-2019 22:06:51 [INFO] Core.Supervisor [1|]: AI returned 1 move(s), selected: b6-c5
+08-Mar-2019 22:06:51 [DEBUG] Core.Supervisor [1|]: Messages: [MoveNotify {nDestination = 1, nSource = 2, nMove = [b6] c5, nBoard = BoardRep [(a1,M1),(a3,M1),(b2,M1),(c1,M1),(c3,M1),(d2,M1),(d4,M1),(e1,M1),(f2,M1),(g1,M1),(h2,M1),(h4,M1),(a7,M2),(b8,M2),(c5,M2),(c7,M2),(d6,M2),(d8,M2),(e7,M2),(f6,M2),(f8,M2),(g5,M2),(g7,M2),(h8,M2)]}]
+08-Mar-2019 22:06:51 [DEBUG] Core.Types [1|]: Selecting AI move: 0s + 23543714ns
+08-Mar-2019 22:06:51 [INFO] AI.AlphaBeta [1|3]: Check: d6-c5 (depth 4) => 1/-21
+08-Mar-2019 22:06:51 [INFO] AI.AlphaBeta [1|3]: Check: g5-f4 (depth 4) => 1/-21
+08-Mar-2019 22:06:51 [INFO] AI.AlphaBeta [1|4]: Check: g7-h6 (depth 4) => 0/-17
+08-Mar-2019 22:06:51 [INFO] AI.AlphaBeta [1|2]: Check: d6-e5 (depth 4) => 0/-16
+08-Mar-2019 22:06:51 [INFO] AI.AlphaBeta [1|1]: Check: b6-a5 (depth 4) => 0/-2
+08-Mar-2019 22:06:57 [INFO] AI.AlphaBeta [1|]: Selecting a move. Side = 2, depth = 4, number of possible moves = 2
+08-Mar-2019 22:06:57 [DEBUG] AI.AlphaBeta [1|]: Score0 = 1/-1, delta = 1/0, shift in previous move = 0 => initial interval (0/-1, 2/-1)
+08-Mar-2019 22:06:57 [INFO] AI.AlphaBeta [1|]: `- Considering scores interval: [0/-1 - 2/-1], depth = 5
+08-Mar-2019 22:06:57 [INFO] AI.AlphaBeta [1|2]: Check: a7xc5 (depth 5) => 1/-20
+08-Mar-2019 22:06:57 [INFO] AI.AlphaBeta [1|]: Exactly one move is `too good'; do that move.
+08-Mar-2019 22:06:57 [INFO] Core.Supervisor [1|]: AI returned 1 move(s), selected: c7xa5
+08-Mar-2019 22:06:57 [DEBUG] Core.Supervisor [1|]: Messages: [MoveNotify {nDestination = 1, nSource = 2, nMove = [c7] b6[X].a5, nBoard = BoardRep [(a1,M1),(a3,M1),(b2,M1),(c1,M1),(c3,M1),(d2,M1),(e1,M1),(f2,M1),(g1,M1),(h2,M1),(h4,M1),(a5,M2),(a7,M2),(b8,M2),(d6,M2),(d8,M2),(e7,M2),(f6,M2),(f8,M2),(g5,M2),(g7,M2),(h8,M2)]}]
+08-Mar-2019 22:06:57 [DEBUG] Core.Types [1|]: Selecting AI move: 0s + 36641418ns
+08-Mar-2019 22:06:57 [INFO] AI.AlphaBeta [1|3]: Check: c7xa5 (depth 5) => 0/-1
+08-Mar-2019 22:06:59 [INFO] AI.AlphaBeta [1|]: Selecting a move. Side = 2, depth = 4, number of possible moves = 8
+08-Mar-2019 22:06:59 [INFO] AI.AlphaBeta [1|2]: Check: d6-e5 (depth 4) => 0/-12
+08-Mar-2019 22:06:59 [INFO] AI.AlphaBeta [1|1]: Check: a7-b6 (depth 4) => 0/-33
+08-Mar-2019 22:06:59 [INFO] AI.AlphaBeta [1|1]: Check: f6-e5 (depth 4) => 1/-9
+08-Mar-2019 22:06:59 [DEBUG] AI.AlphaBeta [1|]: Score0 = 0/-9, delta = 1/0, shift in previous move = -1 => initial interval (-2/-9, 1/-9)
+08-Mar-2019 22:06:59 [INFO] AI.AlphaBeta [1|]: `- Considering scores interval: [-2/-9 - 1/-9], depth = 4
+08-Mar-2019 22:06:59 [INFO] AI.AlphaBeta [1|4]: Check: b8-c7 (depth 4) => 0/-3
+08-Mar-2019 22:06:59 [INFO] AI.AlphaBeta [1|1]: Check: g5-f4 (depth 4) => 0/-4
+08-Mar-2019 22:06:59 [INFO] Core.Supervisor [1|]: AI returned 1 move(s), selected: a7-b6
+08-Mar-2019 22:06:59 [DEBUG] Core.Supervisor [1|]: Messages: [MoveNotify {nDestination = 1, nSource = 2, nMove = [a7] b6, nBoard = BoardRep [(a1,M1),(b2,M1),(b4,M1),(c1,M1),(c3,M1),(d2,M1),(e1,M1),(f2,M1),(g1,M1),(h2,M1),(h4,M1),(a5,M2),(b6,M2),(b8,M2),(d6,M2),(d8,M2),(e7,M2),(f6,M2),(f8,M2),(g5,M2),(g7,M2),(h8,M2)]}]
+08-Mar-2019 22:06:59 [DEBUG] Core.Types [1|]: Selecting AI move: 0s + 49759902ns
+08-Mar-2019 22:06:59 [INFO] AI.AlphaBeta [1|3]: Check: d6-c5 (depth 4) => 1/-9
+08-Mar-2019 22:06:59 [INFO] AI.AlphaBeta [1|3]: Check: d8-c7 (depth 4) => 0/-4
+08-Mar-2019 22:06:59 [INFO] AI.AlphaBeta [1|4]: Check: g7-h6 (depth 4) => 0/-3
+08-Mar-2019 22:07:03 [INFO] AI.AlphaBeta [1|]: Selecting a move. Side = 2, depth = 4, number of possible moves = 2
+08-Mar-2019 22:07:03 [INFO] AI.AlphaBeta [1|2]: Check: b6xd4 (depth 5) => 0/-19
+08-Mar-2019 22:07:03 [DEBUG] AI.AlphaBeta [1|]: Score0 = 0/-13, delta = 1/0, shift in previous move = 0 => initial interval (-1/-13, 1/-13)
+08-Mar-2019 22:07:03 [INFO] AI.AlphaBeta [1|]: `- Considering scores interval: [-1/-13 - 1/-13], depth = 5
+08-Mar-2019 22:07:03 [INFO] AI.AlphaBeta [1|]: Exactly one move is `too good'; do that move.
+08-Mar-2019 22:07:03 [INFO] Core.Supervisor [1|]: AI returned 1 move(s), selected: d6xb4
+08-Mar-2019 22:07:03 [DEBUG] Core.Supervisor [1|]: Messages: [MoveNotify {nDestination = 1, nSource = 2, nMove = [d6] c5[X].b4, nBoard = BoardRep [(a1,M1),(b2,M1),(c1,M1),(c3,M1),(d2,M1),(e1,M1),(f2,M1),(g1,M1),(h2,M1),(h4,M1),(a5,M2),(b4,M2),(b6,M2),(b8,M2),(d8,M2),(e7,M2),(f6,M2),(f8,M2),(g5,M2),(g7,M2),(h8,M2)]}]
+08-Mar-2019 22:07:03 [DEBUG] Core.Types [1|]: Selecting AI move: 0s + 22450166ns
+08-Mar-2019 22:07:03 [INFO] AI.AlphaBeta [1|3]: Check: d6xb4 (depth 5) => -1/-13
+08-Mar-2019 22:07:06 [INFO] AI.AlphaBeta [1|]: Selecting a move. Side = 2, depth = 4, number of possible moves = 9
+08-Mar-2019 22:07:06 [DEBUG] AI.AlphaBeta [1|]: Score0 = 0/-29, delta = 1/0, shift in previous move = -1 => initial interval (-2/-29, 1/-29)
+08-Mar-2019 22:07:06 [INFO] AI.AlphaBeta [1|]: `- Considering scores interval: [-2/-29 - 1/-29], depth = 4
+08-Mar-2019 22:07:06 [INFO] AI.AlphaBeta [1|2]: Check: b8-a7 (depth 4) => 0/-13
+08-Mar-2019 22:07:06 [INFO] AI.AlphaBeta [1|2]: Check: d8-c7 (depth 4) => 0/-19
+08-Mar-2019 22:07:06 [INFO] Core.Supervisor [1|]: AI returned 1 move(s), selected: d6-e5
+08-Mar-2019 22:07:06 [DEBUG] Core.Supervisor [1|]: Messages: [MoveNotify {nDestination = 1, nSource = 2, nMove = [d6] e5, nBoard = BoardRep [(a1,M1),(a3,M1),(b4,M1),(c1,M1),(c3,M1),(d2,M1),(e1,M1),(f2,M1),(g1,M1),(h2,M1),(h4,M1),(a5,M2),(b6,M2),(b8,M2),(d8,M2),(e5,M2),(e7,M2),(f6,M2),(f8,M2),(g5,M2),(g7,M2),(h8,M2)]}]
+08-Mar-2019 22:07:06 [DEBUG] Core.Types [1|]: Selecting AI move: 0s + 52054800ns
+08-Mar-2019 22:07:06 [INFO] AI.AlphaBeta [1|4]: Check: b8-c7 (depth 4) => 0/-7
+08-Mar-2019 22:07:06 [INFO] AI.AlphaBeta [1|4]: Check: g7-h6 (depth 4) => 0/-15
+08-Mar-2019 22:07:06 [INFO] AI.AlphaBeta [1|1]: Check: g5-f4 (depth 4) => 0/-16
+08-Mar-2019 22:07:06 [INFO] AI.AlphaBeta [1|1]: Check: b6-c5 (depth 4) => 1/-29
+08-Mar-2019 22:07:06 [INFO] AI.AlphaBeta [1|1]: Check: d6-c5 (depth 4) => 1/-29
+08-Mar-2019 22:07:06 [INFO] AI.AlphaBeta [1|1]: Check: f6-e5 (depth 4) => 1/-29
+08-Mar-2019 22:07:06 [INFO] AI.AlphaBeta [1|3]: Check: d6-e5 (depth 4) => 0/-26
+08-Mar-2019 22:07:11 [INFO] AI.AlphaBeta [1|]: Selecting a move. Side = 2, depth = 4, number of possible moves = 9
+08-Mar-2019 22:07:11 [DEBUG] AI.AlphaBeta [1|]: Score0 = 0/-31, delta = 1/0, shift in previous move = 0 => initial interval (-1/-31, 1/-31)
+08-Mar-2019 22:07:11 [INFO] AI.AlphaBeta [1|]: `- Considering scores interval: [-1/-31 - 1/-31], depth = 4
+08-Mar-2019 22:07:11 [INFO] AI.AlphaBeta [1|2]: Check: b6-c5 (depth 4) => 1/-31
+08-Mar-2019 22:07:11 [INFO] AI.AlphaBeta [1|2]: Check: e5-f4 (depth 4) => 0/-18
+08-Mar-2019 22:07:11 [INFO] AI.AlphaBeta [1|2]: Check: e5-d4 (depth 4) => 0/-38
+08-Mar-2019 22:07:11 [INFO] Core.Supervisor [1|]: AI returned 1 move(s), selected: e5-d4
+08-Mar-2019 22:07:11 [DEBUG] Core.Supervisor [1|]: Messages: [MoveNotify {nDestination = 1, nSource = 2, nMove = [e5] d4, nBoard = BoardRep [(a1,M1),(a3,M1),(b4,M1),(c1,M1),(c3,M1),(d2,M1),(e1,M1),(g1,M1),(g3,M1),(h2,M1),(h4,M1),(a5,M2),(b6,M2),(b8,M2),(d4,M2),(d8,M2),(e7,M2),(f6,M2),(f8,M2),(g5,M2),(g7,M2),(h8,M2)]}]
+08-Mar-2019 22:07:11 [DEBUG] Core.Types [1|]: Selecting AI move: 0s + 37606877ns
+08-Mar-2019 22:07:11 [INFO] AI.AlphaBeta [1|4]: Check: b8-c7 (depth 4) => 1/-31
+08-Mar-2019 22:07:11 [INFO] AI.AlphaBeta [1|1]: Check: d8-c7 (depth 4) => 0/18
+08-Mar-2019 22:07:11 [INFO] AI.AlphaBeta [1|2]: Check: e7-d6 (depth 4) => 0/8
+08-Mar-2019 22:07:11 [INFO] AI.AlphaBeta [1|3]: Check: b8-a7 (depth 4) => 1/-31
+08-Mar-2019 22:07:11 [INFO] AI.AlphaBeta [1|3]: Check: g5-f4 (depth 4) => 0/-20
+08-Mar-2019 22:07:11 [INFO] AI.AlphaBeta [1|3]: Check: g7-h6 (depth 4) => 0/2
+08-Mar-2019 22:07:13 [INFO] AI.AlphaBeta [1|]: Selecting a move. Side = 2, depth = 4, number of possible moves = 2
+08-Mar-2019 22:07:13 [INFO] AI.AlphaBeta [1|3]: Check: f6xd4 (depth 5) => 0/-29
+08-Mar-2019 22:07:13 [INFO] AI.AlphaBeta [1|4]: Check: f6xd4 (depth 5) => 0/5
+08-Mar-2019 22:07:13 [INFO] AI.AlphaBeta [1|2]: Check: a5xc3 (depth 5) => 0/-29
+08-Mar-2019 22:07:13 [DEBUG] AI.AlphaBeta [1|]: Score0 = 1/5, delta = 1/0, shift in previous move = 0 => initial interval (0/5, 2/5)
+08-Mar-2019 22:07:13 [INFO] AI.AlphaBeta [1|]: `- Considering scores interval: [0/5 - 2/5], depth = 5
+08-Mar-2019 22:07:13 [INFO] AI.AlphaBeta [1|1]: Check: a5xc3 (depth 5) => 0/5
+08-Mar-2019 22:07:13 [INFO] AI.AlphaBeta [1|]: Some moves (2 of them) are `too good'; consider better scores interval: [-4/4 - 0/4]
+08-Mar-2019 22:07:13 [INFO] AI.AlphaBeta [1|]: `- Considering scores interval: [-4/4 - 0/4], depth = 5
+08-Mar-2019 22:07:13 [INFO] Core.Supervisor [1|]: AI returned 2 move(s), selected: f6xd4
+08-Mar-2019 22:07:13 [DEBUG] Core.Supervisor [1|]: Messages: [MoveNotify {nDestination = 1, nSource = 2, nMove = [f6] e5[X].d4, nBoard = BoardRep [(a1,M1),(a3,M1),(b4,M1),(c1,M1),(d2,M1),(e1,M1),(g1,M1),(g3,M1),(h2,M1),(h4,M1),(a5,M2),(b6,M2),(b8,M2),(d4,M2),(d8,M2),(e7,M2),(f8,M2),(g5,M2),(g7,M2),(h8,M2)]}]
+08-Mar-2019 22:07:13 [DEBUG] Core.Types [1|]: Selecting AI move: 0s + 6147551ns
+08-Mar-2019 22:07:19 [INFO] AI.AlphaBeta [1|]: Selecting a move. Side = 2, depth = 4, number of possible moves = 3
+08-Mar-2019 22:07:19 [INFO] AI.AlphaBeta [1|1]: Check: a5xc3 (depth 4) => 0/-35
+08-Mar-2019 22:07:19 [INFO] AI.AlphaBeta [1|2]: Check: g7xe5 (depth 4) => 1/-53
+08-Mar-2019 22:07:19 [DEBUG] AI.AlphaBeta [1|]: Score0 = 1/16, delta = 1/0, shift in previous move = -1 => initial interval (-1/16, 2/16)
+08-Mar-2019 22:07:19 [INFO] AI.AlphaBeta [1|]: `- Considering scores interval: [-1/16 - 2/16], depth = 4
+08-Mar-2019 22:07:19 [INFO] AI.AlphaBeta [1|4]: Check: e7xg5 (depth 4) => 1/-49
+08-Mar-2019 22:07:19 [INFO] Core.Supervisor [1|]: AI returned 1 move(s), selected: a5xc3
+08-Mar-2019 22:07:19 [DEBUG] Core.Supervisor [1|]: Messages: [MoveNotify {nDestination = 1, nSource = 2, nMove = [a5] b4[X].c3, nBoard = BoardRep [(a1,M1),(a3,M1),(c1,M1),(d2,M1),(e1,M1),(f6,M1),(g1,M1),(g3,M1),(h2,M1),(b6,M2),(b8,M2),(c3,M2),(d4,M2),(d8,M2),(e7,M2),(f8,M2),(g7,M2),(h8,M2)]}]
+08-Mar-2019 22:07:19 [DEBUG] Core.Types [1|]: Selecting AI move: 0s + 18757057ns
+08-Mar-2019 22:07:22 [INFO] AI.AlphaBeta [1|]: Selecting a move. Side = 2, depth = 4, number of possible moves = 2
+08-Mar-2019 22:07:22 [DEBUG] AI.AlphaBeta [1|]: Score0 = 1/10, delta = 1/0, shift in previous move = -1 => initial interval (-1/10, 2/10)
+08-Mar-2019 22:07:22 [INFO] AI.AlphaBeta [1|]: `- Considering scores interval: [-1/10 - 2/10], depth = 5
+08-Mar-2019 22:07:22 [INFO] AI.AlphaBeta [1|1]: Check: g7xe5 (depth 5) => 1/-53
+08-Mar-2019 22:07:22 [INFO] AI.AlphaBeta [1|3]: Check: e7xg5 (depth 5) => 1/-49
+08-Mar-2019 22:07:22 [INFO] Core.Supervisor [1|]: AI returned 1 move(s), selected: g7xe5
+08-Mar-2019 22:07:22 [DEBUG] Core.Supervisor [1|]: Messages: [MoveNotify {nDestination = 1, nSource = 2, nMove = [g7] f6[X].e5, nBoard = BoardRep [(a1,M1),(a3,M1),(b4,M1),(c1,M1),(e1,M1),(g1,M1),(g3,M1),(h2,M1),(b6,M2),(b8,M2),(d4,M2),(d8,M2),(e5,M2),(e7,M2),(f8,M2),(h8,M2)]}]
+08-Mar-2019 22:07:22 [DEBUG] Core.Types [1|]: Selecting AI move: 0s + 32141273ns
+08-Mar-2019 22:07:25 [INFO] AI.AlphaBeta [1|]: Selecting a move. Side = 2, depth = 4, number of possible moves = 11
+08-Mar-2019 22:07:25 [DEBUG] AI.AlphaBeta [1|]: Score0 = 0/-29, delta = 1/0, shift in previous move = 0 => initial interval (-1/-29, 1/-29)
+08-Mar-2019 22:07:25 [INFO] AI.AlphaBeta [1|]: `- Considering scores interval: [-1/-29 - 1/-29], depth = 4
+08-Mar-2019 22:07:25 [INFO] AI.AlphaBeta [1|2]: Check: b8-c7 (depth 4) => 1/-29
+08-Mar-2019 22:07:25 [INFO] AI.AlphaBeta [1|2]: Check: d4-c3 (depth 4) => 1/-48
+08-Mar-2019 22:07:25 [INFO] AI.AlphaBeta [1|1]: Check: d4-e3 (depth 4) => 1/-41
+08-Mar-2019 22:07:25 [INFO] AI.AlphaBeta [1|1]: Check: e7-d6 (depth 4) => 1/-29
+08-Mar-2019 22:07:25 [INFO] AI.AlphaBeta [1|2]: Check: h8-g7 (depth 4) => 1/-29
+08-Mar-2019 22:07:25 [INFO] AI.AlphaBeta [1|3]: Check: b8-a7 (depth 4) => 1/-29
+08-Mar-2019 22:07:25 [INFO] AI.AlphaBeta [1|3]: Check: e5-f4 (depth 4) => 1/-29
+08-Mar-2019 22:07:25 [INFO] AI.AlphaBeta [1|3]: Check: e7-f6 (depth 4) => 1/-29
+08-Mar-2019 22:07:25 [INFO] Core.Supervisor [1|]: AI returned 1 move(s), selected: d4-c3
+08-Mar-2019 22:07:25 [DEBUG] Core.Supervisor [1|]: Messages: [MoveNotify {nDestination = 1, nSource = 2, nMove = [d4] c3, nBoard = BoardRep [(a1,M1),(a3,M1),(c1,M1),(c5,M1),(e1,M1),(g1,M1),(g3,M1),(h2,M1),(b6,M2),(b8,M2),(c3,M2),(d8,M2),(e5,M2),(e7,M2),(f8,M2),(h8,M2)]}]
+08-Mar-2019 22:07:25 [DEBUG] Core.Types [1|]: Selecting AI move: 0s + 34129745ns
+08-Mar-2019 22:07:25 [INFO] AI.AlphaBeta [1|4]: Check: b6-a5 (depth 4) => 1/-29
+08-Mar-2019 22:07:25 [INFO] AI.AlphaBeta [1|4]: Check: d8-c7 (depth 4) => 1/-29
+08-Mar-2019 22:07:25 [INFO] AI.AlphaBeta [1|4]: Check: f8-g7 (depth 4) => 1/-29
+08-Mar-2019 22:07:27 [INFO] AI.AlphaBeta [1|]: Selecting a move. Side = 2, depth = 4, number of possible moves = 10
+08-Mar-2019 22:07:27 [DEBUG] AI.AlphaBeta [1|]: Score0 = 1/-42, delta = 1/0, shift in previous move = 1 => initial interval (0/-42, 3/-42)
+08-Mar-2019 22:07:27 [INFO] AI.AlphaBeta [1|]: `- Considering scores interval: [0/-42 - 3/-42], depth = 4
+08-Mar-2019 22:07:27 [INFO] AI.AlphaBeta [1|1]: Check: c3-d2 (depth 4) => 2/18
+08-Mar-2019 22:07:27 [INFO] AI.AlphaBeta [1|1]: Check: e7-f6 (depth 4) => 2/-21
+08-Mar-2019 22:07:27 [INFO] AI.AlphaBeta [1|2]: Check: d8-c7 (depth 4) => 2/-14
+08-Mar-2019 22:07:27 [INFO] AI.AlphaBeta [1|2]: Check: f8-g7 (depth 4) => 2/-8
+08-Mar-2019 22:07:27 [INFO] AI.AlphaBeta [1|3]: Check: b8-c7 (depth 4) => 3/-42
+08-Mar-2019 22:07:27 [INFO] AI.AlphaBeta [1|3]: Check: e5-f4 (depth 4) => 2/-18
+08-Mar-2019 22:07:27 [INFO] AI.AlphaBeta [1|3]: Check: e7-d6 (depth 4) => 2/-23
+08-Mar-2019 22:07:27 [INFO] Core.Supervisor [1|]: AI returned 2 move(s), selected: h8-g7
+08-Mar-2019 22:07:27 [DEBUG] Core.Supervisor [1|]: Messages: [MoveNotify {nDestination = 1, nSource = 2, nMove = [h8] g7, nBoard = BoardRep [(a1,M1),(a3,M1),(a7,M1),(c1,M1),(e1,M1),(g1,M1),(g3,M1),(h2,M1),(b8,M2),(c3,M2),(d8,M2),(e5,M2),(e7,M2),(f8,M2),(g7,M2)]}]
+08-Mar-2019 22:07:27 [DEBUG] Core.Types [1|]: Selecting AI move: 0s + 53461550ns
+08-Mar-2019 22:07:27 [INFO] AI.AlphaBeta [1|4]: Check: c3-b2 (depth 4) => 2/23
+08-Mar-2019 22:07:27 [INFO] AI.AlphaBeta [1|4]: Check: e5-d4 (depth 4) => 2/-22
+08-Mar-2019 22:07:27 [INFO] AI.AlphaBeta [1|1]: Check: h8-g7 (depth 4) => 2/-23
+08-Mar-2019 22:07:31 [INFO] AI.AlphaBeta [1|]: Selecting a move. Side = 2, depth = 4, number of possible moves = 9
+08-Mar-2019 22:07:31 [DEBUG] AI.AlphaBeta [1|]: Score0 = 1/-50, delta = 1/0, shift in previous move = 1 => initial interval (0/-50, 3/-50)
+08-Mar-2019 22:07:31 [INFO] AI.AlphaBeta [1|]: `- Considering scores interval: [0/-50 - 3/-50], depth = 4
+08-Mar-2019 22:07:31 [INFO] Core.Supervisor [1|]: AI returned 1 move(s), selected: g7-f6
+08-Mar-2019 22:07:31 [DEBUG] Core.Supervisor [1|]: Messages: [MoveNotify {nDestination = 1, nSource = 2, nMove = [g7] f6, nBoard = BoardRep [(a1,M1),(a3,M1),(a7,M1),(b2,M1),(e1,M1),(g1,M1),(g3,M1),(h2,M1),(b8,M2),(c3,M2),(d8,M2),(e5,M2),(e7,M2),(f6,M2),(f8,M2)]}]
+08-Mar-2019 22:07:31 [DEBUG] Core.Types [1|]: Selecting AI move: 0s + 18789387ns
+08-Mar-2019 22:07:31 [INFO] AI.AlphaBeta [1|2]: Check: d8-c7 (depth 4) => 3/-50
+08-Mar-2019 22:07:31 [INFO] AI.AlphaBeta [1|2]: Check: e5-d4 (depth 4) => 1/-49
+08-Mar-2019 22:07:31 [INFO] AI.AlphaBeta [1|3]: Check: b8-c7 (depth 4) => 3/-50
+08-Mar-2019 22:07:31 [INFO] AI.AlphaBeta [1|3]: Check: e7-f6 (depth 4) => 1/-39
+08-Mar-2019 22:07:31 [INFO] AI.AlphaBeta [1|3]: Check: e7-d6 (depth 4) => 3/-50
+08-Mar-2019 22:07:31 [INFO] AI.AlphaBeta [1|3]: Check: g7-h6 (depth 4) => 2/13
+08-Mar-2019 22:07:31 [INFO] AI.AlphaBeta [1|4]: Check: c3-d2 (depth 4) => 2/6
+08-Mar-2019 22:07:31 [INFO] AI.AlphaBeta [1|1]: Check: e5-f4 (depth 4) => 2/8
+08-Mar-2019 22:07:31 [INFO] AI.AlphaBeta [1|1]: Check: g7-f6 (depth 4) => 1/-50
+08-Mar-2019 22:07:33 [INFO] AI.AlphaBeta [1|]: There is only one move possible; just do it.
+08-Mar-2019 22:07:33 [INFO] Core.Supervisor [1|]: AI returned 1 move(s), selected: e5xc3
+08-Mar-2019 22:07:33 [DEBUG] Core.Supervisor [1|]: Messages: [MoveNotify {nDestination = 1, nSource = 2, nMove = [e5] d4[X].c3, nBoard = BoardRep [(a1,M1),(a3,M1),(a7,M1),(e1,M1),(g1,M1),(g3,M1),(h2,M1),(b8,M2),(c3,M2),(d8,M2),(e7,M2),(f6,M2),(f8,M2)]}]
+08-Mar-2019 22:07:33 [DEBUG] Core.Types [1|]: Selecting AI move: 0s + 338099ns
+08-Mar-2019 22:07:37 [INFO] AI.AlphaBeta [1|]: Selecting a move. Side = 2, depth = 4, number of possible moves = 8
+08-Mar-2019 22:07:37 [INFO] AI.AlphaBeta [1|1]: Check: d8-c7 (depth 4) => 1/-39
+08-Mar-2019 22:07:37 [INFO] AI.AlphaBeta [1|2]: Check: e7-d6 (depth 4) => 1/-43
+08-Mar-2019 22:07:37 [INFO] AI.AlphaBeta [1|2]: Check: c3-d2 (depth 4) => 2/-43
+08-Mar-2019 22:07:37 [INFO] AI.AlphaBeta [1|4]: Check: c3-b2 (depth 4) => 2/-43
+08-Mar-2019 22:07:37 [INFO] AI.AlphaBeta [1|4]: Check: f6-g5 (depth 4) => 1/-26
+08-Mar-2019 22:07:37 [INFO] AI.AlphaBeta [1|4]: Check: f8-g7 (depth 4) => 1/-38
+08-Mar-2019 22:07:37 [DEBUG] AI.AlphaBeta [1|]: Score0 = 1/-43, delta = 1/0, shift in previous move = 0 => initial interval (0/-43, 2/-43)
+08-Mar-2019 22:07:37 [INFO] AI.AlphaBeta [1|]: `- Considering scores interval: [0/-43 - 2/-43], depth = 4
+08-Mar-2019 22:07:37 [INFO] AI.AlphaBeta [1|3]: Check: b8-c7 (depth 4) => 2/-43
+08-Mar-2019 22:07:37 [INFO] AI.AlphaBeta [1|3]: Check: f6-e5 (depth 4) => 1/5
+08-Mar-2019 22:07:37 [INFO] Core.Supervisor [1|]: AI returned 1 move(s), selected: e7-d6
+08-Mar-2019 22:07:37 [DEBUG] Core.Supervisor [1|]: Messages: [MoveNotify {nDestination = 1, nSource = 2, nMove = [e7] d6, nBoard = BoardRep [(a1,M1),(a3,M1),(a7,M1),(e1,M1),(f2,M1),(g3,M1),(h2,M1),(b8,M2),(c3,M2),(d6,M2),(d8,M2),(f6,M2),(f8,M2)]}]
+08-Mar-2019 22:07:37 [DEBUG] Core.Types [1|]: Selecting AI move: 0s + 27153784ns
+08-Mar-2019 22:07:38 [INFO] AI.AlphaBeta [1|1]: Check: c3-d2 (depth 4) => 2/-46
+08-Mar-2019 22:07:38 [INFO] AI.AlphaBeta [1|1]: Check: d6-c5 (depth 4) => 1/-39
+08-Mar-2019 22:07:38 [INFO] AI.AlphaBeta [1|]: Selecting a move. Side = 2, depth = 4, number of possible moves = 11
+08-Mar-2019 22:07:38 [DEBUG] AI.AlphaBeta [1|]: Score0 = 1/-46, delta = 1/0, shift in previous move = 0 => initial interval (0/-46, 2/-46)
+08-Mar-2019 22:07:38 [INFO] AI.AlphaBeta [1|]: `- Considering scores interval: [0/-46 - 2/-46], depth = 4
+08-Mar-2019 22:07:38 [INFO] AI.AlphaBeta [1|2]: Check: c3-b2 (depth 4) => 2/-46
+08-Mar-2019 22:07:38 [INFO] Core.Supervisor [1|]: AI returned 2 move(s), selected: d8-c7
+08-Mar-2019 22:07:38 [INFO] AI.AlphaBeta [1|4]: Check: d6-e5 (depth 4) => 1/21
+08-Mar-2019 22:07:38 [INFO] AI.AlphaBeta [1|4]: Check: f6-g5 (depth 4) => 2/-46
+08-Mar-2019 22:07:38 [INFO] AI.AlphaBeta [1|4]: Check: f6-e5 (depth 4) => 1/-27
+08-Mar-2019 22:07:38 [INFO] AI.AlphaBeta [1|2]: Check: d8-c7 (depth 4) => 1/-44
+08-Mar-2019 22:07:38 [INFO] AI.AlphaBeta [1|1]: Check: f8-e7 (depth 4) => 1/-39
+08-Mar-2019 22:07:38 [INFO] AI.AlphaBeta [1|3]: Check: b8-c7 (depth 4) => 2/-46
+08-Mar-2019 22:07:38 [INFO] AI.AlphaBeta [1|3]: Check: d8-e7 (depth 4) => 1/-44
+08-Mar-2019 22:07:38 [INFO] AI.AlphaBeta [1|3]: Check: f8-g7 (depth 4) => 1/-34
+08-Mar-2019 22:07:38 [DEBUG] Core.Supervisor [1|]: Messages: [MoveNotify {nDestination = 1, nSource = 2, nMove = [d8] c7, nBoard = BoardRep [(a1,M1),(a3,M1),(a7,M1),(e1,M1),(f2,M1),(f4,M1),(h2,M1),(b8,M2),(c3,M2),(c7,M2),(d6,M2),(f6,M2),(f8,M2)]}]
+08-Mar-2019 22:07:38 [DEBUG] Core.Types [1|]: Selecting AI move: 0s + 39391851ns
+08-Mar-2019 22:07:44 [INFO] AI.AlphaBeta [1|]: Selecting a move. Side = 2, depth = 4, number of possible moves = 9
+08-Mar-2019 22:07:44 [INFO] AI.AlphaBeta [1|4]: Check: d6-c5 (depth 4) => 1/-45
+08-Mar-2019 22:07:44 [DEBUG] AI.AlphaBeta [1|]: Score0 = 1/-36, delta = 1/0, shift in previous move = 0 => initial interval (0/-36, 2/-36)
+08-Mar-2019 22:07:44 [INFO] AI.AlphaBeta [1|]: `- Considering scores interval: [0/-36 - 2/-36], depth = 4
+08-Mar-2019 22:07:44 [INFO] AI.AlphaBeta [1|4]: Check: c3-d2 (depth 4) => 2/-36
+08-Mar-2019 22:07:44 [INFO] AI.AlphaBeta [1|2]: Check: c3-b2 (depth 4) => 2/-36
+08-Mar-2019 22:07:44 [INFO] AI.AlphaBeta [1|2]: Check: f6-g5 (depth 4) => 2/-36
+08-Mar-2019 22:07:44 [INFO] AI.AlphaBeta [1|2]: Check: f8-e7 (depth 4) => 1/-39
+08-Mar-2019 22:07:44 [INFO] Core.Supervisor [1|]: AI returned 1 move(s), selected: d6-c5
+08-Mar-2019 22:07:44 [DEBUG] Core.Supervisor [1|]: Messages: [MoveNotify {nDestination = 1, nSource = 2, nMove = [d6] c5, nBoard = BoardRep [(a1,M1),(a3,M1),(a7,M1),(e1,M1),(e3,M1),(f4,M1),(h2,M1),(b8,M2),(c3,M2),(c5,M2),(c7,M2),(f6,M2),(f8,M2)]}]
+08-Mar-2019 22:07:44 [DEBUG] Core.Types [1|]: Selecting AI move: 0s + 44356549ns
+08-Mar-2019 22:07:44 [INFO] AI.AlphaBeta [1|3]: Check: c7-b6 (depth 4) => 2/-36
+08-Mar-2019 22:07:44 [INFO] AI.AlphaBeta [1|3]: Check: f6-e5 (depth 4) => 2/-36
+08-Mar-2019 22:07:44 [INFO] AI.AlphaBeta [1|1]: Check: d6-e5 (depth 4) => 2/-36
+08-Mar-2019 22:07:44 [INFO] AI.AlphaBeta [1|3]: Check: f8-g7 (depth 4) => 1/-38
+08-Mar-2019 22:07:48 [INFO] AI.AlphaBeta [1|]: Selecting a move. Side = 2, depth = 4, number of possible moves = 10
+08-Mar-2019 22:07:48 [INFO] AI.AlphaBeta [1|4]: Check: c3-b2 (depth 4) => 2/-29
+08-Mar-2019 22:07:48 [INFO] AI.AlphaBeta [1|4]: Check: f6-g5 (depth 4) => 2/-32
+08-Mar-2019 22:07:48 [INFO] AI.AlphaBeta [1|4]: Check: f8-g7 (depth 4) => 1/-52
+08-Mar-2019 22:07:48 [INFO] AI.AlphaBeta [1|3]: Check: c7-d6 (depth 4) => 1/-52
+08-Mar-2019 22:07:48 [DEBUG] AI.AlphaBeta [1|]: Score0 = 1/-29, delta = 1/0, shift in previous move = 0 => initial interval (0/-29, 2/-29)
+08-Mar-2019 22:07:48 [INFO] AI.AlphaBeta [1|]: `- Considering scores interval: [0/-29 - 2/-29], depth = 4
+08-Mar-2019 22:07:48 [INFO] AI.AlphaBeta [1|1]: Check: c3-d2 (depth 4) => 2/-29
+08-Mar-2019 22:07:48 [INFO] AI.AlphaBeta [1|1]: Check: c7-b6 (depth 4) => 1/-54
+08-Mar-2019 22:07:48 [INFO] Core.Supervisor [1|]: AI returned 2 move(s), selected: f8-e7
+08-Mar-2019 22:07:48 [DEBUG] Core.Supervisor [1|]: Messages: [MoveNotify {nDestination = 1, nSource = 2, nMove = [f8] e7, nBoard = BoardRep [(a1,M1),(a3,M1),(a7,M1),(e1,M1),(e3,M1),(f4,M1),(g3,M1),(b8,M2),(c3,M2),(c5,M2),(c7,M2),(e7,M2),(f6,M2)]}]
+08-Mar-2019 22:07:48 [DEBUG] Core.Types [1|]: Selecting AI move: 0s + 45585556ns
+08-Mar-2019 22:07:48 [INFO] AI.AlphaBeta [1|3]: Check: c5-d4 (depth 4) => 2/-29
+08-Mar-2019 22:07:48 [INFO] AI.AlphaBeta [1|2]: Check: c5-b4 (depth 4) => 2/-29
+08-Mar-2019 22:07:48 [INFO] AI.AlphaBeta [1|2]: Check: f6-e5 (depth 4) => 2/-29
+08-Mar-2019 22:07:48 [INFO] AI.AlphaBeta [1|2]: Check: f8-e7 (depth 4) => 1/-54
+08-Mar-2019 22:07:50 [INFO] AI.AlphaBeta [1|4]: Check: c5-d4 (depth 4) => 2/-40
+08-Mar-2019 22:07:50 [INFO] AI.AlphaBeta [1|4]: Check: f6-g5 (depth 4) => 2/-40
+08-Mar-2019 22:07:50 [INFO] AI.AlphaBeta [1|3]: Check: c3-d2 (depth 4) => 2/-40
+08-Mar-2019 22:07:50 [INFO] AI.AlphaBeta [1|3]: Check: c7-d6 (depth 4) => 1/-57
+08-Mar-2019 22:07:50 [INFO] AI.AlphaBeta [1|3]: Check: f6-e5 (depth 4) => 2/-40
+08-Mar-2019 22:07:50 [INFO] AI.AlphaBeta [1|1]: Check: c7-b6 (depth 4) => 1/-48
+08-Mar-2019 22:07:50 [INFO] AI.AlphaBeta [1|]: Selecting a move. Side = 2, depth = 4, number of possible moves = 9
+08-Mar-2019 22:07:50 [DEBUG] AI.AlphaBeta [1|]: Score0 = 1/-40, delta = 1/0, shift in previous move = 0 => initial interval (0/-40, 2/-40)
+08-Mar-2019 22:07:50 [INFO] AI.AlphaBeta [1|]: `- Considering scores interval: [0/-40 - 2/-40], depth = 4
+08-Mar-2019 22:07:50 [INFO] AI.AlphaBeta [1|1]: Check: c3-b2 (depth 4) => 2/-40
+08-Mar-2019 22:07:50 [INFO] Core.Supervisor [1|]: AI returned 1 move(s), selected: c7-d6
+08-Mar-2019 22:07:50 [DEBUG] Core.Supervisor [1|]: Messages: [MoveNotify {nDestination = 1, nSource = 2, nMove = [c7] d6, nBoard = BoardRep [(a1,M1),(a3,M1),(a7,M1),(e1,M1),(e3,M1),(f4,M1),(h4,M1),(b8,M2),(c3,M2),(c5,M2),(d6,M2),(e7,M2),(f6,M2)]}]
+08-Mar-2019 22:07:50 [DEBUG] Core.Types [1|]: Selecting AI move: 0s + 20512873ns
+08-Mar-2019 22:07:50 [INFO] AI.AlphaBeta [1|2]: Check: c5-b4 (depth 4) => 2/-40
+08-Mar-2019 22:07:50 [INFO] AI.AlphaBeta [1|2]: Check: e7-d6 (depth 4) => 1/-47
+08-Mar-2019 22:07:52 [INFO] AI.AlphaBeta [1|]: Selecting a move. Side = 2, depth = 4, number of possible moves = 7
+08-Mar-2019 22:07:52 [INFO] AI.AlphaBeta [1|4]: Check: c5-d4 (depth 4) => 2/-47
+08-Mar-2019 22:07:52 [INFO] AI.AlphaBeta [1|4]: Check: f6-e5 (depth 4) => 1/-49
+08-Mar-2019 22:07:52 [INFO] AI.AlphaBeta [1|3]: Check: b8-c7 (depth 4) => 2/-47
+08-Mar-2019 22:07:52 [INFO] AI.AlphaBeta [1|1]: Check: c3-b2 (depth 4) => 2/-47
+08-Mar-2019 22:07:52 [INFO] AI.AlphaBeta [1|2]: Check: d6-e5 (depth 4) => 1/-81
+08-Mar-2019 22:07:52 [DEBUG] AI.AlphaBeta [1|]: Score0 = 1/-47, delta = 1/0, shift in previous move = 0 => initial interval (0/-47, 2/-47)
+08-Mar-2019 22:07:52 [INFO] AI.AlphaBeta [1|]: `- Considering scores interval: [0/-47 - 2/-47], depth = 4
+08-Mar-2019 22:07:52 [INFO] AI.AlphaBeta [1|3]: Check: c5-b4 (depth 4) => 1/-37
+08-Mar-2019 22:07:52 [INFO] Core.Supervisor [1|]: AI returned 1 move(s), selected: d6-e5
+08-Mar-2019 22:07:52 [DEBUG] Core.Supervisor [1|]: Messages: [MoveNotify {nDestination = 1, nSource = 2, nMove = [d6] e5, nBoard = BoardRep [(a1,M1),(a3,M1),(a7,M1),(e1,M1),(e3,M1),(g5,M1),(h4,M1),(b8,M2),(c3,M2),(c5,M2),(e5,M2),(e7,M2),(f6,M2)]}]
+08-Mar-2019 22:07:52 [DEBUG] Core.Types [1|]: Selecting AI move: 0s + 32782705ns
+08-Mar-2019 22:07:52 [INFO] AI.AlphaBeta [1|2]: Check: c3-d2 (depth 4) => 2/-47
+08-Mar-2019 22:07:55 [INFO] AI.AlphaBeta [1|]: Selecting a move. Side = 2, depth = 4, number of possible moves = 9
+08-Mar-2019 22:07:55 [DEBUG] AI.AlphaBeta [1|]: Score0 = 1/-70, delta = 1/0, shift in previous move = 0 => initial interval (0/-70, 2/-70)
+08-Mar-2019 22:07:55 [INFO] AI.AlphaBeta [1|]: `- Considering scores interval: [0/-70 - 2/-70], depth = 4
+08-Mar-2019 22:07:55 [INFO] AI.AlphaBeta [1|4]: Check: c5-d4 (depth 4) => 2/-70
+08-Mar-2019 22:07:55 [INFO] AI.AlphaBeta [1|4]: Check: f6-g5 (depth 4) => 2/-70
+08-Mar-2019 22:07:55 [INFO] AI.AlphaBeta [1|1]: Check: e5-f4 (depth 4) => 2/-70
+08-Mar-2019 22:07:55 [INFO] Core.Supervisor [1|]: AI returned 1 move(s), selected: e5-d4
+08-Mar-2019 22:07:55 [DEBUG] Core.Supervisor [1|]: Messages: [MoveNotify {nDestination = 1, nSource = 2, nMove = [e5] d4, nBoard = BoardRep [(a1,M1),(a3,M1),(a7,M1),(e1,M1),(e3,M1),(h4,M1),(h6,M1),(b8,M2),(c3,M2),(c5,M2),(d4,M2),(e7,M2),(f6,M2)]}]
+08-Mar-2019 22:07:55 [DEBUG] Core.Types [1|]: Selecting AI move: 0s + 42621869ns
+08-Mar-2019 22:07:55 [INFO] AI.AlphaBeta [1|2]: Check: c3-b2 (depth 4) => 2/-70
+08-Mar-2019 22:07:55 [INFO] AI.AlphaBeta [1|2]: Check: e7-d6 (depth 4) => 1/-74
+08-Mar-2019 22:07:55 [INFO] AI.AlphaBeta [1|3]: Check: c3-d2 (depth 4) => 2/-70
+08-Mar-2019 22:07:55 [INFO] AI.AlphaBeta [1|3]: Check: c5-b4 (depth 4) => 2/-70
+08-Mar-2019 22:07:55 [INFO] AI.AlphaBeta [1|3]: Check: e5-d4 (depth 4) => 1/-83
+08-Mar-2019 22:07:55 [INFO] AI.AlphaBeta [1|1]: Check: b8-c7 (depth 4) => 2/-70
+08-Mar-2019 22:08:04 [INFO] AI.AlphaBeta [1|]: Selecting a move. Side = 2, depth = 4, number of possible moves = 7
+08-Mar-2019 22:08:04 [DEBUG] AI.AlphaBeta [1|]: Score0 = 1/-76, delta = 1/0, shift in previous move = 0 => initial interval (0/-76, 2/-76)
+08-Mar-2019 22:08:04 [INFO] AI.AlphaBeta [1|]: `- Considering scores interval: [0/-76 - 2/-76], depth = 4
+08-Mar-2019 22:08:04 [INFO] AI.AlphaBeta [1|4]: Check: b8-c7 (depth 4) => 2/-76
+08-Mar-2019 22:08:04 [INFO] AI.AlphaBeta [1|4]: Check: e7-d6 (depth 4) => 1/-90
+08-Mar-2019 22:08:04 [INFO] AI.AlphaBeta [1|2]: Check: c5-b4 (depth 4) => 2/-76
+08-Mar-2019 22:08:04 [INFO] AI.AlphaBeta [1|2]: Check: f6-e5 (depth 4) => 2/-76
+08-Mar-2019 22:08:04 [INFO] AI.AlphaBeta [1|3]: Check: c3-b2 (depth 4) => 2/-76
+08-Mar-2019 22:08:04 [INFO] AI.AlphaBeta [1|3]: Check: f6-g5 (depth 4) => 2/-76
+08-Mar-2019 22:08:04 [INFO] AI.AlphaBeta [1|1]: Check: c3-d2 (depth 4) => 2/-76
+08-Mar-2019 22:08:04 [INFO] Core.Supervisor [1|]: AI returned 1 move(s), selected: e7-d6
+08-Mar-2019 22:08:04 [DEBUG] Core.Supervisor [1|]: Messages: [MoveNotify {nDestination = 1, nSource = 2, nMove = [e7] d6, nBoard = BoardRep [(a1,M1),(a3,M1),(a7,M1),(e3,M1),(f2,M1),(h4,M1),(h6,M1),(b8,M2),(c3,M2),(c5,M2),(d4,M2),(d6,M2),(f6,M2)]}]
+08-Mar-2019 22:08:04 [DEBUG] Core.Types [1|]: Selecting AI move: 0s + 18980405ns
+08-Mar-2019 22:08:08 [INFO] AI.AlphaBeta [1|]: Selecting a move. Side = 2, depth = 4, number of possible moves = 8
+08-Mar-2019 22:08:08 [DEBUG] AI.AlphaBeta [1|]: Score0 = 1/-81, delta = 1/0, shift in previous move = 0 => initial interval (0/-81, 2/-81)
+08-Mar-2019 22:08:08 [INFO] AI.AlphaBeta [1|]: `- Considering scores interval: [0/-81 - 2/-81], depth = 4
+08-Mar-2019 22:08:08 [INFO] AI.AlphaBeta [1|4]: Check: c3-b2 (depth 4) => 2/-81
+08-Mar-2019 22:08:08 [INFO] AI.AlphaBeta [1|4]: Check: f6-e5 (depth 4) => 1/-59
+08-Mar-2019 22:08:08 [INFO] AI.AlphaBeta [1|2]: Check: c5-b4 (depth 4) => 2/-81
+08-Mar-2019 22:08:08 [INFO] AI.AlphaBeta [1|2]: Check: d6-e5 (depth 4) => 2/-81
+08-Mar-2019 22:08:08 [INFO] AI.AlphaBeta [1|2]: Check: f6-g5 (depth 4) => 1/11
+08-Mar-2019 22:08:08 [INFO] Core.Supervisor [1|]: AI returned 1 move(s), selected: c3-d2
+08-Mar-2019 22:08:08 [DEBUG] Core.Supervisor [1|]: Messages: [MoveNotify {nDestination = 1, nSource = 2, nMove = [c3] d2, nBoard = BoardRep [(a1,M1),(a3,M1),(a7,M1),(f2,M1),(f4,M1),(h4,M1),(h6,M1),(b8,M2),(c5,M2),(d2,M2),(d4,M2),(d6,M2),(f6,M2)]}]
+08-Mar-2019 22:08:08 [DEBUG] Core.Types [1|]: Selecting AI move: 0s + 11757306ns
+08-Mar-2019 22:08:08 [INFO] AI.AlphaBeta [1|3]: Check: b8-c7 (depth 4) => 2/-81
+08-Mar-2019 22:08:08 [INFO] AI.AlphaBeta [1|3]: Check: d4-e3 (depth 4) => 2/-81
+08-Mar-2019 22:08:08 [INFO] AI.AlphaBeta [1|1]: Check: c3-d2 (depth 4) => 0/-40
+08-Mar-2019 22:08:14 [INFO] AI.AlphaBeta [1|]: Selecting a move. Side = 2, depth = 4, number of possible moves = 8
+08-Mar-2019 22:08:14 [DEBUG] AI.AlphaBeta [1|]: Score0 = 1/-90, delta = 1/0, shift in previous move = -1 => initial interval (-1/-90, 2/-90)
+08-Mar-2019 22:08:14 [INFO] AI.AlphaBeta [1|]: `- Considering scores interval: [-1/-90 - 2/-90], depth = 4
+08-Mar-2019 22:08:14 [INFO] AI.AlphaBeta [1|4]: Check: d2-c1(K) (depth 4) => -1/-90
+08-Mar-2019 22:08:14 [INFO] AI.AlphaBeta [1|4]: Check: d6-e5 (depth 4) => 2/-90
+08-Mar-2019 22:08:14 [INFO] AI.AlphaBeta [1|]: Exactly one move is `too good'; do that move.
+08-Mar-2019 22:08:14 [INFO] Core.Supervisor [1|]: AI returned 1 move(s), selected: d2-c1(K)
+08-Mar-2019 22:08:14 [DEBUG] Core.Supervisor [1|]: Messages: [MoveNotify {nDestination = 1, nSource = 2, nMove = [d2] c1[K], nBoard = BoardRep [(a1,M1),(a3,M1),(a7,M1),(f2,M1),(g5,M1),(h4,M1),(h6,M1),(b8,M2),(c5,M2),(d4,M2),(d6,M2),(f6,M2),(c1,K2)]}]
+08-Mar-2019 22:08:14 [DEBUG] Core.Types [1|]: Selecting AI move: 0s + 14712123ns
+08-Mar-2019 22:08:14 [INFO] AI.AlphaBeta [1|2]: Check: b8-c7 (depth 4) => 2/-90
+08-Mar-2019 22:08:14 [INFO] AI.AlphaBeta [1|1]: Check: d2-e1(K) (depth 4) => 1/-47
+08-Mar-2019 22:08:14 [INFO] AI.AlphaBeta [1|2]: Check: d4-e3 (depth 4) => 2/-90
+08-Mar-2019 22:08:14 [INFO] AI.AlphaBeta [1|1]: Check: d4-c3 (depth 4) => 0/-40
+08-Mar-2019 22:08:14 [INFO] AI.AlphaBeta [1|3]: Check: c5-b4 (depth 4) => 2/-90
+08-Mar-2019 22:08:14 [INFO] AI.AlphaBeta [1|3]: Check: f6-e5 (depth 4) => 2/-90
+08-Mar-2019 22:08:16 [INFO] AI.AlphaBeta [1|]: There is only one move possible; just do it.
+08-Mar-2019 22:08:16 [INFO] Core.Supervisor [1|]: AI returned 1 move(s), selected: d6xf8
+08-Mar-2019 22:08:16 [DEBUG] Core.Supervisor [1|]: Messages: [MoveNotify {nDestination = 1, nSource = 2, nMove = [d6] e7[X].f8, nBoard = BoardRep [(a1,M1),(a3,M1),(a7,M1),(f2,M1),(h4,M1),(h6,M1),(b8,M2),(c5,M2),(d4,M2),(f8,M2),(c1,K2)]}]
+08-Mar-2019 22:08:16 [DEBUG] Core.Types [1|]: Selecting AI move: 0s + 538769ns
+08-Mar-2019 22:08:22 [INFO] AI.AlphaBeta [1|]: Selecting a move. Side = 2, depth = 4, number of possible moves = 10
+08-Mar-2019 22:08:22 [INFO] AI.AlphaBeta [1|4]: Check: d4-e3 (depth 4) => -2/-19
+08-Mar-2019 22:08:22 [INFO] Core.Supervisor [1|]: AI returned 1 move(s), selected: c1-d2
+08-Mar-2019 22:08:22 [DEBUG] Core.Supervisor [1|]: Messages: [MoveNotify {nDestination = 1, nSource = 2, nMove = [c1] d2, nBoard = BoardRep [(a1,M1),(a3,M1),(a7,M1),(f2,M1),(g5,M1),(h6,M1),(b8,M2),(c5,M2),(d4,M2),(f8,M2),(d2,K2)]}]
+08-Mar-2019 22:08:22 [DEBUG] Core.Types [1|]: Selecting AI move: 0s + 20873586ns
+08-Mar-2019 22:08:22 [INFO] AI.AlphaBeta [1|2]: Check: b8-c7 (depth 4) => -2/-19
+08-Mar-2019 22:08:22 [INFO] AI.AlphaBeta [1|2]: Check: c1-d2 (depth 4) => -3/-34
+08-Mar-2019 22:08:22 [DEBUG] AI.AlphaBeta [1|]: Score0 = -3/-19, delta = 1/0, shift in previous move = 0 => initial interval (-4/-19, -2/-19)
+08-Mar-2019 22:08:22 [INFO] AI.AlphaBeta [1|]: `- Considering scores interval: [-4/-19 - -2/-19], depth = 4
+08-Mar-2019 22:08:22 [INFO] AI.AlphaBeta [1|1]: Check: c5-b4 (depth 4) => -2/-19
+08-Mar-2019 22:08:22 [INFO] AI.AlphaBeta [1|1]: Check: f8-g7 (depth 4) => -2/-19
+08-Mar-2019 22:08:22 [INFO] AI.AlphaBeta [1|1]: Check: c1-f4 (depth 4) => -2/-19
+08-Mar-2019 22:08:22 [INFO] AI.AlphaBeta [1|1]: Check: c1-b2 (depth 4) => -2/-19
+08-Mar-2019 22:08:22 [INFO] AI.AlphaBeta [1|3]: Check: d4-c3 (depth 4) => -2/-19
+08-Mar-2019 22:08:22 [INFO] AI.AlphaBeta [1|3]: Check: c1-e3 (depth 4) => -2/-19
+08-Mar-2019 22:08:22 [INFO] AI.AlphaBeta [1|4]: Check: f8-e7 (depth 4) => -2/-26
+08-Mar-2019 22:08:26 [INFO] AI.AlphaBeta [1|]: Selecting a move. Side = 2, depth = 4, number of possible moves = 14
+08-Mar-2019 22:08:26 [INFO] AI.AlphaBeta [1|1]: Check: b8-c7 (depth 4) => -2/-10
+08-Mar-2019 22:08:26 [INFO] AI.AlphaBeta [1|1]: Check: d2-e3 (depth 4) => -2/-10
+08-Mar-2019 22:08:26 [INFO] AI.AlphaBeta [1|3]: Check: b8-c7 (depth 4) => 1/10
+08-Mar-2019 22:08:26 [INFO] AI.AlphaBeta [1|2]: Check: d4-c3 (depth 4) => -2/-10
+08-Mar-2019 22:08:26 [INFO] AI.AlphaBeta [1|1]: Check: d2-f4 (depth 4) => -2/-10
+08-Mar-2019 22:08:26 [INFO] AI.AlphaBeta [1|2]: Check: c5-b4 (depth 4) => 2/-9
+08-Mar-2019 22:08:26 [INFO] AI.AlphaBeta [1|2]: Check: f8-g7 (depth 4) => 2/-9
+08-Mar-2019 22:08:26 [INFO] AI.AlphaBeta [1|2]: Check: f8-e7 (depth 4) => 2/-9
+08-Mar-2019 22:08:26 [INFO] AI.AlphaBeta [1|2]: Check: d2-e1 (depth 4) => 0/-74
+08-Mar-2019 22:08:26 [INFO] AI.AlphaBeta [1|2]: Check: d2-f4 (depth 4) => 1/-75
+08-Mar-2019 22:08:26 [DEBUG] AI.AlphaBeta [1|]: Score0 = -3/-10, delta = 1/0, shift in previous move = 0 => initial interval (-4/-10, -2/-10)
+08-Mar-2019 22:08:26 [INFO] AI.AlphaBeta [1|]: `- Considering scores interval: [-4/-10 - -2/-10], depth = 4
+08-Mar-2019 22:08:26 [INFO] AI.AlphaBeta [1|4]: Check: d4-e3 (depth 4) => -2/-10
+08-Mar-2019 22:08:26 [INFO] AI.AlphaBeta [1|4]: Check: f8-e7 (depth 4) => -2/-10
+08-Mar-2019 22:08:26 [INFO] AI.AlphaBeta [1|3]: Check: d2-b4 (depth 4) => -2/-10
+08-Mar-2019 22:08:26 [INFO] AI.AlphaBeta [1|]: All moves are `too bad'; consider worse scores interval: [-2/-9 - 2/-9]
+08-Mar-2019 22:08:26 [INFO] AI.AlphaBeta [1|]: `- Considering scores interval: [-2/-9 - 2/-9], depth = 4
+08-Mar-2019 22:08:26 [INFO] AI.AlphaBeta [1|1]: Check: d4-e3 (depth 4) => 0/62
+08-Mar-2019 22:08:26 [INFO] AI.AlphaBeta [1|1]: Check: d2-c1 (depth 4) => 1/-67
+08-Mar-2019 22:08:26 [INFO] AI.AlphaBeta [1|1]: Check: d2-b4 (depth 4) => 1/-67
+08-Mar-2019 22:08:26 [INFO] AI.AlphaBeta [1|3]: Check: d2-c3 (depth 4) => 0/11
+08-Mar-2019 22:08:26 [INFO] Core.Supervisor [1|]: AI returned 1 move(s), selected: d2-e1
+08-Mar-2019 22:08:26 [DEBUG] Core.Supervisor [1|]: Messages: [MoveNotify {nDestination = 1, nSource = 2, nMove = [d2] e1, nBoard = BoardRep [(a1,M1),(a3,M1),(a7,M1),(f2,M1),(f6,M1),(h6,M1),(b8,M2),(c5,M2),(d4,M2),(f8,M2),(e1,K2)]}]
+08-Mar-2019 22:08:26 [DEBUG] Core.Types [1|]: Selecting AI move: 0s + 45150010ns
+08-Mar-2019 22:08:26 [INFO] AI.AlphaBeta [1|3]: Check: c5-b4 (depth 4) => -2/-10
+08-Mar-2019 22:08:26 [INFO] AI.AlphaBeta [1|3]: Check: f8-g7 (depth 4) => -2/-10
+08-Mar-2019 22:08:26 [INFO] AI.AlphaBeta [1|3]: Check: d2-e1 (depth 4) => -2/-10
+08-Mar-2019 22:08:26 [INFO] AI.AlphaBeta [1|3]: Check: d2-g5 (depth 4) => -2/-10
+08-Mar-2019 22:08:26 [INFO] AI.AlphaBeta [1|3]: Check: d2-c3 (depth 4) => -2/-10
+08-Mar-2019 22:08:26 [INFO] AI.AlphaBeta [1|4]: Check: d2-c1 (depth 4) => -2/-10
+08-Mar-2019 22:08:26 [INFO] AI.AlphaBeta [1|4]: Check: d2-a5 (depth 4) => -2/-10
+08-Mar-2019 22:08:26 [INFO] AI.AlphaBeta [1|4]: Check: d4-c3 (depth 4) => 1/-73
+08-Mar-2019 22:08:26 [INFO] AI.AlphaBeta [1|4]: Check: d2-e3 (depth 4) => 0/-72
+08-Mar-2019 22:08:26 [INFO] AI.AlphaBeta [1|4]: Check: d2-g5 (depth 4) => 2/-9
+08-Mar-2019 22:08:26 [INFO] AI.AlphaBeta [1|4]: Check: d2-a5 (depth 4) => 1/-67
+08-Mar-2019 22:08:31 [INFO] AI.AlphaBeta [1|]: Selecting a move. Side = 2, depth = 4, number of possible moves = 2
+08-Mar-2019 22:08:31 [INFO] AI.AlphaBeta [1|2]: Check: e1xg3 (depth 5) => 0/-68
+08-Mar-2019 22:08:31 [DEBUG] AI.AlphaBeta [1|]: Score0 = -3/-9, delta = 1/0, shift in previous move = 3 => initial interval (-4/-9, 1/-9)
+08-Mar-2019 22:08:31 [INFO] AI.AlphaBeta [1|]: `- Considering scores interval: [-4/-9 - 1/-9], depth = 5
+08-Mar-2019 22:08:31 [INFO] AI.AlphaBeta [1|1]: Check: e1xh4 (depth 5) => 0/-52
+08-Mar-2019 22:08:31 [INFO] Core.Supervisor [1|]: AI returned 1 move(s), selected: e1xg3
+08-Mar-2019 22:08:31 [DEBUG] Core.Supervisor [1|]: Messages: [MoveNotify {nDestination = 1, nSource = 2, nMove = [e1] f2[X].g3, nBoard = BoardRep [(a1,M1),(a3,M1),(a7,M1),(g7,M1),(h6,M1),(b8,M2),(c5,M2),(d4,M2),(f8,M2),(g3,K2)]}]
+08-Mar-2019 22:08:31 [DEBUG] Core.Types [1|]: Selecting AI move: 0s + 15114317ns
+08-Mar-2019 22:08:33 [INFO] AI.AlphaBeta [1|]: Selecting a move. Side = 2, depth = 4, number of possible moves = 14
+08-Mar-2019 22:08:33 [DEBUG] AI.AlphaBeta [1|]: Score0 = 0/-50, delta = 1/0, shift in previous move = 3 => initial interval (-1/-50, 4/-50)
+08-Mar-2019 22:08:33 [INFO] AI.AlphaBeta [1|]: `- Considering scores interval: [-1/-50 - 4/-50], depth = 4
+08-Mar-2019 22:08:33 [INFO] AI.AlphaBeta [1|4]: Check: c5-b4 (depth 4) => 4/-50
+08-Mar-2019 22:08:33 [INFO] AI.AlphaBeta [1|4]: Check: f8-g7 (depth 4) => 4/-50
+08-Mar-2019 22:08:33 [INFO] AI.AlphaBeta [1|4]: Check: f8-e7 (depth 4) => 3/-11
+08-Mar-2019 22:08:33 [INFO] AI.AlphaBeta [1|4]: Check: g3-h4 (depth 4) => 3/-19
+08-Mar-2019 22:08:33 [INFO] Core.Supervisor [1|]: AI returned 1 move(s), selected: d4-e3
+08-Mar-2019 22:08:33 [DEBUG] Core.Supervisor [1|]: Messages: [MoveNotify {nDestination = 1, nSource = 2, nMove = [d4] e3, nBoard = BoardRep [(a1,M1),(a3,M1),(a7,M1),(h6,M1),(b8,M2),(c5,M2),(e3,M2),(f8,M2),(h8,K1),(g3,K2)]}]
+08-Mar-2019 22:08:33 [DEBUG] Core.Types [1|]: Selecting AI move: 0s + 76177803ns
+08-Mar-2019 22:08:33 [INFO] AI.AlphaBeta [1|2]: Check: d4-c3 (depth 4) => 3/-21
+08-Mar-2019 22:08:33 [INFO] AI.AlphaBeta [1|2]: Check: g3-f2 (depth 4) => 3/-19
+08-Mar-2019 22:08:33 [INFO] AI.AlphaBeta [1|2]: Check: g3-e5 (depth 4) => 1/33
+08-Mar-2019 22:08:33 [INFO] AI.AlphaBeta [1|1]: Check: d4-e3 (depth 4) => 0/-54
+08-Mar-2019 22:08:33 [INFO] AI.AlphaBeta [1|3]: Check: b8-c7 (depth 4) => 3/-16
+08-Mar-2019 22:08:33 [INFO] AI.AlphaBeta [1|3]: Check: g3-h2 (depth 4) => 3/-13
+08-Mar-2019 22:08:33 [INFO] AI.AlphaBeta [1|3]: Check: g3-e1 (depth 4) => 3/-21
+08-Mar-2019 22:08:33 [INFO] AI.AlphaBeta [1|3]: Check: g3-f4 (depth 4) => 3/-14
+08-Mar-2019 22:08:33 [INFO] AI.AlphaBeta [1|3]: Check: g3-d6 (depth 4) => 3/-14
+08-Mar-2019 22:08:33 [INFO] AI.AlphaBeta [1|3]: Check: g3-c7 (depth 4) => 3/-19
+08-Mar-2019 22:08:37 [INFO] AI.AlphaBeta [1|]: Selecting a move. Side = 2, depth = 4, number of possible moves = 14
+08-Mar-2019 22:08:37 [DEBUG] AI.AlphaBeta [1|]: Score0 = 0/-32, delta = 1/0, shift in previous move = 0 => initial interval (-1/-32, 1/-32)
+08-Mar-2019 22:08:37 [INFO] AI.AlphaBeta [1|]: `- Considering scores interval: [-1/-32 - 1/-32], depth = 4
+08-Mar-2019 22:08:37 [INFO] AI.AlphaBeta [1|4]: Check: b8-c7 (depth 4) => 1/-32
+08-Mar-2019 22:08:37 [INFO] AI.AlphaBeta [1|4]: Check: f8-g7 (depth 4) => 1/-32
+08-Mar-2019 22:08:37 [INFO] AI.AlphaBeta [1|4]: Check: f8-e7 (depth 4) => 1/-32
+08-Mar-2019 22:08:37 [INFO] AI.AlphaBeta [1|3]: Check: g3-f4 (depth 4) => 1/-32
+08-Mar-2019 22:08:37 [INFO] AI.AlphaBeta [1|3]: Check: g3-d6 (depth 4) => 1/-32
+08-Mar-2019 22:08:37 [INFO] Core.Supervisor [1|]: AI returned 1 move(s), selected: g3-f2
+08-Mar-2019 22:08:37 [DEBUG] Core.Supervisor [1|]: Messages: [MoveNotify {nDestination = 1, nSource = 2, nMove = [g3] f2, nBoard = BoardRep [(a1,M1),(a3,M1),(a7,M1),(h6,M1),(b8,M2),(c5,M2),(e3,M2),(f8,M2),(d4,K1),(f2,K2)]}]
+08-Mar-2019 22:08:37 [DEBUG] Core.Types [1|]: Selecting AI move: 0s + 33427896ns
+08-Mar-2019 22:08:37 [INFO] AI.AlphaBeta [1|2]: Check: c5-b4 (depth 4) => 1/-32
+08-Mar-2019 22:08:37 [INFO] AI.AlphaBeta [1|2]: Check: g3-h2 (depth 4) => 1/-32
+08-Mar-2019 22:08:37 [INFO] AI.AlphaBeta [1|2]: Check: g3-h4 (depth 4) => 1/-32
+08-Mar-2019 22:08:37 [INFO] AI.AlphaBeta [1|2]: Check: g3-e5 (depth 4) => 1/-32
+08-Mar-2019 22:08:37 [INFO] AI.AlphaBeta [1|1]: Check: e3-d2 (depth 4) => 1/-32
+08-Mar-2019 22:08:37 [INFO] AI.AlphaBeta [1|3]: Check: e3-f2 (depth 4) => 1/-32
+08-Mar-2019 22:08:37 [INFO] AI.AlphaBeta [1|3]: Check: g3-e1 (depth 4) => 1/-32
+08-Mar-2019 22:08:37 [INFO] AI.AlphaBeta [1|4]: Check: g3-f2 (depth 4) => -1/-20
+08-Mar-2019 22:08:37 [INFO] AI.AlphaBeta [1|4]: Check: g3-c7 (depth 4) => 1/-32
+08-Mar-2019 22:08:41 [INFO] AI.AlphaBeta [1|]: Selecting a move. Side = 2, depth = 4, number of possible moves = 8
+08-Mar-2019 22:08:41 [INFO] AI.AlphaBeta [1|3]: Check: b8-c7 (depth 4) => 4/-33
+08-Mar-2019 22:08:41 [INFO] AI.AlphaBeta [1|]: Exactly one move is `too good'; do that move.
+08-Mar-2019 22:08:41 [INFO] Core.Supervisor [1|]: AI returned 1 move(s), selected: f2-g1
+08-Mar-2019 22:08:41 [DEBUG] Core.Supervisor [1|]: Messages: [MoveNotify {nDestination = 1, nSource = 2, nMove = [f2] g1, nBoard = BoardRep [(a1,M1),(a3,M1),(a7,M1),(h6,M1),(b8,M2),(e3,M2),(f8,M2),(b6,K1),(g1,K2)]}]
+08-Mar-2019 22:08:41 [DEBUG] Core.Types [1|]: Selecting AI move: 0s + 23187116ns
+08-Mar-2019 22:08:41 [INFO] AI.AlphaBeta [1|2]: Check: f8-g7 (depth 4) => 2/-12
+08-Mar-2019 22:08:41 [INFO] AI.AlphaBeta [1|2]: Check: f2-g3 (depth 4) => 4/-33
+08-Mar-2019 22:08:41 [INFO] AI.AlphaBeta [1|2]: Check: f2-h4 (depth 4) => 4/-33
+08-Mar-2019 22:08:41 [DEBUG] AI.AlphaBeta [1|]: Score0 = 3/-33, delta = 1/0, shift in previous move = -1 => initial interval (1/-33, 4/-33)
+08-Mar-2019 22:08:41 [INFO] AI.AlphaBeta [1|]: `- Considering scores interval: [1/-33 - 4/-33], depth = 4
+08-Mar-2019 22:08:41 [INFO] AI.AlphaBeta [1|1]: Check: f8-e7 (depth 4) => 3/-11
+08-Mar-2019 22:08:41 [INFO] AI.AlphaBeta [1|4]: Check: e3-d2 (depth 4) => 4/-33
+08-Mar-2019 22:08:41 [INFO] AI.AlphaBeta [1|4]: Check: f2-g1 (depth 4) => 1/-33
+08-Mar-2019 22:08:41 [INFO] AI.AlphaBeta [1|4]: Check: f2-e1 (depth 4) => 4/-33
+08-Mar-2019 22:08:44 [INFO] AI.AlphaBeta [1|]: Selecting a move. Side = 2, depth = 4, number of possible moves = 4
+08-Mar-2019 22:08:44 [DEBUG] AI.AlphaBeta [1|]: Score0 = 4/-6, delta = 1/0, shift in previous move = -2 => initial interval (1/-6, 5/-6)
+08-Mar-2019 22:08:44 [INFO] AI.AlphaBeta [1|]: `- Considering scores interval: [1/-6 - 5/-6], depth = 3
+08-Mar-2019 22:08:44 [INFO] AI.AlphaBeta [1|3]: Check: g1xd4 (depth 3) => 1/-6
+08-Mar-2019 22:08:44 [INFO] AI.AlphaBeta [1|2]: Check: g1xd4 (depth 3) => -1/5
+08-Mar-2019 22:08:44 [INFO] AI.AlphaBeta [1|2]: Check: g1xc5 (depth 3) => 1/-6
+08-Mar-2019 22:08:44 [INFO] AI.AlphaBeta [1|]: Some moves (3 of them) are `too good'; consider better scores interval: [-7/-7 - 1/-7]
+08-Mar-2019 22:08:44 [INFO] AI.AlphaBeta [1|]: `- Considering scores interval: [-7/-7 - 1/-7], depth = 3
+08-Mar-2019 22:08:44 [INFO] Core.Supervisor [1|]: AI returned 1 move(s), selected: g1xc5
+08-Mar-2019 22:08:44 [DEBUG] Core.Supervisor [1|]: Messages: [MoveNotify {nDestination = 1, nSource = 2, nMove = [g1] f2[X].e3.d4.c5, nBoard = BoardRep [(a1,M1),(a3,M1),(a7,M1),(h6,M1),(b8,M2),(f8,M2),(c5,K2)]}]
+08-Mar-2019 22:08:44 [DEBUG] Core.Types [1|]: Selecting AI move: 0s + 6636519ns
+08-Mar-2019 22:08:44 [INFO] AI.AlphaBeta [1|1]: Check: g1xb6 (depth 3) => 2/53
+08-Mar-2019 22:08:44 [INFO] AI.AlphaBeta [1|1]: Check: g1xc5 (depth 3) => -2/-11
+08-Mar-2019 22:08:44 [INFO] AI.AlphaBeta [1|4]: Check: g1xe3 (depth 3) => 1/-6
+08-Mar-2019 22:08:44 [INFO] AI.AlphaBeta [1|4]: Check: g1xe3 (depth 3) => -1/5
+08-Mar-2019 22:09:07 [INFO] Core.Rest [1|]: Created new game #1; First turn: 1; initial board: Nothing
+08-Mar-2019 22:09:07 [INFO] Core.Rest [1|]: Attached AI: AlphaBeta (AlphaBetaParams {abDepth = 4, abStartDepth = Just 4, abCombinationDepth = 2, abDynamicDepth = 2, abDeeperIfBad = False, abMovesLowBound = 4, abMovesHighBound = 8, abBaseTime = Nothing}) russian SimpleEvaluator {seRules = russian, seUsePositionalScore = True, seMobilityWeight = 3, seCenterWeight = 4, seOppositeSideWeight = 4, seBackedWeight = 2, seAsymetryWeight = 1, sePreKingWeight = 3, seKingCoef = 3, seHelpedKingCoef = 5} to game #1 as 2
+08-Mar-2019 22:09:07 [INFO] Core.Rest [1|]: Attached player `portnov' to game #1 as 1

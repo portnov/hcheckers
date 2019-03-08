@@ -5,9 +5,9 @@ from PyQt5.QtGui import QPainter, QPixmap, QValidator
 from PyQt5.QtCore import QRect, QSize, Qt, QObject, QTimer, pyqtSignal, QSettings
 from PyQt5.QtWidgets import QWidget, QDialog, QPushButton, QVBoxLayout, QHBoxLayout, QFormLayout, QLineEdit, QComboBox, QGroupBox, QCheckBox, QDialogButtonBox, QFileDialog
 
-from common import *
-from game import AI, GameSettings
-from lobby import LobbyWidget
+from hcheckers.common import *
+from hcheckers.game import AI, GameSettings
+from hcheckers.lobby import LobbyWidget
 
 START_AI_GAME = 1
 START_HUMAN_GAME = 2

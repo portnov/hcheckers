@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 import sys
 import os
@@ -6,23 +6,23 @@ from os.path import join, exists, dirname, abspath
 import gettext
 import logging
 
+import hcheckers
+
 def locate_share_dir():
     home = os.environ["HOME"]
     bindir = abspath(dirname(sys.argv[0]))
-    logging.info(bindir)
+    moduledir = abspath(dirname(hcheckers.__file__))
     bases = ["/usr/share/hcheckers", "/usr/local/share/hcheckers",
              join(home, ".local", "share", "hcheckers"),
-             bindir]
+             moduledir, bindir]
     for base in bases:
         themes = join(base, "themes")
         if exists(base) and exists(themes):
             return base
-    return None
+    raise Exception("Cannot locate share directory; checked were: {}".format(bases))
 
 def locate_locales():
     share = locate_share_dir()
-    if share is None:
-        raise Exception("Cannot locate share directory")
     locales = join(share, "locale")
     logging.info("Using locales at: {}".format(locales))
     return locales
@@ -34,12 +34,7 @@ else:
 
 from PyQt5.QtWidgets import QApplication, QWidget
 
-import newgamedlg
-import settingsdlg
-from board import Board
-from game import Game, AI
-from theme import Theme
-from toplevel import Checkers
+from hcheckers.toplevel import Checkers
 
 app = QApplication(sys.argv)
 

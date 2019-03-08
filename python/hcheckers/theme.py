@@ -8,7 +8,7 @@ from PyQt5.QtGui import QPixmap, QPainter, QColor
 from PyQt5.Qt import QSvgRenderer
 from PyQt5.QtMultimedia import QSound
 
-from common import *
+from hcheckers.common import *
 
 class CachedPixmap(object):
     def __init__(self, path):
