@@ -10,5 +10,7 @@ ADD hcheckersd.yaml /opt/hcheckers/etc/hcheckersd.yaml
 
 EXPOSE 8864
 
+VOLUME /opt/hcheckers/etc
+
 CMD ["/opt/hcheckers/bin/hcheckersd", "-c", "/opt/hcheckers/etc/hcheckersd.yaml"]
 
