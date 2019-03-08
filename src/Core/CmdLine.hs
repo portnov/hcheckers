@@ -3,6 +3,7 @@ module Core.CmdLine where
 
 import Options.Applicative
 import Data.Semigroup ((<>))
+import Data.Char (toLower)
 
 data CmdLine = CmdLine {
       cmdConfigPath :: Maybe FilePath
@@ -11,6 +12,15 @@ data CmdLine = CmdLine {
     }
   deriving (Eq, Show)
 
+bool :: ReadM Bool
+bool = eitherReader $ \str ->
+  case map toLower str of
+    "on" -> Right True
+    "true" -> Right True
+    "off" -> Right False
+    "false" -> Right False
+    _ -> Left $ "Unknown boolean value: " ++ str
+
 cmdline :: Parser CmdLine
 cmdline = CmdLine
   <$> optional (strOption
@@ -18,9 +28,10 @@ cmdline = CmdLine
          <> short 'c'
          <> metavar "PATH"
          <> help "Path to the config file" ) )
-  <*> optional (switch
+  <*> optional (option bool
         ( long "local"
          <> short 'L'
+         <> metavar "on|off"
          <> help "Run server in local mode" ) )
   <*> optional (strOption
         ( long "special"
