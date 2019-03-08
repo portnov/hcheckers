@@ -82,7 +82,7 @@ class Checkers(QMainWindow):
             server = subprocess.Popen(server_path, shell=True)
             time.sleep(1)
             server.poll()
-            if server.returncode is not None:
+            if server.returncode is not None and server.returncode != 0:
                 message = _("Could not start local server; exit code is {}").format(server.returncode)
                 logging.error(message)
                 QMessageBox.critical(self, _("Exception"), message)
