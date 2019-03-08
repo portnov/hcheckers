@@ -169,7 +169,7 @@ class DrawResponseMessage(Message):
 
 class RequestError(Exception):
     def __init__(self, rs):
-        Exception.__init__(self, unicode(rs))
+        Exception.__init__(self, str(rs))
         self.rs = rs
 
 def handling_error(method):
