@@ -1,0 +1,11 @@
+log_level: info
+enable_metrics: false
+ai:
+  threads: 4
+  load: false
+  store: false
+  use_cache_max_depth: 0
+  use_cache_max_pieces: 12
+  use_cache_max_depth_plus: 12
+  update_cache_max_depth: 4
+  update_cache_max_pieces: 12

@@ -6,3 +6,4 @@ hcheckers.cabal
 *.swp
 *.pyc
 *.mo
+docker/build
