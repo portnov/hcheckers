@@ -65,14 +65,34 @@ Most wanted planned things to do are:
 
 ### Server part
 
-For the server part, the only "easily distributed" form for now is the docker container.
+For the server part, there are two options available.
+
+### Ubuntu package
+
+I will put ubuntu package under github's releases once I'm sure it is working.
+
+To build the package,
 
 ```
 $ git clone https://github.com/portnov/hcheckers.git
 $ cd hcheckers/docker/
-$ ./build-builder.sh
-$ ./build.sh
-$ ./run.sh
+$ ./build-ubuntu-package.sh
+```
+
+The package will be available under `docker/target` subdirectory. 
+Use `sudo dpkg -i hcheckersd_0.1.0.0-1_amd64.deb` to install it.
+
+### Docker image
+
+For non-debian based systems, the only "easily distributed" form for now is the
+docker container.
+
+```
+$ git clone https://github.com/portnov/hcheckers.git
+$ cd hcheckers/docker/
+$ ./build-plain-builder.sh
+$ ./build-plain.sh
+$ ./run-plain.sh
 ```
 
 ### Client part
