@@ -321,8 +321,8 @@ class Board(QWidget):
         width = self.size().width()
         height = self.size().height()
 
-        row_height = float(height) / float(self.n_rows)
-        col_width = float(width) / float(self.n_cols)
+        row_height = height // self.n_rows
+        col_width = width // self.n_cols
         size = min(row_height, col_width)
 
         prev_hide_piece = field.hide_piece
@@ -360,6 +360,7 @@ class Board(QWidget):
         pixmap = QPixmap(self.size())
         pixmap.fill(Qt.white)
         painter = QPainter(pixmap)
+        painter.setRenderHint(QPainter.Antialiasing, True)
 
         for (row, col) in self.fields:
             field = self.fields[(row, col)]
@@ -406,8 +407,8 @@ class Board(QWidget):
     def get_target_field_size(self, size):
         w_max = size.width()
         h_max = size.height()
-        r_w = w_max / self.n_cols
-        r_h = h_max / self.n_rows
+        r_w = w_max // self.n_cols
+        r_h = h_max // self.n_rows
 
         return min(r_w, r_h)
     
