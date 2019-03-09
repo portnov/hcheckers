@@ -10,6 +10,7 @@ hcheckers.cabal
 *.mo
 *.log
 docker/build
+docker/target
 __pycache__/
 python/dist/
 python/deb_dist/

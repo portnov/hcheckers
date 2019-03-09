@@ -5,7 +5,7 @@ RUN apt-get update -y && apt-get install -y libffi6 libgmp10
 
 RUN mkdir -p /opt/hcheckers/{bin,etc}
 
-ADD build/hcheckersd /opt/hcheckers/bin/hcheckersd
+ADD target/hcheckersd /opt/hcheckers/bin/hcheckersd
 ADD hcheckersd.yaml /opt/hcheckers/etc/hcheckersd.yaml
 
 EXPOSE 8864

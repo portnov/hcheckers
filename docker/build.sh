@@ -1,8 +1,8 @@
 #!/bin/bash
 set -e
 
-mkdir -p build
+mkdir -p build target
 
-docker run --name hcheckers-builder --rm -v $(pwd)/build:/dst hcheckers-builder
+docker run --name hcheckers-builder --rm -v $(pwd)/target:/dst -v $(pwd)/build:/src/hcheckers-master/build hcheckers-builder
 
 docker build -t hcheckersd .
