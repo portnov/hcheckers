@@ -321,8 +321,8 @@ class Board(QWidget):
         width = self.size().width()
         height = self.size().height()
 
-        row_height = height / self.n_rows
-        col_width = width / self.n_cols
+        row_height = float(height) / float(self.n_rows)
+        col_width = float(width) / float(self.n_cols)
         size = min(row_height, col_width)
 
         prev_hide_piece = field.hide_piece
