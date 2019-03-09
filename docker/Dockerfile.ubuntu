@@ -8,7 +8,6 @@ RUN curl -sSL https://get.haskellstack.org/ | sh
 RUN ln /usr/local/bin/stack /usr/bin/stack
 
 WORKDIR /src
-VOLUME /src/hcheckers-master/build
 VOLUME /dst
 
 ADD debian-entrypoint.sh /

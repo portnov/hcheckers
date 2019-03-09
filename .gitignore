@@ -9,11 +9,15 @@ hcheckers.cabal
 *.pyc
 *.mo
 *.log
-docker/build
+docker/work
 docker/target
+docker/stack
 __pycache__/
 python/dist/
 python/deb_dist/
 python/hcheckers.egg-info/
 python/hcheckers*.tar.gz
 debian/hcheckersd/
+debian/files
+debian/debhelper-build-stamp
+work/

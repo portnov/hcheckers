@@ -11,7 +11,7 @@ X-Description:
 Package: hcheckersd
 Architecture: any
 Section: misc
-Depends: libc6 (>= 2.27), libgmp10, zlib1g
+Depends: libc6 (>= 2.23), libgmp10, zlib1g
 Description: HCheckers - checkers board game implementation - server package
   .
   HCheckers is a relatively simple implementation of checkers board game (also known as "draughts").
