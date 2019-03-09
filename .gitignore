@@ -16,3 +16,4 @@ python/dist/
 python/deb_dist/
 python/hcheckers.egg-info/
 python/hcheckers*.tar.gz
+debian/hcheckersd/

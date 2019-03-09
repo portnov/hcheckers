@@ -1,0 +1,13 @@
+#!/usr/bin/make -f
+
+%:
+	dh $@
+
+clean:
+	stack clean
+
+check:
+
+override_dh_auto_build:
+	stack build
+

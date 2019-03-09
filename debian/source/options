@@ -1,0 +1,13 @@
+tar-ignore = .git 
+tar-ignore = .gitignore
+tar-ignore = .stack-work
+tar-ignore = debian
+tar-ignore = docker
+tar-ignore = csv
+tar-ignore = games
+tar-ignore = python
+tar-ignore = test
+tar-ignore = *.tar.xz
+
+extend-diff-ignore = "(^|/)(\.git|\.gitignore|\.stack-work|debian|docker|csv|games|python|test|.*tar.xz)"
+

@@ -1,0 +1,23 @@
+Source: hcheckersd
+Maintainer: Ilya V . Portnov <portnov84@rambler.ru>
+Priority: optional
+Section: haskell
+Build-Depends: debhelper (>= 9),
+ haskell-devscripts-minimal | haskell-devscripts (>= 0.8),
+ cdbs,
+ ghc,
+ ghc-prof,
+Standards-Version: 3.9.6
+Homepage: https://github.com/githubuser/hcheckers#readme
+X-Description:
+ Please see the README on GitHub at <https://github.com/githubuser/hcheckers#readme>
+
+Package: hcheckersd
+Architecture: any
+Section: misc
+Depends: libc6 (>= 2.27), libgmp10, zlib1g
+Description: HCheckers - checkers board game implementation - server package
+  .
+  HCheckers is a relatively simple implementation of checkers board game (also known as "draughts").
+  The core is written in Haskell, and the GUI is written in Python + Qt5.
+
