@@ -8,5 +8,5 @@ LOCAL_INSTALL_ROOT=$(stack path --local-install-root)
 LOCAL_INSTALL_ROOT=$(realpath --relative-to=$PWD $LOCAL_INSTALL_ROOT)
 echo "$LOCAL_INSTALL_ROOT/bin/hcheckersd usr/bin" > debian/hcheckersd.install
 
-dpkg-buildpackage -uc -us
+debuild -uc -us
 

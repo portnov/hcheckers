@@ -9,5 +9,5 @@ tar-ignore = python
 tar-ignore = test
 tar-ignore = *.tar.xz
 
-extend-diff-ignore = "(^|/)(\.git|\.gitignore|\.stack-work|debian|docker|csv|games|python|test|.*tar.xz)"
+extend-diff-ignore = "(^|/)(\.git|\.gitignore|\.stack-work|debian|docker|csv|games|python|test|build|.*tar.xz)"
 
