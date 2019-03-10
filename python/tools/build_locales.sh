@@ -2,7 +2,7 @@
 
 HERE=$(dirname $0)
 
-cd $HERE/../locale
+cd $HERE/../hcheckers/locale
 for D in $(ls -d *)
 do if [ -d $D ]
    then pushd $D/LC_MESSAGES/

@@ -1,7 +1,7 @@
 #!/bin/bash
 
 HERE=$(dirname $0)
-cd $HERE/..
+cd $HERE/../hcheckers/
 
 pygettext -v -o locale/hcheckers.pot *.py
 cd locale
