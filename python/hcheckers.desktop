@@ -1,0 +1,8 @@
+[Desktop Entry]
+Categories=Game;BoardGame;
+Encoding=UTF-8
+Name=HCheckers
+GenericName=Checkers board game
+Type=Application
+Exec=hcheckersc.py
+Icon=hcheckers.svg

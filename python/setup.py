@@ -1,8 +1,5 @@
 
-import os
 from setuptools import setup
-
-os.umask(2)
 
 setup(name = 'hcheckers',
         version = '0.1.0.0',
@@ -15,6 +12,10 @@ setup(name = 'hcheckers',
         zip_safe = False,
         scripts = ['hcheckers/hcheckersc.py'],
         include_package_data = True,
+        data_files = [
+                ('share/applications', ['hcheckers.desktop']),
+                ('share/icons/hicolor/scalable/apps', ['hcheckers/icons/hcheckers.svg'])
+            ],
         install_requires = [
             'PyQt5'
             ])

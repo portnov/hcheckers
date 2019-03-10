@@ -1,3 +1,4 @@
 recursive-include hcheckers/icons *
 recursive-include hcheckers/locale *
 recursive-include hcheckers/themes *
+include hcheckers.desktop
