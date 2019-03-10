@@ -78,7 +78,7 @@ class Checkers(QMainWindow):
             self.splashscreen.showMessage(_("Starting local server..."))
             QApplication.processEvents()
             server_path = self.settings.value("local_server_path")
-            logging.info(_("Running local server: {}".format(server_path)))
+            logging.info(_("Running local server: {}").format(server_path))
             server = subprocess.Popen(server_path, shell=True)
             time.sleep(1)
             server.poll()
