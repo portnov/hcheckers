@@ -9,8 +9,6 @@ import Control.Monad
 import Control.Monad.State
 import Data.Char
 import Data.Maybe
-import Data.List
-import qualified Data.Map as M
 import qualified Data.Text as T
 import Text.Megaparsec hiding (Label, State)
 import Text.Megaparsec.Char
@@ -20,7 +18,6 @@ import Text.Printf
 
 import Core.Types
 import Core.Board
-import Core.BoardMap
 import Formats.Types
 import Formats.Fen (boardToFen, showFen)
 import Formats.Pdn (showPdn, movesToInstructions)

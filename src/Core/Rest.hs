@@ -14,7 +14,6 @@ import           Web.Scotty.Trans
 import           Network.HTTP.Types.Status
 import           System.Log.Heavy
 import           System.Log.Heavy.TH
-import System.Exit
 
 import           Core.Types
 import           Core.Board

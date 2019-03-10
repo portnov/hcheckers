@@ -13,7 +13,6 @@ import Text.Megaparsec.Error (parseErrorPretty)
 
 import Core.Types
 import Core.Board
-import Core.BoardMap
 import Formats.Types
 
 pSide :: Parser Side

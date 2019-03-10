@@ -1,18 +1,11 @@
 {-# LANGUAGE BangPatterns #-}
 module Core.BoardMap where
 
-import Control.Monad
-import Control.Exception (bracket_)
 import Control.Concurrent.STM
-import qualified Data.Map as M
-import qualified Data.HashMap.Strict as H
 import qualified Data.IntMap.Strict as IM
 import qualified Data.IntSet as IS
-import Data.Array.IArray as A
 import Data.Hashable
 import qualified STMContainers.Map as SM
-import Data.Store
-import Data.Word
 import Text.Printf
 
 import Core.Types

@@ -5,7 +5,6 @@ module Main where
 import Control.Monad.Reader
 import Control.Concurrent.STM
 import Data.Default
-import System.Environment
 import System.Log.Heavy
 import Options.Applicative
 

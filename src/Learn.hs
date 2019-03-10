@@ -9,7 +9,6 @@ import Control.Monad.State
 import Control.Concurrent.STM
 import qualified Control.Monad.Metrics as Metrics
 import Control.Monad.Catch
-import Data.Maybe
 import Data.Text.Format.Heavy
 import System.Log.Heavy
 import System.Log.Heavy.TH
