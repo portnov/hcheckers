@@ -224,6 +224,9 @@ class ViewSettingsPage(QWidget):
         theme_name = self.theme.currentData()
         return self.themes[theme_name]
 
+    def get_enable_sound(self):
+        return self.enable_sound.checkState() == Qt.Checked
+
     def load(self, settings):
         show_notation = settings.value("show_notation", type=bool)
         self.show_notation.setCheckState(Qt.Checked if show_notation else Qt.Unchecked)
@@ -245,7 +248,7 @@ class ViewSettingsPage(QWidget):
         settings.setValue("show_notation", self.show_notation.checkState() == Qt.Checked)
         settings.setValue("show_possible_moves", self.show_possible_moves.checkState() == Qt.Checked)
         settings.setValue("theme", self.theme.currentData())
-        settings.setValue("enable_sound", self.enable_sound.checkState() == Qt.Checked)
+        settings.setValue("enable_sound", self.get_enable_sound())
 
 class GeneralPage(QWidget):
     def __init__(self, parent=None):
@@ -314,6 +317,8 @@ class SettingsDialog(DialogBase):
         self.view.load(settings)
         self.ais.load(settings)
 
+    saved = pyqtSignal()
+
     def get_ok_button(self):
         return self.ok_button
 
@@ -325,10 +330,14 @@ class SettingsDialog(DialogBase):
 
     def get_theme(self):
         return self.view.get_theme()
+
+    def get_enable_sound(self):
+        return self.view.get_enable_sound()
     
     def _on_accept(self):
         self.general.save(self.settings)
         self.view.save(self.settings)
         self.ais.save(self.settings)
+        self.saved.emit()
         self.accept()
 

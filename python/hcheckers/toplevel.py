@@ -511,6 +511,7 @@ class Checkers(QMainWindow):
             self.board.show_possible_moves = dialog.get_show_possible_moves()
             self.board.show_notation = dialog.get_show_notation()
             self.board.theme = dialog.get_theme()
+            self.board.theme.enable_sound = dialog.get_enable_sound()
             self.settings.sync()
             logging.info(_("Settings have been updated."))
 
