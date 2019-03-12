@@ -52,14 +52,13 @@ it can grow very large and eat a lot of RAM.
 
 ## Current state
 
-At the moment, HCheckers has most of core functionality implemented.
+At the moment, HCheckers has most of core functionality implemented, but there
+are some outstanding issues (please refer to github's issue tracker).
 Most wanted planned things to do are:
 
 * User documentation (#22)
 * Code documentation (#1)
 * Spectators support (#9)
-* Distributed computing support (#17)
-* Packaging (#23, #24)
 
 ## Installation
 
@@ -69,9 +68,10 @@ For the server part, there are two options available.
 
 ### Ubuntu package
 
-I will put ubuntu package under github's releases once I'm sure it is working.
+Last package that I released is available in github releases. Please refer to
+https://github.com/portnov/hcheckers/releases .
 
-To build the package,
+To build a newer package,
 
 ```
 $ git clone https://github.com/portnov/hcheckers.git
@@ -106,15 +106,18 @@ $ cd hcheckers/python/
 $ sudo pip3 install .
 ```
 
-2) Using debian package (on debian-based systems). To build a debian package, execute
+2) Using debian package (on debian-based systems).
+
+Last package that I released is available in github releases. Please refer to
+https://github.com/portnov/hcheckers/releases .
+
+To build a newer package, execute
 
 ```
 $ sudo apt-get install python3-stdeb
 $ cd hcheckers/python/
 $ ./build_deb.sh
 ```
-
-I will put debian package into github's releases once I'm sure it is correctly working.
 
 To install a package, do
 
