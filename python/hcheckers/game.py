@@ -103,11 +103,11 @@ class AI(object):
         }
 
 default_ais = [
-        AI(title=_("Beginner"), depth=2, max_combination_depth=6),
-        AI(title=_("Novice"), depth=4, max_combination_depth=4),
-        AI(title=_("Average"), depth=6, max_combination_depth=4),
-        AI(title=_("Good"), depth=6, max_combination_depth=9),
-        AI(title=_("Master"), depth=7, max_combination_depth=9)
+        AI(title=_("Beginner"), depth=2, start_depth=2, max_combination_depth=6),
+        AI(title=_("Novice"), depth=4, start_depth=4, max_combination_depth=4),
+        AI(title=_("Average"), depth=6, start_depth=6, max_combination_depth=4),
+        AI(title=_("Good"), depth=6, start_depth=6, max_combination_depth=9),
+        AI(title=_("Master"), depth=7, start_depth=7, max_combination_depth=9, deeper_if_bad=True)
     ]
 
 class GameSettings(object):
