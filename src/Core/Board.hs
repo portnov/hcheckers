@@ -73,16 +73,10 @@ boardDirection Bottom ForwardLeft = UpLeft
 boardDirection Bottom ForwardRight = UpRight
 boardDirection Bottom BackwardLeft = DownLeft
 boardDirection Bottom BackwardRight = DownRight
-boardDirection Bottom Forward = Up
-boardDirection Bottom PLeft = ToLeft
 boardDirection Top ForwardLeft = DownRight
 boardDirection Top ForwardRight = DownLeft
 boardDirection Top BackwardLeft = UpRight
 boardDirection Top BackwardRight = UpLeft
-boardDirection Top Backward = Up
-boardDirection Top Forward = ToLeft
-boardDirection _ PRight = ToRight
-boardDirection _ Backward = Down
 
 boardSide :: BoardOrientation -> Side -> BoardSide
 boardSide FirstAtBottom First = Bottom
@@ -104,36 +98,22 @@ playerDirection First UpLeft = ForwardLeft
 playerDirection First UpRight = ForwardRight
 playerDirection First DownLeft = BackwardLeft
 playerDirection First DownRight = BackwardRight
-playerDirection First Up = Forward
-playerDirection First Down = Backward
 playerDirection Second UpLeft = BackwardRight
 playerDirection Second UpRight = BackwardLeft
 playerDirection Second DownLeft = ForwardRight
 playerDirection Second DownRight = ForwardLeft
-playerDirection Second Down = Forward
-playerDirection Second Up = Backward
-playerDirection _ ToRight = PRight
-playerDirection _ ToLeft = PLeft
 
 oppositeDirection :: PlayerDirection -> PlayerDirection
 oppositeDirection ForwardLeft = BackwardRight
 oppositeDirection ForwardRight = BackwardLeft
 oppositeDirection BackwardLeft = ForwardRight
 oppositeDirection BackwardRight = ForwardLeft
-oppositeDirection Forward = Backward
-oppositeDirection Backward = Forward
-oppositeDirection PRight = PLeft
-oppositeDirection PLeft = PRight
 
 neighbour :: BoardDirection -> Address -> Maybe Address
 neighbour UpLeft a = aUpLeft a
 neighbour UpRight a = aUpRight a
 neighbour DownLeft a = aDownLeft a
 neighbour DownRight a = aDownRight a
-neighbour Up a = aUp a
-neighbour ToRight a = aRight a
-neighbour Down a = aDown a
-neighbour ToLeft a = aLeft a
 
 myNeighbour :: HasBoardOrientation rules => rules -> Side -> PlayerDirection -> Address -> Maybe Address
 myNeighbour rules side dir a = neighbour (myDirection rules side dir) a
@@ -144,10 +124,6 @@ getNeighbourDirection src dst
   | aUpRight src == Just dst = Just UpRight
   | aDownLeft src == Just dst = Just DownLeft
   | aDownRight src == Just dst = Just DownRight
-  | aUp src == Just dst = Just Up
-  | aRight src == Just dst = Just ToRight
-  | aDown src == Just dst = Just Down
-  | aLeft src == Just dst = Just ToLeft
   | otherwise = Nothing
 
 getNeighbourDirection' :: Board -> Address -> Label -> Maybe BoardDirection
@@ -456,6 +432,33 @@ kingMove side src dir n = Move src $ replicate n (Step dir False False)
 firstMoveDirection :: Move -> PlayerDirection
 firstMoveDirection move = sDirection $ head $ moveSteps move
 
+makeLine :: [Label] -> [Address]
+makeLine labels = map (\l -> Address l Nothing Nothing Nothing Nothing Nothing) labels
+
+line1labels :: [Label]
+line1labels = ["a1", "c1", "e1", "g1"]
+
+line2labels :: [Label]
+line2labels = ["b2", "d2", "f2", "h2"]
+
+line3labels :: [Label]
+line3labels = ["a3", "c3", "e3", "g3"]
+
+line4labels :: [Label]
+line4labels = ["b4", "d4", "f4", "h4"]
+
+line5labels :: [Label]
+line5labels = ["a5", "c5", "e5", "g5"]
+
+line6labels :: [Label]
+line6labels = ["b6", "d6", "f6", "h6"]
+
+line7labels :: [Label]
+line7labels = ["a7", "c7", "e7", "g7"]
+
+line8labels :: [Label]
+line8labels = ["b8", "d8", "f8", "h8"]
+
 calcBoardHash :: Board -> BoardHash
 calcBoardHash board = foldr update 0 (boardAssocs board)
   where
@@ -470,20 +473,9 @@ updateBoardHash :: Board -> Label -> Piece -> BoardHash
 updateBoardHash board label piece =
   updateBoardHash' (randomTable board) (boardHash board) label piece
 
-buildBoard :: RandomTableProvider rnd => rnd -> Bool -> BoardOrientation -> BoardSize -> Board
-buildBoard rnd diagonal orient bsize@(nrows, ncols) =
-  let mkAddress p = Address {
-                        aLabel = label p
-                      , aPromotionSide = promote p
-                      , aUpLeft = upLeft p
-                      , aUpRight = upRight p
-                      , aDownLeft = downLeft p
-                      , aDownRight = downRight p
-                      , aUp = up p
-                      , aRight = right p
-                      , aDown = down p
-                      , aLeft = left p
-                    }
+buildBoard :: RandomTableProvider rnd => rnd -> BoardOrientation -> BoardSize -> Board
+buildBoard rnd orient bsize@(nrows, ncols) =
+  let mkAddress p = Address (label p) (promote p) (upLeft p) (upRight p) (downLeft p) (downRight p)
       label (r,c) = Label (c-1) (r-1)
 
       promote (r,_)
@@ -507,30 +499,11 @@ buildBoard rnd diagonal orient bsize@(nrows, ncols) =
         | r-1 < 1 || c+1 > ncols = Nothing
         | otherwise = M.lookup (r-1, c+1) addresses
 
-      up (r,c)
-        | r+1 > nrows = Nothing
-        | otherwise = M.lookup (r+1, c) addresses
-
-      down (r,c)
-        | r-1 < 1 = Nothing
-        | otherwise = M.lookup (r-1, c) addresses
-
-      right (r,c)
-        | c+1 > ncols = Nothing
-        | otherwise = M.lookup (r, c+1) addresses
-
-      left (r,c)
-        | c-1 < 1 = Nothing
-        | otherwise = M.lookup (r, c-1) addresses
-
       addresses = M.fromList [(p, mkAddress p) | p <- coordinates]
 
       odds n = [1, 3 .. n]
       evens n = [2, 4 .. n]
-
-      coordinates
-        | diagonal = [(r, c) | r <- odds nrows, c <- odds ncols] ++ [(r, c) | r <- evens nrows, c <- evens ncols]
-        | otherwise = [(r, c) | r <- [1..nrows], c <- [1..ncols]]
+      coordinates = [(r, c) | r <- odds nrows, c <- odds ncols] ++ [(r, c) | r <- evens nrows, c <- evens ncols]
 
       addressByLabel = buildLabelMap nrows ncols [(label p, address) | (p, address) <- M.assocs addresses]
 
