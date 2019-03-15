@@ -133,6 +133,7 @@ class Board(QWidget):
         self._board = dict()
         self._new_board = None
         self._text_message = None
+        self._prev_hovered_field = None
 
         self._my_turn = True
         self.locked = False
@@ -140,6 +141,7 @@ class Board(QWidget):
         self.move_animation = MoveAnimation(self)
         self.move_animation.finished.connect(self.on_animation_finished)
 
+        self.setMouseTracking(True)
         self.setup_patterns()
 
     field_clicked = pyqtSignal(int, int)
@@ -452,6 +454,13 @@ class Board(QWidget):
         if self.move_animation.tick(e):
             self._pixmap = None
             self.repaint()
+    
+    def _is_mine(self, piece):
+        return piece is not None and piece.side == self.game.user_side
+
+    def _show_forbidden_cursor(self):
+        self.setCursor(Qt.ForbiddenCursor)
+        QTimer.singleShot(300, lambda: self.setCursor(Qt.ArrowCursor))
 
     @handling_error
     def process_click(self, row, col):
@@ -463,11 +472,12 @@ class Board(QWidget):
         if field.notation is None:
             return
         piece = self._board.get(field.label)
-        if piece is not None and piece.side == self.game.user_side:
+        if self._is_mine(piece):
             moves = self.game.get_possible_moves(field.label)
             #logging.debug(moves)
             if not moves:
                 logging.warning(_("Piece at {} does not have moves").format(field.notation))
+                self._show_forbidden_cursor()
             else:
                 self._valid_target_fields = dict((move.steps[-1].field, move) for move in moves)
                 valid_targets = []
@@ -498,9 +508,11 @@ class Board(QWidget):
                 self.repaint()
             else:
                 logging.warning(_("Piece at {} cannot be moved to {}").format(self.fields[self.selected_field].notation, field.notation))
+                self._show_forbidden_cursor()
 
         else:
             logging.warning(_("Field {} does not belong to you").format(field.notation))
+            self._show_forbidden_cursor()
 
     def get_notation(self, label):
         idx = self.index_by_label[label]
@@ -565,33 +577,67 @@ class Board(QWidget):
         self.fields_setup(self._board)
         self.repaint()
 
+    def _is_mouse_active(self):
+        if self.move_animation.is_active():
+            return False
+        
+        if not self.my_turn:
+            return False
+        if self.locked:
+            return False
+
+        if self.game.draw_state == WE_REQUESTED_DRAW:
+            logging.warning(_("Awaiting a response about draw."))
+            return False
+        elif self.game.draw_state == DRAW_REQUESTED_FROM_US:
+            logging.warning(_("Another side have offered a draw. You have to accept or decline it."))
+            return False
+        
+        return True
+
+    def _get_field_at_pos(self, pos):
+        for (row, col) in self.fields:
+            field = self.fields[(row, col)]
+            if field.rect().contains(pos):
+                return (row, col)
+        return None
+
     @handling_error
     def mousePressEvent(self, me):
         if me.button() != Qt.LeftButton:
             return
         
-        if self.move_animation.is_active():
+        if not self._is_mouse_active():
             return
         
-        if not self.my_turn:
-            return
-        if self.locked:
+        at_pos = self._get_field_at_pos(me.pos())
+        if at_pos is not None:
+            (row, col) = at_pos
+            self.invalidate()
+            self.update()
+            self.process_click(row, col)
+
+    @handling_error
+    def mouseMoveEvent(self, me):
+        if not self._is_mouse_active():
             return
 
-        if self.game.draw_state == WE_REQUESTED_DRAW:
-            logging.warning(_("Awaiting a response about draw."))
-            return
-        elif self.game.draw_state == DRAW_REQUESTED_FROM_US:
-            logging.warning(_("Another side have offered a draw. You have to accept or decline it."))
-            return
-        
-        for (row, col) in self.fields:
+        cursor = Qt.ArrowCursor
+        at_pos = self._get_field_at_pos(me.pos())
+        if at_pos is not None and self._prev_hovered_field != at_pos:
+            (row, col) = at_pos
             field = self.fields[(row, col)]
-            if field.rect().contains(me.pos()):
-                self.invalidate()
-                self.update()
-                self.process_click(row, col)
-                return
+            if field.notation is not None:
+                piece = self._board.get(field.label)
+                if self._is_mine(piece):
+                    moves = self.game.get_possible_moves(field.label)
+                    if moves:
+                        cursor = Qt.OpenHandCursor
+                elif piece is None and self.selected_field is not None and self._valid_target_fields is not None:
+                    if field.label in self._valid_target_fields:
+                        cursor = Qt.PointingHandCursor
+            self._prev_hovered_field = at_pos
+            self.setCursor(cursor)
 
     def _handle_connection_error(self, url, e):
         self.toplevel._handle_connection_error(url, e)
