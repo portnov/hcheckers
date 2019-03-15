@@ -413,7 +413,7 @@ class (Typeable g, Show g, HasBoardOrientation g) => GameRules g where
   mobilityScore g side board = length $ possibleMoves g side board
 
   updateRules :: g -> Value -> g
-  getGameResult :: g -> Board -> Maybe GameResult
+  getGameResult :: g -> Board -> Side -> Maybe GameResult
   rulesName :: g -> String
   pdnId :: g -> String
 

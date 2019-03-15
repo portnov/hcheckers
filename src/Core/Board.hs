@@ -668,13 +668,11 @@ parseBoardRep rnd rules (BoardRep list) = foldr set (buildBoard rnd orient bsize
 
 -- | Generic implementation of @getGameResult@, which suits most rules.
 -- This can not, however, recognize draws.
-genericGameResult :: GameRules rules => rules -> Board -> Maybe GameResult
-genericGameResult rules board =
-  if null (possibleMoves rules First board)
-    then Just SecondWin
-    else if null (possibleMoves rules Second board)
-           then Just FirstWin
-           else Nothing
+genericGameResult :: GameRules rules => rules -> Board -> Side -> Maybe GameResult
+genericGameResult rules board side
+  | side == First && null (possibleMoves rules First board) = Just SecondWin
+  | side == Second && null (possibleMoves rules Second board) = Just FirstWin
+  | otherwise = Nothing
 
 instance IsString Label where
   fromString str =

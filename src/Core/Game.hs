@@ -100,7 +100,7 @@ doMoveRq side move = do
      else do
           let (board', _, _) = applyMove rules side move board
               moveMsg = MoveNotify (opposite side) side (moveRep rules side move) (boardRep board')
-              mbResult = getGameResult rules board'
+              mbResult = getGameResult rules board' (opposite side)
               messages = case mbResult of
                            Nothing -> [moveMsg]
                            Just result ->
