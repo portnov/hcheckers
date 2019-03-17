@@ -237,7 +237,8 @@ supported_rules = [
         ("brazilian", _("Brazilian draughts")),
         ("canadian", _("Canadian draughts")),
         ("spancirety", _("Spancirety draughts")), 
-        ("diagonal", _("Diagonal draughts"))
+        ("diagonal", _("Diagonal draughts")),
+        ("turkish", _("Turkish draughts"))
     ]
 
 rules_dict = dict(supported_rules)

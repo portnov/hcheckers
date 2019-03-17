@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-module Rules.Diagonal (Diagonal, diagonal) where
+module Rules.Diagonal (DiagonalRussian, diagonal) where
 
 import Data.Typeable
 
@@ -11,15 +11,18 @@ import Core.Evaluator
 import Rules.Russian
 import Rules.Generic
 
-newtype Diagonal = Diagonal GenericRules
+newtype DiagonalRussian = DiagonalRussian GenericRules
   deriving (Typeable, HasBoardOrientation)
 
-instance Show Diagonal where
+instance Show DiagonalRussian where
   show = rulesName
 
-instance GameRules Diagonal where
+instance HasTopology DiagonalRussian where
+  boardTopology _ = Core.Types.Diagonal
+
+instance GameRules DiagonalRussian where
   initBoard rnd r =
-    let board = buildBoard rnd (boardOrientation r) (8, 8)
+    let board = buildBoard rnd r (boardOrientation r) (8, 8)
         labels1 = ["c1", "e1", "g1",
                    "d2", "f2", "h2",
                    "e3", "g3",
@@ -53,8 +56,8 @@ instance GameRules Diagonal where
 
   pdnId _ = "42"
 
-diagonal :: Diagonal
-diagonal = Diagonal $
+diagonal :: DiagonalRussian
+diagonal = DiagonalRussian $
   let rules = russianBase rules
   in  rules
 

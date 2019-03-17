@@ -20,8 +20,11 @@ newtype Russian = Russian GenericRules
 instance Show Russian where
   show = rulesName
 
+instance HasTopology Russian where
+  boardTopology _ = Diagonal
+
 instance GameRules Russian where
-  initBoard rnd _ = board8 rnd
+  initBoard rnd r = board8 rnd r
 
   boardSize _ = (8, 8)
 

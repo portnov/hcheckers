@@ -59,7 +59,7 @@ special cmd args =
       withCheckers cmd $ do
         sh <- asks csSupervisor
         st <- liftIO $ atomically $ readTVar sh
-        let b = movePiece' "c3" "e5" $ board8 st
+        let b = movePiece' "c3" "e5" $ board8 st russian
             b' = flipBoard b
             b'' = flipBoard b'
         liftIO $ do

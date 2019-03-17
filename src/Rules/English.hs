@@ -19,11 +19,14 @@ newtype English = English GenericRules
 instance Show English where
   show = rulesName
 
+instance HasTopology English where
+  boardTopology _ = Diagonal
+
 instance GameRules English where
   boardSize _ = boardSize Russian.russian
 
   initBoard rnd r = 
-    let board = buildBoard rnd (boardOrientation r) (boardSize r)
+    let board = buildBoard rnd r (boardOrientation r) (boardSize r)
         labels1 = line1labels ++ line2labels ++ line3labels
         labels2 = line8labels ++ line7labels ++ line6labels
     in  setManyPieces' labels1 (Piece Man Second) $ setManyPieces' labels2 (Piece Man First) board

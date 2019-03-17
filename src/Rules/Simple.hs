@@ -18,6 +18,9 @@ newtype Simple = Simple GenericRules
 instance Show Simple where
   show = rulesName
 
+instance HasTopology Simple where
+  boardTopology _ = Diagonal
+
 instance GameRules Simple where
   initBoard rnd _ = initBoard rnd Russian.russian
   boardSize _ = boardSize Russian.russian

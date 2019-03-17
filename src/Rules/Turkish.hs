@@ -1,8 +1,10 @@
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE OverloadedStrings #-}
-module Rules.International (International, international, internationalBase) where
+module Rules.Turkish (
+    Turkish, turkish, turkishBase
+  ) where
 
 import Data.Typeable
 
@@ -12,63 +14,57 @@ import Core.BoardMap
 import Core.Evaluator
 import Rules.Generic
 
--- import Debug.Trace
-
-newtype International = International GenericRules
+newtype Turkish = Turkish GenericRules
   deriving (Typeable, HasBoardOrientation)
 
-instance Show International where
+instance Show Turkish where
   show = rulesName
 
-instance HasTopology International where
-  boardTopology _ = Diagonal
+instance HasTopology Turkish where
+  boardTopology _ = Orthogonal
 
-instance GameRules International where
-  boardSize _ = (10, 10)
-
+instance GameRules Turkish where
   initBoard rnd r =
-    let board = buildBoard rnd r (boardOrientation r) (10, 10)
-        labels1 = ["a1", "c1", "e1", "g1", "i1",
-                   "b2", "d2", "f2", "h2", "j2",
-                   "a3", "c3", "e3", "g3", "i3",
-                   "b4", "d4", "f4", "h4", "j4"]
-
-        labels2 = ["b10", "d10", "f10", "h10", "j10",
-                   "a9", "c9", "e9", "g9", "i9",
-                   "b8", "d8", "f8", "h8", "j8",
-                   "a7", "c7", "e7", "g7", "i7"]
-
+    let board = buildBoard rnd r (boardOrientation r) (8, 8)
+        labels1 = ["a2", "b2", "c2", "d2", "e2", "f2", "g2", "h2",
+                   "a3", "b3", "c3", "d3", "e3", "f3", "g3", "h3"]
+        labels2 = ["a7", "b7", "c7", "d7", "e7", "f7", "g7", "h7",
+                   "a6", "b6", "c6", "d6", "e6", "f6", "g6", "h6"]
     in  setManyPieces' labels1 (Piece Man First) $ setManyPieces' labels2 (Piece Man Second) board
 
-  boardNotation r = numericNotation (boardSize r)
+  boardSize _ = (8, 8)
 
-  dfltEvaluator r = SomeEval $ (defaultEvaluator r) {seKingCoef = 5, seHelpedKingCoef = 6}
+  dfltEvaluator r = SomeEval $ defaultEvaluator r
 
-  parseNotation r = parseNumericNotation (boardSize r)
+  boardNotation _ = chessNotation
 
-  rulesName _ = "international"
+  parseNotation _ = parseChessNotation
+
+  rulesName _ = "turkish"
+
+  possibleMoves (Turkish rules) side board = gPossibleMoves rules side board
 
   updateRules r _ = r
 
   getGameResult = genericGameResult
 
-  possibleMoves (International rules) side board = gPossibleMoves rules side board
-  mobilityScore (International rules) side board = gMobilityScore rules side board
+  pdnId _ = "43"
 
-  pdnId _ = "20"
+turkishBase :: GenericRules -> GenericRules
+turkishBase =
+  let rules this = (abstractRules this) {
+                        gManSimpleMoveDirections = [PLeft, Forward, PRight]
+                      , gManCaptureDirections =  [PLeft, Forward, PRight]
+                      , gKingCaptureDirections = [Backward, PLeft, Forward, PRight]
+                      , gManCaptures = manCaptures this
+                      , gManCaptures1 = manCaptures1 this
+                      , gCaptureMax = True
+                    }
+  in  rules
 
-internationalBase :: GenericRules -> GenericRules
-internationalBase =
-  let rules this = abstractRules this {
-                gManCaptures = manCaptures this,
-                gManCaptures1 = manCaptures1 this,
-                gCaptureMax = True
-              }
-  in rules
-
-international :: International
-international = International $
-  let rules = internationalBase rules
+turkish :: Turkish
+turkish = Turkish $
+  let rules = turkishBase rules
   in  rules
 
 manCaptures :: GenericRules -> CaptureState -> [PossibleMove]
@@ -99,7 +95,7 @@ manCaptures1 rules ct@(CaptureState {..}) =
 
     check a dir =
       case myNeighbour rules side dir a of
-        Just victimAddr | not (aLabel victimAddr `labelSetMember` ctCaptured) ->
+        Just victimAddr {- | not (aLabel victimAddr `labelSetMember` ctCaptured) -} ->
           case getPiece victimAddr ctBoard of
             Nothing -> []
             Just victim ->

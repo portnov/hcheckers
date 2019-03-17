@@ -139,7 +139,11 @@ data Address = Address {
     aUpLeft :: Maybe Address,
     aUpRight :: Maybe Address,
     aDownLeft :: Maybe Address,
-    aDownRight :: Maybe Address
+    aDownRight :: Maybe Address,
+    aUp :: Maybe Address,
+    aRight :: Maybe Address,
+    aDown :: Maybe Address,
+    aLeft :: Maybe Address
   }
   deriving (Typeable)
 
@@ -239,6 +243,7 @@ type TBoardMap a = SM.Map BoardHash a
 data BoardDirection =
     UpLeft | UpRight 
   | DownLeft | DownRight
+  | Up | ToRight | Down | ToLeft
   deriving (Eq, Generic, Typeable)
 
 instance Show BoardDirection where
@@ -246,6 +251,10 @@ instance Show BoardDirection where
   show UpRight = "UR"
   show DownLeft = "DL"
   show DownRight = "DR"
+  show Up = "U"
+  show ToRight = "R"
+  show Down = "D"
+  show ToLeft = "L"
 
 -- | Direction from a point of view of a player.
 -- For example, for white, B2 is at ForwardRight of A1;
@@ -253,6 +262,7 @@ instance Show BoardDirection where
 data PlayerDirection =
     ForwardLeft | ForwardRight
   | BackwardLeft | BackwardRight
+  | Forward | PRight | Backward | PLeft
   deriving (Eq, Ord, Generic, Typeable)
 
 instance Show PlayerDirection where
@@ -260,6 +270,10 @@ instance Show PlayerDirection where
   show ForwardRight = "FR"
   show BackwardLeft = "BL"
   show BackwardRight = "BR"
+  show Forward = "F"
+  show PRight = "R"
+  show Backward = "B"
+  show PLeft = "L"
 
 -- | One step of the move is a movement of piece
 -- from one field to it's neighbour. At that moment
@@ -395,8 +409,17 @@ class HasBoardOrientation a where
   boardOrientation :: a -> BoardOrientation
   boardOrientation _ = FirstAtBottom
 
+data BoardTopology =
+    Diagonal
+  | Orthogonal
+  | DiagonalAndOrthogonal
+  deriving (Eq, Show, Typeable)
+
+class HasTopology a where
+  boardTopology :: a -> BoardTopology
+
 -- | Interface of game rules
-class (Typeable g, Show g, HasBoardOrientation g) => GameRules g where
+class (Typeable g, Show g, HasBoardOrientation g, HasTopology g) => GameRules g where
   -- | Initial board with initial pieces position
   initBoard :: SupervisorState -> g -> Board
   -- | Size of board used

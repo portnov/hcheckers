@@ -15,6 +15,9 @@ import Rules.Russian
 newtype Brazilian = Brazilian GenericRules
   deriving (Typeable, HasBoardOrientation)
 
+instance HasTopology Brazilian where
+  boardTopology _ = Diagonal
+
 instance Show Brazilian where
   show = rulesName
 
