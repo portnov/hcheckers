@@ -56,9 +56,11 @@ turkishBase =
                         gManSimpleMoveDirections = [PLeft, Forward, PRight]
                       , gManCaptureDirections =  [PLeft, Forward, PRight]
                       , gKingCaptureDirections = [Backward, PLeft, Forward, PRight]
+                      , gKingSimpleMoveDirections = [Backward, PLeft, Forward, PRight]
                       , gManCaptures = manCaptures this
                       , gManCaptures1 = manCaptures1 this
                       , gCaptureMax = True
+                      , gCoupTurc = True
                     }
   in  rules
 
@@ -95,7 +97,7 @@ manCaptures1 rules ct@(CaptureState {..}) =
 
     check a dir =
       case myNeighbour rules side dir a of
-        Just victimAddr {- | not (aLabel victimAddr `labelSetMember` ctCaptured) -} ->
+        Just victimAddr | not (aLabel victimAddr `labelSetMember` ctCaptured) ->
           case getPiece victimAddr ctBoard of
             Nothing -> []
             Just victim ->

@@ -58,6 +58,7 @@ data GenericRules = GenericRules {
   , gKingCaptureDirections :: [PlayerDirection]
   , gBoardOrientation :: BoardOrientation
   , gCaptureMax :: Bool
+  , gCoupTurc :: Bool
   }
 
 instance HasBoardOrientation GenericRules where
@@ -243,6 +244,9 @@ abstractRules =
                        Nothing -> False
                        Just dst -> isFree dst board
                 else False
+    
+    canCaptureA rules addr captured
+      = not (aLabel addr `labelSetMember` captured)
 
     manCaptures1 rules (CaptureState {..}) =
         mapMaybe (check ctCurrent) $ filter allowedDir (gManCaptureDirections rules)
@@ -256,7 +260,7 @@ abstractRules =
 
         check a dir =
           case myNeighbour rules side dir a of
-            Just victimAddr | not (aLabel victimAddr `labelSetMember` ctCaptured) ->
+            Just victimAddr | canCaptureA rules victimAddr ctCaptured ->
               if isPieceAt victimAddr ctBoard (opposite side)
                 then case myNeighbour rules side dir victimAddr of
                            Nothing -> Nothing
@@ -314,7 +318,7 @@ abstractRules =
                          Nothing -> case search dir a' of
                                       Nothing -> Nothing
                                       Just (victimAddr, steps) -> Just (victimAddr, steps + 1)
-                         Just p -> if isOpponentPiece side p && not (aLabel a' `labelSetMember` ctCaptured)
+                         Just p -> if isOpponentPiece side p && canCaptureA rules a' ctCaptured
                                      then Just (a', 0)
                                      else Nothing
 
@@ -380,6 +384,7 @@ abstractRules =
     , gKingCaptureDirections =  [ForwardLeft, ForwardRight, BackwardLeft, BackwardRight]
     , gBoardOrientation = orientation this
     , gCaptureMax = False
+    , gCoupTurc = False
     }
   in rules
 
