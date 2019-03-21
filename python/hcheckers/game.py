@@ -207,6 +207,12 @@ class Game(object):
         result = rs.json()["response"]
         invert = result["orientation"] == 'SecondAtBottom'
         return result["size"], invert, result["notation"]
+
+    def get_topology(self, rules):
+        url = join(self.base_url, "topology", rules)
+        rs = self.get(url)
+        result = rs.json()["response"]
+        return result["topology"]
     
     def get_invert_colors(self, rules):
         _size, invert, _notation = self.get_notation(rules)

@@ -338,6 +338,7 @@ class Checkers(QMainWindow):
 
             size, invert, notation = self.game.get_notation(game.rules)
             self.board.invert_colors = invert
+            self.board.topology = self.game.get_topology(game.rules)
             self.board.set_notation(size, notation)
 
             self.board.theme = self.board.theme

@@ -121,6 +121,7 @@ class Board(QWidget):
         self.show_possible_moves = settings.value("show_possible_moves", type=bool)
         self.invert_colors = False
         self._flip = False
+        self.topology = 'Diagonal'
 
         self._init_fields(8, 8)
 
@@ -199,6 +200,7 @@ class Board(QWidget):
         return self._theme
 
     def setup_patterns(self):
+        all_usable = self.topology != 'Diagonal'
         for row in range(self.n_rows):
             for col in range(self.n_cols):
                 if (row % 2) == (col % 2):
@@ -206,7 +208,7 @@ class Board(QWidget):
                     self.fields[(row,col)].usable = True
                 else:
                     self.fields[(row,col)].pattern_id = 1
-                    self.fields[(row,col)].usable = False
+                    self.fields[(row,col)].usable = all_usable
 
     def set_theme(self, theme):
         self._theme = theme
@@ -306,6 +308,7 @@ class Board(QWidget):
                 board = dict()
             else:
                 board = self.game.get_board()
+                #print(board)
 
         self._board = board
 
@@ -486,7 +489,7 @@ class Board(QWidget):
                 logging.info(_("Possible target fields: {}").format(", ".join(valid_targets)))
                 self.selected_field = (row, col)
                 self.repaint()
-        elif piece is None and self.selected_field is not None and self._valid_target_fields is not None:
+        elif self.selected_field is not None and self._valid_target_fields is not None:
             if field.label in self._valid_target_fields:
                 src_index = self.selected_field
                 self.selected_field = None
@@ -501,6 +504,8 @@ class Board(QWidget):
                 move = self._valid_target_fields[field.label]
                 start_position = self.get_field_center(self.index_by_label[src_field])
                 piece = self.fields[src_index].piece
+                if piece is None:
+                    raise Exception("No piece at {}!".format(src_index))
                 if self.invert_colors:
                     piece = piece.inverted()
                 self.move_animation.start(src_index, (row, col), move, start_position, piece, process_result=True)
@@ -536,6 +541,8 @@ class Board(QWidget):
             dst_field = self.get_move_end_field(move)
             start_position = self.get_field_center(src_field)
             piece = self.fields[src_field].piece
+            if piece is None:
+                raise Exception("No piece at {}!".format(src_field))
             if self.invert_colors:
                 piece = piece.inverted()
             self.move_animation.start(src_field, dst_field, move, start_position, piece, process_result = False)
