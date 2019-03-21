@@ -19,6 +19,10 @@ human checkers grossmaster.
 HCheckers does not contain any pre-populated openings or endgames database, and
 it actually does not know how to play checkers - it only knows the rules.
 
+But this is not either a "look-what-i-did-in-one-evening" project. HCheckers
+has full support of several rules, has decent UI, supports UI localization, and
+plays not so bad for amateur.
+
 ## Project goals
 
 * Fun of development. For not-so-seasoned Haskell programmers, or people who are
@@ -42,6 +46,8 @@ The following are implemented at the moment:
 * International draughts (10x10)
 * Brazilian (rules of international draughts on 8x8 board)
 * Canadian draughts (12x12)
+* Turkish draughts (orthogonal)
+* Armenian draughts (Tama)
 
 It is possible to implement different AI algorithms; currently there is only
 one, based on standard alpha-beta pruning. The algorithm has some number of
