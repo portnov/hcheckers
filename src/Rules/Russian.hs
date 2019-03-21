@@ -49,7 +49,7 @@ instance GameRules Russian where
 
 russianBase :: GenericRules -> GenericRules
 russianBase =
-  let rules this = abstractRules this {
+  let rules this = (abstractRules this) {
                 gManCaptures = manCaptures this
               }
   in  rules

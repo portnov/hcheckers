@@ -327,21 +327,48 @@ abstractRules =
             cPromote = False
           }
 
+        -- Skip as many empty fields before piece to be captured, as we need
         search :: PlayerDirection -> Address -> Maybe (Address, Int)
         search dir a =
+          -- make one step in given direction
           case myNeighbour rules side dir a of
+            -- if there is no way in this direction (board border) - no capture possible
             Nothing -> Nothing
+            -- otherwise check piece
             Just a' -> case getPiece a' ctBoard of
+                         -- empty field
+                         -- check the field after this one
                          Nothing -> case search dir a' of
                                       Nothing -> Nothing
+                                      -- found something
                                       Just (victimAddr, steps) -> Just (victimAddr, steps + 1)
-                         Just p -> if isOpponentPiece side p
-                                     then if gRemoveCapturedImmediately rules && aLabel a' `labelSetMember` ctCaptured
-                                            then case search dir a' of
-                                                   Nothing -> Nothing
-                                                   Just (victimAddr, steps) -> Just (victimAddr, steps+1)
-                                            else Just (a', 0)
-                                     else Nothing
+                         Just p ->
+                          -- the field is not empty
+                          if isOpponentPiece side p
+                             then let capturedPiece = aLabel a' `labelSetMember` ctCaptured
+                                      skipCapturedPiece = gRemoveCapturedImmediately rules
+                                  in if skipCapturedPiece
+                                        -- In some (turkish) rules, pieces are removed from the field
+                                        -- during capture. So if we already have captured this piece
+                                        -- during this move, we must behave as there is no piece at all
+                                        -- at this field.
+                                       then if capturedPiece
+                                              -- there is opponent piece, but we have already captured it
+                                              -- (during this move).
+                                              -- Just make another step through this field as if it was empty.
+                                              then case search dir a' of
+                                                     Nothing -> Nothing
+                                                     Just (victimAddr, steps) -> Just (victimAddr, steps+1)
+                                              -- piece was not captured yet, we can capture it now.
+                                              else Just (a', 0)
+                                       -- More usual rules: pieces are removed only when capture is complete.
+                                       -- In this case, opponent piece that we already captured is an obstacle:
+                                       -- we cannot capture it another time and we cannot step at this field.
+                                       else if capturedPiece
+                                              then Nothing
+                                              else Just (a', 0)
+                             -- it is our piece, no capture
+                             else Nothing
 
     -- This is most popular implementation, which fits most rules
     -- except for english / checkers
