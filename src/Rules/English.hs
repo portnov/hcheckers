@@ -22,6 +22,8 @@ instance Show English where
 instance HasTopology English where
   boardTopology _ = Diagonal
 
+instance SimpleEvaluatorSupport English
+
 instance GameRules English where
   boardSize _ = boardSize Russian.russian
 

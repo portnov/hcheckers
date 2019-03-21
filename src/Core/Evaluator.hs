@@ -1,8 +1,11 @@
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE ExistentialQuantification #-}
 module Core.Evaluator
   ( SimpleEvaluator (..),
+    SimpleEvaluatorInterface (..),
+    SimpleEvaluatorSupport (..),
     defaultEvaluator
   ) where
 
@@ -14,11 +17,12 @@ import           Core.Types
 import           Core.Board
 
 data SimpleEvaluator = SimpleEvaluator {
-    seRules :: SomeRules,
+    seRules :: SimpleEvaluatorInterface,
     seUsePositionalScore :: Bool,
     seMobilityWeight :: ScoreBase,
     seCenterWeight :: ScoreBase,
     seOppositeSideWeight :: ScoreBase,
+    seBorderMenBad :: Bool,
     seBackedWeight :: ScoreBase,
     seAsymetryWeight :: ScoreBase,
     sePreKingWeight :: ScoreBase,
@@ -27,13 +31,26 @@ data SimpleEvaluator = SimpleEvaluator {
   }
   deriving (Show)
 
-defaultEvaluator :: GameRules rules => rules -> SimpleEvaluator
+class GameRules rules => SimpleEvaluatorSupport rules where
+  getBackDirections :: rules -> [PlayerDirection]
+  getBackDirections _ = [BackwardLeft, BackwardRight]
+
+  getForwardDirections :: rules -> [PlayerDirection]
+  getForwardDirections _ = [ForwardLeft, ForwardRight]
+
+data SimpleEvaluatorInterface = forall g. SimpleEvaluatorSupport g => SimpleEvaluatorInterface g
+
+instance Show SimpleEvaluatorInterface where
+  show (SimpleEvaluatorInterface rules) = rulesName rules
+
+defaultEvaluator :: SimpleEvaluatorSupport rules => rules -> SimpleEvaluator
 defaultEvaluator rules = SimpleEvaluator
-  { seRules              = SomeRules rules
+  { seRules              = SimpleEvaluatorInterface rules
   , seUsePositionalScore = True
   , seMobilityWeight     = 3
   , seCenterWeight       = 4
   , seOppositeSideWeight = 4
+  , seBorderMenBad       = True
   , seBackedWeight       = 2
   , seAsymetryWeight     = 1
   , sePreKingWeight      = 3
@@ -74,7 +91,7 @@ instance Default PreScore where
         }
 
 preEval :: SimpleEvaluator -> Side -> Board -> PreScore
-preEval (SimpleEvaluator { seRules = SomeRules rules, ..}) side board =
+preEval (SimpleEvaluator { seRules = SimpleEvaluatorInterface rules, ..}) side board =
   let
     kingCoef =
       -- King is much more useful when there are enough men to help it
@@ -108,13 +125,13 @@ preEval (SimpleEvaluator { seRules = SomeRules rules, ..}) side board =
         Just back -> isPieceAt back board side
 
     backedScoreOf addr =
-      length $ filter (isBackedAt addr) [BackwardLeft, BackwardRight]
+      length $ filter (isBackedAt addr) $ getBackDirections rules
 
     backedScore =
       fromIntegral $ sum $ map backedScoreOf $ allMyAddresses side board
 
     tempNumber (Label col row)
-      | col == 0 || col == ncols - 1 = 0
+      | seBorderMenBad && (col == 0 || col == ncols - 1) = 0
       | otherwise = case boardSide (boardOrientation rules) side of
         Top    -> nrows - row
         Bottom -> row + 1
@@ -123,7 +140,7 @@ preEval (SimpleEvaluator { seRules = SomeRules rules, ..}) side board =
     opponentSideCount =
       let (men, kings) = myLabelsCount' side board tempNumber in men
 
-    preKing board src = sum $ map check [ForwardLeft, ForwardRight]
+    preKing board src = sum $ map check $ getForwardDirections rules
       where
         check dir =
           case myNeighbour rules side dir src of

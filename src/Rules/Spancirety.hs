@@ -20,6 +20,8 @@ instance Show Spancirety where
 instance HasTopology Spancirety where
   boardTopology _ = Diagonal
 
+instance SimpleEvaluatorSupport Spancirety
+
 instance GameRules Spancirety where
   initBoard rnd r =
     let board = buildBoard rnd r (boardOrientation r) (8, 10)

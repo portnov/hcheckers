@@ -18,6 +18,8 @@ newtype Brazilian = Brazilian GenericRules
 instance HasTopology Brazilian where
   boardTopology _ = Diagonal
 
+instance SimpleEvaluatorSupport Brazilian
+
 instance Show Brazilian where
   show = rulesName
 

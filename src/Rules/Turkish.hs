@@ -23,6 +23,9 @@ instance Show Turkish where
 instance HasTopology Turkish where
   boardTopology _ = Orthogonal
 
+instance SimpleEvaluatorSupport Turkish where
+  getBackDirections _ = [Backward]
+
 instance GameRules Turkish where
   initBoard rnd r =
     let board = buildBoard rnd r (boardOrientation r) (8, 8)
@@ -34,7 +37,7 @@ instance GameRules Turkish where
 
   boardSize _ = (8, 8)
 
-  dfltEvaluator r = SomeEval $ defaultEvaluator r
+  dfltEvaluator r = SomeEval $ (defaultEvaluator r) {seKingCoef = 5, seHelpedKingCoef = 6, seBorderMenBad = False}
 
   boardNotation _ = chessNotation
 

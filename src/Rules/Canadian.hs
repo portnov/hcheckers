@@ -20,6 +20,8 @@ instance Show Canadian where
 instance HasTopology Canadian where
   boardTopology _ = Diagonal
 
+instance SimpleEvaluatorSupport Canadian
+
 instance GameRules Canadian where
   boardSize _ = (12, 12)
 

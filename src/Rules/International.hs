@@ -23,6 +23,8 @@ instance Show International where
 instance HasTopology International where
   boardTopology _ = Diagonal
 
+instance SimpleEvaluatorSupport International
+
 instance GameRules International where
   boardSize _ = (10, 10)
 

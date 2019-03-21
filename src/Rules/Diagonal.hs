@@ -20,6 +20,8 @@ instance Show DiagonalRussian where
 instance HasTopology DiagonalRussian where
   boardTopology _ = Core.Types.Diagonal
 
+instance SimpleEvaluatorSupport DiagonalRussian
+
 instance GameRules DiagonalRussian where
   initBoard rnd r =
     let board = buildBoard rnd r (boardOrientation r) (8, 8)
