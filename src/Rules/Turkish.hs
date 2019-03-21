@@ -77,8 +77,7 @@ manCaptures rules ct@(CaptureState {..}) =
   let side = pieceSide ctPiece
       captures = manCaptures1 rules ct
       -- when last horizontal reached, pass non-promoted piece to
-      -- next moves check; man can capture backward, so it will
-      -- continue capture as a man if it can.
+      -- next moves check; man can not capture backward.
       nextMoves pm = genericNextMoves rules ct False pm
   in concat $ flip map captures $ \capture ->
        let [move1] = translateCapture ctPiece capture

@@ -52,6 +52,7 @@ import Rules.Canadian
 import Rules.Spancirety
 import Rules.Diagonal
 import Rules.Turkish
+import Rules.Armenian
 
 -- | Request for new game creation
 data NewGameRq = NewGameRq {
@@ -118,7 +119,9 @@ supportedRules =
    ("canadian", SomeRules canadian),
    ("spancirety", SomeRules spancirety),
    ("diagonal", SomeRules diagonal),
-   ("turkish",  SomeRules turkish) ]
+   ("turkish",  SomeRules turkish),
+   ("armenian",  SomeRules armenian)
+   ]
 
 -- | Select rules by client request.
 selectRules :: NewGameRq -> Maybe SomeRules
