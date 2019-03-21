@@ -109,6 +109,7 @@ manCaptures1 rules ct@(CaptureState {..}) =
                                   cDirection = dir,
                                   cInitSteps = 0,
                                   cVictim = victimAddr,
+                                  cRemoveVictimImmediately = gRemoveCapturedImmediately rules,
                                   cFreeSteps = 1,
                                   cDst = freeAddr,
                                   cPromote = False

@@ -220,6 +220,11 @@ restServer shutdownVar = do
     (size, orientation, notation) <- liftCheckers_ $ getNotation rules
     json $ Response (NotationRs size orientation notation) []
 
+  get "/topology/:rules" $ do
+    rules <- param "rules"
+    topology <- liftCheckers_ $ getTopology rules
+    json $ Response (TopologyRs topology) []
+
   post "/server/shutdown" $ do
     isLocal <- lift $ asks (gcLocal . csConfig)
     if isLocal

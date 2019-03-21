@@ -26,6 +26,8 @@ instance ToJSON GameResult
 
 instance ToJSON BoardOrientation
 
+instance ToJSON BoardTopology
+
 instance ToJSON Label where
   toJSON (Label col row) = toJSON (col, row)
 
@@ -147,6 +149,8 @@ instance ToJSON RsPayload where
   toJSON (LobbyRs games) = toJSON games
   toJSON (NotationRs size orientation list) =
       object ["size" .= size, "orientation" .= orientation, "notation" .= list]
+  toJSON (TopologyRs topology) =
+      object ["topology" .= topology]
   toJSON ShutdownRs = object ["shutdown" .= ("ok" :: T.Text)]
 
 instance ToJSON Response where

@@ -105,6 +105,7 @@ captures1 rules ct@(CaptureState {..}) dirs =
                                                   cInitSteps = 0,
                                                   cFreeSteps = 1,
                                                   cVictim = victimAddr,
+                                                  cRemoveVictimImmediately = gRemoveCapturedImmediately rules,
                                                   cDst = freeAddr,
                                                   cPromote = isLastHorizontal side freeAddr
                                                 }]

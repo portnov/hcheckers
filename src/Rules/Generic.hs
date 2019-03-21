@@ -17,6 +17,7 @@ data Capture = Capture {
     , cInitSteps :: Int              -- ^ Number of steps by free fields that we have to do before the actual capture.
                                      --   If a piece is a man, this is obviously always 0.
     , cVictim :: Address             -- ^ Position of piece being captured
+    , cRemoveVictimImmediately :: Bool
     , cFreeSteps :: Int              -- ^ Number of steps by free fields that we are doing after actual capture.
                                      --   For man, this is always 1.
     , cDst :: Address                -- ^ End position of capture.
@@ -58,7 +59,7 @@ data GenericRules = GenericRules {
   , gKingCaptureDirections :: [PlayerDirection]
   , gBoardOrientation :: BoardOrientation
   , gCaptureMax :: Bool
-  , gCoupTurc :: Bool
+  , gRemoveCapturedImmediately :: Bool
   }
 
 instance HasBoardOrientation GenericRules where
@@ -72,7 +73,7 @@ translateCapture piece@(Piece _ side) capture =
       pmVictims = [victim],
       pmMove = Move src (steps $ cFreeSteps capture),
       pmPromote = promote,
-      pmResult = [Take src, RemoveCaptured victim, Put dst piece']
+      pmResult = [Take src, remove victim, Put dst piece']
     }]
   where
     steps n = replicate (cInitSteps capture) (Step dir False False) ++
@@ -85,14 +86,24 @@ translateCapture piece@(Piece _ side) capture =
     dst = cDst capture
     victim = cVictim capture
     piece' = if promote then promotePiece piece else piece
+    remove = if cRemoveVictimImmediately capture
+               then RemoveCaptured
+               else MarkCaptured
 
-
-freeFields :: HasBoardOrientation rules => rules -> Side -> PlayerDirection -> Address -> Board -> (Int, [Address])
-freeFields rules side dir addr board =
+freeFields :: HasBoardOrientation rules
+           => rules
+           -> Side
+           -> PlayerDirection
+           -> LabelSet
+           -> Bool
+           -> Address
+           -> Board
+           -> (Int, [Address])
+freeFields rules side dir captured allowStepCaptured addr board =
   case myNeighbour rules side dir addr of
     Nothing -> (0, [])
-    Just a' -> if isFree a' board
-                 then let (n, prev) = freeFields rules side dir a' board
+    Just a' -> if isFree a' board || (allowStepCaptured && aLabel a' `labelSetMember` captured)
+                 then let (n, prev) = freeFields rules side dir captured allowStepCaptured a' board
                       in  (n+1, a' : prev)
                  else (0, [])
 
@@ -245,8 +256,12 @@ abstractRules =
                        Just dst -> isFree dst board
                 else False
     
-    canCaptureA rules addr captured
-      = not (aLabel addr `labelSetMember` captured)
+    allowStepOccupied rules addr captured
+      | gRemoveCapturedImmediately rules = aLabel addr `labelSetMember` captured
+      | otherwise = False
+
+    canCaptureA rules addr captured =
+      not (aLabel addr `labelSetMember` captured)
 
     manCaptures1 rules (CaptureState {..}) =
         mapMaybe (check ctCurrent) $ filter allowedDir (gManCaptureDirections rules)
@@ -260,16 +275,17 @@ abstractRules =
 
         check a dir =
           case myNeighbour rules side dir a of
-            Just victimAddr | canCaptureA rules victimAddr ctCaptured ->
+            Just victimAddr | not (aLabel victimAddr `labelSetMember` ctCaptured) ->
               if isPieceAt victimAddr ctBoard (opposite side)
                 then case myNeighbour rules side dir victimAddr of
                            Nothing -> Nothing
-                           Just freeAddr -> if isFree freeAddr ctBoard
+                           Just freeAddr -> if isFree freeAddr ctBoard || allowStepOccupied rules freeAddr ctCaptured
                                               then Just $ Capture {
                                                       cSrc = a,
                                                       cDirection = dir,
                                                       cInitSteps = 0,
                                                       cVictim = victimAddr,
+                                                      cRemoveVictimImmediately = gRemoveCapturedImmediately rules,
                                                       cFreeSteps = 1,
                                                       cDst = freeAddr,
                                                       cPromote = isLastHorizontal side freeAddr
@@ -294,7 +310,7 @@ abstractRules =
           case search dir ctCurrent of
             Nothing -> []
             Just (victimAddr, initSteps) ->
-              case freeFields rules side dir victimAddr ctBoard of
+              case freeFields rules side dir ctCaptured (gRemoveCapturedImmediately rules) victimAddr ctBoard of
                 (0,_) -> []
                 (nFree, fields) -> 
                     [mkCapture dir initSteps victimAddr freeSteps (fields !! (freeSteps-1)) | freeSteps <- [1 .. nFree]]
@@ -305,6 +321,7 @@ abstractRules =
             cDirection = dir,
             cInitSteps = init,
             cVictim = victim,
+            cRemoveVictimImmediately = gRemoveCapturedImmediately rules,
             cFreeSteps = free,
             cDst = dst,
             cPromote = False
@@ -318,8 +335,12 @@ abstractRules =
                          Nothing -> case search dir a' of
                                       Nothing -> Nothing
                                       Just (victimAddr, steps) -> Just (victimAddr, steps + 1)
-                         Just p -> if isOpponentPiece side p && canCaptureA rules a' ctCaptured
-                                     then Just (a', 0)
+                         Just p -> if isOpponentPiece side p
+                                     then if gRemoveCapturedImmediately rules && aLabel a' `labelSetMember` ctCaptured
+                                            then case search dir a' of
+                                                   Nothing -> Nothing
+                                                   Just (victimAddr, steps) -> Just (victimAddr, steps+1)
+                                            else Just (a', 0)
                                      else Nothing
 
     -- This is most popular implementation, which fits most rules
@@ -344,7 +365,7 @@ abstractRules =
         concatMap check (gKingSimpleMoveDirections rules)
       where
         check dir =
-          let (nFree,free) = freeFields rules side dir src board
+          let (nFree,free) = freeFields rules side dir emptyLabelSet False src board
               piece = Piece King side
           in [PossibleMove {
                 pmBegin = src,
@@ -384,7 +405,7 @@ abstractRules =
     , gKingCaptureDirections =  [ForwardLeft, ForwardRight, BackwardLeft, BackwardRight]
     , gBoardOrientation = orientation this
     , gCaptureMax = False
-    , gCoupTurc = False
+    , gRemoveCapturedImmediately = False
     }
   in rules
 

@@ -400,8 +400,12 @@ applyMoveAction (Put a p) b = Right $ setPiece a p b
 applyMoveAction (RemoveCaptured a) b =
   if isFree a b
     then Left $ printf "RemoveCaptured: no piece at %s; board: %s" (show a) (show b)
+    else Right $ removePiece a b
+applyMoveAction (MarkCaptured a) b =
+  if isFree a b
+    then Left $ printf "MarkCaptured: no piece at %s; board: %s" (show a) (show b)
     else if isCaptured a b
-           then Left $ printf "RemoveCaptured: piece at %s was already captured; board: %s" (show a) (show b)
+           then Left $ printf "MarkCaptured: piece at %s was already captured; board: %s" (show a) (show b)
            else Right $ b {bCaptured = insertLabelSet (aLabel a) (bCaptured b)}
 
 applyMoveActions' :: [MoveAction] -> Board -> Either String Board

@@ -60,7 +60,7 @@ turkishBase =
                       , gManCaptures = manCaptures this
                       , gManCaptures1 = manCaptures1 this
                       , gCaptureMax = True
-                      , gCoupTurc = True
+                      , gRemoveCapturedImmediately = True
                     }
   in  rules
 
@@ -106,7 +106,7 @@ manCaptures1 rules ct@(CaptureState {..}) =
                 else case myNeighbour rules side dir victimAddr of
                        Nothing -> []
                        Just freeAddr ->
-                        if isFree freeAddr ctBoard
+                        if isFree freeAddr ctBoard || aLabel freeAddr `labelSetMember` ctCaptured
                           then let captured' = insertLabelSet (aLabel victimAddr) ctCaptured
                                    next = ct {
                                             ctPrevDirection = Just dir,
@@ -119,6 +119,7 @@ manCaptures1 rules ct@(CaptureState {..}) =
                                   cInitSteps = 0,
                                   cFreeSteps = 1,
                                   cVictim = victimAddr,
+                                  cRemoveVictimImmediately = gRemoveCapturedImmediately rules,
                                   cDst = freeAddr,
                                   cPromote = isLastHorizontal side freeAddr &&
                                              not (gCanCaptureFrom rules next)

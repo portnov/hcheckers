@@ -84,6 +84,7 @@ data RsPayload =
   | PollRs [Notify]
   | LobbyRs [Game]
   | NotationRs BoardSize BoardOrientation [(Label, Notation)]
+  | TopologyRs BoardTopology
   | StateRs BoardRep GameStatus Side
   | HistoryRs [HistoryRecordRep]
   | PossibleMovesRs [MoveRep]
@@ -515,6 +516,20 @@ getNotation rname = do
           orientation = boardOrientation rules
       in  (size, orientation, notation)
     
+getTopology :: String -> Checkers BoardTopology
+getTopology rname = do
+    var <- askSupervisor
+    let Just someRules = select supportedRules
+        result = process someRules
+    return result
+
+  where
+    select [] = Nothing
+    select ((name, rules) : rest)
+      | name == rname = Just rules
+      | otherwise = select rest
+
+    process (SomeRules rules) = boardTopology rules
 
 getPlayer :: Game -> Side -> Player
 getPlayer game First = fromJust $ gPlayer1 game

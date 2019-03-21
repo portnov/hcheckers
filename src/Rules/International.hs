@@ -121,6 +121,7 @@ manCaptures1 rules ct@(CaptureState {..}) =
                                   cInitSteps = 0,
                                   cFreeSteps = 1,
                                   cVictim = victimAddr,
+                                  cRemoveVictimImmediately = gRemoveCapturedImmediately rules,
                                   cDst = freeAddr,
                                   cPromote = isLastHorizontal side freeAddr &&
                                              not (gCanCaptureFrom rules next)

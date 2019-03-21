@@ -401,7 +401,8 @@ instance Show PossibleMove where
 -- | The primitive action that can take place during the move
 data MoveAction =
     Take ! Address            -- ^ Lift the piece from the board (at the beginning of the move)
-  | RemoveCaptured ! Address  -- ^ Remove the piece that was captured (should be performed at the end of the move)
+  | MarkCaptured ! Address  -- ^ Remove the piece that was captured (should be performed at the end of the move)
+  | RemoveCaptured ! Address  -- ^ Remove the piece that was captured - immediately
   | Put ! Address ! Piece       -- ^ Put the piece to the board (at the end of the move)
   deriving (Eq, Ord, Show, Typeable)
 
@@ -413,7 +414,7 @@ data BoardTopology =
     Diagonal
   | Orthogonal
   | DiagonalAndOrthogonal
-  deriving (Eq, Show, Typeable)
+  deriving (Eq, Show, Typeable, Generic)
 
 class HasTopology a where
   boardTopology :: a -> BoardTopology
