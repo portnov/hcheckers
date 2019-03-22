@@ -546,7 +546,12 @@ updateDepth params moves dp
                   let static = dpCurrent dp > dpInitialTarget dp + abDynamicDepth params
                   $verbose "{}| there is only one move, increase target depth to {}"
                           (indent, target)
-                  return $ dp {dpCurrent = dpCurrent dp + 1, dpTarget = target, dpForcedMode = True, dpStaticMode = static}
+                  return $ dp {
+                            dpCurrent = dpCurrent dp + 1,
+                            dpTarget = target,
+                            dpForcedMode = forced || dpForcedMode dp,
+                            dpStaticMode = static
+                          }
     | nMoves > abMovesHighBound params && isQuiescene moves = do
                   let target = max (dpCurrent dp + 1) (dpMin dp)
                   let indent = replicate (2*dpCurrent dp) ' '
@@ -556,9 +561,10 @@ updateDepth params moves dp
     | otherwise = return $ dp {dpCurrent = dpCurrent dp + 1}
   where
     nMoves = length moves
+    forced = any isCapture moves || any isPromotion moves
     deepen = if dpCurrent dp <= dpInitialTarget dp
                then nMoves <= abMovesLowBound params
-               else any isCapture moves || any isPromotion moves
+               else forced
 
 isQuiescene :: [PossibleMove] -> Bool
 isQuiescene moves = not (any isCapture moves || any isPromotion moves)
@@ -598,27 +604,40 @@ scoreAB var params input
             $verbose "Further search is futile, return current score0 = {}" (Single $ show score0)
             return out
         Nothing -> do
-          -- first, let "best" be the worse possible value
-          let best
-                | dpStaticMode dp = evalBoard' evaluator board
+                
+          moves <- lift $ getPossibleMoves var side board
+          let worst
                 | maximize = alpha
                 | otherwise = beta
-                
-          push best
-          $verbose "{}V Side: {}, A = {}, B = {}" (indent, show side, show alpha, show beta)
-          rules <- gets ssRules
-          moves <- lift $ getPossibleMoves var side board
 
-          -- this actually means that corresponding side lost.
-          when (null moves) $
-            $verbose "{}`—No moves left." (Single indent)
+          if null moves
+            -- this actually means that corresponding side lost.
+            then do
+              $verbose "{}`—No moves left." (Single indent)
+              return $ ScoreOutput worst True
+            else
+              if dpStaticMode dp && isQuiescene moves
+                -- In static mode, we are considering forced moves only.
+                -- If we have reached a quiescene, then that's all.
+                then do
+                  let score0 = evalBoard' evaluator board
+                  $verbose "Reached quiescene in static mode; return current score0 = {}" (Single $ show score0)
+                  return $ ScoreOutput score0 True
+                else do
+                  -- first, let "best" be the worse possible value
+                  let best
+                        | dpStaticMode dp = evalBoard' evaluator board
+                        | otherwise = worst
 
-          dp' <- updateDepth params moves dp
-          let prevMove = siPrevMove input
-          moves' <- sortMoves prevMove moves
-          out <- iterateMoves (zip [1..] moves') dp'
-          pop
-          return out
+                  push best
+                  $verbose "{}V Side: {}, A = {}, B = {}" (indent, show side, show alpha, show beta)
+                  rules <- gets ssRules
+                  dp' <- updateDepth params moves dp
+                  let prevMove = siPrevMove input
+                  moves' <- sortMoves prevMove moves
+                  out <- iterateMoves (zip [1..] moves') dp'
+                  pop
+                  return out
 
   where
 
