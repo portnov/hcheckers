@@ -180,7 +180,7 @@ type MovesMemo = TBoardMap (Maybe [PossibleMove], Maybe [PossibleMove])
 data AICacheHandle rules eval = AICacheHandle {
     aichRules :: rules
   , aichData :: AIData
-  , aichProcessor ::  Processor [MoveAction] (ScoreMoveInput rules eval) (PossibleMove, Score)
+  , aichProcessor ::  Processor [[MoveAction]] [ScoreMoveInput rules eval] [(PossibleMove, Score)]
   , aichPossibleMoves :: MovesMemo
   , aichLastMoveScoreShift :: TVar (M.Map GameId ScoreBase)
   , aichWriteQueue :: WriteQueue

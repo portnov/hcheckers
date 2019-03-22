@@ -44,11 +44,11 @@ import AI.AlphaBeta.Persistent
 -- | Prepare AI storage instance.
 -- This also contains Processor instance with several threads.
 loadAiCache :: (GameRules rules, Evaluator eval)
-            => (ScoreMoveInput rules eval -> Checkers (PossibleMove, Score))
+            => ([ScoreMoveInput rules eval] -> Checkers [(PossibleMove, Score)])
             -> AlphaBeta rules eval
             -> Checkers (AICacheHandle rules eval)
 loadAiCache scoreMove (AlphaBeta params rules eval) = do
-  let getKey input = pmResult (smiMove input)
+  let getKey inputs = map (pmResult. smiMove) inputs
   aiCfg <- asks (gcAiConfig . csConfig)
   processor <- runProcessor (aiThreads aiCfg) getKey scoreMove
   cache <- liftIO newTBoardMap
