@@ -589,29 +589,36 @@ scoreAB var params input
       $verbose "    X Side: {}, A = {}, B = {}, score0 = {}" (show side, show alpha, show beta, show score0)
       quiescene <- checkQuiescene
       return $ ScoreOutput score0 quiescene
+
   | otherwise = do
       evaluator <- gets ssEvaluator
-      -- first, let "best" be the worse possible value
-      let best
-            | dpStaticMode dp = evalBoard' evaluator board
-            | maximize = alpha
-            | otherwise = beta
-            
-      push best
-      $verbose "{}V Side: {}, A = {}, B = {}" (indent, show side, show alpha, show beta)
-      rules <- gets ssRules
-      moves <- lift $ getPossibleMoves var side board
+      futilePrunned <- checkFutility
+      case futilePrunned of
+        Just out@(ScoreOutput score0 quiescene) -> do
+            $verbose "Further search is futile, return current score0 = {}" (Single $ show score0)
+            return out
+        Nothing -> do
+          -- first, let "best" be the worse possible value
+          let best
+                | dpStaticMode dp = evalBoard' evaluator board
+                | maximize = alpha
+                | otherwise = beta
+                
+          push best
+          $verbose "{}V Side: {}, A = {}, B = {}" (indent, show side, show alpha, show beta)
+          rules <- gets ssRules
+          moves <- lift $ getPossibleMoves var side board
 
-      -- this actually means that corresponding side lost.
-      when (null moves) $
-        $verbose "{}`—No moves left." (Single indent)
+          -- this actually means that corresponding side lost.
+          when (null moves) $
+            $verbose "{}`—No moves left." (Single indent)
 
-      dp' <- updateDepth params moves dp
-      let prevMove = siPrevMove input
-      moves' <- sortMoves prevMove moves
-      out <- iterateMoves (zip [1..] moves') dp'
-      pop
-      return out
+          dp' <- updateDepth params moves dp
+          let prevMove = siPrevMove input
+          moves' <- sortMoves prevMove moves
+          out <- iterateMoves (zip [1..] moves') dp'
+          pop
+          return out
 
   where
 
@@ -620,6 +627,25 @@ scoreAB var params input
     alpha = siAlpha input
     beta = siBeta input
     board = siBoard input
+
+    checkFutility :: ScoreM rules eval (Maybe ScoreOutput)
+    checkFutility = do
+      evaluator <- gets ssEvaluator
+      quiescene <- checkQuiescene
+      let score0 = evalBoard' evaluator board
+          best = if maximize then alpha else beta
+          isBad = if maximize
+                    then score0 <= alpha + 1
+                    else score0 >= beta - 1
+
+      if (dpCurrent dp >= dpTarget dp - 1) &&
+          not (dpForcedMode dp) &&
+          quiescene &&
+          score0 >= -10 &&
+          score0 <= 10 &&
+          isBad
+        then return $ Just $ ScoreOutput score0 quiescene
+        else return Nothing
 
     evalBoard' :: eval -> Board -> Score
     evalBoard' evaluator board = result
