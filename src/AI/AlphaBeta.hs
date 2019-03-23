@@ -367,6 +367,7 @@ runAI ai@(AlphaBeta params rules eval) handle gameId side board = do
                       , dpMin = 2
                       , dpForcedMode = False
                       , dpStaticMode = False
+                      , dpReductedMode = False
                     }
           $info "Preselecting; number of possible moves = {}, depth = {}" (length moves, dpTarget simple)
           options <- scoreMoves' moves simple (loose, win)
@@ -419,6 +420,7 @@ runAI ai@(AlphaBeta params rules eval) handle gameId side board = do
                    , dpMin = fromMaybe depth (abStartDepth params)
                    , dpStaticMode = False
                    , dpForcedMode = False
+                   , dpReductedMode = False
                    }
           let needDeeper = abDeeperIfBad params && score0 `worseThan` 0
           let dp'
@@ -710,12 +712,12 @@ updateDepth params moves dp
                             dpForcedMode = forced || dpForcedMode dp,
                             dpStaticMode = static
                           }
-    | nMoves > abMovesHighBound params && isQuiescene moves = do
-                  let target = max (dpCurrent dp + 1) (dpMin dp)
+    | nMoves > abMovesHighBound params && canRazor = do
+                  let target = max (dpCurrent dp + 1) (dpInitialTarget dp)
                   let indent = replicate (2*dpCurrent dp) ' '
                   $verbose "{}| there are too many moves, decrease target depth to {}"
                           (indent, target)
-                  return $ dp {dpCurrent = dpCurrent dp + 1, dpTarget = target}
+                  return $ dp {dpCurrent = dpCurrent dp + 1, dpTarget = target, dpReductedMode = True}
     | otherwise = return $ dp {dpCurrent = dpCurrent dp + 1}
   where
     nMoves = length moves
@@ -723,6 +725,10 @@ updateDepth params moves dp
     deepen = if dpCurrent dp <= dpInitialTarget dp
                then nMoves <= abMovesLowBound params
                else forced
+
+    canRazor = isQuiescene moves &&
+               dpForcedMode dp &&
+               not (dpReductedMode dp)
 
 isQuiescene :: [PossibleMove] -> Bool
 isQuiescene moves = not (any isCapture moves || any isPromotion moves)
@@ -756,6 +762,7 @@ scoreAB var params input
 
   | otherwise = do
       evaluator <- gets ssEvaluator
+      let score0 = evalBoard' evaluator board
       futilePrunned <- checkFutility
       case futilePrunned of
         Just out@(ScoreOutput score0 quiescene) -> do
@@ -764,6 +771,7 @@ scoreAB var params input
         Nothing -> do
                 
           moves <- lift $ getPossibleMoves var side board
+          let quiescene = isQuiescene moves
           let worst
                 | maximize = alpha
                 | otherwise = beta
@@ -778,7 +786,6 @@ scoreAB var params input
                 -- In static mode, we are considering forced moves only.
                 -- If we have reached a quiescene, then that's all.
                 then do
-                  let score0 = evalBoard' evaluator board
                   $verbose "Reached quiescene in static mode; return current score0 = {}" (Single $ show score0)
                   return $ ScoreOutput score0 True
                 else do
@@ -793,7 +800,9 @@ scoreAB var params input
                   dp' <- updateDepth params moves dp
                   let prevMove = siPrevMove input
                   moves' <- sortMoves params var side dp board prevMove moves
-                  out <- iterateMoves (zip [1..] moves') dp'
+                  let depths = correspondingDepths (length moves') score0 quiescene dp'
+--                   let depths = repeat dp'
+                  out <- iterateMoves $ zip3 [1..] moves' depths
                   pop
                   return out
 
@@ -804,6 +813,27 @@ scoreAB var params input
     alpha = siAlpha input
     beta = siBeta input
     board = siBoard input
+
+    canReduceDepth :: Score -> Bool -> Bool
+    canReduceDepth score0 quiescene =
+      not (dpForcedMode dp) &&
+      not (dpReductedMode dp) &&
+               dpCurrent dp >= 4 &&
+               quiescene &&
+               score0 > alpha &&
+               score0 < beta &&
+               score0 > -10 &&
+               score0 < 10 
+
+    correspondingDepths :: Int -> Score -> Bool -> DepthParams -> [DepthParams]
+    correspondingDepths nMoves score0 quiescene depth =
+      if (nMoves <= abMovesHighBound params) || not (canReduceDepth score0 quiescene)
+        then replicate nMoves depth
+        else let reducedDepth = depth {
+                                  dpTarget = dpMin dp,
+                                  dpReductedMode = True
+                                }
+             in  replicate (abMovesHighBound params) depth ++ repeat reducedDepth
 
     checkFutility :: ScoreM rules eval (Maybe ScoreOutput)
     checkFutility = do
@@ -910,13 +940,13 @@ scoreAB var params input
             else return out
 
 
-    iterateMoves :: [(Int,PossibleMove)] -> DepthParams -> ScoreM rules eval ScoreOutput
-    iterateMoves [] _ = do
+    iterateMoves :: [(Int,PossibleMove, DepthParams)] -> ScoreM rules eval ScoreOutput
+    iterateMoves [] = do
       best <- getBest
       $verbose "{}`—All moves considered at this level, return best = {}" (indent, show best)
       quiescene <- checkQuiescene
       return $ ScoreOutput best quiescene
-    iterateMoves ((i,move) : moves) dp = do
+    iterateMoves ((i,move, dp) : moves) = do
       timeout <- isTimeExhaused
       when timeout $ do
         -- $info "Timeout exhaused for depth {}." (Single $ dpCurrent dp)
@@ -952,9 +982,9 @@ scoreAB var params input
                     quiescene <- checkQuiescene
                     return $ ScoreOutput score quiescene
                     
-               else iterateMoves moves dp
+               else iterateMoves moves
         else do
-             iterateMoves moves dp
+             iterateMoves moves
         
 instance (Evaluator eval, GameRules rules) => Evaluator (AlphaBeta rules eval) where
   evaluatorName (AlphaBeta _ _ eval) = evaluatorName eval

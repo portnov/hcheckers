@@ -91,6 +91,7 @@ data DepthParams = DepthParams {
   , dpMin :: Int        -- ^ Minimum allowed depth
   , dpStaticMode :: Bool
   , dpForcedMode :: Bool
+  , dpReductedMode :: Bool
   }
   deriving (Eq, Ord, Show, Typeable, Generic)
 
