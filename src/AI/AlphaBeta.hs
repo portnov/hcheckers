@@ -192,17 +192,23 @@ evalMove :: (EvalMoveMonad m, GameRules rules, Evaluator eval)
         -> Maybe PossibleMove
         -> PossibleMove -> m Int
 evalMove params var side dp board mbPrevMove move = do
-  let victims = pmVictims move
-      nVictims = length victims
-      promotion = if isPromotion move then 1 else 0
+  let victimFields = pmVictims move
+      nVictims = sum $ map victimWeight victimFields
+      promotion = if isPromotion move then 3 else 0
       attackPrevPiece = case mbPrevMove of
                           Nothing -> 0
-                          Just prevMove -> if pmEnd prevMove `elem` victims
+                          Just prevMove -> if pmEnd prevMove `elem` victimFields
                                              then 2
                                              else 0
 
       maximize = side == First
       minimize = not maximize
+
+      victimWeight a = case getPiece a board of
+                        Nothing -> 0
+                        Just (Piece Man _) -> 1
+                        Just (Piece King _) -> 3
+
   let board' = applyMoveActions (pmResult move) board
   let dp0 = dp {dpCurrent = dpTarget dp}
   mbCached <- checkPrimeVariation var params board' dp0
