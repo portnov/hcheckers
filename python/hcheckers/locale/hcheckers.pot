@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2019-03-10 15:12+YEKT\n"
+"POT-Creation-Date: 2019-03-24 14:45+YEKT\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -15,27 +15,27 @@ msgstr ""
 "Generated-By: pygettext.py 1.5\n"
 
 
-#: board.py:470
+#: board.py:482
 msgid "Piece at {} does not have moves"
 msgstr ""
 
-#: board.py:476
+#: board.py:489
 msgid "Possible target fields: {}"
 msgstr ""
 
-#: board.py:500
+#: board.py:515
 msgid "Piece at {} cannot be moved to {}"
 msgstr ""
 
-#: board.py:503
+#: board.py:519
 msgid "Field {} does not belong to you"
 msgstr ""
 
-#: board.py:582
+#: board.py:597
 msgid "Awaiting a response about draw."
 msgstr ""
 
-#: board.py:585
+#: board.py:600
 msgid "Another side have offered a draw. You have to accept or decline it."
 msgstr ""
 
@@ -95,6 +95,14 @@ msgstr ""
 msgid "Diagonal draughts"
 msgstr ""
 
+#: common.py:241
+msgid "Turkish draughts"
+msgstr ""
+
+#: common.py:242
+msgid "Armeinan draughts (Tama)"
+msgstr ""
+
 #: game.py:106
 msgid "Beginner"
 msgstr ""
@@ -115,11 +123,11 @@ msgstr ""
 msgid "Master"
 msgstr ""
 
-#: game.py:195 game.py:230 game.py:232 lobby.py:34 newgamedlg.py:92
+#: game.py:195 game.py:236 game.py:238 lobby.py:34 newgamedlg.py:92
 msgid "White"
 msgstr ""
 
-#: game.py:197 game.py:230 game.py:232 lobby.py:34 newgamedlg.py:93
+#: game.py:197 game.py:236 game.py:238 lobby.py:34 newgamedlg.py:93
 msgid "Black"
 msgstr ""
 
@@ -127,23 +135,23 @@ msgstr ""
 msgid "Newly created game ID: {}. First side to move: {}."
 msgstr ""
 
-#: game.py:334
+#: game.py:340
 msgid "Offer for a draw posted."
 msgstr ""
 
-#: game.py:349
+#: game.py:355
 msgid "You accepted draw."
 msgstr ""
 
-#: game.py:351
+#: game.py:357
 msgid "You declined draw."
 msgstr ""
 
-#: game.py:361
+#: game.py:367
 msgid "Game #{}: you capitulated."
 msgstr ""
 
-#: game.py:367
+#: game.py:373
 msgid "Server shutdown requested."
 msgstr ""
 
@@ -291,27 +299,27 @@ msgstr ""
 msgid "Enable sounds"
 msgstr ""
 
-#: settingsdlg.py:255
+#: settingsdlg.py:258
 msgid "Server URL"
 msgstr ""
 
-#: settingsdlg.py:259
+#: settingsdlg.py:262
 msgid "Use local server"
 msgstr ""
 
-#: settingsdlg.py:261
+#: settingsdlg.py:264
 msgid "Local server executable path"
 msgstr ""
 
-#: settingsdlg.py:299
+#: settingsdlg.py:302
 msgid "General"
 msgstr ""
 
-#: settingsdlg.py:301
+#: settingsdlg.py:304
 msgid "View Settings"
 msgstr ""
 
-#: settingsdlg.py:303
+#: settingsdlg.py:306
 msgid "AI Presets"
 msgstr ""
 
@@ -343,7 +351,7 @@ msgstr ""
 msgid "Could not start local server; exit code is {}"
 msgstr ""
 
-#: toplevel.py:88 toplevel.py:519 toplevel.py:524
+#: toplevel.py:88 toplevel.py:521 toplevel.py:526
 msgid "Exception"
 msgstr ""
 
@@ -443,47 +451,47 @@ msgstr ""
 msgid "Waiting for another side to join the game."
 msgstr ""
 
-#: toplevel.py:353 toplevel.py:488
+#: toplevel.py:354 toplevel.py:489
 msgid "Save file"
 msgstr ""
 
-#: toplevel.py:374
+#: toplevel.py:375
 msgid "Nothing to undo."
 msgstr ""
 
-#: toplevel.py:409 toplevel.py:411
+#: toplevel.py:410 toplevel.py:412
 msgid "{} win"
 msgstr ""
 
-#: toplevel.py:413
+#: toplevel.py:414
 msgid "Draw"
 msgstr ""
 
-#: toplevel.py:419
+#: toplevel.py:420
 msgid "Game result: {}"
 msgstr ""
 
-#: toplevel.py:422
+#: toplevel.py:423
 msgid "Game over."
 msgstr ""
 
-#: toplevel.py:437
+#: toplevel.py:438
 msgid "Accept the draw?"
 msgstr ""
 
-#: toplevel.py:438
+#: toplevel.py:439
 msgid "Another side have offered you a draw. Do you wish to accept it?"
 msgstr ""
 
-#: toplevel.py:482
+#: toplevel.py:483
 msgid "Log has been cleared."
 msgstr ""
 
-#: toplevel.py:515
+#: toplevel.py:517
 msgid "Settings have been updated."
 msgstr ""
 
-#: toplevel.py:518
+#: toplevel.py:520
 msgid ""
 "Unexpected response received from the server.\n"
 "Request URL: {}\n"
@@ -491,7 +499,7 @@ msgid ""
 "Response message: {}"
 msgstr ""
 
-#: toplevel.py:523
+#: toplevel.py:525
 msgid ""
 "An exception occured while connecting to the server.\n"
 "Request URL: {}\n"
