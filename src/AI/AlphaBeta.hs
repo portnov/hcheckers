@@ -22,7 +22,7 @@ import Control.Concurrent.STM
 import qualified Data.Map as M
 import Data.Maybe
 import Data.Default
-import Data.List (sortOn)
+import Data.List (sortOn, transpose)
 import Data.Text.Format.Heavy
 import Data.Aeson
 import System.Log.Heavy
@@ -356,7 +356,7 @@ runAI ai@(AlphaBeta params rules eval) handle gameId side board = do
     preselect :: Checkers [PossibleMove]
     preselect = do
       moves <- getPossibleMoves handle side board
-      if length moves <= abMovesHighBound params
+      if length moves < 16
         then return moves
         else do
           let simple = DepthParams {
@@ -370,7 +370,7 @@ runAI ai@(AlphaBeta params rules eval) handle gameId side board = do
                       , dpReductedMode = False
                     }
           $info "Preselecting; number of possible moves = {}, depth = {}" (length moves, dpTarget simple)
-          options <- scoreMoves' moves simple (loose, win)
+          options <- scoreMoves' True moves simple (loose, win)
           let key = if maximize
                       then negate . snd
                       else snd
@@ -531,8 +531,8 @@ runAI ai@(AlphaBeta params rules eval) handle gameId side board = do
                         $info  "Some moves ({} of them) are `too good'; but we have already checked better interval; so this is the real score" (Single $ length bestMoves)
                         return bestResults
 
-    scoreMoves :: [PossibleMove] -> DepthParams -> (Score, Score) -> Checkers [Either Error (PossibleMove, Score)]
-    scoreMoves moves dp (alpha, beta) = do
+    scoreMoves :: Bool -> [PossibleMove] -> DepthParams -> (Score, Score) -> Checkers [Either Error (PossibleMove, Score)]
+    scoreMoves byOne moves dp (alpha, beta) = do
       let var = aichData handle
       let processor = aichProcessor handle
       let inputs = [
@@ -551,15 +551,15 @@ runAI ai@(AlphaBeta params rules eval) handle gameId side board = do
           n = length moves
 
           groups
-            | n < 16 = [[input] | input <- inputs]
-            | otherwise = chunksOf 5 inputs
+            | byOne || (n < 16) = [[input] | input <- inputs]
+            | otherwise = transpose $ chunksOf 4 inputs
 
       results <- process' processor groups
       return $ concatE (map length groups) results
 
-    scoreMoves' :: [PossibleMove] -> DepthParams -> (Score, Score) -> Checkers DepthIterationOutput
-    scoreMoves' moves dp (alpha, beta) = do
-      results <- scoreMoves moves dp (alpha, beta)
+    scoreMoves' :: Bool -> [PossibleMove] -> DepthParams -> (Score, Score) -> Checkers DepthIterationOutput
+    scoreMoves' byOne moves dp (alpha, beta) = do
+      results <- scoreMoves byOne moves dp (alpha, beta)
       case sequence results of
         Right result -> return result
         Left err -> throwError err
@@ -567,7 +567,7 @@ runAI ai@(AlphaBeta params rules eval) handle gameId side board = do
     widthIteration :: Maybe DepthIterationOutput -> [PossibleMove] -> DepthParams -> (Score, Score) -> Checkers DepthIterationOutput
     widthIteration prevResult moves dp (alpha, beta) = do
       $info "`- Considering scores interval: [{} - {}], depth = {}" (alpha, beta, dpTarget dp)
-      results <- scoreMoves moves dp (alpha, beta)
+      results <- scoreMoves False moves dp (alpha, beta)
       joinResults prevResult results
 
     joinResults :: Maybe DepthIterationOutput -> [Either Error (PossibleMove, Score)] -> Checkers DepthIterationOutput
@@ -752,6 +752,11 @@ scoreAB :: forall rules eval. (GameRules rules, Evaluator eval)
         -> ScoreInput
         -> ScoreM rules eval ScoreOutput
 scoreAB var params input
+  | alpha == beta = do
+      $verbose "Alpha == Beta == {}, return it" (Single $ show alpha)
+      quiescene <- checkQuiescene
+      return $ ScoreOutput alpha quiescene
+
   | isTargetDepth dp = do
       -- target depth is achieved, calculate score of current board directly
       evaluator <- gets ssEvaluator
