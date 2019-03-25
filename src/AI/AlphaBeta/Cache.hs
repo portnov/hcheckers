@@ -226,7 +226,7 @@ putAiCache params board newItem handle = do
   cfg <- asks (gcAiConfig . csConfig)
   let needWriteFile = {-total <= aiUpdateCacheMaxPieces cfg &&-} depth > aiUpdateCacheMaxDepth cfg
   Monitoring.timed "cache.put.memory" $ do
-    now <- liftIO $ getTime Monotonic
+    now <- liftIO $ getTime RealtimeCoarse
     Monitoring.increment "cache.records.put"
     fileCacheEnabled <- asks (aiStoreCache . gcAiConfig . csConfig)
     let cache = aichData handle
