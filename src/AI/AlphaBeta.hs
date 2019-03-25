@@ -114,8 +114,8 @@ scoreMoveGroup inputs = go worst [] inputs
     go _ acc [] = return acc
     go best acc (input : rest) = do
       let input'
-            | maximize = input {smiAlpha = best}
-            | otherwise = input {smiBeta = best}
+            | maximize = input {smiAlpha = prevScore best}
+            | otherwise = input {smiBeta = nextScore best}
 
       result@(move, score) <- scoreMove input'
       let best'
@@ -198,7 +198,7 @@ evalMove params var side dp board mbPrevMove move = do
       attackPrevPiece = case mbPrevMove of
                           Nothing -> 0
                           Just prevMove -> if pmEnd prevMove `elem` victimFields
-                                             then 2
+                                             then 5
                                              else 0
 
       maximize = side == First
@@ -209,24 +209,32 @@ evalMove params var side dp board mbPrevMove move = do
                         Just (Piece Man _) -> 1
                         Just (Piece King _) -> 3
 
+  let onePiece = scoreBound
+      
+      toNumeric score = onePiece * sNumeric score + sPositional score
+
   let board' = applyMoveActions (pmResult move) board
   let dp0 = dp {dpCurrent = dpTarget dp}
   mbCached <- checkPrimeVariation var params board' dp0
   let primeVariation = case mbCached of
                          Nothing -> 0
                          Just item ->
-                          let score = sNumeric (itemScore item)
+                          let score = toNumeric (itemScore item)
                               scoreSigned = if maximize then score else negate score
-                          in  fromIntegral $ 1 + scoreSigned
+                          in  fromIntegral scoreSigned
 
   goodCheck <- getKillerMove (dpCurrent dp)
   let good = case goodCheck of
                Nothing -> 0
                Just (goodMove, goodScore)
-                 | goodMove == move -> if maximize then sNumeric goodScore else negate (sNumeric goodScore)
+                 | goodMove == move -> if maximize then toNumeric goodScore else negate (toNumeric goodScore)
                  | otherwise -> 0
     
-  return $ nVictims + promotion + attackPrevPiece + primeVariation + fromIntegral good
+  return $ fromIntegral $
+            onePiece * nVictims +
+            onePiece * promotion +
+            onePiece * attackPrevPiece +
+            primeVariation + good
 
 sortMoves :: (EvalMoveMonad m, GameRules rules, Evaluator eval)
           => AlphaBetaParams
@@ -237,14 +245,14 @@ sortMoves :: (EvalMoveMonad m, GameRules rules, Evaluator eval)
           -> Maybe PossibleMove
           -> [PossibleMove]
           -> m [PossibleMove]
-sortMoves params var side dp board mbPrevMove moves =
-  if length moves >= 4
-    then do
+sortMoves params var side dp board mbPrevMove moves = do
+--   if length moves >= 4
+--     then do
       interest <- mapM (evalMove params var side dp board mbPrevMove) moves
       if any (> 0) interest
         then return $ map fst $ sortOn (negate . snd) $ zip moves interest
         else return moves
-    else return moves
+--     else return moves
 
 rememberGoodMove :: Int -> Side -> PossibleMove -> Score -> ScoreM rules eval ()
 rememberGoodMove depth side move score = do
@@ -321,8 +329,7 @@ runAI :: (GameRules rules, Evaluator eval)
       -> Board
       -> Checkers AiOutput
 runAI ai@(AlphaBeta params rules eval) handle gameId side board = do
-    preOptions <- preselect
-    options <- depthDriver preOptions
+    options <- depthDriver =<< getPossibleMoves handle side board
     output <- select options
     let bestScore = sNumeric $ snd output
     let shift = bestScore - sNumeric score0
@@ -353,71 +360,74 @@ runAI ai@(AlphaBeta params rules eval) handle gameId side board = do
 --       $debug "Pre-selected options: {}" (Single $ show result)
 --       return result
 
-    preselect :: Checkers [PossibleMove]
-    preselect = do
-      moves <- getPossibleMoves handle side board
-      if length moves < 16
-        then return moves
-        else do
-          let simple = DepthParams {
-                        dpInitialTarget = 2
-                      , dpTarget = 2
-                      , dpCurrent = -1
-                      , dpMax = 4
-                      , dpMin = 2
-                      , dpForcedMode = False
-                      , dpStaticMode = False
-                      , dpReductedMode = False
-                    }
-          $info "Preselecting; number of possible moves = {}, depth = {}" (length moves, dpTarget simple)
-          options <- scoreMoves' True moves simple (loose, win)
-          let key = if maximize
-                      then negate . snd
-                      else snd
-          let sorted = sortOn key options
-              bestOptions = take (abMovesHighBound params) sorted
-          let result = map fst sorted
-          $debug "Pre-selected options: {}" (Single $ show result)
-          return result
+    preselect :: Int -> [PossibleMove] -> Checkers [Score]
+    preselect depth moves = do
+      let simple = DepthParams {
+                    dpInitialTarget = depth
+                  , dpTarget = depth
+                  , dpCurrent = -1
+                  , dpMax = 6
+                  , dpMin = depth
+                  , dpForcedMode = False
+                  , dpStaticMode = False
+                  , dpReductedMode = False
+                }
+      $info "Preselecting; number of possible moves = {}, depth = {}" (length moves, dpTarget simple)
+      options <- scoreMoves' False moves simple (loose, win)
+      let key = if maximize
+                  then negate . snd
+                  else snd
+      return $ map key options
+--       let sorted = sortOn key options
+--           bestOptions = take (abMovesHighBound params) sorted
+--       let result = map fst sorted
+--       $debug "Pre-selected options: {}" (Single $ show result)
+--       return result
 
     depthDriver :: [PossibleMove] -> Checkers DepthIterationOutput
     depthDriver moves =
-      case abBaseTime params of
-        Nothing -> do
-          (result, _) <- go (params, moves, Nothing)
-          return result
-        Just time -> repeatTimed' "runAI" time goTimed (params, moves, Nothing)
+      let input =  DepthIterationInput {
+                     diiParams = params,
+                     diiMoves = moves,
+                     diiPrevResult = Nothing,
+                     diiSortKeys = Nothing
+                  }
+      in case abBaseTime params of
+          Nothing -> do
+            (result, _) <- go input
+            return result
+          Just time -> repeatTimed' "runAI" time goTimed input
   
     goTimed :: DepthIterationInput
             -> Checkers (DepthIterationOutput, Maybe DepthIterationInput)
-    goTimed (params, moves, prevResult) = do
-      ret <- tryC $ go (params, moves, prevResult)
+    goTimed input = do
+      ret <- tryC $ go input
       case ret of
         Right result -> return result
         Left TimeExhaused ->
-          case prevResult of
+          case diiPrevResult input of
             Just result -> return (result, Nothing)
-            Nothing -> return ([(move, 0) | move <- moves], Nothing)
+            Nothing -> return ([(move, 0) | move <- diiMoves input], Nothing)
         Left err -> throwError err
 
     go :: DepthIterationInput
             -> Checkers (DepthIterationOutput, Maybe DepthIterationInput)
-    go (params, moves, prevResult) = do
-      let depth = abDepth params
-      if length moves <= 1 -- Just one move possible
+    go input@(DepthIterationInput {..}) = do
+      let depth = abDepth diiParams
+      if length diiMoves <= 1 -- Just one move possible
         then do
           $info "There is only one move possible; just do it." ()
-          return ([(move, score0) | move <- moves], Nothing)
+          return ([(move, score0) | move <- diiMoves], Nothing)
                                                              
         else do
           let var = aichData handle
-          $info "Selecting a move. Side = {}, depth = {}, number of possible moves = {}" (show side, depth, length moves)
-          dp <- updateDepth params moves $ DepthParams {
+          $info "Selecting a move. Side = {}, depth = {}, number of possible moves = {}" (show side, depth, length diiMoves)
+          dp <- updateDepth params diiMoves $ DepthParams {
                      dpInitialTarget = depth
                    , dpTarget = depth
                    , dpCurrent = -1
-                   , dpMax = abCombinationDepth params + depth
-                   , dpMin = fromMaybe depth (abStartDepth params)
+                   , dpMax = abCombinationDepth diiParams + depth
+                   , dpMin = fromMaybe depth (abStartDepth diiParams)
                    , dpStaticMode = False
                    , dpForcedMode = False
                    , dpReductedMode = False
@@ -428,14 +438,28 @@ runAI ai@(AlphaBeta params rules eval) handle gameId side board = do
                                     dpTarget = min (dpMax dp) (dpTarget dp + 1)
                                   }
                 | otherwise = dp
-          result <- widthController True True prevResult moves dp' =<< initInterval
+          let preselectDepth = if dpMin dp < dpInitialTarget dp
+                                 then dpMin dp
+                                 else max 2 $ dpInitialTarget dp - 2
+          sortKeys <- case diiSortKeys of
+                        Just keys -> return keys
+                        Nothing -> preselect preselectDepth diiMoves
+          let sortedMoves = map snd $ sortOn fst $ zip sortKeys diiMoves
+          result <- widthController True True diiPrevResult sortedMoves dp' =<< initInterval
           -- In some corner cases, there might be 1 or 2 possible moves,
           -- so the timeout would allow us to calculate with very big depth;
           -- too big depth does not decide anything in such situations.
           if depth < 50
             then do
               let params' = params {abDepth = depth + 1, abStartDepth = Nothing}
-              return (result, Just (params', moves, Just result))
+                  keys = map snd result
+                  signedKeys = if maximize then map negate keys else keys
+                  input' = input {
+                              diiParams = params',
+                              diiPrevResult = Just result,
+                              diiSortKeys = Just signedKeys
+                            }
+              return (result, Just input')
             else return (result, Nothing)
 
     score0 = evalBoard eval First board
@@ -551,7 +575,7 @@ runAI ai@(AlphaBeta params rules eval) handle gameId side board = do
           n = length moves
 
           groups
-            | byOne || (n < 16) = [[input] | input <- inputs]
+            | byOne = [[input] | input <- inputs]
             | otherwise = transpose $ chunksOf 4 inputs
 
       results <- process' processor groups
@@ -586,8 +610,8 @@ runAI ai@(AlphaBeta params rules eval) handle gameId side board = do
 
     selectBestEdge (alpha, beta) moves results =
       let (good, bad) = if maximize then (beta, alpha) else (alpha, beta)
-          goodResults = [(move, (goodMoves, score)) | (move, (goodMoves, score)) <- zip moves results, score == good]
-          badResults = [move | (move, (_, score)) <- zip moves results, score == bad]
+          goodResults = [(move, (goodMoves, score)) | (move, (goodMoves, score)) <- zip moves results, score >= good]
+          badResults = [move | (move, (_, score)) <- zip moves results, score <= bad]
       in  (goodResults, bad, badResults)
 
     select :: DepthIterationOutput -> Checkers AiOutput
@@ -617,7 +641,7 @@ doScore rules eval var params gameId side dp board alpha beta = do
   where
     input = ScoreInput side dp alpha beta board Nothing 
     mkInitState = do
-      now <- liftIO $ getTime Monotonic
+      now <- liftIO $ getTime RealtimeCoarse
       let timeout = case abBaseTime params of
                       Nothing -> Nothing
                       Just sec -> Just $ TimeSpec (fromIntegral sec) 0
@@ -674,7 +698,7 @@ cachedScoreAB var params input = do
           -- (so this is a real score, not alpha/beta bound)
           item = PerBoardData (dpLast dp) score bound Nothing
           item' = PerBoardData (dpLast dp) (negate score) bound Nothing
-      when (bound == Exact && soQuiescene out) $ do
+      when (bound == Exact && soQuiescene out && not (dpStaticMode dp)) $ do
           lift $ putAiCache params board item var
           lift $ putAiCache params (flipBoard board) item' var
       return out
@@ -741,7 +765,7 @@ isTimeExhaused = do
     Nothing -> return False
     Just delta -> do
       start <- gets ssStartTime
-      now <- liftIO $ getTime Monotonic
+      now <- liftIO $ getTime RealtimeCoarse
       return $ start + delta <= now
 
 -- | Calculate score for the board.

@@ -37,7 +37,14 @@ instance GameRules Armenian where
 
   boardSize _ = (8, 8)
 
-  dfltEvaluator r = SomeEval $ (defaultEvaluator r) {seKingCoef = 5, seHelpedKingCoef = 6, seBorderMenBad = False}
+  dfltEvaluator r = SomeEval $ (defaultEvaluator r) {
+                                 seKingCoef = 4,
+                                 seHelpedKingCoef = 5,
+                                 seOppositeSideWeight = 5,
+                                 seMobilityWeight = 4,
+                                 seBackedWeight = 1,
+                                 seBorderMenBad = False
+                                }
 
   boardNotation _ = chessNotation
 

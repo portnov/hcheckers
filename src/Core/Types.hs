@@ -467,7 +467,7 @@ instance Store Score
 instance Binary Score
 
 scoreBound :: ScoreBase
-scoreBound = 256
+scoreBound = 512
 
 maxPieces :: ScoreBase
 maxPieces = 16*5
@@ -843,7 +843,7 @@ repeatTimed label seconds action = repeatTimed' label seconds action' ()
   
 repeatTimed' :: forall m a b. (MonadIO m, HasLogging m) => String -> Int -> (a -> m (b, Maybe a)) -> a -> m b
 repeatTimed' label seconds action x = do
-    start <- liftIO $ getTime Monotonic
+    start <- liftIO $ getTime RealtimeCoarse
     run 0 x start
   where
     run :: Int -> a -> TimeSpec -> m b
@@ -851,7 +851,7 @@ repeatTimed' label seconds action x = do
       (result, mbX') <- action x
       case mbX' of
         Just x' -> do
-            time2 <- liftIO $ getTime Monotonic
+            time2 <- liftIO $ getTime RealtimeCoarse
             let delta = time2 - start
             if sec delta >= fromIntegral seconds
               then do

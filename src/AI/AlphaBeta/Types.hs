@@ -26,7 +26,7 @@ module AI.AlphaBeta.Types
     StorageState (..),
     ScoreState (..), ScoreM (..),
     ScoreInput (..), ScoreOutput (..),
-    DepthIterationInput, DepthIterationOutput,
+    DepthIterationInput (..), DepthIterationOutput,
     AiOutput,
     Storage,
     runStorage
@@ -294,7 +294,13 @@ instance HasLogContext (StateT (ScoreState rules eval) Checkers) where
     St.put st'
     return result
 
-type DepthIterationInput = (AlphaBetaParams, [PossibleMove], Maybe DepthIterationOutput)
+data DepthIterationInput = DepthIterationInput {
+    diiParams :: AlphaBetaParams,
+    diiMoves :: [PossibleMove],
+    diiSortKeys :: Maybe [Score],
+    diiPrevResult :: Maybe DepthIterationOutput
+  }
+
 type DepthIterationOutput = [(PossibleMove, Score)]
 type AiOutput = ([PossibleMove], Score)
 
