@@ -158,6 +158,7 @@ data ScoreMoveInput rules eval = ScoreMoveInput {
     smiAi :: AlphaBeta rules eval
   , smiCache :: AICacheHandle rules eval
   , smiGameId :: GameId
+  , smiGlobalInterval :: TVar (Score, Score)
   , smiSide :: Side 
   , smiDepth :: DepthParams
   , smiBoard :: Board
@@ -249,6 +250,7 @@ data ScoreState rules eval = ScoreState {
     ssRules :: rules
   , ssEvaluator :: eval
   , ssGameId :: GameId
+  , ssGlobalInterval :: TVar (Score, Score)
   , ssBestScores :: [Score] -- ^ At each level of depth-first search, there is own "best score"
   , ssBestMoves :: M.Map Int (PossibleMove, Score)
   , ssStartTime :: TimeSpec -- ^ Start time of calculation
@@ -298,6 +300,7 @@ data DepthIterationInput = DepthIterationInput {
     diiParams :: AlphaBetaParams,
     diiMoves :: [PossibleMove],
     diiSortKeys :: Maybe [Score],
+    diiGlobalInterval :: TVar (Score, Score),
     diiPrevResult :: Maybe DepthIterationOutput
   }
 
