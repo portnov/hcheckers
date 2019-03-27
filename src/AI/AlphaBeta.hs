@@ -695,8 +695,8 @@ restrictInterval var side score = liftIO $ atomically $ do
 getRestrictedInterval :: (MonadIO m, HasLogger m, HasLogContext m) => TVar (Score, Score) -> (Score, Score) -> m (Score, Score)
 getRestrictedInterval global (localAlpha, localBeta) = do
   (globalAlpha, globalBeta) <- liftIO $ atomically $ readTVar global
-  let alpha1 = max globalAlpha localAlpha
-      beta1  = min globalBeta  localBeta
+  let alpha1 = max (prevScore globalAlpha) localAlpha
+      beta1  = min (nextScore globalBeta)  localBeta
   if  alpha1 <= beta1
     then do
          $trace "Restrict: Global [{}, {}] x Local [{}, {}] => [{}, {}]"
