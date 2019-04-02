@@ -12,6 +12,7 @@ hcheckers.cabal
 docker/work
 docker/target
 docker/stack
+docker/build/
 __pycache__/
 python/dist/
 python/deb_dist/
@@ -21,3 +22,5 @@ debian/hcheckersd/
 debian/files
 debian/debhelper-build-stamp
 work/
+csv/
+games/
