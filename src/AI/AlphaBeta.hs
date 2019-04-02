@@ -633,8 +633,8 @@ runAI ai@(AlphaBeta params rules eval) handle gameId side board = do
 
     selectBestEdge (alpha, beta) moves results =
       let (good, bad) = if maximize then (beta, alpha) else (alpha, beta)
-          goodResults = [(move, (goodMoves, score)) | (move, (goodMoves, score)) <- zip moves results, score >= good]
-          badResults = [move | (move, (_, score)) <- zip moves results, score <= bad]
+          goodResults = [(move, (goodMoves, score)) | (move, (goodMoves, score)) <- zip moves results, not (score `worseThan` good)]
+          badResults = [move | (move, (_, score)) <- zip moves results, not (score `betterThan` bad)]
           scores = map snd results
           badScore = if maximize
                        then minimum scores
