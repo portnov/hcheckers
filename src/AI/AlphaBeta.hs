@@ -526,7 +526,7 @@ runAI ai@(AlphaBeta params rules eval) handle gameId side board = do
                     -> (Score, Score) -- ^ (Alpha, Beta)
                     -> Checkers DepthIterationOutput
     widthController allowNext allowPrev prevResult moves dp globalInterval localInterval = do
-      interval@(alpha, beta) <- getRestrictedInterval globalInterval localInterval
+      interval@(alpha, beta) <- getRestrictedInterval side globalInterval localInterval
       if alpha == beta
         then do
           $info "Empty scores interval: [{}]. We have to think that all moves have this score." (Single alpha)
@@ -612,7 +612,7 @@ runAI ai@(AlphaBeta params rules eval) handle gameId side board = do
                   -> (Score, Score)
                   -> Checkers DepthIterationOutput
     widthIteration prevResult moves dp globalInterval localInterval = do
-      (alpha, beta) <- getRestrictedInterval globalInterval localInterval
+      (alpha, beta) <- getRestrictedInterval side globalInterval localInterval
       $info "`- Considering scores interval: [{} - {}], depth = {}" (alpha, beta, dpTarget dp)
       results <- scoreMoves False moves dp globalInterval (alpha, beta)
       joinResults prevResult results
@@ -692,8 +692,8 @@ restrictInterval var side score = liftIO $ atomically $ do
       then writeTVar var (score, globalBeta)
       else writeTVar var (globalAlpha, score)
 
-getRestrictedInterval :: (MonadIO m, HasLogger m, HasLogContext m) => TVar (Score, Score) -> (Score, Score) -> m (Score, Score)
-getRestrictedInterval global (localAlpha, localBeta) = do
+getRestrictedInterval :: (MonadIO m, HasLogger m, HasLogContext m) => Side -> TVar (Score, Score) -> (Score, Score) -> m (Score, Score)
+getRestrictedInterval side global (localAlpha, localBeta) = do
   (globalAlpha, globalBeta) <- liftIO $ atomically $ readTVar global
   let alpha1 = max (prevScore globalAlpha) localAlpha
       beta1  = min (nextScore globalBeta)  localBeta
@@ -702,9 +702,9 @@ getRestrictedInterval global (localAlpha, localBeta) = do
          $trace "Restrict: Global [{}, {}] x Local [{}, {}] => [{}, {}]"
                   (globalAlpha, globalBeta, localAlpha, localBeta, alpha1, beta1)
          return (alpha1, beta1)
-    else do
-         let mid = (alpha1 + beta1) `divideScore` 2
-         return (mid, mid)
+    else if side == First
+           then return (beta1, beta1)
+           else return (alpha1, alpha1)
 
 -- | Calculate score of the board. 
 -- This uses the cache. It is called in the recursive call also.
@@ -938,7 +938,7 @@ scoreAB var params input
 
     getRestrictedInterval' = do
       globalInterval <- gets ssGlobalInterval
-      result@(alpha, beta) <- getRestrictedInterval globalInterval (localAlpha, localBeta)
+      result@(alpha, beta) <- getRestrictedInterval side globalInterval (localAlpha, localBeta)
       return result
 
     evalBoard' :: eval -> Board -> Score
