@@ -136,6 +136,10 @@ preEval (SimpleEvaluator { seRules = SimpleEvaluatorInterface rules, ..}) side b
         Top    -> nrows - row
         Bottom -> row + 1
 
+    centerNumber (Label col row) =
+        min (nrows - row - 1) row *
+        min (ncols - col - 1) col
+
     -- opponentSideCount :: Side -> Int
     opponentSideCount =
       let (men, kings) = myLabelsCount' side board tempNumber in men
@@ -155,13 +159,12 @@ preEval (SimpleEvaluator { seRules = SimpleEvaluatorInterface rules, ..}) side b
     mobility = mobilityScore rules side board
 
     centerScore =
-      let (men, kings) = myLabelsCount side board isCenter
-      in  kingCoef * fromIntegral kings + fromIntegral men
+      let (men, kings) = myLabelsCount' side board centerNumber in men + kings
   in
     PreScore
       { psNumeric  = numericScore
       , psMobility = fromIntegral mobility
-      , psCenter   = centerScore
+      , psCenter   = fromIntegral centerScore
       , psTemp     = fromIntegral opponentSideCount
       , psBacked   = fromIntegral backedScore
       , psAsymetry = fromIntegral asymetry
