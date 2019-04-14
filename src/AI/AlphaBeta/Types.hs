@@ -160,6 +160,7 @@ data ScoreMoveInput rules eval = ScoreMoveInput {
   , smiGameId :: GameId
   , smiGlobalInterval :: TVar (Score, Score)
   , smiSide :: Side 
+  , smiIndex :: Int
   , smiDepth :: DepthParams
   , smiBoard :: Board
   , smiMove :: PossibleMove
@@ -182,7 +183,8 @@ type MovesMemo = TBoardMap (Maybe [PossibleMove], Maybe [PossibleMove])
 data AICacheHandle rules eval = AICacheHandle {
     aichRules :: rules
   , aichData :: AIData
-  , aichProcessor ::  Processor [[MoveAction]] [ScoreMoveInput rules eval] [(PossibleMove, Score)]
+  , aichJobIndex :: TVar Int
+  , aichProcessor ::  Processor [Int] [ScoreMoveInput rules eval] [(PossibleMove, Score)]
   , aichPossibleMoves :: MovesMemo
   , aichLastMoveScoreShift :: TVar (M.Map GameId ScoreBase)
   , aichWriteQueue :: WriteQueue

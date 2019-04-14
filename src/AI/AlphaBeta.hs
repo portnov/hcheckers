@@ -597,6 +597,13 @@ runAI ai@(AlphaBeta params rules eval) handle gameId side board = do
                         $info  "Some moves ({} of them) are `too good'; but we have already checked better interval; so this is the real score" (Single $ length bestMoves)
                         return bestResults
 
+    getJobIndicies :: Int -> Checkers [Int]
+    getJobIndicies count = liftIO $ atomically $ do
+        lastIndex <- readTVar (aichJobIndex handle)
+        let nextIndex = lastIndex + count
+        writeTVar (aichJobIndex handle) nextIndex
+        return [lastIndex+1 .. nextIndex]
+
     scoreMoves :: Bool
                -> [PossibleMove]
                -> DepthParams
@@ -606,21 +613,22 @@ runAI ai@(AlphaBeta params rules eval) handle gameId side board = do
     scoreMoves byOne moves dp globalInterval (localAlpha, localBeta) = do
       let var = aichData handle
       let processor = aichProcessor handle
+          n = length moves
+      indicies <- getJobIndicies n
       let inputs = [
             ScoreMoveInput {
               smiAi = ai,
               smiCache = handle,
               smiGameId = gameId,
               smiSide = side,
+              smiIndex = index,
               smiDepth = dp,
               smiBoard = board,
               smiMove = move,
               smiGlobalInterval = globalInterval,
               smiAlpha = localAlpha,
               smiBeta = localBeta
-            } | move <- moves ]
-
-          n = length moves
+            } | (move, index) <- zip moves indicies ]
 
           groups
             | byOne = [[input] | input <- inputs]
@@ -1093,7 +1101,7 @@ scoreAB var params input
                     , siBoard = applyMoveActions (pmResult move) board
                     , siDepth = dp
                   }
-      out <- checkMove var params input' i
+      out <- cachedScoreAB var params input'
       let score = soScore out
       $verbose "{}| score for side {}: {}" (indent, show side, show score)
 
