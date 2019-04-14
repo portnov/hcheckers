@@ -48,7 +48,7 @@ loadAiCache :: (GameRules rules, Evaluator eval)
             -> AlphaBeta rules eval
             -> Checkers (AICacheHandle rules eval)
 loadAiCache scoreMove (AlphaBeta params rules eval) = do
-  let getKey inputs = map (pmResult. smiMove) inputs
+  let getKey inputs = map smiIndex inputs
   aiCfg <- asks (gcAiConfig . csConfig)
   processor <- runProcessor (aiThreads aiCfg) getKey scoreMove
   cache <- liftIO newTBoardMap
@@ -106,9 +106,11 @@ loadAiCache scoreMove (AlphaBeta params rules eval) = do
   counts <- liftIO $ atomically $ newTVar $ BoardCounts 50 50 50 50
   moves <- liftIO newTBoardMap
   scoreShift <- liftIO $ atomically $ newTVar M.empty
+  index <- liftIO $ atomically $ newTVar 0
   let handle = AICacheHandle {
       aichRules = rules,
       aichData = cache,
+      aichJobIndex = index,
       aichProcessor = processor,
       aichPossibleMoves = moves,
       aichLastMoveScoreShift = scoreShift,
