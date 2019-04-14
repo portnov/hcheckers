@@ -452,9 +452,6 @@ runAI ai@(AlphaBeta params rules eval) handle gameId side board = do
           let preselectDepth = if dpMin dp < dpInitialTarget dp
                                  then dpMin dp
                                  else max 2 $ dpInitialTarget dp - 2
-          sortKeys <- case diiSortKeys of
-                        Just keys -> return keys
-                        Nothing -> preselect preselectDepth diiMoves
           let sortedMoves = case diiSortKeys of
                               Nothing -> diiMoves
                               Just keys -> map snd $ sortOn fst $ zip keys diiMoves
