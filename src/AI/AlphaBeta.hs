@@ -479,7 +479,7 @@ runAI ai@(AlphaBeta params rules eval) handle gameId side board = do
                   Just keys -> map snd $ sortOn fst $ zip keys diiMoves
 
           initInterval <- case diiInitInterval of
-                            Nothing -> mkInitInterval
+                            Nothing -> mkInitInterval depth
                             Just interval -> return interval
           result <- widthController True True diiPrevResult sortedMoves dp' diiGlobalInterval initInterval
           -- In some corner cases, there might be 1 or 2 possible moves,
@@ -503,9 +503,9 @@ runAI ai@(AlphaBeta params rules eval) handle gameId side board = do
     score0 = evalBoard eval First board
 
     -- | Initial (alpha, beta) interval
-    mkInitInterval :: Checkers (Score, Score)
-    mkInitInterval = do
-      let delta = 1
+    mkInitInterval :: Int -> Checkers (Score, Score)
+    mkInitInterval depth = do
+      let delta = fromIntegral $ max 1 $ 10 - depth
 --             | abs score0 < 4 = 1
 --             | abs score0 < 8 = 2
 --             | otherwise = 4
