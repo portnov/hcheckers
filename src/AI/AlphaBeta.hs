@@ -5,6 +5,7 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE BangPatterns #-}
 
 {-
  - This module contains an implementation of alpha-beta-pruning algorithm
@@ -210,32 +211,33 @@ evalMove params var side dp board mbPrevMove move = do
                         Just (Piece Man _) -> 1
                         Just (Piece King _) -> 3
 
-  let onePiece = scoreBound
-      
+      onePiece = scoreBound
       toNumeric score = onePiece * sNumeric score + sPositional score
 
-  let board' = applyMoveActions (pmResult move) board
-  let dp0 = dp {dpCurrent = dpTarget dp}
-  mbCached <- checkPrimeVariation var params board' dp0
-  let primeVariation = case mbCached of
-                         Nothing -> 0
-                         Just item ->
-                          let score = toNumeric (itemScore item)
-                              scoreSigned = if maximize then score else negate score
-                          in  fromIntegral scoreSigned
+      board' = applyMoveActions (pmResult move) board
+      dp0 = dp {dpCurrent = dpTarget dp}
 
-  goodCheck <- getKillerMove (dpCurrent dp)
-  let good = case goodCheck of
-               Nothing -> 0
-               Just (goodMove, goodScore)
-                 | goodMove == move -> if maximize then toNumeric goodScore else negate (toNumeric goodScore)
-                 | otherwise -> 0
-    
-  return $ fromIntegral $
-            onePiece * nVictims +
-            onePiece * promotion +
-            onePiece * attackPrevPiece +
-            primeVariation + good
+  mbCached <- checkPrimeVariation var params board' dp0
+
+  case mbCached of
+    Nothing -> do
+      return 0
+--       goodCheck <- getKillerMove (dpCurrent dp)
+--       let good = case goodCheck of
+--                    Nothing -> 0
+--                    Just (goodMove, goodScore)
+--                      | goodMove == move -> if maximize then toNumeric goodScore else negate (toNumeric goodScore)
+--                      | otherwise -> 0
+      return $ fromIntegral $
+                  onePiece * nVictims +
+                  onePiece * promotion +
+                  onePiece * attackPrevPiece
+                  -- good
+
+    Just item -> do
+      let score = toNumeric (itemScore item)
+          scoreSigned = if maximize then score else negate score
+      return $ fromIntegral scoreSigned
 
 sortMoves :: (EvalMoveMonad m, GameRules rules, Evaluator eval)
           => AlphaBetaParams
@@ -250,13 +252,13 @@ sortMoves params var side dp board mbPrevMove moves = do
 --   if length moves >= 4
 --     then do
       interest <- mapM (evalMove params var side dp board mbPrevMove) moves
-      if any (> 0) interest
+      if any (/= 0) interest
         then return $ map fst $ sortOn (negate . snd) $ zip moves interest
         else return moves
 --     else return moves
 
 rememberGoodMove :: Int -> Side -> PossibleMove -> Score -> ScoreM rules eval ()
-rememberGoodMove depth side move score = do
+rememberGoodMove depth side move !score = do
   goodMoves <- gets ssBestMoves
   let goodMoves' = case M.lookup depth goodMoves of
                      Nothing -> M.insert depth (move, score) goodMoves
@@ -344,7 +346,9 @@ runAI ai@(AlphaBeta params rules eval) handle gameId side board = do
       | maximize = s1 > s2
       | otherwise = s1 < s2
 
-    worseThan s1 s2 = not (betterThan s1 s2)
+    worseThan s1 s2
+      | maximize = s1 < s2
+      | otherwise = s1 > s2
 
 --     preselect = do
 --       moves <- getPossibleMoves handle side board
@@ -389,18 +393,33 @@ runAI ai@(AlphaBeta params rules eval) handle gameId side board = do
     depthDriver :: [PossibleMove] -> Checkers DepthIterationOutput
     depthDriver moves = do
       globalInterval <- liftIO $ atomically $ newTVar (loose, win)
-      let input =  DepthIterationInput {
-                     diiParams = params,
-                     diiMoves = moves,
-                     diiPrevResult = Nothing,
-                     diiGlobalInterval = globalInterval,
-                     diiSortKeys = Nothing
-                  }
       case abBaseTime params of
           Nothing -> do
-            (result, _) <- go input
-            return result
-          Just time -> repeatTimed' "runAI" time goTimed input
+            let target = abDepth params
+                preselectDepth = 2 + (abDepth params `mod` 2)
+                startDepth = case abStartDepth params of
+                               Nothing -> Nothing
+                               Just s -> Just $ max 2 $ preselectDepth + s - abDepth params
+                input =  DepthIterationInput {
+                           diiParams = params {abDepth = preselectDepth, abStartDepth = startDepth},
+                           diiMoves = moves,
+                           diiPrevResult = Nothing,
+                           diiInitInterval = Nothing,
+                           diiGlobalInterval = globalInterval,
+                           diiSortKeys = Nothing
+                        }
+            goIterative target input
+
+          Just time -> do
+            let input =  DepthIterationInput {
+                           diiParams = params,
+                           diiMoves = moves,
+                           diiPrevResult = Nothing,
+                           diiInitInterval = Nothing,
+                           diiGlobalInterval = globalInterval,
+                           diiSortKeys = Nothing
+                        }
+            repeatTimed' "runAI" time goTimed input
   
     goTimed :: DepthIterationInput
             -> Checkers (DepthIterationOutput, Maybe DepthIterationInput)
@@ -413,6 +432,17 @@ runAI ai@(AlphaBeta params rules eval) handle gameId side board = do
             Just result -> return (result, Nothing)
             Nothing -> return ([(move, 0) | move <- diiMoves input], Nothing)
         Left err -> throwError err
+
+    goIterative :: Int -> DepthIterationInput -> Checkers DepthIterationOutput
+    goIterative target input = do
+      liftIO $ atomically $ writeTVar (diiGlobalInterval input) (loose, win)
+      (output, mbNextInput) <- go input
+      case mbNextInput of
+        Nothing -> return output
+        Just nextInput ->
+          if abDepth (diiParams nextInput) <= target
+            then goIterative target nextInput
+            else return output
 
     go :: DepthIterationInput
             -> Checkers (DepthIterationOutput, Maybe DepthIterationInput)
@@ -431,7 +461,7 @@ runAI ai@(AlphaBeta params rules eval) handle gameId side board = do
                    , dpTarget = depth
                    , dpCurrent = -1
                    , dpMax = abCombinationDepth diiParams + depth
-                   , dpMin = fromMaybe depth (abStartDepth diiParams)
+                   , dpMin = min depth $ fromMaybe depth (abStartDepth diiParams)
                    , dpStaticMode = False
                    , dpForcedMode = False
                    , dpReductedMode = False
@@ -442,26 +472,30 @@ runAI ai@(AlphaBeta params rules eval) handle gameId side board = do
                                     dpTarget = min (dpMax dp) (dpTarget dp + 1)
                                   }
                 | otherwise = dp
-          let preselectDepth = if dpMin dp < dpInitialTarget dp
-                                 then dpMin dp
-                                 else max 2 $ dpInitialTarget dp - 2
-          sortKeys <- case diiSortKeys of
-                        Just keys -> return keys
-                        Nothing -> preselect preselectDepth diiMoves
-          let sortedMoves = map snd $ sortOn fst $ zip sortKeys diiMoves
-          result <- widthController True True diiPrevResult sortedMoves dp' diiGlobalInterval =<< initInterval
+
+          let sortedMoves =
+                case diiSortKeys of
+                  Nothing -> diiMoves
+                  Just keys -> map snd $ sortOn fst $ zip keys diiMoves
+
+          initInterval <- case diiInitInterval of
+                            Nothing -> mkInitInterval
+                            Just interval -> return interval
+          result <- widthController True True diiPrevResult sortedMoves dp' diiGlobalInterval initInterval
           -- In some corner cases, there might be 1 or 2 possible moves,
           -- so the timeout would allow us to calculate with very big depth;
           -- too big depth does not decide anything in such situations.
           if depth < 50
             then do
-              let params' = params {abDepth = depth + 1, abStartDepth = Nothing}
+              let start' = fmap (+2) (abStartDepth params)
+                  params' = params {abDepth = depth + 2, abStartDepth = start'}
                   keys = map snd result
                   signedKeys = if maximize then map negate keys else keys
                   input' = input {
                               diiParams = params',
                               diiPrevResult = Just result,
-                              diiSortKeys = Just signedKeys
+                              diiSortKeys = Just signedKeys,
+                              diiInitInterval = Nothing -- Just (minimum keys, maximum keys)
                             }
               return (result, Just input')
             else return (result, Nothing)
@@ -469,8 +503,8 @@ runAI ai@(AlphaBeta params rules eval) handle gameId side board = do
     score0 = evalBoard eval First board
 
     -- | Initial (alpha, beta) interval
-    initInterval :: Checkers (Score, Score)
-    initInterval = do
+    mkInitInterval :: Checkers (Score, Score)
+    mkInitInterval = do
       let delta = 1
 --             | abs score0 < 4 = 1
 --             | abs score0 < 8 = 2
@@ -533,8 +567,10 @@ runAI ai@(AlphaBeta params rules eval) handle gameId side board = do
           return [(move, alpha) | move <- moves]
         else do
             results <- widthIteration prevResult moves dp globalInterval interval
-            let (goodScore, good, badScore, badMoves) = selectBestEdge interval moves results
-                (bestMoves, bestResults) = unzip good
+            let (goodScore, bestResults, badScore, badMoves) = selectBestEdge interval moves results
+                (bestMoves, bestScores) = unzip bestResults
+            $debug "Depth: {}; Interval: [{} - {}]; Scores: {}" (dpTarget dp, alpha, beta, show $ map snd results)
+            $info "Number of `too bad' moves: {}; number of `too good' moves: {}" (length badMoves, length bestMoves)
             if length badMoves == length moves
               then
                 if allowPrev
@@ -633,7 +669,7 @@ runAI ai@(AlphaBeta params rules eval) handle gameId side board = do
 
     selectBestEdge (alpha, beta) moves results =
       let (good, bad) = if maximize then (beta, alpha) else (alpha, beta)
-          goodResults = [(move, (goodMoves, score)) | (move, (goodMoves, score)) <- zip moves results, not (score `worseThan` good)]
+          goodResults = [(move, score) | (move, score) <- zip moves (map snd results), not (score `worseThan` good)]
           badResults = [move | (move, (_, score)) <- zip moves results, not (score `betterThan` bad)]
           scores = map snd results
           badScore = if maximize
@@ -911,7 +947,7 @@ scoreAB var params input
       if (nMoves <= abMovesHighBound params) || not (canReduceDepth score0 quiescene)
         then replicate nMoves depth
         else let reducedDepth = depth {
-                                  dpTarget = dpMin dp,
+                                  dpTarget = min (dpMin dp) (dpTarget depth),
                                   dpReductedMode = True
                                 }
              in  replicate (abMovesHighBound params) depth ++ repeat reducedDepth
@@ -1000,19 +1036,19 @@ scoreAB var params input
       return $ {- pmBegin move `elem` victims || -} length (pmVictims move) >= 2 || isPromotion move
 
     mkIntervals (alpha, beta) =
-      let mid = (alpha + beta) `divideScore` 2
+      let mid = min (alpha + 1) beta
       in  if maximize
-            then [(alpha, prevScore mid), (mid, beta)]
-            else [(mid, beta), (alpha, nextScore mid)]
+            then [(alpha, mid), (alpha, beta)]
+            else [(mid, beta), (alpha, beta)]
 
-    checkMove :: AICacheHandle rules eval -> AlphaBetaParams -> ScoreInput -> PossibleMove -> ScoreM rules eval ScoreOutput
-    checkMove var params input move = do
+    checkMove :: AICacheHandle rules eval -> AlphaBetaParams -> ScoreInput -> Int -> ScoreM rules eval ScoreOutput
+    checkMove var params input i = do
         let alpha = siAlpha input
             beta  = siBeta input
             width = beta - alpha
         intervals <- do
-              interesting <- isInteresting move
-              if interesting || width <= 2
+              let interesting = i <= 1
+              if interesting || width <= 1
                 then return [(alpha, beta)]
                 else return $ mkIntervals (alpha, beta)
         let inputs = [input {siAlpha = alpha, siBeta = beta} | (alpha, beta) <- intervals]
@@ -1020,9 +1056,10 @@ scoreAB var params input
       where
         go [input] = cachedScoreAB var params input
         go (input : inputs) = do
-          out <- cachedScoreAB var params input
+          globalInterval <- gets ssGlobalInterval
+          (alpha, beta) <- getRestrictedInterval side globalInterval (siAlpha input, siBeta input)
+          out <- cachedScoreAB var params $ input {siAlpha = alpha, siBeta = beta}
           let score = soScore out
-          (alpha, beta) <- getRestrictedInterval'
           if maximize && score >= beta || minimize && score <= alpha
             then go inputs
             else return out
@@ -1056,7 +1093,7 @@ scoreAB var params input
                     , siBoard = applyMoveActions (pmResult move) board
                     , siDepth = dp
                   }
-      out <- cachedScoreAB var params input'
+      out <- checkMove var params input' i
       let score = soScore out
       $verbose "{}| score for side {}: {}" (indent, show side, show score)
 
@@ -1065,7 +1102,7 @@ scoreAB var params input
              setBest score
              if (maximize && score >= beta) || (minimize && score <= alpha)
                then do
-                    rememberGoodMove (dpCurrent dp) side move score
+                    -- rememberGoodMove (dpCurrent dp) side move score
                     Monitoring.distribution "ai.section.at" $ fromIntegral i
                     $verbose "{}`—Return {} for depth {} = {}" (indent, bestStr, dpCurrent dp, show score)
                     quiescene <- checkQuiescene

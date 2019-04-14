@@ -300,6 +300,7 @@ data DepthIterationInput = DepthIterationInput {
     diiParams :: AlphaBetaParams,
     diiMoves :: [PossibleMove],
     diiSortKeys :: Maybe [Score],
+    diiInitInterval :: Maybe (Score, Score),
     diiGlobalInterval :: TVar (Score, Score),
     diiPrevResult :: Maybe DepthIterationOutput
   }
