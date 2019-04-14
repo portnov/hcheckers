@@ -449,13 +449,13 @@ runAI ai@(AlphaBeta params rules eval) handle gameId side board = do
                                     dpTarget = min (dpMax dp) (dpTarget dp + 1)
                                   }
                 | otherwise = dp
-          let preselectDepth = if dpMin dp < dpInitialTarget dp
-                                 then dpMin dp
-                                 else max 2 $ dpInitialTarget dp - 2
-          let sortedMoves = case diiSortKeys of
-                              Nothing -> diiMoves
-                              Just keys -> map snd $ sortOn fst $ zip keys diiMoves
-          result <- widthController True True diiPrevResult sortedMoves dp' =<< initInterval
+
+          let sortedMoves =
+                case diiSortKeys of
+                  Nothing -> diiMoves
+                  Just keys -> map snd $ sortOn fst $ zip keys diiMoves
+
+          result <- widthController True True diiPrevResult sortedMoves dp' =<< mkInitInterval depth
           -- In some corner cases, there might be 1 or 2 possible moves,
           -- so the timeout would allow us to calculate with very big depth;
           -- too big depth does not decide anything in such situations.
@@ -476,9 +476,9 @@ runAI ai@(AlphaBeta params rules eval) handle gameId side board = do
     score0 = evalBoard eval First board
 
     -- | Initial (alpha, beta) interval
-    initInterval :: Checkers (Score, Score)
-    initInterval = do
-      let delta = 1
+    mkInitInterval :: Int -> Checkers (Score, Score)
+    mkInitInterval depth = do
+      let delta = fromIntegral $ max 1 $ 10 - depth
 --             | abs score0 < 4 = 1
 --             | abs score0 < 8 = 2
 --             | otherwise = 4
