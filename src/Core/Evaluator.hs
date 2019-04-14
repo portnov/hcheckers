@@ -59,7 +59,7 @@ defaultEvaluator rules = SimpleEvaluator
   }
 
 data PreScore = PreScore {
-      psNumeric :: ScoreBase
+      psNumeric :: ! ScoreBase
     , psMobility :: ScoreBase
     , psCenter :: ScoreBase
     , psTemp :: ScoreBase
