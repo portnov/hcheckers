@@ -215,7 +215,7 @@ evalMove params var side dp board mbPrevMove move = do
 
   let board' = applyMoveActions (pmResult move) board
   let dp0 = dp {dpCurrent = dpTarget dp}
-  mbCached <- checkPrimeVariation var params board' dp
+  mbCached <- checkPrimeVariation var params board' dp0
   case mbCached of
     Nothing -> return 0
     Just item -> do
@@ -373,7 +373,7 @@ runAI ai@(AlphaBeta params rules eval) handle gameId side board = do
 --       $debug "Pre-selected options: {}" (Single $ show result)
 --       return result
 
-    depthStep = 3
+    depthStep = 1
 
     depthDriver :: [PossibleMove] -> Checkers DepthIterationOutput
     depthDriver moves =
@@ -488,7 +488,7 @@ runAI ai@(AlphaBeta params rules eval) handle gameId side board = do
     mkInitInterval :: Int -> Checkers (Score, Score)
     mkInitInterval depth = do
       let delta
-            | depth < abDepth params = fromIntegral $ max 1 $ 10 - depth
+            | depth < abDepth params = fromIntegral $ max 1 $ abDepth params - depth
             | otherwise = Score 0 90
       mbPrevShift <- getLastScoreShift handle gameId
       case mbPrevShift of
