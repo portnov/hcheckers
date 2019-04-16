@@ -215,7 +215,7 @@ evalMove params var side dp board mbPrevMove move = do
 
   let board' = applyMoveActions (pmResult move) board
   let dp0 = dp {dpCurrent = dpTarget dp}
-  mbCached <- checkPrimeVariation var params board' dp0
+  mbCached <- checkPrimeVariation var params board' dp
   case mbCached of
     Nothing -> return 0
     Just item -> do
@@ -373,12 +373,15 @@ runAI ai@(AlphaBeta params rules eval) handle gameId side board = do
 --       $debug "Pre-selected options: {}" (Single $ show result)
 --       return result
 
+    depthStep = 3
+
     depthDriver :: [PossibleMove] -> Checkers DepthIterationOutput
     depthDriver moves =
       case abBaseTime params of
           Nothing -> do
             let target = abDepth params
-                preselectDepth = 2 + (target `mod` 2)
+                preselectDepth = let m = target `mod` depthStep
+                                 in  head $ filter (>= 2) [m + depthStep, m + depthStep + depthStep .. target]
                 startDepth = case abStartDepth params of
                                Nothing -> Nothing
                                Just start -> Just $ max 2 $ preselectDepth + start - target
@@ -450,24 +453,30 @@ runAI ai@(AlphaBeta params rules eval) handle gameId side board = do
                                   }
                 | otherwise = dp
 
-          let sortedMoves =
-                case diiSortKeys of
-                  Nothing -> diiMoves
-                  Just keys -> map snd $ sortOn fst $ zip keys diiMoves
+          sortedMoves <-
+              case diiSortKeys of
+                Nothing -> return diiMoves
+                Just keys -> do
+                  let moves' = map snd $ sortOn fst $ zip keys diiMoves
+                  $debug "Sort moves: {} => {}" (show $ zip keys diiMoves, show moves')
+                  return moves'
 
           result <- widthController True True diiPrevResult sortedMoves dp' =<< mkInitInterval depth
+          $debug "Depth iteration result: {}" (Single $ show result)
           -- In some corner cases, there might be 1 or 2 possible moves,
           -- so the timeout would allow us to calculate with very big depth;
           -- too big depth does not decide anything in such situations.
           if depth < 50
             then do
-              let start' = fmap (+2) (abStartDepth params)
-                  params' = params {abDepth = depth + 2, abStartDepth = start'}
+              let start' = fmap (+depthStep) (abStartDepth params)
+                  params' = params {abDepth = depth + depthStep, abStartDepth = start'}
                   keys = map snd result
+                  moves' = map fst result
                   signedKeys = if maximize then map negate keys else keys
                   input' = input {
                               diiParams = params',
                               diiPrevResult = Just result,
+                              diiMoves = moves',
                               diiSortKeys = Just signedKeys
                             }
               return (result, Just input')
@@ -478,10 +487,9 @@ runAI ai@(AlphaBeta params rules eval) handle gameId side board = do
     -- | Initial (alpha, beta) interval
     mkInitInterval :: Int -> Checkers (Score, Score)
     mkInitInterval depth = do
-      let delta = fromIntegral $ max 1 $ 10 - depth
---             | abs score0 < 4 = 1
---             | abs score0 < 8 = 2
---             | otherwise = 4
+      let delta
+            | depth < abDepth params = fromIntegral $ max 1 $ 10 - depth
+            | otherwise = Score 0 90
       mbPrevShift <- getLastScoreShift handle gameId
       case mbPrevShift of
         Nothing -> do
@@ -504,10 +512,15 @@ runAI ai@(AlphaBeta params rules eval) handle gameId side board = do
       | s > 100 = 5
       | otherwise = 2
 
+    scale :: ScoreBase -> Score -> Score
+    scale k s
+      | sNumeric s < 1 = Score 1 (sPositional s)
+      | otherwise = k `scaleScore` s
+
     nextInterval :: (Score, Score) -> (Score, Score)
     nextInterval (alpha, beta) =
       let width = (beta - alpha)
-          width' = selectScale width `scaleScore` width
+          width' = selectScale width `scale` width
           alpha' = prevScore alpha
           beta'  = nextScore beta
       in  if maximize
@@ -517,7 +530,7 @@ runAI ai@(AlphaBeta params rules eval) handle gameId side board = do
     prevInterval :: (Score, Score) -> (Score, Score)
     prevInterval (alpha, beta) =
       let width = (beta - alpha)
-          width' = selectScale width `scaleScore` width
+          width' = selectScale width `scale` width
           alpha' = prevScore alpha
           beta'  = nextScore beta
       in  if minimize
