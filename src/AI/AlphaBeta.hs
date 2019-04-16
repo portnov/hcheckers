@@ -587,6 +587,7 @@ runAI ai@(AlphaBeta params rules eval) handle gameId side board = do
                   then do
                     let interval' = prevInterval badScore interval
                     $info "All moves are `too bad'; consider worse scores interval: [{} - {}]" interval'
+                    liftIO $ atomically $ writeTVar globalInterval interval'
                     widthController False True prevResult badMoves dp globalInterval interval'
                   else do
                     $info "All moves are `too bad' ({}), but we have already checked worse interval; so this is the real score." (Single badScore)
@@ -602,6 +603,7 @@ runAI ai@(AlphaBeta params rules eval) handle gameId side board = do
                       then do
                         let interval'@(alpha',beta') = nextInterval goodScore interval
                         $info "Some moves ({} of them) are `too good'; consider better scores interval: [{} - {}]" (length bestMoves, alpha', beta')
+                        liftIO $ atomically $ writeTVar globalInterval interval'
                         widthController True False prevResult bestMoves dp globalInterval interval'
                       else do
                         $info  "Some moves ({} of them) are `too good'; but we have already checked better interval; so this is the real score" (Single $ length bestMoves)
