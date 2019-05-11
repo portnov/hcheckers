@@ -461,7 +461,7 @@ runAI ai@(AlphaBeta params rules eval) handle gameId side board = do
                   $debug "Sort moves: {} => {}" (show $ zip keys diiMoves, show moves')
                   return moves'
 
-          result <- widthController True True diiPrevResult sortedMoves dp' =<< mkInitInterval depth
+          result <- widthController True True diiPrevResult sortedMoves dp' =<< mkInitInterval depth (isQuiescene diiMoves)
           $debug "Depth iteration result: {}" (Single $ show result)
           -- In some corner cases, there might be 1 or 2 possible moves,
           -- so the timeout would allow us to calculate with very big depth;
@@ -485,11 +485,12 @@ runAI ai@(AlphaBeta params rules eval) handle gameId side board = do
     score0 = evalBoard eval First board
 
     -- | Initial (alpha, beta) interval
-    mkInitInterval :: Int -> Checkers (Score, Score)
-    mkInitInterval depth = do
+    mkInitInterval :: Int -> Bool -> Checkers (Score, Score)
+    mkInitInterval depth quiescene = do
       let delta
             | depth < abDepth params = fromIntegral $ max 1 $ abDepth params - depth
-            | otherwise = Score 0 90
+            | not quiescene = 1
+            | otherwise = Score 0 600
       mbPrevShift <- getLastScoreShift handle gameId
       case mbPrevShift of
         Nothing -> do

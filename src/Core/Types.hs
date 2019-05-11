@@ -467,7 +467,7 @@ instance Store Score
 instance Binary Score
 
 scoreBound :: ScoreBase
-scoreBound = 512
+scoreBound = 8*512
 
 maxPieces :: ScoreBase
 maxPieces = 16*5
