@@ -30,6 +30,8 @@ instance GameRules Russian where
 
   boardSize _ = (8, 8)
 
+  initPiecesCount _ = 24
+
   boardNotation _ = chessNotation
 
   dfltEvaluator r = SomeEval $ defaultEvaluator r

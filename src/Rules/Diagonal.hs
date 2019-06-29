@@ -41,6 +41,8 @@ instance GameRules DiagonalRussian where
 
   boardSize _ = (8, 8)
 
+  initPiecesCount _ = 24
+
   dfltEvaluator r = SomeEval $ defaultEvaluator r
 
   boardNotation _ = boardNotation russian

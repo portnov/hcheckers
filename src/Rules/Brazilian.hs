@@ -28,6 +28,8 @@ instance GameRules Brazilian where
 
   initBoard rnd _ = initBoard rnd russian
 
+  initPiecesCount _ = 24
+
   dfltEvaluator r = SomeEval $ defaultEvaluator r
 
   boardNotation _ = boardNotation international

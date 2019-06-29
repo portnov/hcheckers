@@ -185,18 +185,34 @@ instance Evaluator SimpleEvaluator where
       Just (Just True) -> e {seUsePositionalScore = True}
       Just (Just False) -> e {seUsePositionalScore = False}
 
-  evalBoard eval@(SimpleEvaluator {..}) whoAsks board =
+  evalBoard eval@(SimpleEvaluator {seRules = SimpleEvaluatorInterface rules, ..}) whoAsks board =
     let ps1 = preEval eval whoAsks board
         ps2 = preEval eval (opposite whoAsks) board
+
+        initCount = initPiecesCount rules
+        openingCount = 2 * initCount `div` 3
+        endgameCount = initCount `div` 3
+--         midgameCount = initCount `div` 2
+        count = totalCount board
+
+        crescentAdjustment :: ScoreBase -> ScoreBase -> ScoreBase
+        crescentAdjustment from to
+          | count >= openingCount = to
+          | count <= endgameCount = from
+          | otherwise = (from - to) * fromIntegral (count - openingCount) `div` fromIntegral (endgameCount - openingCount) + to
+
+        centerWeight = crescentAdjustment 0 seCenterWeight
+        tempWeight = crescentAdjustment (seOppositeSideWeight * 2) seOppositeSideWeight 
+        asymetryWeight = crescentAdjustment 0 seAsymetryWeight
 
         positionalScore ps =
           if seUsePositionalScore
             then
-              seCenterWeight * psCenter ps +
-              seOppositeSideWeight * psTemp ps +
+              centerWeight * psCenter ps +
+              tempWeight * psTemp ps +
               seMobilityWeight * psMobility ps +
               seBackedWeight * psBacked ps +
-              seAsymetryWeight * psAsymetry ps +
+              asymetryWeight * psAsymetry ps +
               sePreKingWeight * psPreKing ps
             else 0
 

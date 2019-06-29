@@ -33,6 +33,8 @@ instance GameRules Spancirety where
                    "b6", "d6", "f6", "h6", "j6"]
     in  setManyPieces' labels1 (Piece Man First) $ setManyPieces' labels2 (Piece Man Second) board
 
+  initPiecesCount _ = 30
+
   boardSize _ = (8, 10)
 
   boardNotation _ = boardNotation russian

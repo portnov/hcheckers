@@ -703,17 +703,17 @@ cachedScoreAB var params input = do
   mbItem <- lift $ lookupAiCache params board dp var
   mbCached <- case mbItem of
                 Just item -> do
-                  let score = itemScore item
+                  let cachedScore = itemScore item
                   -- it is possible that this value was put to cache with different
                   -- values of alpha/beta; but we have to maintain the property of
                   -- AB-section: alpha <= result <= beta. So here we clamp the value
                   -- that we got from cache.
                   case itemBound item of
-                    Exact -> return $ Just $ ScoreOutput (clamp alpha beta score) False
-                    Alpha -> if score <= alpha
+                    Exact -> return $ Just $ ScoreOutput (clamp alpha beta cachedScore) False
+                    Alpha -> if cachedScore <= alpha
                                then return $ Just $ ScoreOutput alpha False
                                else return Nothing
-                    Beta  -> if score >= beta
+                    Beta  -> if cachedScore >= beta
                                then return $ Just $ ScoreOutput beta False
                                else return Nothing
                 Nothing -> return Nothing

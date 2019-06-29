@@ -305,6 +305,13 @@ myCounts side board =
         First -> (IS.size (bFirstMen board), IS.size (bFirstKings board))
         Second -> (IS.size (bSecondMen board), IS.size (bSecondKings board))
 
+totalCount :: Board -> Int
+totalCount b =
+    IS.size (bFirstMen b) +
+    IS.size (bSecondMen b) +
+    IS.size (bFirstKings b) +
+    IS.size (bSecondKings b)
+
 catMoves :: Move -> Move -> Move
 catMoves m1 m2 =
   Move (moveBegin m1) (moveSteps m1 ++ moveSteps m2)

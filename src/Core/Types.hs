@@ -426,6 +426,8 @@ class (Typeable g, Show g, HasBoardOrientation g, HasTopology g) => GameRules g 
   -- | Size of board used
   boardSize :: g -> BoardSize
 
+  initPiecesCount :: g -> Int
+
   dfltEvaluator :: g -> SomeEval
 
   boardNotation :: g -> Label -> Notation

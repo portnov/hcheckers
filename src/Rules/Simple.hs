@@ -26,6 +26,7 @@ instance HasTopology Simple where
 instance GameRules Simple where
   initBoard rnd _ = initBoard rnd Russian.russian
   boardSize _ = boardSize Russian.russian
+  initPiecesCount _ = 24
 
   boardNotation _ = boardNotation Russian.russian
 

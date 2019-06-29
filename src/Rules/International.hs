@@ -42,6 +42,8 @@ instance GameRules International where
 
     in  setManyPieces' labels1 (Piece Man First) $ setManyPieces' labels2 (Piece Man Second) board
 
+  initPiecesCount _ = 40
+
   boardNotation r = numericNotation (boardSize r)
 
   dfltEvaluator r = SomeEval $ (defaultEvaluator r) {seKingCoef = 5, seHelpedKingCoef = 6}

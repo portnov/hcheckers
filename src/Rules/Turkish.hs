@@ -35,6 +35,8 @@ instance GameRules Turkish where
                    "a6", "b6", "c6", "d6", "e6", "f6", "g6", "h6"]
     in  setManyPieces' labels1 (Piece Man First) $ setManyPieces' labels2 (Piece Man Second) board
 
+  initPiecesCount _ = 32
+
   boardSize _ = (8, 8)
 
   dfltEvaluator r = SomeEval $ (defaultEvaluator r) {seKingCoef = 5, seHelpedKingCoef = 6, seBorderMenBad = False}

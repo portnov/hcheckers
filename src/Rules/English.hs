@@ -33,6 +33,8 @@ instance GameRules English where
         labels2 = line8labels ++ line7labels ++ line6labels
     in  setManyPieces' labels1 (Piece Man Second) $ setManyPieces' labels2 (Piece Man First) board
 
+  initPiecesCount _ = 24
+
   boardNotation r = numericNotation (boardSize r)
   parseNotation r = parseNumericNotation (boardSize r)
 
