@@ -209,19 +209,21 @@ evalMove params var side dp board mbPrevMove move = do
                         Just (Piece Man _) -> 1
                         Just (Piece King _) -> 3
 
-  let onePiece = scoreBound
-      
-      toNumeric score = onePiece * sNumeric score + sPositional score
-
-  let board' = applyMoveActions (pmResult move) board
-  let dp0 = dp {dpCurrent = dpTarget dp}
-  mbCached <- checkPrimeVariation var params board' dp0
-  case mbCached of
-    Nothing -> return 0
-    Just item -> do
-        let score = toNumeric (itemScore item)
-            scoreSigned = if maximize then score else negate score
-        return $ fromIntegral scoreSigned
+  return $ 5*promotion + 3*nVictims + 3*attackPrevPiece
+-- 
+--   let onePiece = scoreBound
+--       
+--       toNumeric score = onePiece * sNumeric score + sPositional score
+-- 
+--   let board' = applyMoveActions (pmResult move) board
+--   let dp0 = dp {dpCurrent = dpTarget dp}
+--   mbCached <- checkPrimeVariation var params board' dp0
+--   case mbCached of
+--     Nothing -> return 0
+--     Just item -> do
+--         let score = toNumeric (itemScore item)
+--             scoreSigned = if maximize then score else negate score
+--         return $ fromIntegral scoreSigned
     
 sortMoves :: (EvalMoveMonad m, GameRules rules, Evaluator eval)
           => AlphaBetaParams
@@ -373,15 +375,18 @@ runAI ai@(AlphaBeta params rules eval) handle gameId side board = do
 --       $debug "Pre-selected options: {}" (Single $ show result)
 --       return result
 
-    depthStep = 1
+    depthStep = 5
 
     depthDriver :: [PossibleMove] -> Checkers DepthIterationOutput
     depthDriver moves =
       case abBaseTime params of
           Nothing -> do
             let target = abDepth params
-                preselectDepth = let m = target `mod` depthStep
-                                 in  head $ filter (>= 2) [m + depthStep, m + depthStep + depthStep .. target]
+                preselectDepth =
+                  if target <= depthStep
+                    then target
+                    else let m = target `mod` depthStep
+                         in  head $ filter (>= 2) [m + depthStep, m + depthStep + depthStep .. target]
                 startDepth = case abStartDepth params of
                                Nothing -> Nothing
                                Just start -> Just $ max 2 $ preselectDepth + start - target
