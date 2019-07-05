@@ -266,8 +266,17 @@ class Checkers(QMainWindow):
         self.splashscreen.finish(self)
         self._on_new_game()
 
+    def _screen_size(self):
+        rect = QApplication.desktop().availableGeometry(self)
+        return min(rect.width(), rect.height())
+
+    def _splashscreen_size(self):
+        screen_size = self._screen_size()
+        return screen_size / 2
+
     def _show_splashcreen(self, message=None):
-        splash_pix = self._icon("splashscreen.svg").pixmap(QSize(1024, 1024))
+        splash_size = self._splashscreen_size()
+        splash_pix = self._icon("splashscreen.svg").pixmap(QSize(splash_size, splash_size))
         self.splashscreen = QSplashScreen(splash_pix, Qt.WindowStaysOnTopHint)
         self.splashscreen.show()
         QApplication.processEvents()
