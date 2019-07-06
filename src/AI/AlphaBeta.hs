@@ -530,8 +530,8 @@ runAI ai@(AlphaBeta params rules eval) handle gameId side board = do
           alpha' = prevScore alpha
           beta'  = nextScore beta
       in  if maximize
-            then (beta', max beta' (beta' + width'))
-            else (min alpha' (alpha' - width'), alpha')
+            then (alpha, max beta' (beta' + width'))
+            else (min alpha' (alpha' - width'), beta)
 
     prevInterval :: (Score, Score) -> (Score, Score)
     prevInterval (alpha, beta) =
@@ -577,13 +577,18 @@ runAI ai@(AlphaBeta params rules eval) handle gameId side board = do
                     return bestResults
                   _ ->
                     if allowNext
-                      then do
-                        let interval'@(alpha',beta') = nextInterval interval
-                        $info "Some moves ({} of them) are `too good'; consider better scores interval: [{} - {}]" (length bestMoves, alpha', beta')
-                        widthController True False prevResult bestMoves dp interval'
-                      else do
-                        $info  "Some moves ({} of them) are `too good'; but we have already checked better interval; so this is the real score" (Single $ length bestMoves)
-                        return bestResults
+                      then
+                        if (maximize && beta >= win) || (minimize && alpha <= loose)
+                          then do
+                            $info "Some moves ({} of them) are `too good'; but there is no better interval, return all of them." (Single $ length bestMoves)
+                            return bestResults
+                          else do
+                            let interval'@(alpha',beta') = nextInterval interval
+                            $info "Some moves ({} of them) are `too good'; consider better scores interval: [{} - {}]" (length bestMoves, alpha', beta')
+                            widthController True False prevResult bestMoves dp interval'
+                          else do
+                            $info  "Some moves ({} of them) are `too good'; but we have already checked better interval; so this is the real score" (Single $ length bestMoves)
+                            return bestResults
 
     getJobIndicies :: Int -> Checkers [Int]
     getJobIndicies count = liftIO $ atomically $ do
