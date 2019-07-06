@@ -131,23 +131,29 @@ abstractRules :: GenericRules -> GenericRules
 abstractRules =
   let
     possibleMoves rules side board =
-      -- let (simpleMoves, captures) = searchMoves rules side board False ([], [])
-      let simpleMoves = concatMap (gManSimpleMoves rules side board) (filter (manHasSimpleMoves rules side board) $ myMenA side board) ++
-                        concatMap (gKingSimpleMoves rules side board) (myKingsA side board)
-          captures = concatMap (manCaptures' rules side board) (filter (manHasCaptures rules side board) $ myMenA side board) ++
-                     concatMap (kingCaptures' rules side board) (myKingsA side board)
-          -- concatMap (gPossibleCaptures1 rules board) (allMyAddresses side board)
+      let simpleMoves = concatMap (gManSimpleMoves rules side board) (filter (manHasSimpleMoves rules side board) men) ++
+                        concatMap (gKingSimpleMoves rules side board) kings
+
+          men = myMenA side board
+          kings = myKingsA side board
+          anyManHasCaptures = any (manHasCaptures rules side board) men
+          menWithCaptures = filter (manHasCaptures rules side board) men
+          manCaptures = concatMap (manCaptures' rules side board) menWithCaptures
+          kingCaptures = concatMap (kingCaptures' rules side board) kings
+          captures = manCaptures ++ kingCaptures
+          haveCaptures = anyManHasCaptures || (not (null kings) && not (null kingCaptures))
+                     
       in  if gCaptureMax rules
             then
-              if null captures
+              if not haveCaptures
                 then simpleMoves
                 else
-                  let captures' = sortOn (negate . length . pmVictims) captures
-                      n = length $ pmVictims (head captures')
-                  in  filter (\c -> length (pmVictims c) == n) captures'
-            else if null captures
-                   then simpleMoves
-                   else captures
+                  let nVictims c = length $ pmVictims c
+                      maxVictims = maximum $ map nVictims captures
+                  in  filter (\c -> nVictims c == maxVictims) captures
+            else if haveCaptures
+                   then captures 
+                   else simpleMoves
 
 --     searchMoves _ _ _ _ (accSimple, accCaptures) [] = (accSimple, accCaptures)
 --     searchMoves rules side board False (accSimple, accCaptures) ((addr, pieceKind) : rest) =
