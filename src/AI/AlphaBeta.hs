@@ -562,10 +562,15 @@ runAI ai@(AlphaBeta params rules eval) handle gameId side board = do
             if length badMoves == length moves
               then
                 if allowPrev
-                  then do
-                    let interval' = prevInterval interval
-                    $info "All moves are `too bad'; consider worse scores interval: [{} - {}]" interval'
-                    widthController False True prevResult badMoves dp interval'
+                  then
+                    if (maximize && alpha <= loose) || (minimize && beta >= win)
+                      then do
+                        $info "All moves are `too bad'; but there is no worse interval, return all what we have" ()
+                        return [(move, badScore) | move <- moves]
+                      else do
+                        let interval' = prevInterval interval
+                        $info "All moves are `too bad'; consider worse scores interval: [{} - {}]" interval'
+                        widthController False True prevResult badMoves dp interval'
                   else do
                     $info "All moves are `too bad' ({}), but we have already checked worse interval; so this is the real score." (Single badScore)
                     return [(move, badScore) | move <- moves]
