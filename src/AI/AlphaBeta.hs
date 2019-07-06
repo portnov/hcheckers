@@ -540,8 +540,8 @@ runAI ai@(AlphaBeta params rules eval) handle gameId side board = do
           alpha' = prevScore alpha
           beta'  = nextScore beta
       in  if minimize
-            then (beta', max beta' (beta' + width'))
-            else (min alpha' (alpha' - width'), alpha')
+            then (alpha, max beta' (beta' + width'))
+            else (min alpha' (alpha' - width'), beta)
 
     widthController :: Bool -- ^ Allow to shift (alpha,beta) segment to bigger values?
                     -> Bool -- ^ Allow to shift (alpha,beta) segment to lesser values?
