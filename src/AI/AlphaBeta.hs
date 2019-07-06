@@ -984,11 +984,13 @@ scoreAB var params input
       let victims = concatMap pmVictims opMoves
       return $ {- pmBegin move `elem` victims || -} length (pmVictims move) >= 2 || isPromotion move
 
-    mkIntervals (alpha, beta) =
-      let mid = min (alpha + 1) beta
-      in  if maximize
-            then [(alpha, mid), (alpha, beta)]
-            else [(mid, beta), (alpha, beta)]
+    mkIntervals (alpha, beta)
+      | maximize =
+        let mid = min (alpha + 1) beta
+        in  [(alpha, mid), (alpha, beta)]
+      | otherwise =
+        let mid = max (beta - 1) alpha
+        in  [(mid, beta), (alpha, beta)]
 
     checkMove :: AICacheHandle rules eval -> AlphaBetaParams -> ScoreInput -> Int -> ScoreM rules eval ScoreOutput
     checkMove var params input i = do
@@ -1039,7 +1041,7 @@ scoreAB var params input
                     , siBoard = applyMoveActions (pmResult move) board
                     , siDepth = dp
                   }
-      out <- cachedScoreAB var params input'
+      out <- checkMove var params input' i
       let score = soScore out
       $verbose "{}| score for side {}: {}" (indent, show side, show score)
 
