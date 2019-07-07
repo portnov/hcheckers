@@ -34,6 +34,16 @@ data CaptureState = CaptureState {
   , ctSource :: Address                      -- ^ Starting position of capture
   }
 
+data MoveDecisionInput = MoveDecisionInput {
+    mdiHasMenCaptures :: Bool
+  , mdiHasKingCaptures :: Bool
+  , mdiMenCaptures :: [PossibleMove]
+  , mdiKingCaptures :: [PossibleMove]
+  , mdiMenSimpleMoves :: [PossibleMove]
+  , mdiKingSimpleMoves :: [PossibleMove]
+  }
+  deriving (Eq, Show)
+
 -- | Initial capture state
 initState :: Piece -> Board -> Address -> CaptureState
 initState piece board src = CaptureState Nothing emptyLabelSet piece board src src
@@ -46,6 +56,7 @@ data GenericRules = GenericRules {
   , gPossibleCaptures1 :: Board -> Address -> [PossibleMove]
   , gManSimpleMoves :: Side -> Board -> Address -> [PossibleMove]
   , gKingSimpleMoves :: Side -> Board -> Address -> [PossibleMove]
+  , gSelectMoves :: Side -> Board -> MoveDecisionInput -> [PossibleMove]
   , gManCaptures :: CaptureState -> [PossibleMove]
   , gKingCaptures ::  CaptureState -> [PossibleMove]
   , gPieceCaptures1 :: CaptureState -> [Capture] 
@@ -131,8 +142,8 @@ abstractRules :: GenericRules -> GenericRules
 abstractRules =
   let
     possibleMoves rules side board =
-      let simpleMoves = concatMap (gManSimpleMoves rules side board) (filter (manHasSimpleMoves rules side board) men) ++
-                        concatMap (gKingSimpleMoves rules side board) kings
+      let manSimpleMoves = concatMap (gManSimpleMoves rules side board) (filter (manHasSimpleMoves rules side board) men)
+          kingSimpleMoves = concatMap (gKingSimpleMoves rules side board) kings
 
           men = myMenA side board
           kings = myKingsA side board
@@ -141,9 +152,24 @@ abstractRules =
           manCaptures = concatMap (manCaptures' rules side board) menWithCaptures
           kingCaptures = concatMap (kingCaptures' rules side board) kings
           captures = manCaptures ++ kingCaptures
-          haveCaptures = anyManHasCaptures || (not (null kings) && not (null kingCaptures))
-                     
-      in  if gCaptureMax rules
+          haveKingCaptures = not (null kings) && not (null kingCaptures)
+          haveCaptures = anyManHasCaptures || haveKingCaptures
+
+          input = MoveDecisionInput {
+                    mdiHasMenCaptures = anyManHasCaptures
+                  , mdiHasKingCaptures = haveKingCaptures
+                  , mdiMenCaptures = manCaptures
+                  , mdiKingCaptures = kingCaptures
+                  , mdiMenSimpleMoves = manSimpleMoves
+                  , mdiKingSimpleMoves = kingSimpleMoves
+                }
+          in gSelectMoves rules side board input
+
+    selectMoves rules side board (MoveDecisionInput {..}) =
+        let haveCaptures = mdiHasMenCaptures || mdiHasKingCaptures
+            simpleMoves = mdiKingSimpleMoves ++ mdiMenSimpleMoves
+            captures = mdiKingCaptures ++ mdiMenCaptures
+        in if gCaptureMax rules
             then
               if not haveCaptures
                 then simpleMoves
@@ -188,7 +214,7 @@ abstractRules =
           col' = min col (ncols - col - 1)
           row' = min row (nrows - row - 1)
           add = min ncols nrows
-      in fromIntegral $ (1 + add) + 2 * (min row' col')
+      in fromIntegral $ (1 + add) + 2 * min row' col'
 
     mobility rules side board =
       sum (map (manSimpleMovesCount rules side board) (myMenA side board)) +
@@ -438,6 +464,7 @@ abstractRules =
     , gPieceCaptures = pieceCaptures this
     , gManCaptures1 = manCaptures1 this
     , gManCaptures = error "gManCaptures has to be implemented in specific rules"
+    , gSelectMoves = selectMoves this
     , gCanCaptureFrom = canCaptureFrom this
     , gManSimpleMoveDirections = manSimpleMoveDirections this
     , gKingSimpleMoveDirections =  [ForwardLeft, ForwardRight, BackwardLeft, BackwardRight]
