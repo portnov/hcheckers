@@ -152,9 +152,7 @@ abstractRules =
           menWithCaptures = filter (manHasCaptures rules side board) men
           manCaptures = concatMap (manCaptures' rules side board) menWithCaptures
           kingCaptures = concatMap (kingCaptures' rules side board) kings
-          captures = manCaptures ++ kingCaptures
           haveKingCaptures = not (null kings) && not (null kingCaptures)
-          haveCaptures = anyManHasCaptures || haveKingCaptures
 
           input = MoveDecisionInput {
                     mdiHasMenCaptures = anyManHasCaptures
@@ -180,32 +178,6 @@ abstractRules =
             else if haveCaptures
                    then captures 
                    else simpleMoves
-
---     searchMoves _ _ _ _ (accSimple, accCaptures) [] = (accSimple, accCaptures)
---     searchMoves rules side board False (accSimple, accCaptures) ((addr, pieceKind) : rest) =
---       case pieceKind of
---         Man | manHasCaptures rules side board addr ->
---                  let captures = manCaptures' rules side board addr
---                  in  searchMoves rules side board True ([], captures ++ accCaptures) rest
---             | manHasSimpleMoves rules side board addr ->
---                  let moves = gManSimpleMoves rules side board addr
---                  in  searchMoves rules side board False (moves ++ accSimple, accCaptures) rest
---             | otherwise ->
---                  searchMoves rules side board False (accSimple, accCaptures) rest
---         King -> let captures = kingCaptures' rules side board addr
---                     simple   = gKingSimpleMoves rules side board addr
---                 in  if null captures
---                       then searchMoves rules side board False (simple ++ accSimple, accCaptures) rest
---                       else searchMoves rules side board True ([], captures ++ accCaptures) rest
---     searchMoves rules side board True (accSimple, accCaptures) ((addr, pieceKind) : rest) =
---       case pieceKind of
---         Man | manHasCaptures rules side board addr ->
---                 let captures = manCaptures' rules side board addr
---                 in  searchMoves rules side board True ([], captures ++ accCaptures) rest
---             | otherwise ->
---                 searchMoves rules side board True (accSimple, accCaptures) rest
---         King -> let captures = kingCaptures' rules side board addr
---                 in  searchMoves rules side board True ([], captures ++ accCaptures) rest
 
     kingPositionScore board (Label col row) =
       let (nrows, ncols) = bSize board

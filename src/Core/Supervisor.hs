@@ -51,6 +51,7 @@ import Rules.Brazilian
 import Rules.Canadian
 import Rules.Spancirety
 import Rules.Diagonal
+import Rules.Czech
 import Rules.Turkish
 import Rules.Armenian
 
@@ -119,6 +120,7 @@ supportedRules =
    ("canadian", SomeRules canadian),
    ("spancirety", SomeRules spancirety),
    ("diagonal", SomeRules diagonal),
+   ("czech", SomeRules czech),
    ("turkish",  SomeRules turkish),
    ("armenian",  SomeRules armenian)
    ]

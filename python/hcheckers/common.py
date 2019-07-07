@@ -238,6 +238,7 @@ supported_rules = [
         ("canadian", _("Canadian draughts")),
         ("spancirety", _("Spancirety draughts")), 
         ("diagonal", _("Diagonal draughts")),
+        ("czech", _("Czech draughts")),
         ("turkish", _("Turkish draughts")),
         ("armenian", _("Armeinan draughts (Tama)"))
     ]
