@@ -82,6 +82,7 @@ translateCapture piece@(Piece _ side) capture =
       pmBegin = src,
       pmEnd = dst,
       pmVictims = [victim],
+      pmVictimsCount = 1,
       pmMove = Move src (steps $ cFreeSteps capture),
       pmPromote = promote,
       pmResult = [Take src, remove victim, Put dst piece']
@@ -174,9 +175,8 @@ abstractRules =
               if not haveCaptures
                 then simpleMoves
                 else
-                  let nVictims c = length $ pmVictims c
-                      maxVictims = maximum $ map nVictims captures
-                  in  filter (\c -> nVictims c == maxVictims) captures
+                  let maxVictims = maximum $ map pmVictimsCount captures
+                  in  filter (\c -> pmVictimsCount c == maxVictims) captures
             else if haveCaptures
                    then captures 
                    else simpleMoves
@@ -271,6 +271,7 @@ abstractRules =
                                      pmBegin = src,
                                      pmEnd = dst,
                                      pmVictims = [],
+                                     pmVictimsCount = 0,
                                      pmMove = move,
                                      pmPromote = promote,
                                      pmResult = [Take src, Put dst piece']
@@ -437,6 +438,7 @@ abstractRules =
                 pmBegin = src,
                 pmEnd = free !! (n-1),
                 pmVictims = [],
+                pmVictimsCount = 0,
                 pmMove = Move src (replicate n (Step dir False False)),
                 pmPromote = False,
                 pmResult = [Take src, Put (free !! (n-1)) piece]

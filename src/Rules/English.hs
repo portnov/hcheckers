@@ -75,6 +75,7 @@ kingSimpleMoves rules side board src =
                              pmBegin = src,
                              pmEnd = dst,
                              pmVictims = [],
+                             pmVictimsCount = 0,
                              pmMove = Move src [Step dir False False],
                              pmPromote = False,
                              pmResult = [Take src, Put dst piece]

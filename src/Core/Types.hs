@@ -376,6 +376,7 @@ data PossibleMove = PossibleMove {
     pmBegin :: ! Address
   , pmEnd :: Address
   , pmVictims :: [Address] -- ^ list of captured fields
+  , pmVictimsCount :: Int
   , pmMove :: Move
   , pmPromote :: ! Bool      -- ^ is there any promotion in the move
   , pmResult :: ! [MoveAction]

@@ -322,6 +322,7 @@ catPMoves pm1 pm2 =
         pmBegin = pmBegin pm1,
         pmEnd = pmEnd pm2,
         pmVictims = pmVictims pm1 ++ pmVictims pm2,
+        pmVictimsCount = pmVictimsCount pm1 + pmVictimsCount pm2,
         pmMove = catMoves (pmMove pm1) (pmMove pm2),
         pmPromote = pmPromote pm1 || pmPromote pm2,
         pmResult = cat (pmResult pm1) (pmResult pm2)
