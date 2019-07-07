@@ -181,11 +181,18 @@ abstractRules =
 --         King -> let captures = kingCaptures' rules side board addr
 --                 in  searchMoves rules side board True ([], captures ++ accCaptures) rest
 
+    kingPositionScore board (Label col row) =
+      let (nrows, ncols) = bSize board
+          crow = nrows `div` 2
+          ccol = ncols `div` 2
+          col' = min col (ncols - col - 1)
+          row' = min row (nrows - row - 1)
+          add = min ncols nrows
+      in fromIntegral $ (1 + add) + 2 * (min row' col')
+
     mobility rules side board =
-      let (men, kings) = myCounts side board
-      in  if kings > 0
-            then kings * 4
-            else sum $ map (manSimpleMovesCount rules side board) (myMenA side board)
+      sum (map (manSimpleMovesCount rules side board) (myMenA side board)) +
+      sum (map (kingPositionScore board) (myKings side board))
 
     manCaptures' rules side board src =
       gManCaptures rules $ initState (Piece Man side) board src

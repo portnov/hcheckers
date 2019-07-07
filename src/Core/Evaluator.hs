@@ -53,7 +53,7 @@ defaultEvaluator rules = SimpleEvaluator
   , seBorderMenBad       = True
   , seBackedWeight       = 30
   , seAsymetryWeight     = 12
-  , sePreKingWeight      = 26
+  , sePreKingWeight      = 28
   , seKingCoef           = 3
   , seHelpedKingCoef     = 5
   }
@@ -93,10 +93,10 @@ instance Default PreScore where
 preEval :: SimpleEvaluator -> Side -> Board -> PreScore
 preEval (SimpleEvaluator { seRules = SimpleEvaluatorInterface rules, ..}) side board =
   let
-    kingCoef =
+    kingCoef = seKingCoef
       -- King is much more useful when there are enough men to help it
-      let (men, _) = myCounts side board
-      in  if men > 3 then seHelpedKingCoef else seKingCoef
+--       let (men, _) = myCounts side board
+--       in  if men > 3 then seHelpedKingCoef else seKingCoef
 
     numericScore =
       let (myMen, myKings) = myCounts side board
@@ -140,21 +140,18 @@ preEval (SimpleEvaluator { seRules = SimpleEvaluatorInterface rules, ..}) side b
         min (nrows - row - 1) row *
         min (ncols - col - 1) col
 
-    -- opponentSideCount :: Side -> Int
     opponentSideCount =
-      let (men, kings) = myLabelsCount' side board tempNumber in men
+      sum $ map tempNumber $ myMen side board
 
-    preKing board src = sum $ map check $ getForwardDirections rules
+    isPreKing board src = any check $ getForwardDirections rules
       where
         check dir =
           case myNeighbour rules side dir src of
-            Nothing -> 0
-            Just dst -> if isLastHorizontal side dst && isFree dst board
-                          then 1
-                          else 0
+            Nothing -> False
+            Just dst -> isLastHorizontal side dst && isFree dst board
 
     preKings =
-      let (men, kings) = myAddressesCount' side board (preKing board) in men
+      length $ filter (isPreKing board) $ myMenA side board
 
     mobility = mobilityScore rules side board
 
