@@ -1,4 +1,6 @@
 
+from requests.exceptions import ConnectionError
+
 from PyQt5.QtGui import QPainter, QPixmap
 from PyQt5.QtCore import QRect, QSize, Qt, QObject, QTimer, pyqtSignal, QSettings
 from PyQt5.QtWidgets import QWidget, QDialog, QVBoxLayout, QFormLayout, QLineEdit, QComboBox, QGroupBox, QCheckBox, QDialogButtonBox, QTableWidget, QTableWidgetItem, QAbstractItemView, QTableView
@@ -26,6 +28,7 @@ class LobbyWidget(QWidget):
         QWidget.__init__(self, parent)
         self.rules = rules
         self.client = client
+        self.dialog = parent
 
         layout = QVBoxLayout()
 
@@ -38,7 +41,7 @@ class LobbyWidget(QWidget):
 
         self.setLayout(layout)
 
-        self.fill()
+        #self.fill()
 
     selected = pyqtSignal(object)
 
@@ -74,10 +77,17 @@ class LobbyWidget(QWidget):
             self.table.setItem(row, 3, make_item(game, "second", selectable))
             self.table.setItem(row, 4, make_item(game, "status", selectable))
 
-        games = self.client.get_games(self.rules)
-        self.table.setRowCount(len(games))
-        for row, game in enumerate(games):
-            fill_row(row, game)
+        try:
+            games = self.client.get_games(self.rules)
+            self.table.setRowCount(len(games))
+            for row, game in enumerate(games):
+                fill_row(row, game)
+            self.dialog.get_ok_button().setEnabled(True)
+            self.dialog.message(None)
+        except ConnectionError as e:
+            self.dialog.message("Cannot connect to server")
+            self.dialog.get_ok_button().setEnabled(False)
+            self.dialog.refresh_button.setVisible(True)
 
         self.table.setSelectionMode(QTableView.SingleSelection)
         self.table.setSelectionBehavior(QTableView.SelectRows)
@@ -97,7 +107,10 @@ class LobbyWidget(QWidget):
         row = self.table.currentRow()
         if row is None:
             return None
-        game_id = self.table.item(row, 0).text()
+        item = self.table.item(row, 0)
+        if not item:
+            return None
+        game_id = item.text()
         return game_id
     
     def get_rules(self):

@@ -1,9 +1,11 @@
 
 import getpass
 
-from PyQt5.QtGui import QPainter, QPixmap, QValidator
+from PyQt5.QtGui import QPainter, QPixmap, QValidator, QIcon
 from PyQt5.QtCore import QRect, QSize, Qt, QObject, QTimer, pyqtSignal, QSettings
-from PyQt5.QtWidgets import QWidget, QDialog, QPushButton, QVBoxLayout, QHBoxLayout, QFormLayout, QLineEdit, QComboBox, QGroupBox, QCheckBox, QDialogButtonBox, QFileDialog
+from PyQt5.QtWidgets import QWidget, QDialog, QPushButton, QVBoxLayout, \
+        QHBoxLayout, QFormLayout, QLineEdit, QComboBox, QGroupBox, QCheckBox, \
+        QDialogButtonBox, QFileDialog, QLabel
 
 from hcheckers.common import *
 from hcheckers.game import AI, GameSettings
@@ -113,6 +115,16 @@ class NewGameDialog(DialogBase):
         vbox = QVBoxLayout()
         vbox.addWidget(widget)
 
+        self.message_label = QLabel(self)
+        self.message_label.hide()
+
+        buttons = QDialogButtonBox(
+                    QDialogButtonBox.Ok | QDialogButtonBox.Cancel,
+                    Qt.Horizontal, self)
+        buttons.accepted.connect(self._on_accept)
+        buttons.rejected.connect(self.reject)
+        self.ok_button = buttons.button(QDialogButtonBox.Ok)
+
         self.ai = QComboBox(self)
         self.ais = AI.list_from_settings(settings)
         for idx, ai in enumerate(self.ais):
@@ -123,23 +135,35 @@ class NewGameDialog(DialogBase):
             self.ai.setCurrentIndex(idx)
         layout.addRow(_("AI"), self.ai)
 
+        lobby_hbox = QHBoxLayout()
+
         self.lobby = LobbyWidget(client=client, parent=self)
         self.lobby.selected.connect(self._on_game_selected)
         self.lobby.hide()
-        vbox.addWidget(self.lobby)
+        lobby_hbox.addWidget(self.lobby)
 
+        self.refresh_button = refresh = QPushButton(self)
+        refresh.setIcon(QIcon.fromTheme("view-refresh"))
+        refresh.clicked.connect(self.lobby.fill)
+        refresh.hide()
+        lobby_hbox.addWidget(refresh)
+
+        self.lobby.fill()
+
+        vbox.addLayout(lobby_hbox)
         self.setLayout(vbox)
 
         self.game_type.currentIndexChanged.connect(self._on_action_changed)
         self.board_type.currentIndexChanged.connect(self._on_board_type_changed)
 
-        buttons = QDialogButtonBox(
-                    QDialogButtonBox.Ok | QDialogButtonBox.Cancel,
-                    Qt.Horizontal, self)
-        buttons.accepted.connect(self._on_accept)
-        buttons.rejected.connect(self.reject)
-        self.ok_button = buttons.button(QDialogButtonBox.Ok)
+        vbox.addWidget(self.message_label)
+
         vbox.addWidget(buttons)
+
+    def message(self, text):
+        self.message_label.setVisible(bool(text))
+        if text:
+            self.message_label.setText(text)
 
     def get_ok_button(self):
         return self.ok_button
@@ -158,6 +182,7 @@ class NewGameDialog(DialogBase):
 
         self.ai.setVisible(show_ai)
         self.lobby.setVisible(show_lobby)
+        self.refresh_button.setVisible(show_lobby)
         self.user_side.setVisible(show_side)
         self.board_type.setVisible(show_board_setup)
 
