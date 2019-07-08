@@ -17,6 +17,7 @@ module AI.AlphaBeta
 
 import Control.Monad
 import Control.Monad.State
+import Control.Monad.Reader
 import Control.Monad.Except
 import Control.Concurrent.STM
 import qualified Data.Map as M
@@ -604,6 +605,7 @@ runAI ai@(AlphaBeta params rules eval) handle gameId side board = do
 
     scoreMoves :: Bool -> [PossibleMove] -> DepthParams -> (Score, Score) -> Checkers [Either Error (PossibleMove, Score)]
     scoreMoves byOne moves dp (alpha, beta) = do
+      nThreads <- asks (aiThreads . gcAiConfig . csConfig)
       let var = aichData handle
       let processor = aichProcessor handle
           n = length moves
@@ -624,7 +626,7 @@ runAI ai@(AlphaBeta params rules eval) handle gameId side board = do
 
           groups
             | byOne = [[input] | input <- inputs]
-            | otherwise = transpose $ chunksOf 4 inputs
+            | otherwise = transpose $ chunksOf nThreads inputs
 
       results <- process' processor groups
       return $ concatE (map length groups) results
