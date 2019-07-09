@@ -205,15 +205,19 @@ lookupAiCache params board depth handle = do
 
     lookupFile' :: Board -> DepthParams -> Checkers (Maybe PerBoardData)
     lookupFile' board depth = do
-      let bc = calcBoardCounts board
-      let total = bcFirstMen bc + bcSecondMen bc + bcFirstKings bc + bcSecondKings bc
-      cfg <- asks (gcAiConfig . csConfig)
-      if {-total <= aiUseCacheMaxPieces cfg &&-} dpTarget depth >= aiUseCacheMaxDepth cfg
-        then runStorage handle (lookupFile board depth)
-              `catch`
-                  \(e :: SomeException) -> do
-                      $reportError "Exception: lookupFile: {}" (Single $ show e)
-                      return Nothing
+      load <- asks (aiLoadCache . gcAiConfig . csConfig)
+      if load
+        then do
+          let bc = calcBoardCounts board
+          let total = bcFirstMen bc + bcSecondMen bc + bcFirstKings bc + bcSecondKings bc
+          cfg <- asks (gcAiConfig . csConfig)
+          if {-total <= aiUseCacheMaxPieces cfg &&-} dpTarget depth >= aiUseCacheMaxDepth cfg
+            then runStorage handle (lookupFile board depth)
+                  `catch`
+                      \(e :: SomeException) -> do
+                          $reportError "Exception: lookupFile: {}" (Single $ show e)
+                          return Nothing
+            else return Nothing
         else return Nothing
 
 -- | Put an item to the cache.
