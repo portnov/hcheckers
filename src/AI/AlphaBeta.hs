@@ -495,7 +495,7 @@ runAI ai@(AlphaBeta params rules eval) handle gameId side board = do
     mkInitInterval depth quiescene = do
       let delta
             | depth < abDepth params = fromIntegral $ max 1 $ abDepth params - depth
-            | not quiescene = 1
+            | not quiescene = Score 1 500
             | otherwise = Score 0 600
       mbPrevShift <- getLastScoreShift handle gameId
       case mbPrevShift of
@@ -879,8 +879,8 @@ scoreAB var params input
                   dp' <- updateDepth params moves dp
                   let prevMove = siPrevMove input
                   moves' <- sortMoves params var side dp board prevMove moves
-                  let depths = correspondingDepths (length moves') score0 quiescene dp'
---                   let depths = repeat dp'
+--                   let depths = correspondingDepths (length moves') score0 quiescene dp'
+                  let depths = repeat dp'
                   out <- iterateMoves $ zip3 [1..] moves' depths
                   pop
                   return out
@@ -991,12 +991,12 @@ scoreAB var params input
       let victims = concatMap pmVictims opMoves
       return $ {- pmBegin move `elem` victims || -} length (pmVictims move) >= 2 || isPromotion move
 
-    mkIntervals (alpha, beta)
+    mkIntervals zero (alpha, beta)
       | maximize =
-        let mid = min (alpha + 1) beta
+        let mid = min (alpha + zero) beta
         in  [(alpha, mid), (alpha, beta)]
       | otherwise =
-        let mid = max (beta - 1) alpha
+        let mid = max (beta - zero) alpha
         in  [(mid, beta), (alpha, beta)]
 
     checkMove :: AICacheHandle rules eval -> AlphaBetaParams -> ScoreInput -> Int -> ScoreM rules eval ScoreOutput
@@ -1004,11 +1004,12 @@ scoreAB var params input
         let alpha = siAlpha input
             beta  = siBeta input
             width = beta - alpha
+            zeroWidth = Score 0 300
         intervals <- do
               let interesting = i <= 1
-              if interesting || width <= 1
+              if interesting || width <= zeroWidth
                 then return [(alpha, beta)]
-                else return $ mkIntervals (alpha, beta)
+                else return $ mkIntervals zeroWidth (alpha, beta)
         let inputs = [input {siAlpha = alpha, siBeta = beta} | (alpha, beta) <- intervals]
         go inputs
       where
@@ -1048,7 +1049,7 @@ scoreAB var params input
                     , siBoard = applyMoveActions (pmResult move) board
                     , siDepth = dp
                   }
-      out <- checkMove var params input' i
+      out <- cachedScoreAB var params input'
       let score = soScore out
       $verbose "{}| score for side {}: {}" (indent, show side, show score)
 
