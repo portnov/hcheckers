@@ -474,19 +474,23 @@ runAI ai@(AlphaBeta params rules eval) handle gameId side board = do
           -- too big depth does not decide anything in such situations.
           if depth < 50
             then do
-              let start' = fmap (+depthStep) (abStartDepth params)
-                  params' = params {abDepth = depth + depthStep, abStartDepth = start'}
-                  keys = map snd result
-                  moves' = map fst result
-                  signedKeys = if maximize then map negate keys else keys
-                  input' = input {
-                              diiParams = params',
-                              diiPrevResult = Just result,
-                              diiMoves = moves',
-                              diiSortKeys = Just signedKeys
-                            }
+              let input' = deeper depth depthStep result input
               return (result, Just input')
             else return (result, Nothing)
+
+    deeper :: Int -> Int -> DepthIterationOutput -> DepthIterationInput -> DepthIterationInput
+    deeper depth step prevOutput input =
+      let start' = fmap (+step) (abStartDepth params)
+          params' = params {abDepth = depth + step, abStartDepth = start'}
+          keys = map rScore prevOutput
+          moves' = map rMove prevOutput
+          signedKeys = if maximize then map negate keys else keys
+      in  input {
+                  diiParams = params',
+                  diiPrevResult = Just prevOutput,
+                  diiMoves = moves',
+                  diiSortKeys = Just signedKeys
+                }
 
     score0 = evalBoard eval First board
 

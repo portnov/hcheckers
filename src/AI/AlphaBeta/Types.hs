@@ -129,10 +129,10 @@ instance Binary Bound
 instance Store Bound
 
 data PerBoardData = PerBoardData {
-    itemDepth ::  Int
-  , itemScore ::  Score
-  , itemBound ::  Bound
-  , boardStats :: Maybe Stats
+    itemDepth :: {-# UNPACK #-}  ! Int
+  , itemScore :: {-# UNPACK #-}  ! Score
+  , itemBound :: ! Bound
+  , boardStats :: ! (Maybe Stats)
   }
   deriving (Generic, Typeable, Show)
 
@@ -158,13 +158,13 @@ data ScoreMoveInput rules eval = ScoreMoveInput {
     smiAi :: AlphaBeta rules eval
   , smiCache :: AICacheHandle rules eval
   , smiGameId :: GameId
-  , smiSide :: Side 
-  , smiIndex :: Int
-  , smiDepth :: DepthParams
-  , smiBoard :: Board
-  , smiMove :: PossibleMove
-  , smiAlpha :: Score
-  , smiBeta :: Score
+  , smiSide :: ! Side 
+  , smiIndex :: ! Int
+  , smiDepth :: {-# UNPACK #-} ! DepthParams
+  , smiBoard :: {-# UNPACK #-} ! Board
+  , smiMove :: {-# UNPACK #-} ! PossibleMove
+  , smiAlpha :: {-# UNPACK #-} ! Score
+  , smiBeta :: {-# UNPACK #-} ! Score
   }
 
 type QueueKey = (BoardCounts, BoardKey)
