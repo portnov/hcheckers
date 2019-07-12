@@ -14,7 +14,7 @@ import qualified Data.Map as M
 import qualified Data.Text as T
 import Text.Megaparsec hiding (Label, State)
 import Text.Megaparsec.Char
-import Text.Megaparsec.Error (parseErrorPretty)
+import Text.Megaparsec.Error (errorBundlePretty)
 import qualified Data.Text.IO as TIO
 import Text.Printf
 
@@ -193,14 +193,14 @@ pGame dfltRules = do
 parsePdn :: Maybe SomeRules -> T.Text -> Either String GameRecord
 parsePdn dfltRules text =
   case evalState (runParserT (pGame dfltRules) "<PDN>" text) dfltRules of
-    Left err -> Left $ parseErrorPretty err
+    Left err -> Left $ errorBundlePretty err
     Right pdn -> Right pdn
 
 parsePdnFile :: Maybe SomeRules -> FilePath -> IO [GameRecord]
 parsePdnFile dfltRules path = do
   text <- TIO.readFile path
   case evalState (runParserT ((pGame dfltRules) `sepEndBy` space1) path text) dfltRules of
-    Left err -> fail $ parseErrorPretty err
+    Left err -> fail $ errorBundlePretty err
     Right pdn -> return pdn
 
 parseMoveRec :: GameRules rules => rules -> Side -> Board -> SemiMoveRec -> Move

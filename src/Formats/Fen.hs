@@ -9,7 +9,7 @@ import qualified Data.Text as T
 import Data.Monoid ((<>))
 import Text.Megaparsec hiding (Label)
 import Text.Megaparsec.Char
-import Text.Megaparsec.Error (parseErrorPretty)
+import Text.Megaparsec.Error (errorBundlePretty)
 
 import Core.Types
 import Core.Board
@@ -56,7 +56,7 @@ fenToBoardRep fen =
 parseFen :: SomeRules -> T.Text -> Either String (Side, BoardRep)
 parseFen rules text =
   case evalState (runParserT (pFen rules) "FEN" text) Nothing of
-    Left err -> Left $ parseErrorPretty err
+    Left err -> Left $ errorBundlePretty err
     Right fen -> Right (fenNextMove fen, fenToBoardRep fen)
 
 boardToFen :: Side -> Board -> Fen

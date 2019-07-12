@@ -24,7 +24,7 @@ import qualified Data.IntSet as IS
 import qualified Data.Text as T
 import qualified Data.Text.Lazy as TL
 import qualified Data.Text.Lazy.Builder.Int as Builder
-import qualified STMContainers.Map as SM
+import qualified StmContainers.Map as SM
 import Data.Text.Format.Heavy
 import Data.Dynamic
 import Data.Aeson (Value)

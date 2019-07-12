@@ -5,7 +5,7 @@ import Control.Concurrent.STM
 import qualified Data.IntMap.Strict as IM
 import qualified Data.IntSet as IS
 import Data.Hashable
-import qualified STMContainers.Map as SM
+import qualified StmContainers.Map as SM
 import Text.Printf
 
 import Core.Types

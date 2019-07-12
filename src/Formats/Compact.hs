@@ -12,7 +12,7 @@ import Data.Maybe
 import qualified Data.Text as T
 import Text.Megaparsec hiding (Label, State)
 import Text.Megaparsec.Char
-import Text.Megaparsec.Error (parseErrorPretty)
+import Text.Megaparsec.Error (errorBundlePretty)
 import qualified Data.Text.IO as TIO
 import Text.Printf
 
@@ -75,7 +75,7 @@ parseCompactFile path = do
   text <- TIO.readFile path
   forM (T.lines text) $ \line -> do
     case evalState (runParserT pGame path line) Nothing of
-      Left err -> fail $ parseErrorPretty err
+      Left err -> fail $ errorBundlePretty err
       Right game -> return game
 
 findMove :: Side -> SemiMove -> Board -> Either String PossibleMove
