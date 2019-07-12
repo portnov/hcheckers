@@ -44,7 +44,7 @@ import AI.AlphaBeta.Persistent
 -- | Prepare AI storage instance.
 -- This also contains Processor instance with several threads.
 loadAiCache :: (GameRules rules, Evaluator eval)
-            => ([ScoreMoveInput rules eval] -> Checkers [(PossibleMove, Score)])
+            => ([ScoreMoveInput rules eval] -> Checkers [MoveAndScore])
             -> AlphaBeta rules eval
             -> Checkers (AICacheHandle rules eval)
 loadAiCache scoreMove (AlphaBeta params rules eval) = do

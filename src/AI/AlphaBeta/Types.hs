@@ -13,6 +13,7 @@ module AI.AlphaBeta.Types
     dpLast,
     Stats (..),
     Bound (..),
+    MoveAndScore (..),
     PerBoardData (..),
     AIData, StorageKey, StorageValue,
     ScoreMoveInput (..),
@@ -177,13 +178,19 @@ data FileType = IndexFile | DataFile
 
 type MovesMemo = TBoardMap (Maybe [PossibleMove], Maybe [PossibleMove])
 
+data MoveAndScore = MoveAndScore {
+    rMove :: {-# UNPACK #-} ! PossibleMove
+  , rScore :: {-# UNPACK #-} ! Score
+  }
+  deriving (Eq, Show, Generic, Typeable)
+
 -- | Handle to the instance of AI storage
 -- and related structures
 data AICacheHandle rules eval = AICacheHandle {
     aichRules :: rules
   , aichData :: AIData
   , aichJobIndex :: TVar Int
-  , aichProcessor ::  Processor [Int] [ScoreMoveInput rules eval] [(PossibleMove, Score)]
+  , aichProcessor ::  Processor [Int] [ScoreMoveInput rules eval] [MoveAndScore]
   , aichPossibleMoves :: MovesMemo
   , aichLastMoveScoreShift :: TVar (M.Map GameId ScoreBase)
   , aichWriteQueue :: WriteQueue
@@ -252,7 +259,7 @@ data ScoreState rules eval = ScoreState {
   , ssEvaluator :: eval
   , ssGameId :: GameId
   , ssBestScores :: [Score] -- ^ At each level of depth-first search, there is own "best score"
-  , ssBestMoves :: M.Map Int (PossibleMove, Score)
+  , ssBestMoves :: M.Map Int MoveAndScore
   , ssStartTime :: TimeSpec -- ^ Start time of calculation
   , ssTimeout :: Maybe TimeSpec -- ^ Nothing for "no timeout"
   }
@@ -303,7 +310,7 @@ data DepthIterationInput = DepthIterationInput {
     diiPrevResult :: Maybe DepthIterationOutput
   }
 
-type DepthIterationOutput = [(PossibleMove, Score)]
+type DepthIterationOutput = [MoveAndScore]
 type AiOutput = ([PossibleMove], Score)
 
 runStorage :: (GameRules rules, Evaluator eval) => AICacheHandle rules eval -> Storage a -> Checkers a

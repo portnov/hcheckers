@@ -86,7 +86,7 @@ instance (GameRules rules, Evaluator eval) => GameAi (AlphaBeta rules eval) wher
   aiName _ = "default"
 
 -- | Calculate score of one possible move.
-scoreMove :: (GameRules rules, Evaluator eval) => ScoreMoveInput rules eval -> Checkers (PossibleMove, Score)
+scoreMove :: (GameRules rules, Evaluator eval) => ScoreMoveInput rules eval -> Checkers MoveAndScore
 scoreMove (ScoreMoveInput {..}) = do
      let AlphaBeta params rules eval = smiAi
      score <- Monitoring.timed "ai.score.move" $ do
@@ -99,9 +99,9 @@ scoreMove (ScoreMoveInput {..}) = do
                 $info "Check: {} ([{} - {}], depth {}) => {}" (show smiMove, show smiAlpha, show smiBeta, dpTarget smiDepth, show score)
                 return score
      
-     return (smiMove, score)
+     return $ MoveAndScore smiMove score
 
-scoreMoveGroup :: (GameRules rules, Evaluator eval) => [ScoreMoveInput rules eval] -> Checkers [(PossibleMove, Score)]
+scoreMoveGroup :: (GameRules rules, Evaluator eval) => [ScoreMoveInput rules eval] -> Checkers [MoveAndScore]
 scoreMoveGroup inputs = go worst [] inputs
   where
     input0 = head inputs
@@ -118,7 +118,7 @@ scoreMoveGroup inputs = go worst [] inputs
             | maximize = input {smiAlpha = prevScore best}
             | otherwise = input {smiBeta = nextScore best}
 
-      result@(move, score) <- scoreMove input'
+      result@(MoveAndScore move score) <- scoreMove input'
       let best'
             | maximize && score > best = score
             | minimize && score < best = score
@@ -169,7 +169,7 @@ getPossibleMoves handle side board = Monitoring.timed "ai.possible_moves.duratio
 
 class Monad m => EvalMoveMonad m where
   checkPrimeVariation :: (GameRules rules, Evaluator eval) => AICacheHandle rules eval -> AlphaBetaParams -> Board -> DepthParams -> m (Maybe PerBoardData)
-  getKillerMove :: Int -> m (Maybe (PossibleMove, Score))
+  getKillerMove :: Int -> m (Maybe MoveAndScore)
 
 instance EvalMoveMonad Checkers where
   checkPrimeVariation var params board dp = do
@@ -248,16 +248,16 @@ rememberGoodMove :: Int -> Side -> PossibleMove -> Score -> ScoreM rules eval ()
 rememberGoodMove depth side move score = do
   goodMoves <- gets ssBestMoves
   let goodMoves' = case M.lookup depth goodMoves of
-                     Nothing -> M.insert depth (move, score) goodMoves
-                     Just (_, prevScore)
+                     Nothing -> M.insert depth (MoveAndScore move score) goodMoves
+                     Just (MoveAndScore _ prevScore)
                       | (maximize && score > prevScore) || (minimize && score < prevScore)
-                          -> M.insert depth (move, score) goodMoves
+                          -> M.insert depth (MoveAndScore move score) goodMoves
                       | otherwise -> goodMoves
       maximize = side == First
       minimize = not maximize
   modify $ \st -> st {ssBestMoves = goodMoves'}
 
-getGoodMove :: Int -> ScoreM rules eval (Maybe (PossibleMove, Score))
+getGoodMove :: Int -> ScoreM rules eval (Maybe MoveAndScore)
 getGoodMove depth = do
   goodMoves <- gets ssBestMoves
   return $ M.lookup depth goodMoves
@@ -367,8 +367,8 @@ runAI ai@(AlphaBeta params rules eval) handle gameId side board = do
       $info "Preselecting; number of possible moves = {}, depth = {}" (length moves, dpTarget simple)
       options <- scoreMoves' False moves simple (loose, win)
       let key = if maximize
-                  then negate . snd
-                  else snd
+                  then negate . rScore
+                  else rScore
       return $ map key options
 --       let sorted = sortOn key options
 --           bestOptions = take (abMovesHighBound params) sorted
@@ -417,14 +417,22 @@ runAI ai@(AlphaBeta params rules eval) handle gameId side board = do
         Left TimeExhaused ->
           case diiPrevResult input of
             Just result -> return (result, Nothing)
-            Nothing -> return ([(move, 0) | move <- diiMoves input], Nothing)
+            Nothing -> return ([MoveAndScore move 0 | move <- diiMoves input], Nothing)
         Left err -> throwError err
 
     goIterative :: Int -> DepthIterationInput -> Checkers DepthIterationOutput
     goIterative target input = do
       (output, mbNextInput) <- go input
       case mbNextInput of
-        Nothing -> return output
+        Nothing -> do
+          let bad (MoveAndScore _ score) = (maximize && score <= score0 - 1) || (minimize && score >= score0 + 1)
+          if abDeeperIfBad params && all bad output
+            then do
+                 let nextInput = deeper (abDepth $ diiParams input) 1 output input
+                 $info "All moves seem bad, re-think one step further" ()
+                 (output', _) <- go nextInput
+                 return output'
+            else return output
         Just nextInput ->
           if abDepth (diiParams nextInput) <= target
             then goIterative target nextInput
@@ -437,7 +445,7 @@ runAI ai@(AlphaBeta params rules eval) handle gameId side board = do
       if length diiMoves <= 1 -- Just one move possible
         then do
           $info "There is only one move possible; just do it." ()
-          return ([(move, score0) | move <- diiMoves], Nothing)
+          return ([MoveAndScore move score0 | move <- diiMoves], Nothing)
                                                              
         else do
           let var = aichData handle
@@ -559,11 +567,11 @@ runAI ai@(AlphaBeta params rules eval) handle gameId side board = do
       if alpha == beta
         then do
           $info "Empty scores interval: [{}]. We have to think that all moves have this score." (Single alpha)
-          return [(move, alpha) | move <- moves]
+          return [MoveAndScore move alpha | move <- moves]
         else do
             results <- widthIteration prevResult moves dp interval
-            let (good, badScore, badMoves) = selectBestEdge interval moves results
-                (bestMoves, bestResults) = unzip good
+            let (bestResults, badScore, badMoves) = selectBestEdge interval moves results
+                bestMoves = map rMove bestResults
             if length badMoves == length moves
               then
                 if allowPrev
@@ -571,14 +579,14 @@ runAI ai@(AlphaBeta params rules eval) handle gameId side board = do
                     if (maximize && alpha <= loose) || (minimize && beta >= win)
                       then do
                         $info "All moves are `too bad'; but there is no worse interval, return all what we have" ()
-                        return [(move, badScore) | move <- moves]
+                        return [MoveAndScore move badScore | move <- moves]
                       else do
                         let interval' = prevInterval interval
                         $info "All moves are `too bad'; consider worse scores interval: [{} - {}]" interval'
                         widthController False True prevResult badMoves dp interval'
                   else do
                     $info "All moves are `too bad' ({}), but we have already checked worse interval; so this is the real score." (Single badScore)
-                    return [(move, badScore) | move <- moves]
+                    return [MoveAndScore move badScore | move <- moves]
               else
                 case bestResults of
                   [] -> return results
@@ -607,7 +615,7 @@ runAI ai@(AlphaBeta params rules eval) handle gameId side board = do
         writeTVar (aichJobIndex handle) nextIndex
         return [lastIndex+1 .. nextIndex]
 
-    scoreMoves :: Bool -> [PossibleMove] -> DepthParams -> (Score, Score) -> Checkers [Either Error (PossibleMove, Score)]
+    scoreMoves :: Bool -> [PossibleMove] -> DepthParams -> (Score, Score) -> Checkers [Either Error MoveAndScore]
     scoreMoves byOne moves dp (alpha, beta) = do
       nThreads <- asks (aiThreads . gcAiConfig . csConfig)
       let var = aichData handle
@@ -648,31 +656,33 @@ runAI ai@(AlphaBeta params rules eval) handle gameId side board = do
       results <- scoreMoves False moves dp (alpha, beta)
       joinResults prevResult results
 
-    joinResults :: Maybe DepthIterationOutput -> [Either Error (PossibleMove, Score)] -> Checkers DepthIterationOutput
+    joinResults :: Maybe DepthIterationOutput -> [Either Error MoveAndScore] -> Checkers DepthIterationOutput
     joinResults Nothing results =
       case sequence results of
         Right result -> return result
         Left err -> throwError err
     joinResults (Just prevResults) results = zipWithM joinResult prevResults results
 
-    joinResult :: (PossibleMove, Score) -> Either Error (PossibleMove, Score) -> Checkers (PossibleMove, Score)
-    joinResult prev@(move, score) (Left TimeExhaused) = do
+    joinResult :: MoveAndScore -> Either Error MoveAndScore -> Checkers MoveAndScore
+    joinResult prev@(MoveAndScore move score) (Left TimeExhaused) = do
       $info "Time exhaused while checking move {}, use result from previous depth: {}" (show move, score)
       return prev
     joinResult _ (Left err) = throwError err
     joinResult _ (Right result) = return result
 
+    selectBestEdge :: (Score, Score) -> [PossibleMove] -> [MoveAndScore] ->
+                      ([MoveAndScore], Score, [PossibleMove])
     selectBestEdge (alpha, beta) moves results =
       let (good, bad) = if maximize then (beta, alpha) else (alpha, beta)
-          goodResults = [(move, (goodMoves, score)) | (move, (goodMoves, score)) <- zip moves results, not (score `worseThan` good)]
-          badResults = [move | (move, (_, score)) <- zip moves results, not (score `betterThan` bad)]
+          goodResults = [result | result <- results, not (rScore result `worseThan` good)]
+          badResults = [rMove result | result <- results, not (rScore result `betterThan` bad)]
       in  (goodResults, bad, badResults)
 
     select :: DepthIterationOutput -> Checkers AiOutput
     select pairs = do
       let best = if maximize then maximum else minimum
-          maxScore = best $ map snd pairs
-          goodMoves = [move | (move, score) <- pairs, score == maxScore]
+          maxScore = best $ map rScore pairs
+          goodMoves = [rMove result | result <- pairs, rScore result == maxScore]
       return (goodMoves, maxScore)
 
 -- | Calculate score of the board
