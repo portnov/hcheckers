@@ -180,7 +180,6 @@ data Board = Board {
   , bSecondKings :: LabelSet
 --   , boardCounts :: BoardCounts
   , bSize :: {-# UNPACK #-} ! BoardSize
-  , boardKey ::  BoardKey
   , boardHash :: {-# UNPACK #-} ! BoardHash
   , randomTable :: ! RandomTable
   }

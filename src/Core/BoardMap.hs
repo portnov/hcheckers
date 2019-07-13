@@ -57,25 +57,21 @@ removeBoardKey a p bk = IM.delete (aIndex a) bk
 insertBoard :: Address -> Piece -> Board -> Board
 insertBoard a p@(Piece Man First) b = b {
     bFirstMen = insertLabelSet (aLabel a) (bFirstMen b),
-    boardKey = insertBoardKey a p (boardKey b),
     bOccupied = insertLabelSet (aLabel a) (bOccupied b)
     -- boardCounts = insertBoardCounts p (boardCounts b)
   }
 insertBoard a p@(Piece Man Second) b = b {
     bSecondMen = insertLabelSet (aLabel a) (bSecondMen b),
-    boardKey = insertBoardKey a p (boardKey b),
     bOccupied = insertLabelSet (aLabel a) (bOccupied b)
 --     boardCounts = insertBoardCounts p (boardCounts b)
   }
 insertBoard a p@(Piece King First) b = b {
     bFirstKings = insertLabelSet (aLabel a) (bFirstKings b),
-    boardKey = insertBoardKey a p (boardKey b),
     bOccupied = insertLabelSet (aLabel a) (bOccupied b)
 --     boardCounts = insertBoardCounts p (boardCounts b)
   }
 insertBoard a p@(Piece King Second) b = b {
     bSecondKings = insertLabelSet (aLabel a) (bSecondKings b),
-    boardKey = insertBoardKey a p (boardKey b),
     bOccupied = insertLabelSet (aLabel a) (bOccupied b)
 --     boardCounts = insertBoardCounts p (boardCounts b)
   }
@@ -83,25 +79,21 @@ insertBoard a p@(Piece King Second) b = b {
 removeBoard :: Address -> Piece -> Board -> Board
 removeBoard a p@(Piece Man First) b = b {
     bFirstMen = deleteLabelSet (aLabel a) (bFirstMen b),
-    boardKey = removeBoardKey a p (boardKey b),
     bOccupied = deleteLabelSet (aLabel a) (bOccupied b)
 --     boardCounts = removeBoardCounts p (boardCounts b)
   }
 removeBoard a p@(Piece Man Second) b = b {
     bSecondMen = deleteLabelSet (aLabel a) (bSecondMen b),
-    boardKey = removeBoardKey a p (boardKey b),
     bOccupied = deleteLabelSet (aLabel a) (bOccupied b)
 --     boardCounts = removeBoardCounts p (boardCounts b)
   }
 removeBoard a p@(Piece King First) b = b {
     bFirstKings = deleteLabelSet (aLabel a) (bFirstKings b),
-    boardKey = removeBoardKey a p (boardKey b),
     bOccupied = deleteLabelSet (aLabel a) (bOccupied b)
 --     boardCounts = removeBoardCounts p (boardCounts b)
   }
 removeBoard a p@(Piece King Second) b = b {
     bSecondKings = deleteLabelSet (aLabel a) (bSecondKings b),
-    boardKey = removeBoardKey a p (boardKey b),
     bOccupied = deleteLabelSet (aLabel a) (bOccupied b)
 --     boardCounts = removeBoardCounts p (boardCounts b)
   }
