@@ -195,7 +195,7 @@ evalMove :: (EvalMoveMonad m, GameRules rules, Evaluator eval)
 evalMove params var side dp board mbPrevMove move = do
   let victimFields = pmVictims move
       -- nVictims = sum $ map victimWeight victimFields
-      promotion = if isPromotion move then 3 else 0
+      promotion = if isPromotion move then 1 else 0
       attackPrevPiece = case mbPrevMove of
                           Nothing -> 0
                           Just prevMove -> if pmEnd prevMove `elem` victimFields
@@ -209,8 +209,22 @@ evalMove params var side dp board mbPrevMove move = do
                         Nothing -> 0
                         Just (Piece Man _) -> 1
                         Just (Piece King _) -> 3
+      
+      isAttackPrevPiece = case mbPrevMove of
+                            Nothing -> False
+                            Just prevMove -> pmEnd prevMove `elem` victimFields
 
-  return $ 5*promotion + 3*pmVictimsCount move + 5*attackPrevPiece
+      isAttackKing = any isKing victimFields
+      
+      isKing a = case getPiece a board of
+                   Just (Piece King _) -> True
+                   _ -> False
+  
+  if isAttackPrevPiece
+    then return $ 20 + 3*promotion
+    else if isAttackKing
+           then return $ 10 + 3*promotion
+           else return $ 5*promotion + 3*pmVictimsCount move
 -- 
 --   let onePiece = scoreBound
 --       
