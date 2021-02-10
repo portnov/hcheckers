@@ -191,8 +191,9 @@ evalMove :: (EvalMoveMonad m, GameRules rules, Evaluator eval)
         -> DepthParams
         -> Board
         -> Maybe PossibleMove
+        -> [Address]
         -> PossibleMove -> m Int
-evalMove params var side dp board mbPrevMove move = do
+evalMove params var side dp board mbPrevMove attacked move = do
   let victimFields = pmVictims move
       -- nVictims = sum $ map victimWeight victimFields
       promotion = if isPromotion move then 1 else 0
@@ -219,27 +220,24 @@ evalMove params var side dp board mbPrevMove move = do
       isKing a = case getPiece a board of
                    Just (Piece King _) -> True
                    _ -> False
+
+
+      attackedPiece = let begin = pmBegin move
+                      in  if begin `elem` attacked
+                            then getPiece begin board
+                            else Nothing
   
-  if isAttackPrevPiece
-    then return $ 20 + 3*promotion
-    else if isAttackKing
-           then return $ 10 + 3*promotion
-           else return $ 5*promotion + 3*pmVictimsCount move
--- 
---   let onePiece = scoreBound
---       
---       toNumeric score = onePiece * sNumeric score + sPositional score
--- 
---   let board' = applyMoveActions (pmResult move) board
---   let dp0 = dp {dpCurrent = dpTarget dp}
---   mbCached <- checkPrimeVariation var params board' dp0
---   case mbCached of
---     Nothing -> return 0
---     Just item -> do
---         let score = toNumeric (itemScore item)
---             scoreSigned = if maximize then score else negate score
---         return $ fromIntegral scoreSigned
-    
+  if isCapture move
+    then if isAttackPrevPiece
+           then return $ 20 + 3*promotion
+           else if isAttackKing
+                  then return $ 10 + 3*promotion
+                  else return $ 5*promotion + 3*pmVictimsCount move
+    else case attackedPiece of
+           Nothing -> return promotion
+           Just (Piece King _) -> return 20
+           Just (Piece Man _) -> return 10
+
 sortMoves :: (EvalMoveMonad m, GameRules rules, Evaluator eval)
           => AlphaBetaParams
           -> AICacheHandle rules eval
@@ -252,7 +250,9 @@ sortMoves :: (EvalMoveMonad m, GameRules rules, Evaluator eval)
 sortMoves params var side dp board mbPrevMove moves = do
 --   if length moves >= 4
 --     then do
-      interest <- mapM (evalMove params var side dp board mbPrevMove) moves
+      let rules = aichRules var
+          attacked = concatMap pmVictims $ possibleMoves rules (opposite side) board
+      interest <- mapM (evalMove params var side dp board mbPrevMove attacked) moves
       if any (/= 0) interest
         then return $ map fst $ sortOn (negate . snd) $ zip moves interest
         else return moves
