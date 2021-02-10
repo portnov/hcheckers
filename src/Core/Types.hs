@@ -766,6 +766,9 @@ newtype Checkers a = Checkers {
   }
   deriving (Applicative, Functor, Monad, MonadIO, MonadReader CheckersState, MonadError Error, MonadThrow, MonadCatch, MonadMask)
 
+instance MonadFail Checkers where
+  fail msg = throwError (Unhandled msg)
+
 runCheckersT :: Checkers a -> CheckersState -> IO (Either Error a)
 runCheckersT actions st = runReaderT (runExceptT $ runCheckers actions) st
 
