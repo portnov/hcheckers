@@ -684,15 +684,17 @@ instance RandomTableProvider SupervisorState where
 -- to supervisor's state, we have to put it into TVar
 type SupervisorHandle = TVar SupervisorState
 
+type Depth = Int8
+
 data AiConfig = AiConfig {
     aiThreads :: Int
   , aiLoadCache :: Bool
   , aiStoreCache :: Bool
-  , aiUseCacheMaxDepth :: Int
-  , aiUseCacheMaxPieces :: Int
-  , aiUseCacheMaxDepthPlus :: Int
-  , aiUseCacheMaxDepthMinus :: Int
-  , aiUpdateCacheMaxDepth :: Int
+  , aiUseCacheMaxDepth :: Depth
+  , aiUseCacheMaxPieces :: Depth
+  , aiUseCacheMaxDepthPlus :: Depth
+  , aiUseCacheMaxDepthMinus :: Depth
+  , aiUpdateCacheMaxDepth :: Depth
   , aiUpdateCacheMaxPieces :: Int
   }
   deriving (Show, Typeable, Generic)

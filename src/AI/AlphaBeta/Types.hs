@@ -60,10 +60,10 @@ data AlphaBeta rules eval = AlphaBeta AlphaBetaParams rules eval
   deriving (Eq, Ord, Show, Typeable)
 
 data AlphaBetaParams = AlphaBetaParams {
-    abDepth :: Int
-  , abStartDepth :: Maybe Int
-  , abCombinationDepth :: Int
-  , abDynamicDepth :: Int
+    abDepth :: Depth
+  , abStartDepth :: Maybe Depth
+  , abCombinationDepth :: Depth
+  , abDynamicDepth :: Depth
   , abDeeperIfBad :: Bool
   , abMovesLowBound :: Int
   , abMovesHighBound :: Int
@@ -85,18 +85,18 @@ instance Default AlphaBetaParams where
 
 -- Calculation depth parameters
 data DepthParams = DepthParams {
-    dpInitialTarget :: Int
-  , dpTarget :: Int     -- ^ Target depth: how deep we currently want to calculate the tree
-  , dpCurrent :: Int    -- ^ Currently achieved depth
-  , dpMax :: Int        -- ^ Maximum allowed depth
-  , dpMin :: Int        -- ^ Minimum allowed depth
+    dpInitialTarget :: Depth
+  , dpTarget :: Depth     -- ^ Target depth: how deep we currently want to calculate the tree
+  , dpCurrent :: Depth    -- ^ Currently achieved depth
+  , dpMax :: Depth        -- ^ Maximum allowed depth
+  , dpMin :: Depth        -- ^ Minimum allowed depth
   , dpStaticMode :: Bool
   , dpForcedMode :: Bool
   , dpReductedMode :: Bool
   }
   deriving (Eq, Ord, Show, Typeable, Generic)
 
-dpLast :: DepthParams -> Int
+dpLast :: DepthParams -> Depth
 dpLast dp = dpMax dp - dpCurrent dp
 
 instance Store DepthParams
@@ -130,20 +130,19 @@ instance Binary Bound
 instance Store Bound
 
 data PerBoardData = PerBoardData {
-    itemDepth :: {-# UNPACK #-}  ! Int
+    itemDepth :: {-# UNPACK #-}  ! Depth
   , itemScore :: {-# UNPACK #-}  ! Score
   , itemBound :: ! Bound
-  , boardStats :: ! (Maybe Stats)
   }
   deriving (Generic, Typeable, Show)
 
 instance Semigroup PerBoardData where
   d1 <> d2
-    | itemDepth d1 > itemDepth d2 = d1 {boardStats = liftM2 (<>) (boardStats d1) (boardStats d2)}
-    | otherwise =  d2 {boardStats = liftM2 (<>) (boardStats d1) (boardStats d2)}
+    | itemDepth d1 > itemDepth d2 = d1
+    | otherwise =  d2
 
 instance Monoid PerBoardData where
-  mempty = PerBoardData 0 0 Exact Nothing
+  mempty = PerBoardData 0 0 Exact
 
 instance Binary PerBoardData
 instance Store PerBoardData

@@ -352,7 +352,7 @@ runAI ai@(AlphaBeta params rules eval) handle gameId side board = do
 --       $debug "Pre-selected options: {}" (Single $ show result)
 --       return result
 
-    preselect :: Int -> [PossibleMove] -> Checkers [Score]
+    preselect :: Depth -> [PossibleMove] -> Checkers [Score]
     preselect depth moves = do
       let simple = DepthParams {
                     dpInitialTarget = depth
@@ -376,6 +376,7 @@ runAI ai@(AlphaBeta params rules eval) handle gameId side board = do
 --       $debug "Pre-selected options: {}" (Single $ show result)
 --       return result
 
+    depthStep :: Depth
     depthStep = 5
 
     depthDriver :: [PossibleMove] -> Checkers DepthIterationOutput
@@ -420,7 +421,7 @@ runAI ai@(AlphaBeta params rules eval) handle gameId side board = do
             Nothing -> return ([MoveAndScore move 0 | move <- diiMoves input], Nothing)
         Left err -> throwError err
 
-    goIterative :: Int -> DepthIterationInput -> Checkers DepthIterationOutput
+    goIterative :: Depth -> DepthIterationInput -> Checkers DepthIterationOutput
     goIterative target input = do
       (output, mbNextInput) <- go input
       case mbNextInput of
@@ -486,7 +487,7 @@ runAI ai@(AlphaBeta params rules eval) handle gameId side board = do
               return (result, Just input')
             else return (result, Nothing)
 
-    deeper :: Int -> Int -> DepthIterationOutput -> DepthIterationInput -> DepthIterationInput
+    deeper :: Depth -> Depth -> DepthIterationOutput -> DepthIterationInput -> DepthIterationInput
     deeper depth step prevOutput input =
       let start' = fmap (+step) (abStartDepth params)
           params' = params {abDepth = depth + step, abStartDepth = start'}
@@ -503,7 +504,7 @@ runAI ai@(AlphaBeta params rules eval) handle gameId side board = do
     score0 = evalBoard eval First board
 
     -- | Initial (alpha, beta) interval
-    mkInitInterval :: Int -> Bool -> Checkers (Score, Score)
+    mkInitInterval :: Depth -> Bool -> Checkers (Score, Score)
     mkInitInterval depth quiescene = do
       let delta
             | depth < abDepth params = fromIntegral $ max 1 $ abDepth params - depth
@@ -760,8 +761,8 @@ cachedScoreAB var params input = do
           -- we can only put the result to the cache if we know
           -- that this score was not clamped by alpha or beta
           -- (so this is a real score, not alpha/beta bound)
-          item = PerBoardData (dpLast dp) score bound Nothing
-          item' = PerBoardData (dpLast dp) (negate score) bound Nothing
+          item = PerBoardData (dpLast dp) score bound
+          item' = PerBoardData (dpLast dp) (negate score) bound
       when (bound == Exact && soQuiescene out && not (dpStaticMode dp)) $ do
           lift $ putAiCache params board item var
           lift $ putAiCache params (flipBoard board) item' var
@@ -788,9 +789,9 @@ isTargetDepth dp = dpCurrent dp >= dpTarget dp
 updateDepth :: (Monad m, HasLogging m, MonadIO m) => AlphaBetaParams -> [PossibleMove] -> DepthParams -> m DepthParams
 updateDepth params moves dp
     | deepen = do
-                  let delta = nMoves - 1
+                  let delta = fromIntegral nMoves - 1
                   let target = min (dpTarget dp + 1) (dpMax dp - delta)
-                  let indent = replicate (2*dpCurrent dp) ' '
+                  let indent = replicate (fromIntegral $ 2*dpCurrent dp) ' '
                   let static = dpCurrent dp > dpInitialTarget dp + abDynamicDepth params
                   $verbose "{}| there is only one move, increase target depth to {}"
                           (indent, target)
@@ -802,7 +803,7 @@ updateDepth params moves dp
                           }
     | nMoves > abMovesHighBound params && canRazor = do
                   let target = max (dpCurrent dp + 1) (dpInitialTarget dp)
-                  let indent = replicate (2*dpCurrent dp) ' '
+                  let indent = replicate (fromIntegral $ 2*dpCurrent dp) ' '
                   $verbose "{}| there are too many moves, decrease target depth to {}"
                           (indent, target)
                   return $ dp {dpCurrent = dpCurrent dp + 1, dpTarget = target, dpReductedMode = True}
@@ -984,7 +985,7 @@ scoreAB var params input
                 then "Maximum"
                 else "Minimum"
     
-    indent = replicate (2*dpCurrent dp) ' '
+    indent = replicate (fromIntegral $ 2*dpCurrent dp) ' '
 
     getBest =
       gets (head . ssBestScores)

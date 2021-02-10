@@ -10,13 +10,12 @@
 
 module AI.AlphaBeta.Persistent
   (lookupFile,
-   lookupStatsFile,
    putRecordFile,
    putStatsFile,
    putWriteQueue,
    checkWriteQueue,
    initFile,
-   checkDataFile',
+   -- checkDataFile',
    loadIndexIO
   ) where
 
@@ -324,10 +323,10 @@ lookupFile board depth = Monitoring.timed "cache.lookup.file" $ do
               then Just record
               else Nothing
 
-lookupStatsFile :: Board -> Storage (Maybe Stats)
-lookupStatsFile board = Monitoring.timed "stats.lookup.file" $ do
-  mbItem <- lookupFileB (encodeBoard board)
-  return $ join $ boardStats `fmap` mbItem
+-- lookupStatsFile :: Board -> Storage (Maybe Stats)
+-- lookupStatsFile board = Monitoring.timed "stats.lookup.file" $ do
+--   mbItem <- lookupFileB (encodeBoard board)
+--   return $ join $ boardStats `fmap` mbItem
 
 putRecordFileB :: B.ByteString -> PerBoardData -> Storage ()
 putRecordFileB bstr newData = do
@@ -497,22 +496,22 @@ checkDataFile path = do
         record <- Data.Store.decodeIO bstr :: IO PerBoardData
         printf "Block #%d: data: %s\n" i (show record)
 
-checkDataFile' :: FilePath -> IO ()
-checkDataFile' path = do
-  let params = File.MMapedParams (1024*1024) False
-  file <- File.initFile params path
-  nBlocks <- readDataIO file 0 :: IO DataBlockNumber
-  forM_ [0 .. nBlocks - 1] $ \i -> do
-      let start = fromIntegral $ calcDataBlockOffset i
-      size <- readDataIO file start :: IO Word16
-      when (size > 0) $ do
-        bstr <- File.readBytes file (fromIntegral $ start + 2) (fromIntegral size)
-        record <- Data.Store.decodeIO bstr :: IO PerBoardData
-        case boardStats record of
-          Nothing -> return ()
-          Just stats -> 
-            when (statsCount stats > 10) $
-              printf "Block #%d: data: %s\n" i (show record)
+-- checkDataFile' :: FilePath -> IO ()
+-- checkDataFile' path = do
+--   let params = File.MMapedParams (1024*1024) False
+--   file <- File.initFile params path
+--   nBlocks <- readDataIO file 0 :: IO DataBlockNumber
+--   forM_ [0 .. nBlocks - 1] $ \i -> do
+--       let start = fromIntegral $ calcDataBlockOffset i
+--       size <- readDataIO file start :: IO Word16
+--       when (size > 0) $ do
+--         bstr <- File.readBytes file (fromIntegral $ start + 2) (fromIntegral size)
+--         record <- Data.Store.decodeIO bstr :: IO PerBoardData
+--         case boardStats record of
+--           Nothing -> return ()
+--           Just stats -> 
+--             when (statsCount stats > 10) $
+--               printf "Block #%d: data: %s\n" i (show record)
 
 data ParserState = ParserState {
     psIndex :: File.MMaped

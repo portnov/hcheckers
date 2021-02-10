@@ -50,7 +50,7 @@ special cmd args =
           withLogContext (LogContextFrame [] (include defaultLogFilter)) $
             learnPdn ai path
 
-    ["dump", path] -> checkDataFile' path
+    -- ["dump", path] -> checkDataFile' path
     ["load", path] -> do
       idx <- loadIndexIO path
       print path

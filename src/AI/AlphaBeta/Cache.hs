@@ -173,10 +173,8 @@ lookupAiCache params board depth handle = do
             Monitoring.increment "cache.miss"
             return Nothing
           Just file -> do
-            let mbStats = checkStats =<< boardStats file
-            let file' = file {boardStats = mbStats}
-            putAiCache params board file' handle
-            return $ Just file'
+            putAiCache params board file handle
+            return $ Just file
 
   where
 
