@@ -458,6 +458,8 @@ instance Show SomeRules where
 
 type ScoreBase = Int16
 
+-- note: if I try to make fields of this structure strict and unpacked,
+-- processing time increases!
 data Score = Score {
       sNumeric :: ScoreBase
     , sPositional :: ScoreBase
