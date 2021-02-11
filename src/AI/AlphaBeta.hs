@@ -194,6 +194,7 @@ evalMove :: (EvalMoveMonad m, GameRules rules, Evaluator eval)
         -> [Address]
         -> PossibleMove -> m Int
 evalMove params var side dp board mbPrevMove attacked move = do
+  prime <- checkPrimeVariation var params board dp
   let victimFields = pmVictims move
       -- nVictims = sum $ map victimWeight victimFields
       promotion = if isPromotion move then 1 else 0
@@ -221,22 +222,26 @@ evalMove params var side dp board mbPrevMove attacked move = do
                    Just (Piece King _) -> True
                    _ -> False
 
-
       attackedPiece = let begin = pmBegin move
                       in  if begin `elem` attacked
                             then getPiece begin board
                             else Nothing
-  
-  if isCapture move
-    then if isAttackPrevPiece
-           then return $ 20 + 3*promotion
-           else if isAttackKing
-                  then return $ 10 + 3*promotion
-                  else return $ 5*promotion + 3*pmVictimsCount move
-    else case attackedPiece of
-           Nothing -> return promotion
-           Just (Piece King _) -> return 20
-           Just (Piece Man _) -> return 10
+
+  case prime of
+    Nothing -> if isCapture move
+                  then if isAttackPrevPiece
+                         then return $ 20 + 3*promotion
+                         else if isAttackKing
+                                then return $ 10 + 3*promotion
+                                else return $ 5*promotion + 3*pmVictimsCount move
+                  else case attackedPiece of
+                         Nothing -> return promotion
+                         Just (Piece King _) -> return 20
+                         Just (Piece Man _) -> return 10
+    Just primeData -> do
+      let score = scoreValue $ itemScore primeData
+          signedScore = if maximize then score else -score
+      return $ fromIntegral signedScore
 
 sortMoves :: (EvalMoveMonad m, GameRules rules, Evaluator eval)
           => AlphaBetaParams
@@ -967,8 +972,8 @@ scoreAB var params input
       where
         score = evalBoard evaluator First board
         result
-          | maximize && sNumeric score == sNumeric win   = score - Score 0 (fromIntegral $ dpCurrent dp)
-          | minimize && sNumeric score == sNumeric loose = score + Score 0 (fromIntegral $ dpCurrent dp)
+          | maximize && sNumeric score == sNumeric win   = score - Score (fromIntegral $ dpCurrent dp) 0
+          | minimize && sNumeric score == sNumeric loose = score + Score (fromIntegral $ dpCurrent dp) 0
           | otherwise = score
 
     checkQuiescene :: ScoreM rules eval Bool

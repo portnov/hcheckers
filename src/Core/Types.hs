@@ -526,6 +526,9 @@ nextScore (Score n p) = Score n (safePlus scoreBound p 1)
 prevScore :: Score -> Score
 prevScore (Score n p) = Score n (safeMinus scoreBound p 1)
 
+scoreValue :: Score -> ScoreBase
+scoreValue (Score n p) = scoreBound * n + p
+
 instance Show Score where
   show (Score n p) = show n ++ "/" ++ show p
 
