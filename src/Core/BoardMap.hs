@@ -204,6 +204,12 @@ insertLabelSet (Label col row) set = IS.insert (mkIndex col row) set
 deleteLabelSet :: Label -> LabelSet -> LabelSet
 deleteLabelSet (Label col row) set = IS.delete (mkIndex col row) set
 
+intersectLabelSet :: LabelSet -> LabelSet -> LabelSet
+intersectLabelSet = IS.intersection
+
+labelSetSize :: LabelSet -> Int
+labelSetSize = IS.size
+
 labelSetMember :: Label -> LabelSet -> Bool
 labelSetMember (Label col row) set = IS.member (mkIndex col row) set
 

@@ -560,6 +560,8 @@ buildBoard rnd rules orient bsize@(nrows, ncols) =
                 bSecondMen = emptyLabelSet,
                 bFirstKings = emptyLabelSet,
                 bSecondKings = emptyLabelSet,
+                bFirstAttacked = emptyLabelSet,
+                bSecondAttacked = emptyLabelSet,
                 bSize = bsize,
                 boardHash = 0,
                 randomTable = table
@@ -592,9 +594,18 @@ getPiece_ name addr board =
     Just piece -> piece
 
 getPiece' :: Label -> Board -> Maybe Piece
-getPiece' l b = getPiece a b
-  where
-    a = fromMaybe (error $ "getPiece': unknown field: " ++ show l) $ lookupLabel l (bAddresses b)
+getPiece' l b
+  | l `labelSetMember` bFirstKings b = Just $ Piece King First
+  | l `labelSetMember` bSecondKings b = Just $ Piece King Second
+  | l `labelSetMember` bFirstMen b = Just $ Piece Man First
+  | l `labelSetMember` bSecondMen b = Just $ Piece Man Second
+  | otherwise = Nothing
+
+getPiecesCount :: Piece -> LabelSet -> Board -> Int
+getPiecesCount (Piece King First) set board = labelSetSize $ intersectLabelSet set (bFirstKings board)
+getPiecesCount (Piece King Second) set board = labelSetSize $ intersectLabelSet set (bSecondKings board)
+getPiecesCount (Piece Man First) set board = labelSetSize $ intersectLabelSet set (bFirstMen board)
+getPiecesCount (Piece Man Second) set board = labelSetSize $ intersectLabelSet set (bSecondMen board)
 
 getCapturablePiece :: Address -> Board -> Maybe Piece
 getCapturablePiece a b =
@@ -822,4 +833,16 @@ flipBoard b = b' {boardHash = hash}
     (nrows, ncols) = bSize b
 
     flipLabel (Label col row) = Label (ncols - col - 1) (nrows - row - 1)
+
+boardAttacked :: Side -> Board -> LabelSet
+boardAttacked First = bFirstAttacked
+boardAttacked Second = bSecondAttacked
+
+markAttacked :: GameRules rules => rules -> Board -> Board
+markAttacked rules board =
+  let attackedBy side = labelSetFromList $ map aLabel $ concatMap pmVictims $ possibleMoves rules side board
+  in  board {
+        bFirstAttacked = attackedBy Second,
+        bSecondAttacked = attackedBy First
+      }
 

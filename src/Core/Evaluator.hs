@@ -20,6 +20,7 @@ data SimpleEvaluator = SimpleEvaluator {
     seRules :: SimpleEvaluatorInterface,
     seUsePositionalScore :: Bool,
     seMobilityWeight :: ScoreBase,
+    seBackyardWeight :: ScoreBase,
     seCenterWeight :: ScoreBase,
     seOppositeSideWeight :: ScoreBase,
     seBorderMenBad :: Bool,
@@ -27,7 +28,9 @@ data SimpleEvaluator = SimpleEvaluator {
     seAsymetryWeight :: ScoreBase,
     sePreKingWeight :: ScoreBase,
     seKingCoef :: ScoreBase,
-    seHelpedKingCoef :: ScoreBase
+    seHelpedKingCoef :: ScoreBase,
+    seAttackedManCoef :: ScoreBase,
+    seAttackedKingCoef :: ScoreBase
   }
   deriving (Show)
 
@@ -47,47 +50,59 @@ defaultEvaluator :: SimpleEvaluatorSupport rules => rules -> SimpleEvaluator
 defaultEvaluator rules = SimpleEvaluator
   { seRules              = SimpleEvaluatorInterface rules
   , seUsePositionalScore = True
-  , seMobilityWeight     = 24
+  , seMobilityWeight     = 30
+  , seBackyardWeight     = 14
   , seCenterWeight       = 16
   , seOppositeSideWeight = 32
   , seBorderMenBad       = True
-  , seBackedWeight       = 30
-  , seAsymetryWeight     = 12
+  , seBackedWeight       = 24
+  , seAsymetryWeight     = -12
   , sePreKingWeight      = 28
   , seKingCoef           = 3
   , seHelpedKingCoef     = 5
+  , seAttackedManCoef = -40
+  , seAttackedKingCoef = -80
   }
 
 data PreScore = PreScore {
       psNumeric :: ! ScoreBase
     , psMobility :: ScoreBase
+    , psBackyard :: ScoreBase
     , psCenter :: ScoreBase
     , psTemp :: ScoreBase
     , psBacked :: ScoreBase
     , psAsymetry :: ScoreBase
     , psPreKing :: ScoreBase
+    , psAttackedMen :: ScoreBase
+    , psAttackedKings :: ScoreBase
   }
 
 sub :: PreScore -> PreScore -> PreScore
 sub ps1 ps2 = PreScore
   { psNumeric  = psNumeric ps1 - psNumeric ps2
   , psMobility = psMobility ps1 - psMobility ps2
+  , psBackyard = psBackyard ps1 - psBackyard ps2
   , psCenter   = psCenter ps1 - psCenter ps2
   , psTemp     = psTemp ps1 - psTemp ps2
   , psBacked   = psBacked ps1 - psBacked ps2
   , psAsymetry = psAsymetry ps1 - psAsymetry ps2
   , psPreKing  = psPreKing ps1 - psPreKing ps2
+  , psAttackedMen = psAttackedMen ps1 - psAttackedMen ps2
+  , psAttackedKings = psAttackedKings ps1 - psAttackedKings ps2
   }
 
 instance Default PreScore where
   def = PreScore {
             psNumeric = 0
           , psMobility = 0
+          , psBackyard = 0
           , psCenter = 0
           , psTemp = 0
           , psBacked = 0
           , psAsymetry = 0
           , psPreKing = 0
+          , psAttackedMen = 0
+          , psAttackedKings = 0
         }
 
 preEval :: SimpleEvaluator -> Side -> Board -> PreScore
@@ -130,6 +145,15 @@ preEval (SimpleEvaluator { seRules = SimpleEvaluatorInterface rules, ..}) side b
     backedScore =
       fromIntegral $ sum $ map backedScoreOf $ allMyAddresses side board
 
+    isBackyard (Label _ row) =
+        case boardSide (boardOrientation rules) side of
+          Top    -> row == nrows-1
+          Bottom -> row == 0
+
+    backyard =
+      let (backMen, _) = myLabelsCount side board isBackyard
+      in  backMen
+
     tempNumber (Label col row)
       | seBorderMenBad && (col == 0 || col == ncols - 1) = 0
       | otherwise = case boardSide (boardOrientation rules) side of
@@ -155,6 +179,10 @@ preEval (SimpleEvaluator { seRules = SimpleEvaluatorInterface rules, ..}) side b
 
     mobility = mobilityScore rules side board
 
+    attackedFields = boardAttacked side board
+    attackedMen = getPiecesCount (Piece Man side) attackedFields board
+    attackedKings = getPiecesCount (Piece King side) attackedFields board
+
     centerScore =
       let (men, kings) = myLabelsCount' side board centerNumber in men + kings
   in
@@ -162,10 +190,13 @@ preEval (SimpleEvaluator { seRules = SimpleEvaluatorInterface rules, ..}) side b
       { psNumeric  = numericScore
       , psMobility = fromIntegral mobility
       , psCenter   = fromIntegral centerScore
+      , psBackyard = fromIntegral backyard
       , psTemp     = fromIntegral opponentSideCount
       , psBacked   = fromIntegral backedScore
       , psAsymetry = fromIntegral asymetry
       , psPreKing  = fromIntegral preKings
+      , psAttackedMen = fromIntegral attackedMen
+      , psAttackedKings = fromIntegral attackedKings
       }
 
 preEvalBoth :: SimpleEvaluator -> Board -> PreScore
@@ -198,6 +229,7 @@ instance Evaluator SimpleEvaluator where
           | count <= endgameCount = from
           | otherwise = (from - to) * fromIntegral (count - openingCount) `div` fromIntegral (endgameCount - openingCount) + to
 
+        backyardWeight = crescentAdjustment seBackyardWeight 0
         centerWeight = crescentAdjustment 0 seCenterWeight
         tempWeight = crescentAdjustment (seOppositeSideWeight * 2) seOppositeSideWeight 
         asymetryWeight = crescentAdjustment 0 seAsymetryWeight
@@ -206,11 +238,14 @@ instance Evaluator SimpleEvaluator where
           if seUsePositionalScore
             then
               centerWeight * psCenter ps +
+              backyardWeight * psBackyard ps +
               tempWeight * psTemp ps +
               seMobilityWeight * psMobility ps +
               seBackedWeight * psBacked ps +
               asymetryWeight * psAsymetry ps +
-              sePreKingWeight * psPreKing ps
+              sePreKingWeight * psPreKing ps +
+              seAttackedManCoef * psAttackedMen ps +
+              seAttackedKingCoef * psAttackedKings ps
             else 0
 
         myNumeric = psNumeric ps1

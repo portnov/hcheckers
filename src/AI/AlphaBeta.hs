@@ -32,6 +32,7 @@ import System.Clock
 
 import Core.Types
 import Core.Board
+import Core.BoardMap (labelSetMember)
 import Core.Parallel
 import Core.Logging
 import qualified Core.Monitoring as Monitoring
@@ -191,7 +192,7 @@ evalMove :: (EvalMoveMonad m, GameRules rules, Evaluator eval)
         -> DepthParams
         -> Board
         -> Maybe PossibleMove
-        -> [Address]
+        -> LabelSet
         -> PossibleMove -> m Int
 evalMove params var side dp board mbPrevMove attacked move = do
   prime <- checkPrimeVariation var params board dp
@@ -222,9 +223,9 @@ evalMove params var side dp board mbPrevMove attacked move = do
                    Just (Piece King _) -> True
                    _ -> False
 
-      attackedPiece = let begin = pmBegin move
-                      in  if begin `elem` attacked
-                            then getPiece begin board
+      attackedPiece = let begin = aLabel $ pmBegin move
+                      in  if begin `labelSetMember` attacked
+                            then getPiece' begin board
                             else Nothing
 
   case prime of
@@ -256,7 +257,7 @@ sortMoves params var side dp board mbPrevMove moves = do
 --   if length moves >= 4
 --     then do
       let rules = aichRules var
-          attacked = concatMap pmVictims $ possibleMoves rules (opposite side) board
+          attacked = boardAttacked side board
       interest <- mapM (evalMove params var side dp board mbPrevMove attacked) moves
       if any (/= 0) interest
         then return $ map fst $ sortOn (negate . snd) $ zip moves interest
@@ -1080,7 +1081,7 @@ scoreAB var params input
                                  then beta
                                  else min beta best
                     , siPrevMove = Just move
-                    , siBoard = applyMoveActions (pmResult move) board
+                    , siBoard = markAttacked rules $ applyMoveActions (pmResult move) board
                     , siDepth = dp
                   }
       out <- cachedScoreAB var params input'
