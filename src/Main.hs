@@ -10,6 +10,7 @@ import Options.Applicative
 
 import Core.Types
 import Core.Board
+import AI
 import AI.AlphaBeta.Types
 import AI.AlphaBeta.Persistent
 import Core.Rest
@@ -17,6 +18,7 @@ import Core.Checkers
 import Core.CmdLine
 
 import Learn
+import Battle
 import Rules.Russian
 
   -- let stdout = LoggingSettings $ filtering defaultLogFilter defStdoutSettings
@@ -49,6 +51,14 @@ special cmd args =
       withCheckers cmd $
           withLogContext (LogContextFrame [] (include defaultLogFilter)) $
             learnPdn ai path
+
+    ["battle", path1, path2] -> do
+      let rules = SomeRules russian
+      ai1 <- loadAi "default" rules path1
+      ai2 <- loadAi "default" rules path2
+      withCheckers cmd $
+          withLogContext (LogContextFrame [] (include defaultLogFilter)) $
+            runBattle rules ai1 ai2
 
     -- ["dump", path] -> checkDataFile' path
     ["load", path] -> do

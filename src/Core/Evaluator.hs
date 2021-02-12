@@ -10,7 +10,7 @@ module Core.Evaluator
   ) where
 
 import           Data.Aeson
-import           Data.Aeson.Types               ( parseMaybe )
+import           Data.Aeson.Types as AT
 import           Data.Default
 
 import           Core.Types
@@ -63,6 +63,23 @@ defaultEvaluator rules = SimpleEvaluator
   , seAttackedManCoef = -40
   , seAttackedKingCoef = -80
   }
+
+parseEvaluator :: SimpleEvaluator -> Value -> AT.Parser SimpleEvaluator
+parseEvaluator def = withObject "Evaluator" $ \v -> SimpleEvaluator
+    <$> pure (seRules def)
+    <*> v .:? "use_positional_score" .!= seUsePositionalScore def
+    <*> v .:? "mobility_weight" .!= seMobilityWeight def
+    <*> v .:? "backyard_weight" .!= seBackyardWeight def
+    <*> v .:? "center_weight" .!= seCenterWeight def
+    <*> v .:? "opposite_side_weight" .!= seOppositeSideWeight def
+    <*> v .:? "border_men_bad" .!= seBorderMenBad def
+    <*> v .:? "backed_weight" .!= seBackedWeight def
+    <*> v .:? "asymetry_weight" .!= seAsymetryWeight def
+    <*> v .:? "pre_king_weight" .!= sePreKingWeight def
+    <*> v .:? "king_coef" .!= seKingCoef def
+    <*> v .:? "helped_king_coef" .!= seHelpedKingCoef def
+    <*> v .:? "attacked_man_coef" .!= seAttackedManCoef def
+    <*> v .:? "attacked_king_coef" .!= seAttackedKingCoef def
 
 data PreScore = PreScore {
       psNumeric :: ! ScoreBase
@@ -206,12 +223,10 @@ preEvalBoth eval board =
 instance Evaluator SimpleEvaluator where
   evaluatorName _ = "simple"
 
-  updateEval e (Object v) =
-    case parseMaybe (.: "use_positional_score") v of
+  updateEval e v =
+    case AT.parseMaybe (parseEvaluator e) v of
       Nothing -> e
-      Just Nothing -> e
-      Just (Just True) -> e {seUsePositionalScore = True}
-      Just (Just False) -> e {seUsePositionalScore = False}
+      Just e' -> e'
 
   evalBoard eval@(SimpleEvaluator {seRules = SimpleEvaluatorInterface rules, ..}) whoAsks board =
     let ps1 = preEval eval whoAsks board
