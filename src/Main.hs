@@ -57,8 +57,20 @@ special cmd args =
       ai1 <- loadAi "default" rules path1
       ai2 <- loadAi "default" rules path2
       withCheckers cmd $
+          withLogContext (LogContextFrame [] (include defaultLogFilter)) $ do
+            runBattle rules ai1 ai2 "battle.pdn"
+            return ()
+
+    ["match", ns, path1, path2] -> do
+      let rules = SomeRules russian
+          n = read ns
+      ai1 <- loadAi "default" rules path1
+      ai2 <- loadAi "default" rules path2
+      putStrLn $ "AI1: " ++ show ai1
+      putStrLn $ "AI2: " ++ show ai2
+      withCheckers cmd $
           withLogContext (LogContextFrame [] (include defaultLogFilter)) $
-            runBattle rules ai1 ai2
+            runMatch rules ai1 ai2 n
 
     -- ["dump", path] -> checkDataFile' path
     ["load", path] -> do

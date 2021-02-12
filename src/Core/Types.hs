@@ -371,6 +371,9 @@ data MoveCheckResult =
 data BoardRep = BoardRep [(Label, Piece)]
   deriving (Eq, Ord, Show, Typeable)
 
+boardRepLen :: BoardRep -> Int
+boardRepLen (BoardRep lst) = length lst
+
 -- | More convinient format for game rules to specify
 -- which moves are possible
 data PossibleMove = PossibleMove {

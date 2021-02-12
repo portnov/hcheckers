@@ -81,7 +81,7 @@ instance (GameRules rules, Evaluator eval) => GameAi (AlphaBeta rules eval) wher
 
   updateAi ai@(AlphaBeta _ rules eval) json =
     case fromJSON json of
-      Error _ -> ai
+      Error e -> error $ "Can't load AI settings: " ++ show e
       Success params -> AlphaBeta params rules (updateEval eval json)
 
   aiName _ = "default"
