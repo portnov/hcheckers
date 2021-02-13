@@ -13,6 +13,7 @@ import Control.Monad
 import Control.Monad.IO.Class
 import Data.Aeson
 import Data.Aeson.Types
+import qualified Data.Map as M
 import qualified Data.HashMap.Strict as H
 import qualified Data.Text as T
 import qualified Data.Text.IO as TIO
@@ -33,6 +34,11 @@ runTournament rules ais nMatches nGames = do
              runMatch rules (ais !! i) (ais !! j) nGames
   forM_ (zip idxPairs' stats) $ \((i,j),(first,second,draw)) -> do
       liftIO $ printf "AI#%d vs AI#%d: First %d, Second %d, Draw %d\n" i j first second draw
+  let results1 = [(i, first - second) | ((i,j), (first,second,draw)) <- zip idxPairs' stats]
+      results2 = [(j, second - first) | ((i,j), (first,second,draw)) <- zip idxPairs' stats]
+      results = M.fromListWith (+) (results1 ++ results2)
+  forM_ (M.assocs results) $ \(i, value) ->
+      liftIO $ printf "AI#%d total: %d\n" i value
 
 runMatch :: SomeRules -> SomeAi -> SomeAi -> Int -> Checkers (Int, Int, Int)
 runMatch rules ai1 ai2 nGames = do
