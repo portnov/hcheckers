@@ -135,6 +135,9 @@ lookupBoardMap bmap board = atomically $ do
 --     Nothing -> return Nothing
 --     Just byHash -> SM.lookup (boardHash board) byHash
 
+resetBoardMap :: TBoardMap a -> IO ()
+resetBoardMap bmap = atomically $ SM.reset bmap
+
 ------------------
 
 unpackIndex :: FieldIndex -> Label

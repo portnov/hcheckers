@@ -445,6 +445,16 @@ letAiMove gameId side mbBoard = do
 
     _ -> return board
 
+resetAiStorageG :: GameId -> Side -> Checkers ()
+resetAiStorageG gameId side = do
+  game <- getGame gameId
+  case getPlayer game side of
+    AI ai -> do
+      rules <- getRules gameId
+      withAiStorage rules ai $ \storage -> do
+        resetAiStorage ai storage
+    _ -> fail "User is not an AI"
+
 aiDrawRequest :: GameId -> Side -> Checkers (Maybe Bool)
 aiDrawRequest gameId side = do
   game <- getGame gameId

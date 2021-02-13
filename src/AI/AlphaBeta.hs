@@ -74,6 +74,9 @@ instance (GameRules rules, Evaluator eval) => GameAi (AlphaBeta rules eval) wher
       -- saveAiCache rules params cache
       return ()
 
+  resetAiStorage ai cache = do
+      resetAiCache cache
+
   chooseMove ai storage gameId side board = do
     (moves, _) <- runAI ai storage gameId side board
     -- liftIO $ atomically $ writeTVar (aichCurrentCounts storage) $ calcBoardCounts board

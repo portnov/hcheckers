@@ -9,18 +9,36 @@
 
 module Battle where
 
+import Control.Monad
 import Control.Monad.IO.Class
+import Data.Aeson
+import Data.Aeson.Types
+import qualified Data.HashMap.Strict as H
+import qualified Data.Text as T
 import qualified Data.Text.IO as TIO
 import Text.Printf
+import System.Random
+import System.Random.Shuffle
 
 import Core.Types
 import Core.Board
 import Core.Supervisor
 
-runMatch :: SomeRules -> SomeAi -> SomeAi -> Int -> Checkers ()
+runTournament :: SomeRules -> [SomeAi] -> Int -> Int -> Checkers ()
+runTournament rules ais nMatches nGames = do
+  let n = length ais
+      idxPairs = [(i,j) | i <- [0..n-1], j <- [i+1 .. n-1]]
+  idxPairs' <- liftIO $ shuffleM idxPairs
+  stats <- forM (take nMatches idxPairs') $ \(i,j) ->
+             runMatch rules (ais !! i) (ais !! j) nGames
+  forM_ (zip idxPairs' stats) $ \((i,j),(first,second,draw)) -> do
+      liftIO $ printf "AI#%d vs AI#%d: First %d, Second %d, Draw %d\n" i j first second draw
+
+runMatch :: SomeRules -> SomeAi -> SomeAi -> Int -> Checkers (Int, Int, Int)
 runMatch rules ai1 ai2 nGames = do
     (nFirst, nSecond, nDraw) <- go 0 (0, 0, 0)
-    liftIO $ printf "First: %d, Second: %d, Draws(?): %d" nFirst nSecond nDraw
+    liftIO $ printf "First: %d, Second: %d, Draws(?): %d\n" nFirst nSecond nDraw
+    return (nFirst, nSecond, nDraw)
   where
     go :: Int -> (Int, Int, Int) -> Checkers (Int, Int, Int)
     go i (first, second, draw)
@@ -42,6 +60,8 @@ runBattle rules ai1 ai2 path = do
   registerUser gameId Second "AI2"
   attachAi gameId First ai1
   attachAi gameId Second ai2
+  resetAiStorageG gameId First
+  resetAiStorageG gameId Second
   runGame gameId
   result <- loopGame path gameId (opposite firstSide) 0
   liftIO $ print result
@@ -56,7 +76,7 @@ hasKing side (BoardRep lst) = any isKing (map snd lst)
 loopGame :: FilePath -> GameId -> Side -> Int -> Checkers GameResult
 loopGame path gameId side i = do
   StateRs board status side <- getState gameId
-  if i > 100 && boardRepLen board <= 6 && hasKing First board && hasKing Second board
+  if i > 100 && boardRepLen board <= 8 && hasKing First board && hasKing Second board
     then do
       liftIO $ print "Too long a game, probably a draw"
       pdn <- getPdn gameId
@@ -75,4 +95,47 @@ loopGame path gameId side i = do
         _ ->  do
               letAiMove gameId side Nothing
               loopGame path gameId (opposite side) (i+1)
+
+variableParameters :: [T.Text]
+variableParameters = [
+    "mobility_weight", "backyard_weight", "center_weight",
+    "opposite_side_weight", "backed_weight", "asymetry_weight",
+    "pre_king_weight", "attacked_man_coef", "attacked_king_coef"
+  ]
+
+nVariableParameters :: Int
+nVariableParameters = length variableParameters
+
+updateObject :: [Pair] -> Value -> Value
+updateObject pairs (Object v) = Object $ go pairs v
+  where
+    go [] v = v
+    go ((key, value):pairs) v = go pairs (H.insert key value v)
+updateObject _ _ = error "invalid object"
+
+modifyObject :: [(T.Text, ScoreBase)] -> Value -> Value
+modifyObject pairs (Object v) = Object $ go pairs v
+  where
+    go [] v = v
+    go ((key, delta):pairs) v =
+      let v' = H.insertWith modify key (Number (fromIntegral delta)) v
+      in  go pairs v'
+    
+    modify (Number v1) (Number v2) = Number (v1+v2)
+    modify _ _ = error "invalid value in modify"
+
+generateVariation :: ScoreBase -> Value -> IO Value
+generateVariation dv params = do
+    deltas <- replicateM nVariableParameters $ randomRIO (-dv, dv)
+    let pairs = [(key, delta) | (key, delta) <- zip variableParameters deltas]
+    return $ modifyObject pairs params
+
+generateAiVariations :: Int -> ScoreBase -> FilePath -> IO ()
+generateAiVariations n dv path = do
+  r <- decodeFileStrict path
+  case r of
+    Nothing -> fail "Cannot load initial AI"
+    Just initValue -> forM_ [1..n] $ \i -> do
+                        value <- generateVariation dv initValue
+                        encodeFile (printf "ai_variation_%d.json" i) value
 

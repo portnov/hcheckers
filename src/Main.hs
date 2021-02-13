@@ -2,6 +2,7 @@
 {-# LANGUAGE ViewPatterns #-}
 module Main where
 
+import Control.Monad
 import Control.Monad.Reader
 import Control.Concurrent.STM
 import Data.Default
@@ -69,8 +70,24 @@ special cmd args =
       putStrLn $ "AI1: " ++ show ai1
       putStrLn $ "AI2: " ++ show ai2
       withCheckers cmd $
-          withLogContext (LogContextFrame [] (include defaultLogFilter)) $
+          withLogContext (LogContextFrame [] (include defaultLogFilter)) $ do
             runMatch rules ai1 ai2 n
+            return ()
+
+    ("tournament": matches : games : paths) -> do 
+      let rules = SomeRules russian
+          nMatches = read matches
+          nGames = read games
+      ais <- forM paths $ \path -> loadAi "default" rules path
+      withCheckers cmd $
+          withLogContext (LogContextFrame [] (include defaultLogFilter)) $ do
+            runTournament rules ais nMatches nGames
+            return ()
+
+    ["generate", ns, deltas, path] -> do
+      let n = read ns
+          delta = read deltas
+      generateAiVariations n delta path
 
     -- ["dump", path] -> checkDataFile' path
     ["load", path] -> do

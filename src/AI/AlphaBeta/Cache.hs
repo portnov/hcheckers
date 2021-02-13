@@ -10,6 +10,7 @@ module AI.AlphaBeta.Cache
   ( loadAiCache,
     lookupAiCache,
     putAiCache,
+    resetAiCache
   ) where
 
 import Control.Monad
@@ -240,4 +241,9 @@ putAiCache params board newItem handle = do
       when (fileCacheEnabled && needWriteFile) $
           putWriteQueue (aichWriteQueue handle) (board, newItem)
       -- putCleanupQueue (aichCleanupQueue handle) (bc, bk) now
+
+resetAiCache :: AICacheHandle rules eval -> Checkers ()
+resetAiCache handle= do
+  let cache = aichData handle
+  liftIO $ resetBoardMap cache
 

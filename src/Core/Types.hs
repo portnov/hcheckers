@@ -570,6 +570,8 @@ class (Show ai, Typeable (AiStorage ai)) => GameAi ai where
   createAiStorage :: ai -> Checkers (AiStorage ai)
   saveAiStorage :: ai -> AiStorage ai -> Checkers ()
 
+  resetAiStorage :: ai -> AiStorage ai -> Checkers ()
+
   aiName :: ai -> String
   
   updateAi :: ai -> Value -> ai

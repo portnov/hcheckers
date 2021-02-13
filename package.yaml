@@ -42,6 +42,7 @@ dependencies:
 - clock
 - array
 - random
+- random-shuffle
 - binary
 - store
 - filepath
