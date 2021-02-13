@@ -5,6 +5,7 @@ from os.path import join
 import requests
 import logging
 from threading import Thread, Lock
+import json
 
 from hcheckers.common import *
 
@@ -41,6 +42,7 @@ class AI(object):
         self.use_positional_score = True
         self.timeout = None
         self.use_timeout = False
+        self.extra = None
 
         for key in kwargs:
             setattr(self, key, kwargs[key])
@@ -59,6 +61,7 @@ class AI(object):
         ai.use_positional_score = settings.value("use_positional_score", type=bool)
         ai.use_timeout = settings.value("use_timeout", type=bool)
         ai.timeout = settings.value("timeout", type=int)
+        ai.extra = settings.value("extra", type=str)
         return ai
     
     @classmethod
@@ -74,7 +77,6 @@ class AI(object):
                 result.append(ai)
         settings.endArray()
         return result
-
     
     def to_settings(self, settings):
         settings.setValue("title", self.title)
@@ -88,9 +90,11 @@ class AI(object):
         settings.setValue("use_positional_score", self.use_positional_score)
         settings.setValue("use_timeout", self.use_timeout)
         settings.setValue("timeout", self.timeout)
+        if self.extra is not None:
+            settings.setValue("extra", self.extra.strip())
 
     def params(self):
-        return {
+        d = {
             "depth": self.depth,
             "start_depth": self.start_depth,
             "max_combination_depth": self.max_combination_depth,
@@ -101,6 +105,17 @@ class AI(object):
             "use_positional_score": self.use_positional_score,
             "time": self.timeout if self.use_timeout else None
         }
+        if self.extra:
+            try:
+                extra = json.loads(self.extra)
+                d.update(extra)
+                print(d)
+            except Exception as e:
+                print("Can't parse:")
+                print(self.extra)
+                print(e)
+        return d
+
 
 default_ais = [
         AI(title=_("Beginner"), depth=2, start_depth=2, max_combination_depth=6),

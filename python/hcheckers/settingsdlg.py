@@ -1,7 +1,7 @@
 
 from PyQt5.QtGui import QPainter, QPixmap, QIcon
 from PyQt5.QtCore import QRect, QSize, Qt, QObject, QTimer, pyqtSignal, QSettings
-from PyQt5.QtWidgets import QWidget, QDialog, QPushButton, QVBoxLayout, QHBoxLayout, QFormLayout, QLineEdit, QComboBox, QGroupBox, QCheckBox, QDialogButtonBox, QFileDialog, QListWidget, QListWidgetItem, QSpinBox, QToolBar, QAction, QTabWidget
+from PyQt5.QtWidgets import QWidget, QDialog, QPushButton, QVBoxLayout, QHBoxLayout, QFormLayout, QLineEdit, QComboBox, QGroupBox, QCheckBox, QDialogButtonBox, QFileDialog, QListWidget, QListWidgetItem, QSpinBox, QToolBar, QAction, QTabWidget, QTextEdit
 
 from hcheckers.common import *
 from hcheckers.game import AI, GameSettings
@@ -117,6 +117,10 @@ class AiEditorWidget(QWidget):
         self.timeout.valueChanged.connect(self.edited)
         layout.addRow(_("Timeout (seconds)"), self.timeout)
 
+        self.extra = QTextEdit(self)
+        self.extra.textChanged.connect(self.edited)
+        layout.addRow(_("Extra options"), self.extra)
+
         self.setLayout(layout)
 
     def _on_use_timeout(self):
@@ -136,6 +140,7 @@ class AiEditorWidget(QWidget):
         self.use_positional_score.setCheckState(Qt.Checked if ai.use_positional_score else Qt.Unchecked)
         self.use_timeout.setCheckState(Qt.Checked if ai.use_timeout else Qt.Unchecked)
         self.timeout.setValue(1 if ai.timeout is None else ai.timeout)
+        self.extra.setText("" if ai.extra is None else ai.extra)
 
     def get_ai(self):
         ai = AI()
@@ -150,6 +155,7 @@ class AiEditorWidget(QWidget):
         ai.use_positional_score = self.use_positional_score.checkState() == Qt.Checked
         ai.use_timeout = self.use_timeout.checkState() == Qt.Checked
         ai.timeout = self.timeout.value()
+        ai.extra = self.extra.toPlainText()
         return ai
 
 class AiPresetsPage(QWidget):
