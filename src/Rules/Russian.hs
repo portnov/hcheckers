@@ -1,6 +1,7 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE TypeFamilies #-}
 module Rules.Russian (
         Russian, russian, russianBase
       ) where
@@ -26,6 +27,7 @@ instance HasTopology Russian where
   boardTopology _ = Diagonal
 
 instance GameRules Russian where
+  type EvaluatorForRules Russian = SimpleEvaluator
   initBoard rnd r = board8 rnd r
 
   boardSize _ = (8, 8)
@@ -34,7 +36,7 @@ instance GameRules Russian where
 
   boardNotation _ = chessNotation
 
-  dfltEvaluator r = SomeEval $ defaultEvaluator r
+  dfltEvaluator r = defaultEvaluator r
 
   parseNotation _ = parseChessNotation
 

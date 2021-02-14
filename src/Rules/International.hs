@@ -2,6 +2,7 @@
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TypeFamilies #-}
 module Rules.International (International, international, internationalBase) where
 
 import Data.Typeable
@@ -26,6 +27,7 @@ instance HasTopology International where
 instance SimpleEvaluatorSupport International
 
 instance GameRules International where
+  type EvaluatorForRules International = SimpleEvaluator
   boardSize _ = (10, 10)
 
   initBoard rnd r =
@@ -46,7 +48,7 @@ instance GameRules International where
 
   boardNotation r = numericNotation (boardSize r)
 
-  dfltEvaluator r = SomeEval $ (defaultEvaluator r) {seKingCoef = 5, seHelpedKingCoef = 6}
+  dfltEvaluator r = (defaultEvaluator r) {seKingCoef = 5, seHelpedKingCoef = 6}
 
   parseNotation r = parseNumericNotation (boardSize r)
 

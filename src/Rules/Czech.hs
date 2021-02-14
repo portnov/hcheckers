@@ -1,7 +1,7 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE RecordWildCards #-}
-{-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE TypeFamilies #-}
 module Rules.Czech (Czech, czech) where
 
 import Data.Typeable
@@ -24,6 +24,7 @@ instance HasTopology Czech where
 instance SimpleEvaluatorSupport Czech
 
 instance GameRules Czech where
+  type EvaluatorForRules Czech = SimpleEvaluator
   pdnId _ = "29"
   rulesName _ = "czech"
 
@@ -33,7 +34,7 @@ instance GameRules Czech where
 
   initPiecesCount _ = 24
 
-  dfltEvaluator r = SomeEval $ defaultEvaluator r
+  dfltEvaluator r = defaultEvaluator r
 
   boardNotation _ = boardNotation russian
 

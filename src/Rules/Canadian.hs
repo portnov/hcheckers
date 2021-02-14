@@ -1,6 +1,7 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TypeFamilies #-}
 module Rules.Canadian (Canadian, canadian) where
 
 import Data.Typeable
@@ -23,6 +24,8 @@ instance HasTopology Canadian where
 instance SimpleEvaluatorSupport Canadian
 
 instance GameRules Canadian where
+  type EvaluatorForRules Canadian = SimpleEvaluator
+
   boardSize _ = (12, 12)
 
   initBoard rnd r =
@@ -43,7 +46,7 @@ instance GameRules Canadian where
 
   initPiecesCount _ = 60
 
-  dfltEvaluator r = SomeEval $ (defaultEvaluator r) {seKingCoef = 5, seHelpedKingCoef = 6}
+  dfltEvaluator r = (defaultEvaluator r) {seKingCoef = 5, seHelpedKingCoef = 6}
 
   boardNotation r = numericNotation (boardSize r)
 

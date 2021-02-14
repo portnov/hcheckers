@@ -21,6 +21,7 @@ import Control.Monad.Reader
 import Control.Monad.Except
 import Control.Concurrent.STM
 import qualified Data.Map as M
+import qualified Data.Vector as V
 import Data.Maybe
 import Data.Default
 import Data.List (sortOn, transpose)
@@ -88,6 +89,36 @@ instance (GameRules rules, Evaluator eval) => GameAi (AlphaBeta rules eval) wher
       Success params -> AlphaBeta params rules (updateEval eval json)
 
   aiName _ = "default"
+
+instance (GameRules rules, VectorEvaluator eval) => VectorAi (AlphaBeta rules eval) where
+  type VectorAiSupport (AlphaBeta rules eval) r = (VectorEvaluatorSupport eval r, rules ~ r)
+
+  aiToVector (AlphaBeta params rules eval) = aiVector V.++ evalVector
+    where
+      aiVector = V.fromList $ map fromIntegral $ [
+                      abDepth params
+                    , abCombinationDepth params
+                    , abDynamicDepth params
+                  ]
+
+      evalVector = evalToVector eval
+
+  aiFromVector rules v = AlphaBeta params rules eval
+    where
+      params = AlphaBetaParams {
+                  abDepth = round (v V.! 0)
+                , abStartDepth = Nothing
+                , abCombinationDepth = round (v V.! 1)
+                , abDynamicDepth = round (v V.! 2)
+                , abDeeperIfBad = False
+                , abMovesLowBound = abMovesLowBound def
+                , abMovesHighBound = abMovesHighBound def
+                , abBaseTime = Nothing
+              }
+
+      v' = V.drop 3 v
+
+      eval = evalFromVector rules v'
 
 -- | Calculate score of one possible move.
 scoreMove :: (GameRules rules, Evaluator eval) => ScoreMoveInput rules eval -> Checkers MoveAndScore

@@ -1,6 +1,7 @@
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE TypeFamilies #-}
 module Rules.English (English (..), english) where
 
 import Data.Typeable
@@ -25,6 +26,7 @@ instance HasTopology English where
 instance SimpleEvaluatorSupport English
 
 instance GameRules English where
+  type EvaluatorForRules English = SimpleEvaluator
   boardSize _ = boardSize Russian.russian
 
   initBoard rnd r = 
@@ -38,7 +40,7 @@ instance GameRules English where
   boardNotation r = numericNotation (boardSize r)
   parseNotation r = parseNumericNotation (boardSize r)
 
-  dfltEvaluator r = SomeEval $ (defaultEvaluator r) {seKingCoef = 2, seHelpedKingCoef = 3}
+  dfltEvaluator r = (defaultEvaluator r) {seKingCoef = 2, seHelpedKingCoef = 3}
 
   rulesName _ = "english"
   updateRules r _ = r

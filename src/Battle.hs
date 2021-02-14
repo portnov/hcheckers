@@ -5,15 +5,18 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE RecordWildCards #-}
 
 module Battle where
 
 import Control.Monad
 import Control.Monad.IO.Class
+import Data.List (intercalate)
 import Data.Aeson
 import Data.Aeson.Types
 import qualified Data.Map as M
+import qualified Data.Vector as V
 import qualified Data.HashMap.Strict as H
 import qualified Data.Text as T
 import qualified Data.Text.IO as TIO
@@ -24,21 +27,32 @@ import System.Random.Shuffle
 import Core.Types
 import Core.Board
 import Core.Supervisor
+import AI.AlphaBeta.Types
 
-runTournament :: SomeRules -> [SomeAi] -> Int -> Int -> Checkers ()
+(<->) :: Num a => V.Vector a -> V.Vector a -> V.Vector a
+v1 <-> v2 = V.zipWith (-) v1 v2
+
+runTournament :: (GameRules rules, VectorEvaluator (EvaluatorForRules rules)) => rules -> [AlphaBeta rules (EvaluatorForRules rules)] -> Int -> Int -> Checkers ()
 runTournament rules ais nMatches nGames = do
+  forM_ ais $ \ai ->
+    liftIO $ print $ aiToVector ai
   let n = length ais
       idxPairs = [(i,j) | i <- [0..n-1], j <- [i+1 .. n-1]]
+      ais' = map SomeAi ais
   idxPairs' <- liftIO $ shuffleM idxPairs
   stats <- forM (take nMatches idxPairs') $ \(i,j) ->
-             runMatch rules (ais !! i) (ais !! j) nGames
+             runMatch (SomeRules rules) (ais' !! i) (ais' !! j) nGames
   forM_ (zip idxPairs' stats) $ \((i,j),(first,second,draw)) -> do
       liftIO $ printf "AI#%d vs AI#%d: First %d, Second %d, Draw %d\n" i j first second draw
+
   let results1 = [(i, first - second) | ((i,j), (first,second,draw)) <- zip idxPairs' stats]
       results2 = [(j, second - first) | ((i,j), (first,second,draw)) <- zip idxPairs' stats]
       results = M.fromListWith (+) (results1 ++ results2)
-  forM_ (M.assocs results) $ \(i, value) ->
-      liftIO $ printf "AI#%d total: %d\n" i value
+  forM_ (M.assocs results) $ \(i, value) -> do
+      let ai = ais !! i
+          vec = map show $ V.toList (aiToVector ai) ++ [fromIntegral value]
+          str = intercalate "," vec
+      liftIO $ putStrLn str
 
 runMatch :: SomeRules -> SomeAi -> SomeAi -> Int -> Checkers (Int, Int, Int)
 runMatch rules ai1 ai2 nGames = do

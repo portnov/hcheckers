@@ -1,6 +1,7 @@
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE TypeFamilies #-}
 module Rules.Simple (Simple, simple) where
 
 import Data.Typeable
@@ -24,6 +25,7 @@ instance HasTopology Simple where
   boardTopology _ = Diagonal
 
 instance GameRules Simple where
+  type EvaluatorForRules Simple = SimpleEvaluator
   initBoard rnd _ = initBoard rnd Russian.russian
   boardSize _ = boardSize Russian.russian
   initPiecesCount _ = 24
@@ -32,7 +34,7 @@ instance GameRules Simple where
 
   parseNotation _ = parseNotation Russian.russian
 
-  dfltEvaluator r = SomeEval $ defaultEvaluator r
+  dfltEvaluator r = defaultEvaluator r
 
   rulesName _ = "simple"
 

@@ -8,6 +8,7 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE ConstraintKinds #-}
 module Core.Types where
 
 import Control.Monad.Reader
@@ -18,6 +19,7 @@ import Control.Concurrent
 import Control.Concurrent.STM
 import Data.List
 import Data.Array.Unboxed
+import qualified Data.Vector as V
 import qualified Data.Map as M
 import qualified Data.IntMap.Strict as IM
 import qualified Data.IntSet as IS
@@ -39,6 +41,7 @@ import GHC.Generics
 import System.Log.Heavy
 import System.Log.Heavy.TH
 import System.Clock
+import GHC.Exts (Constraint)
 
 import Debug.Trace (traceEventIO)
 
@@ -425,7 +428,8 @@ class HasTopology a where
   boardTopology :: a -> BoardTopology
 
 -- | Interface of game rules
-class (Typeable g, Show g, HasBoardOrientation g, HasTopology g) => GameRules g where
+class (Typeable g, Show g, HasBoardOrientation g, HasTopology g, Evaluator (EvaluatorForRules g)) => GameRules g where
+  type EvaluatorForRules g
   -- | Initial board with initial pieces position
   initBoard :: SupervisorState -> g -> Board
   -- | Size of board used
@@ -433,7 +437,7 @@ class (Typeable g, Show g, HasBoardOrientation g, HasTopology g) => GameRules g 
 
   initPiecesCount :: g -> Int
 
-  dfltEvaluator :: g -> SomeEval
+  dfltEvaluator :: g -> EvaluatorForRules g
 
   boardNotation :: g -> Label -> Notation
   parseNotation :: g -> Notation -> Either String Label
@@ -553,7 +557,12 @@ class (Show e, Typeable e) => Evaluator e where
   updateEval :: e -> Value -> e
   updateEval e _ = e
 
-data SomeEval = forall e. Evaluator e => SomeEval e
+class Evaluator e => VectorEvaluator e where
+  type VectorEvaluatorSupport e rules :: Constraint
+  evalToVector :: e -> V.Vector Double
+  evalFromVector :: VectorEvaluatorSupport e rules => rules -> V.Vector Double -> e
+
+data SomeEval = forall e. VectorEvaluator e => SomeEval e
   deriving (Typeable)
 
 instance Show SomeEval where
@@ -583,7 +592,14 @@ class (Show ai, Typeable (AiStorage ai)) => GameAi ai where
   decideDrawRequest :: ai -> AiStorage ai -> Side -> Board -> Checkers Bool
   decideDrawRequest _ _ _ _ = return True
 
+class GameAi ai => VectorAi ai where
+  type VectorAiSupport ai rules :: Constraint
+  aiToVector :: ai -> V.Vector Double
+  aiFromVector :: VectorAiSupport ai rules => rules -> V.Vector Double -> ai
+
 data SomeAi = forall ai. GameAi ai => SomeAi ai
+
+data SomeVectorAi rules = forall ai. (VectorAi ai, VectorAiSupport ai rules) => SomeVectorAi ai
 
 instance Show SomeAi where
   show (SomeAi ai) = show ai

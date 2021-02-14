@@ -2,6 +2,7 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE TypeFamilies #-}
 module Rules.Armenian (
     Armenian, armenian, armenianBase
   ) where
@@ -27,6 +28,8 @@ instance SimpleEvaluatorSupport Armenian where
   getForwardDirections _ = [ForwardLeft, Forward, ForwardRight]
 
 instance GameRules Armenian where
+  type EvaluatorForRules Armenian = SimpleEvaluator
+
   initBoard rnd r =
     let board = buildBoard rnd r (boardOrientation r) (8, 8)
         labels1 = ["a2", "b2", "c2", "d2", "e2", "f2", "g2", "h2",
@@ -39,7 +42,7 @@ instance GameRules Armenian where
 
   boardSize _ = (8, 8)
 
-  dfltEvaluator r = SomeEval $ (defaultEvaluator r) {
+  dfltEvaluator r = (defaultEvaluator r) {
                                  seKingCoef = 4,
                                  seHelpedKingCoef = 5,
                                  seOppositeSideWeight = 5,

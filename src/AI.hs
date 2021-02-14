@@ -16,14 +16,16 @@ import Core.Types
 import Core.Board
 import Core.Logging
 import Core.Supervisor
+import Core.Evaluator
+import AI.AlphaBeta.Types
 
-loadAi :: String -> SomeRules -> FilePath -> IO SomeAi
+loadAi :: (GameRules rules) => String -> rules -> FilePath -> IO (AlphaBeta rules (EvaluatorForRules rules))
 loadAi name rules path = do
   r <- decodeFileStrict path
   case r of
     Nothing -> fail $ "Cannot load AI from " ++ path
-    Just value ->
-      case selectAi (AttachAiRq name value) rules of
-        Nothing -> fail $ "Unknown AI: " ++ name
-        Just ai -> return ai
+    Just value -> do
+      let rules' = SomeRules rules
+          ai = AlphaBeta def rules (dfltEvaluator rules)
+      return $ updateAi ai value
 

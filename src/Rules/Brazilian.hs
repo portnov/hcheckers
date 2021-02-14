@@ -1,6 +1,7 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TypeFamilies #-}
 module Rules.Brazilian (Brazilian, brazilian) where
 
 import Data.Typeable
@@ -24,13 +25,15 @@ instance Show Brazilian where
   show = rulesName
 
 instance GameRules Brazilian where
+  type EvaluatorForRules Brazilian = SimpleEvaluator
+
   boardSize _ = (8, 8)
 
   initBoard rnd _ = initBoard rnd russian
 
   initPiecesCount _ = 24
 
-  dfltEvaluator r = SomeEval $ defaultEvaluator r
+  dfltEvaluator r = defaultEvaluator r
 
   boardNotation _ = boardNotation international
   parseNotation _ = parseNotation international

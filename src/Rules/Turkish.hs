@@ -2,6 +2,7 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE TypeFamilies #-}
 module Rules.Turkish (
     Turkish, turkish, turkishBase
   ) where
@@ -27,6 +28,7 @@ instance SimpleEvaluatorSupport Turkish where
   getBackDirections _ = [Backward]
 
 instance GameRules Turkish where
+  type EvaluatorForRules Turkish = SimpleEvaluator
   initBoard rnd r =
     let board = buildBoard rnd r (boardOrientation r) (8, 8)
         labels1 = ["a2", "b2", "c2", "d2", "e2", "f2", "g2", "h2",
@@ -39,7 +41,7 @@ instance GameRules Turkish where
 
   boardSize _ = (8, 8)
 
-  dfltEvaluator r = SomeEval $ (defaultEvaluator r) {seKingCoef = 5, seHelpedKingCoef = 6, seBorderMenBad = False}
+  dfltEvaluator r = (defaultEvaluator r) {seKingCoef = 5, seHelpedKingCoef = 6, seBorderMenBad = False}
 
   boardNotation _ = chessNotation
 

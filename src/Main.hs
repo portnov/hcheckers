@@ -54,16 +54,16 @@ special cmd args =
             learnPdn ai path
 
     ["battle", path1, path2] -> do
-      let rules = SomeRules russian
+      let rules = russian
       ai1 <- loadAi "default" rules path1
       ai2 <- loadAi "default" rules path2
       withCheckers cmd $
           withLogContext (LogContextFrame [] (include defaultLogFilter)) $ do
-            runBattle rules ai1 ai2 "battle.pdn"
+            runBattle (SomeRules rules) (SomeAi ai1) (SomeAi ai2) "battle.pdn"
             return ()
 
     ["match", ns, path1, path2] -> do
-      let rules = SomeRules russian
+      let rules = russian
           n = read ns
       ai1 <- loadAi "default" rules path1
       ai2 <- loadAi "default" rules path2
@@ -71,11 +71,11 @@ special cmd args =
       putStrLn $ "AI2: " ++ show ai2
       withCheckers cmd $
           withLogContext (LogContextFrame [] (include defaultLogFilter)) $ do
-            runMatch rules ai1 ai2 n
+            runMatch (SomeRules rules) (SomeAi ai1) (SomeAi ai2) n
             return ()
 
     ("tournament": matches : games : paths) -> do 
-      let rules = SomeRules russian
+      let rules = russian
           nMatches = read matches
           nGames = read games
       ais <- forM paths $ \path -> loadAi "default" rules path

@@ -2,6 +2,8 @@
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ExistentialQuantification #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE ConstraintKinds #-}
 module Core.Evaluator
   ( SimpleEvaluator (..),
     SimpleEvaluatorInterface (..),
@@ -12,6 +14,7 @@ module Core.Evaluator
 import           Data.Aeson
 import           Data.Aeson.Types as AT
 import           Data.Default
+import qualified Data.Vector as V
 
 import           Core.Types
 import           Core.Board
@@ -274,6 +277,35 @@ instance Evaluator SimpleEvaluator where
           else if opponentNumeric == 0
                  then win
                  else (myScore - opponentScore)
+
+instance VectorEvaluator SimpleEvaluator where
+  type VectorEvaluatorSupport SimpleEvaluator rules = SimpleEvaluatorSupport rules
+
+  evalToVector (SimpleEvaluator {..}) = V.fromList $ map fromIntegral $ [
+        seMobilityWeight, seBackyardWeight,
+        seCenterWeight, seOppositeSideWeight,
+        seBackedWeight,
+        seAsymetryWeight, sePreKingWeight,
+        seKingCoef, seAttackedManCoef,
+        seAttackedKingCoef ]
+
+  evalFromVector rules v = SimpleEvaluator {
+        seRules = SimpleEvaluatorInterface rules
+      , seUsePositionalScore = True
+      , seMobilityWeight = round (v V.! 0)
+      , seBackyardWeight = round (v V.! 1)
+      , seCenterWeight = round (v V.! 2)
+      , seOppositeSideWeight = round (v V.! 3)
+      , seBackedWeight = round (v V.! 4)
+      , seAsymetryWeight = round (v V.! 5)
+      , sePreKingWeight = round (v V.! 6)
+      , seKingCoef = round (v V.! 7)
+      , seAttackedManCoef = round (v V.! 8)
+      , seAttackedKingCoef = round (v V.! 9)
+      , seHelpedKingCoef = round (v V.! 7)
+      , seBorderMenBad = True
+    }
+        
 
 -- data ComplexEvaluator rules = ComplexEvaluator {
 --     ceRules :: rules

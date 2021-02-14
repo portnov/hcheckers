@@ -25,6 +25,7 @@ dependencies:
 - containers
 - unordered-containers
 - hashtables
+- vector
 - concurrent-extra
 - stm-containers
 - psqueues

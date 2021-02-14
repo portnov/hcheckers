@@ -1,6 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE TypeFamilies #-}
 module Rules.Diagonal (DiagonalRussian, diagonal) where
 
 import Data.Typeable
@@ -23,6 +24,7 @@ instance HasTopology DiagonalRussian where
 instance SimpleEvaluatorSupport DiagonalRussian
 
 instance GameRules DiagonalRussian where
+  type EvaluatorForRules DiagonalRussian = SimpleEvaluator
   initBoard rnd r =
     let board = buildBoard rnd r (boardOrientation r) (8, 8)
         labels1 = ["c1", "e1", "g1",
@@ -43,7 +45,7 @@ instance GameRules DiagonalRussian where
 
   initPiecesCount _ = 24
 
-  dfltEvaluator r = SomeEval $ defaultEvaluator r
+  dfltEvaluator r = defaultEvaluator r
 
   boardNotation _ = boardNotation russian
 

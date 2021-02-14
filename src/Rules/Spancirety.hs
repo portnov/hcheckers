@@ -1,6 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE TypeFamilies #-}
 module Rules.Spancirety (Spancirety, spancirety) where
 
 import Data.Typeable
@@ -23,6 +24,7 @@ instance HasTopology Spancirety where
 instance SimpleEvaluatorSupport Spancirety
 
 instance GameRules Spancirety where
+  type EvaluatorForRules Spancirety = SimpleEvaluator
   initBoard rnd r =
     let board = buildBoard rnd r (boardOrientation r) (8, 10)
         labels1 = ["a1", "c1", "e1", "g1", "i1",
@@ -39,7 +41,7 @@ instance GameRules Spancirety where
 
   boardNotation _ = boardNotation russian
 
-  dfltEvaluator r = SomeEval $ defaultEvaluator r
+  dfltEvaluator r = defaultEvaluator r
 
   parseNotation _ = parseNotation russian
 
