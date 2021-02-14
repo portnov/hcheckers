@@ -17,6 +17,7 @@ import AI.AlphaBeta.Persistent
 import Core.Rest
 import Core.Checkers
 import Core.CmdLine
+import Core.Supervisor (withRules)
 
 import Learn
 import Battle
@@ -53,36 +54,36 @@ special cmd args =
           withLogContext (LogContextFrame [] (include defaultLogFilter)) $
             learnPdn ai path
 
-    ["battle", path1, path2] -> do
-      let rules = russian
-      ai1 <- loadAi "default" rules path1
-      ai2 <- loadAi "default" rules path2
-      withCheckers cmd $
-          withLogContext (LogContextFrame [] (include defaultLogFilter)) $ do
-            runBattle (SomeRules rules) (SomeAi ai1) (SomeAi ai2) "battle.pdn"
-            return ()
+    ["battle", rulesName, path1, path2] -> do
+      withRules rulesName $ \rules -> do
+        ai1 <- loadAi "default" rules path1
+        ai2 <- loadAi "default" rules path2
+        withCheckers cmd $
+            withLogContext (LogContextFrame [] (include defaultLogFilter)) $ do
+              runBattle (SomeRules rules) (SomeAi ai1) (SomeAi ai2) "battle.pdn"
+              return ()
 
-    ["match", ns, path1, path2] -> do
-      let rules = russian
-          n = read ns
-      ai1 <- loadAi "default" rules path1
-      ai2 <- loadAi "default" rules path2
-      putStrLn $ "AI1: " ++ show ai1
-      putStrLn $ "AI2: " ++ show ai2
-      withCheckers cmd $
-          withLogContext (LogContextFrame [] (include defaultLogFilter)) $ do
-            runMatch (SomeRules rules) (SomeAi ai1) (SomeAi ai2) n
-            return ()
+    ["match", rulesName, ns, path1, path2] -> do
+      withRules rulesName $ \rules -> do
+        let n = read ns
+        ai1 <- loadAi "default" rules path1
+        ai2 <- loadAi "default" rules path2
+        putStrLn $ "AI1: " ++ show ai1
+        putStrLn $ "AI2: " ++ show ai2
+        withCheckers cmd $
+            withLogContext (LogContextFrame [] (include defaultLogFilter)) $ do
+              runMatch (SomeRules rules) (SomeAi ai1) (SomeAi ai2) n
+              return ()
 
-    ("tournament": matches : games : paths) -> do 
-      let rules = russian
-          nMatches = read matches
-          nGames = read games
-      ais <- forM paths $ \path -> loadAi "default" rules path
-      withCheckers cmd $
-          withLogContext (LogContextFrame [] (include defaultLogFilter)) $ do
-            runTournament rules ais nMatches nGames
-            return ()
+    ("tournament": rulesName : matches : games : paths) -> do 
+      withRules rulesName $ \rules -> do
+        let nMatches = read matches
+            nGames = read games
+        ais <- forM paths $ \path -> loadAi "default" rules path
+        withCheckers cmd $
+            withLogContext (LogContextFrame [] (include defaultLogFilter)) $ do
+              runTournament rules ais nMatches nGames
+              return ()
 
     ["generate", ns, deltas, path] -> do
       let n = read ns
