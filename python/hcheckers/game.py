@@ -42,6 +42,18 @@ class AI(object):
         self.use_positional_score = True
         self.timeout = None
         self.use_timeout = False
+
+        self.mobility_weight = 30
+        self.backyard_weight = 14
+        self.center_weight = 16
+        self.opposite_side_weight = 32
+        self.backed_weight = 24
+        self.asymetry_weight = -12
+        self.pre_king_weight = 28
+        self.king_coef = 3
+        self.attacked_man_coef = -40
+        self.attacked_king_coef = -80
+
         self.extra = None
 
         for key in kwargs:
@@ -61,6 +73,18 @@ class AI(object):
         ai.use_positional_score = settings.value("use_positional_score", type=bool)
         ai.use_timeout = settings.value("use_timeout", type=bool)
         ai.timeout = settings.value("timeout", type=int)
+
+        ai.mobility_weight = settings.value("mobility_weight", ai.mobility_weight, type=int)
+        ai.backyard_weight = settings.value("backyard_weight", ai.backyard_weight, type=int)
+        ai.center_weight = settings.value("center_weight", ai.center_weight, type=int)
+        ai.opposite_side_weight = settings.value("opposite_side_weight", ai.opposite_side_weight, type=int)
+        ai.backed_weight = settings.value("backed_weight", ai.backed_weight, type=int)
+        ai.asymetry_weight = settings.value("asymetry_weight", ai.asymetry_weight, type=int)
+        ai.pre_king_weight = settings.value("pre_king_weight", ai.pre_king_weight, type=int)
+        ai.king_coef = settings.value("king_coef", ai.king_coef, type=int)
+        ai.attacked_man_coef = settings.value("attacked_man_coef", ai.attacked_man_coef, type=int)
+        ai.attacked_king_coef = settings.value("attacked_king_coef", ai.attacked_king_coef, type=int)
+
         ai.extra = settings.value("extra", type=str)
         return ai
     
@@ -90,6 +114,18 @@ class AI(object):
         settings.setValue("use_positional_score", self.use_positional_score)
         settings.setValue("use_timeout", self.use_timeout)
         settings.setValue("timeout", self.timeout)
+
+        settings.setValue("mobility_weight", self.mobility_weight)
+        settings.setValue("backyard_weight", self.backyard_weight)
+        settings.setValue("center_weight", self.center_weight)
+        settings.setValue("opposite_side_weight", self.opposite_side_weight)
+        settings.setValue("backed_weight", self.backed_weight)
+        settings.setValue("asymetry_weight", self.asymetry_weight)
+        settings.setValue("pre_king_weight", self.pre_king_weight)
+        settings.setValue("king_coef", self.king_coef)
+        settings.setValue("attacked_man_coef", self.attacked_man_coef)
+        settings.setValue("attacked_king_coef", self.attacked_king_coef)
+
         if self.extra is not None:
             settings.setValue("extra", self.extra.strip())
 
@@ -103,19 +139,41 @@ class AI(object):
             "moves_bound_low": self.moves_bound_low,
             "moves_bound_high": self.moves_bound_high,
             "use_positional_score": self.use_positional_score,
-            "time": self.timeout if self.use_timeout else None
+            "time": self.timeout if self.use_timeout else None,
+
+            "mobility_weight": self.mobility_weight,
+            "backyard_weight": self.backyard_weight,
+            "center_weight": self.center_weight,
+            "opposite_side_weight": self.opposite_side_weight,
+            "backed_weight": self.backed_weight,
+            "asymetry_weight": self.asymetry_weight,
+            "pre_king_weight": self.pre_king_weight,
+            "attacked_man_coef": self.attacked_man_coef,
+            "attacked_king_coef": self.attacked_king_coef
         }
         if self.extra:
             try:
                 extra = json.loads(self.extra)
                 d.update(extra)
-                print(d)
             except Exception as e:
-                print("Can't parse:")
-                print(self.extra)
-                print(e)
+                logging.error("Can't parse:")
+                logging.error(self.extra)
+                logging.exception(e)
+        logging.info(str(d))
         return d
+    
+    def load_json(self, settings):
+        extra = dict()
+        for key in settings:
+            if hasattr(self, key):
+                setattr(self, key, settings[key])
+            else:
+                extra[key] = settings[key]
 
+        if extra:
+            self.extra = json.dumps(extra)
+        else:
+            self.extra = ""
 
 default_ais = [
         AI(title=_("Beginner"), depth=2, start_depth=2, max_combination_depth=6),

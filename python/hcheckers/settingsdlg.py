@@ -1,11 +1,16 @@
 
+import json
+import logging
+
 from PyQt5.QtGui import QPainter, QPixmap, QIcon
 from PyQt5.QtCore import QRect, QSize, Qt, QObject, QTimer, pyqtSignal, QSettings
-from PyQt5.QtWidgets import QWidget, QDialog, QPushButton, QVBoxLayout, QHBoxLayout, QFormLayout, QLineEdit, QComboBox, QGroupBox, QCheckBox, QDialogButtonBox, QFileDialog, QListWidget, QListWidgetItem, QSpinBox, QToolBar, QAction, QTabWidget, QTextEdit
+from PyQt5.QtWidgets import QWidget, QDialog, QPushButton, QVBoxLayout, QHBoxLayout, QFormLayout, QLineEdit, QComboBox, QGroupBox, QCheckBox, QDialogButtonBox, QFileDialog, QListWidget, QListWidgetItem, QSpinBox, QToolBar, QAction, QTabWidget, QTextEdit, QTabWidget
 
 from hcheckers.common import *
 from hcheckers.game import AI, GameSettings
 from hcheckers.theme import *
+
+JSON_MASK = "JSON files (*.json)"
 
 class AiListWidget(QListWidget):
     def __init__(self, parent=None):
@@ -63,69 +68,117 @@ class AiEditorWidget(QWidget):
     edited = pyqtSignal()
 
     def _setup(self):
+        self.tabs = QTabWidget(self)
+
+        general = QWidget(self.tabs)
         layout = QFormLayout()
-        self.title = MandatoryField(_("Title"), QLineEdit(self))
+        general.setLayout(layout)
+
+        def make_spinbox(title, low, high, tab):
+            widget = QSpinBox(tab)
+            widget.setRange(low, high)
+            widget.valueChanged.connect(self.edited)
+            tab.layout().addRow(title, widget)
+            return widget
+
+        self.title = MandatoryField(_("Title"), QLineEdit(general))
         self.title.add_to_form(layout)
         self.title.widget.editingFinished.connect(self.edited)
 
-        self.depth = QSpinBox(self)
-        self.depth.setRange(0, 20)
-        self.depth.valueChanged.connect(self.edited)
-        layout.addRow(_("Default depth (half-steps)"), self.depth)
+        self.depth = make_spinbox(_("Default depth (half-steps)"), 0, 20, general)
+        self.start_depth = make_spinbox(_("Minimum depth"), 0, 20, general)
+        self.max_combination_depth = make_spinbox(_("Forced mode depth"), 0, 24, general)
+        self.dynamic_depth = make_spinbox(_("Static search mode threshold"), 0, 24, general)
 
-        self.start_depth = QSpinBox(self)
-        self.start_depth.setRange(0, 20)
-        self.start_depth.valueChanged.connect(self.edited)
-        layout.addRow(_("Minimum depth"), self.start_depth)
-
-        self.max_combination_depth = QSpinBox(self)
-        self.max_combination_depth.setRange(0, 24)
-        self.max_combination_depth.valueChanged.connect(self.edited)
-        layout.addRow(_("Forced mode depth"), self.max_combination_depth)
-
-        self.dynamic_depth = QSpinBox(self)
-        self.dynamic_depth.setRange(0, 24)
-        self.dynamic_depth.valueChanged.connect(self.edited)
-        layout.addRow(_("Static search mode threshold"), self.dynamic_depth)
-
-        self.deeper_if_bad = QCheckBox(self)
+        self.deeper_if_bad = QCheckBox(general)
         self.deeper_if_bad.stateChanged.connect(self.edited)
         layout.addRow(_("Think better if situation seem bad"), self.deeper_if_bad)
 
-        self.moves_bound_low = QSpinBox(self)
-        self.moves_bound_low.setRange(1, 5)
-        self.moves_bound_low.valueChanged.connect(self.edited)
-        layout.addRow(_("`Few moves' mode bound"), self.moves_bound_low)
+        self.moves_bound_low = make_spinbox(_("`Few moves' mode bound"), 1, 5, general)
+        self.moves_bound_high = make_spinbox(_("`Too many moves' mode bound"), 5, 50, general)
 
-        self.moves_bound_high = QSpinBox(self)
-        self.moves_bound_high.setRange(5, 50)
-        self.moves_bound_high.valueChanged.connect(self.edited)
-        layout.addRow(_("`Too many moves' mode bound"), self.moves_bound_high)
-
-        self.use_positional_score = QCheckBox(self)
+        self.use_positional_score = QCheckBox(general)
         layout.addRow(_("Use positional score"), self.use_positional_score)
         self.use_positional_score.stateChanged.connect(self.edited)
 
-        self.use_timeout = QCheckBox(self)
+        self.use_timeout = QCheckBox(general)
         layout.addRow(_("Continue thinking while there is time"), self.use_timeout)
         self.use_timeout.stateChanged.connect(self.edited)
         self.use_timeout.stateChanged.connect(self._on_use_timeout)
 
-        self.timeout = QSpinBox(self)
-        self.timeout.setRange(1, 120)
+        self.timeout = make_spinbox(_("Timeout (seconds)"), 1, 120, general)
         self.timeout.setEnabled(False)
-        self.timeout.valueChanged.connect(self.edited)
-        layout.addRow(_("Timeout (seconds)"), self.timeout)
 
-        self.extra = QTextEdit(self)
+        self.tabs.addTab(general, _("General"))
+
+        evaluator = QWidget(self.tabs)
+        layout = QFormLayout()
+        evaluator.setLayout(layout)
+
+        self.mobility_weight = make_spinbox(_("Mobility"), 0, 100, evaluator)
+        self.backyard_weight = make_spinbox(_("Back row"), -100, 100, evaluator)
+        self.center_weight = make_spinbox(_("Center"), 0, 100, evaluator)
+        self.opposite_side_weight = make_spinbox(_("Opposite side"), 0, 100, evaluator)
+        self.backed_weight = make_spinbox(_("Backed"), 0, 100, evaluator)
+        self.asymetry_weight = make_spinbox(_("Asymetry"), -100, 100, evaluator)
+        self.pre_king_weight = make_spinbox(_("Pre-king"), 1, 100, evaluator)
+        self.king_coef = make_spinbox(_("King"), 1, 100, evaluator)
+        self.attacked_man_coef = make_spinbox(_("Attacked man"), 0, 100, evaluator)
+        self.attacked_king_coef = make_spinbox(_("Attacked king"), 0, 100, evaluator)
+
+        self.tabs.addTab(evaluator, _("Board evaluation"))
+
+        extra = QWidget(self.tabs)
+        layout = QVBoxLayout()
+        extra.setLayout(layout)
+
+        self.extra = QTextEdit(general)
         self.extra.textChanged.connect(self.edited)
-        layout.addRow(_("Extra options"), self.extra)
+        layout.addWidget(self.extra)
+        self.tabs.addTab(extra, _("Extra options"))
+
+        layout = QVBoxLayout()
+        layout.addWidget(self.tabs)
+
+        hbox = QHBoxLayout()
+
+        save = QPushButton(_("Save..."), self)
+        save.clicked.connect(self._on_save)
+        hbox.addWidget(save)
+
+        load = QPushButton(_("Load..."), self)
+        load.clicked.connect(self._on_load)
+        hbox.addWidget(load)
+
+        layout.addLayout(hbox)
 
         self.setLayout(layout)
 
     def _on_use_timeout(self):
         use = self.use_timeout.checkState() == Qt.Checked
         self.timeout.setEnabled(use)
+
+    def _on_save(self):
+        path, mask = QFileDialog.getSaveFileName(self, _("Save file"), ".", JSON_MASK)
+        if path:
+            ai = self.get_ai()
+            json_data = ai.params()
+            with open(path, 'w') as f:
+                f.write(json.dumps(json_data))
+
+    def _on_load(self):
+        path, mask = QFileDialog.getOpenFileName(self, _("Load file"), ".", JSON_MASK)
+        if path:
+            try:
+                with open(path) as f:
+                    text = f.read()
+                    json_data = json.loads(text)
+                    ai = AI()
+                    ai.title = self.get_ai().title
+                    ai.load_json(json_data)
+                    self.set_ai(ai)
+            except Exception as e:
+                logging.exception(e)
 
     def set_ai(self, ai):
         self.title.widget.setText(ai.title)
@@ -140,6 +193,18 @@ class AiEditorWidget(QWidget):
         self.use_positional_score.setCheckState(Qt.Checked if ai.use_positional_score else Qt.Unchecked)
         self.use_timeout.setCheckState(Qt.Checked if ai.use_timeout else Qt.Unchecked)
         self.timeout.setValue(1 if ai.timeout is None else ai.timeout)
+
+        self.mobility_weight.setValue(ai.mobility_weight)
+        self.backyard_weight.setValue(ai.backyard_weight)
+        self.center_weight.setValue(ai.center_weight)
+        self.opposite_side_weight.setValue(ai.opposite_side_weight)
+        self.backed_weight.setValue(ai.backed_weight)
+        self.asymetry_weight.setValue(ai.asymetry_weight)
+        self.pre_king_weight.setValue(ai.pre_king_weight)
+        self.king_coef.setValue(ai.king_coef)
+        self.attacked_man_coef.setValue(- ai.attacked_man_coef)
+        self.attacked_king_coef.setValue(- ai.attacked_king_coef)
+
         self.extra.setText("" if ai.extra is None else ai.extra)
 
     def get_ai(self):
@@ -155,6 +220,18 @@ class AiEditorWidget(QWidget):
         ai.use_positional_score = self.use_positional_score.checkState() == Qt.Checked
         ai.use_timeout = self.use_timeout.checkState() == Qt.Checked
         ai.timeout = self.timeout.value()
+
+        ai.mobility_weight = self.mobility_weight.value()
+        ai.backyard_weight = self.backyard_weight.value()
+        ai.center_weight = self.center_weight.value()
+        ai.opposite_side_weight = self.opposite_side_weight.value()
+        ai.backed_weight = self.backed_weight.value()
+        ai.asymetry_weight = self.asymetry_weight.value()
+        ai.pre_king_weight = self.pre_king_weight.value()
+        ai.king_coef = self.king_coef.value()
+        ai.attacked_man_coef = - self.attacked_man_coef.value()
+        ai.attacked_king_coef = - self.attacked_king_coef.value()
+
         ai.extra = self.extra.toPlainText()
         return ai
 
