@@ -22,6 +22,7 @@ import Control.Monad.Except
 import Control.Concurrent.STM
 import qualified Data.Map as M
 import qualified Data.Vector as V
+import qualified Data.HashMap.Strict as H
 import Data.Maybe
 import Data.Default
 import Data.List (sortOn, transpose)
@@ -62,6 +63,24 @@ instance FromJSON AlphaBetaParams where
       <*> v .:? "moves_bound_low" .!= 4
       <*> v .:? "moves_bound_high" .!= 8
       <*> v .:? "time"
+
+instance ToJSON AlphaBetaParams where
+  toJSON p = object [
+              "depth" .= abDepth p,
+              "start_depth" .= abStartDepth p,
+              "max_combination_depth" .= abCombinationDepth p,
+              "dynamic_depth" .= abDynamicDepth p,
+              "deeper_if_bad" .= abDeeperIfBad p,
+              "moves_bound_low" .= abMovesLowBound p,
+              "moves_bound_high" .= abMovesHighBound p,
+              "time" .= abBaseTime p
+            ]
+
+instance ToJSON eval => ToJSON (AlphaBeta rules eval) where
+  toJSON (AlphaBeta params rules eval) =
+    let Object paramsV = toJSON params
+        Object evalV = toJSON eval
+    in  Object $ H.union paramsV evalV
 
 instance (GameRules rules, Evaluator eval) => GameAi (AlphaBeta rules eval) where
 

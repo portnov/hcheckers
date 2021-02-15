@@ -84,6 +84,23 @@ parseEvaluator def = withObject "Evaluator" $ \v -> SimpleEvaluator
     <*> v .:? "attacked_man_coef" .!= seAttackedManCoef def
     <*> v .:? "attacked_king_coef" .!= seAttackedKingCoef def
 
+instance ToJSON SimpleEvaluator where
+  toJSON p = object [
+      "use_positional_score" .= seUsePositionalScore p,
+      "mobility_weight" .= seMobilityWeight p,
+      "backyard_weight" .= seBackyardWeight p,
+      "center_weight" .= seCenterWeight p,
+      "opposite_side_weight" .= seOppositeSideWeight p,
+      "border_men_bad" .= seBorderMenBad p,
+      "backed_weight" .= seBackedWeight p,
+      "asymetry_weight" .= seAsymetryWeight p,
+      "pre_king_weight" .= sePreKingWeight p,
+      "king_coef" .= seKingCoef p,
+      "helped_king_coef" .= seHelpedKingCoef p,
+      "attacked_man_coef" .= seAttackedManCoef p,
+      "attacked_king_coef" .= seAttackedKingCoef p
+    ]
+
 data PreScore = PreScore {
       psNumeric :: ! ScoreBase
     , psMobility :: ScoreBase

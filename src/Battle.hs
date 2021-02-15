@@ -12,7 +12,7 @@ module Battle where
 
 import Control.Monad
 import Control.Monad.IO.Class
-import Data.List (intercalate)
+import Data.List (intercalate, sortOn)
 import Data.Aeson
 import Data.Aeson.Types
 import qualified Data.Map as M
@@ -29,10 +29,61 @@ import Core.Board
 import Core.Supervisor
 import AI.AlphaBeta.Types
 
+type AB rules = AlphaBeta rules (EvaluatorForRules rules)
+
+(<+>) :: Num a => V.Vector a -> V.Vector a -> V.Vector a
+v1 <+> v2 = V.zipWith (+) v1 v2
+
 (<->) :: Num a => V.Vector a -> V.Vector a -> V.Vector a
 v1 <-> v2 = V.zipWith (-) v1 v2
 
-runTournament :: (GameRules rules, VectorEvaluator (EvaluatorForRules rules)) => rules -> [AlphaBeta rules (EvaluatorForRules rules)] -> Int -> Int -> Checkers ()
+scale :: Num a => a -> V.Vector a -> V.Vector a
+scale a v = V.map (\x -> a*x) v
+
+cross :: (GameRules rules, VectorEvaluator (EvaluatorForRules rules), VectorEvaluatorSupport (EvaluatorForRules rules) rules) => rules -> (AB rules, AB rules) -> Checkers (AB rules)
+cross rules (ai1, ai2) = do
+  let v1 = aiToVector ai1
+      v2 = aiToVector ai2
+  s <- liftIO $ randomRIO (0.9, 1.1)
+  k1 <- liftIO $ randomRIO (0.4, 0.7)
+  let k2 = s - k1
+  let v3 = scale k1 v1 <+> scale k2 v2
+      v3' = V.take 3 v1 V.++ V.drop 3 v3
+  return $ aiFromVector rules v3'
+
+breed :: (GameRules rules, VectorEvaluator (EvaluatorForRules rules), VectorEvaluatorSupport (EvaluatorForRules rules) rules) => rules -> Int -> [AB rules] -> Checkers [AB rules]
+breed rules nNew ais = do
+  let n = length ais
+      idxPairs = [(i,j) | i <- [0..n-1], j <- [i+1 .. n-1]]
+  idxPairs' <- liftIO $ shuffleM idxPairs
+  let ais' = [(ais !! i, ais !! j) | (i,j) <- idxPairs']
+  mapM (cross rules) $ take nNew $ cycle ais'
+
+runGenetics :: (GameRules rules, VectorEvaluator (EvaluatorForRules rules), VectorEvaluatorSupport (EvaluatorForRules rules) rules)
+            => rules -> Int -> Int -> Int -> [AB rules] -> Checkers [AB rules]
+runGenetics rules nGenerations generationSize nBest ais = do
+      generation0 <- breed rules generationSize ais
+      run 1 generation0
+  where
+      run n generation = do
+        liftIO $ printf "Generation #%d\n" n
+        best <- selectBest generation
+        if n == nGenerations
+          then return best
+          else do
+              generation' <- breed rules generationSize best
+              run (n+1) generation'
+
+      nGames = 5
+      nMatches = generationSize
+
+      selectBest generation = do
+        results <- runTournament rules generation nMatches nGames
+        let best = take nBest $ sortOn (negate . snd) $ M.assocs results
+            idxs = map fst best
+        return [generation !! i | i <- idxs]
+
+runTournament :: (GameRules rules, VectorEvaluator (EvaluatorForRules rules)) => rules -> [AlphaBeta rules (EvaluatorForRules rules)] -> Int -> Int -> Checkers (M.Map Int Int)
 runTournament rules ais nMatches nGames = do
   forM_ ais $ \ai ->
     liftIO $ print $ aiToVector ai
@@ -48,11 +99,13 @@ runTournament rules ais nMatches nGames = do
   let results1 = [(i, first - second) | ((i,j), (first,second,draw)) <- zip idxPairs' stats]
       results2 = [(j, second - first) | ((i,j), (first,second,draw)) <- zip idxPairs' stats]
       results = M.fromListWith (+) (results1 ++ results2)
-  forM_ (M.assocs results) $ \(i, value) -> do
-      let ai = ais !! i
-          vec = map show $ V.toList (aiToVector ai) ++ [fromIntegral value]
-          str = intercalate "," vec
-      liftIO $ putStrLn str
+  forM_ (M.toAscList results) $ \(i, value) -> do
+      liftIO $ printf "AI#%d => %d\n" i value
+--       let ai = ais !! i
+--           vec = map show $ V.toList (aiToVector ai) ++ [fromIntegral value]
+--           str = intercalate "," vec
+--       liftIO $ putStrLn str
+  return results
 
 runMatch :: SomeRules -> SomeAi -> SomeAi -> Int -> Checkers (Int, Int, Int)
 runMatch rules ai1 ai2 nGames = do
@@ -98,19 +151,19 @@ loopGame path gameId side i = do
   StateRs board status side <- getState gameId
   if i > 100 && boardRepLen board <= 8 && hasKing First board && hasKing Second board
     then do
-      liftIO $ print "Too long a game, probably a draw"
-      pdn <- getPdn gameId
-      liftIO $ TIO.writeFile path pdn
+      liftIO $ putStrLn "Too long a game, probably a draw"
+      -- pdn <- getPdn gameId
+      -- liftIO $ TIO.writeFile path pdn
       return Draw
     else do
       history <- getHistory gameId
-      liftIO $ do
-        print $ head history
-        print board
+--       liftIO $ do
+--         print $ head history
+--         print board
       case status of
         Ended result -> do
-              pdn <- getPdn gameId
-              liftIO $ TIO.writeFile path pdn
+              -- pdn <- getPdn gameId
+              -- liftIO $ TIO.writeFile path pdn
               return result
         _ ->  do
               letAiMove gameId side Nothing

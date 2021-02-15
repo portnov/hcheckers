@@ -6,6 +6,8 @@ import Control.Monad
 import Control.Monad.Reader
 import Control.Concurrent.STM
 import Data.Default
+import qualified Data.ByteString.Lazy.Char8 as C8
+import qualified Data.Aeson as Aeson
 import System.Log.Heavy
 import Options.Applicative
 
@@ -82,6 +84,18 @@ special cmd args =
       withCheckers cmd $
           withLogContext (LogContextFrame [] (include defaultLogFilter)) $ do
             runTournament rules ais nMatches nGames
+            return ()
+
+    ("genetics": generations : size : best : paths) -> do
+      let rules = russian
+          nGenerations = read generations
+          generationSize = read size
+          nBest = read best
+      ais <- forM paths $ \path -> loadAi "default" rules path
+      withCheckers cmd $
+          withLogContext (LogContextFrame [] (include defaultLogFilter)) $ do
+            result <- runGenetics rules nGenerations generationSize nBest ais
+            forM_ result $ \ai -> liftIO $ C8.putStrLn $ Aeson.encode ai
             return ()
 
     ["generate", ns, deltas, path] -> do
