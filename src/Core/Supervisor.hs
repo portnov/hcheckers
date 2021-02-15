@@ -145,6 +145,22 @@ selectRules (NewGameRq {rqRules=name, rqRulesParams=params, rqPdn=mbPdn}) =
         Left _ -> Nothing
         Right gr -> rulesFromTags (grTags gr)
 
+selectRules' :: String -> Maybe SomeRules
+selectRules' name = selectRules $ NewGameRq {
+    rqRules = name,
+    rqRulesParams = Null,
+    rqPdn = Nothing,
+    rqBoard = Nothing,
+    rqFen = Nothing,
+    rqPrevBoard = Nothing
+  }
+
+withRules :: String -> (forall rules. GameRules rules => rules -> a) -> a
+withRules name fn =
+  case selectRules' name of
+    Just (SomeRules rules) -> fn rules
+    _ -> error "unknown rules"
+
 -- | List of supported AI implementations
 supportedAis :: [(String, SomeRules -> SomeAi)]
 supportedAis = [("default", \(SomeRules rules) -> SomeAi (AlphaBeta def rules (dfltEvaluator rules)))]

@@ -428,7 +428,7 @@ class HasTopology a where
   boardTopology :: a -> BoardTopology
 
 -- | Interface of game rules
-class (Typeable g, Show g, HasBoardOrientation g, HasTopology g, Evaluator (EvaluatorForRules g)) => GameRules g where
+class (Typeable g, Show g, HasBoardOrientation g, HasTopology g, VectorEvaluator (EvaluatorForRules g)) => GameRules g where
   type EvaluatorForRules g
   -- | Initial board with initial pieces position
   initBoard :: SupervisorState -> g -> Board
