@@ -13,6 +13,7 @@ from PyQt5.QtCore import QRect, QSize, Qt, QObject, QTimer, pyqtSignal, QSetting
 from PyQt5.QtWidgets import QApplication, QWidget, QToolBar, QMainWindow, QDialog, QVBoxLayout, QAction, QActionGroup, QLabel, QFileDialog, QFrame, QDockWidget, QMessageBox, QListWidget, QListWidgetItem, QMenu, QSplashScreen
 
 from hcheckers.field import Field
+from hcheckers.common import Move
 from hcheckers.game import Game, AI, RequestError
 from hcheckers.board import Board
 from hcheckers.theme import Theme
@@ -286,7 +287,7 @@ class Checkers(QMainWindow):
 
     @handling_error
     def _on_new_game(self, checked=None):
-        dialog = NewGameDialog(self.settings, self.game, self)
+        dialog = NewGameDialog(self.settings, self.game, self.share_dir, self)
         result = dialog.exec_()
 
 
@@ -526,7 +527,26 @@ class Checkers(QMainWindow):
             logging.info(_("Settings have been updated."))
 
     def _handle_game_error(self, rs):
-        message = _("Unexpected response received from the server.\nRequest URL: {}\nResponse code: {}\nResponse message: {}").format(rs.url, rs.status_code, rs.text)
+        try:
+            json = rs.json()
+        except:
+            json = None
+
+        message_format = _("Unexpected response received from the server.\nRequest URL: {}\nResponse code: {}\nResponse message: {}")
+        if json is None:
+            message = message_format.format(rs.url, rs.status_code, rs.text)
+        else:
+            err_msg = json.get("error", "Unspecified")
+            if err_msg == "no such move":
+                move = json.get("move", "?")
+                #board = Game.parse_board(json["board"])
+                #board = self.board
+                #possible = json.get("possible", [])
+                #possible = [board.show_move(Move.fromJson(m)) for m in possible]
+                message = _("No such move: {}").format(move)
+            else:
+                message = message_format.format(rs.url, rs.status_code, err_msg)
+
         QMessageBox.critical(self, _("Exception"), message)
         logging.exception(message)
 

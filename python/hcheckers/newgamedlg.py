@@ -1,5 +1,6 @@
 
 import getpass
+import logging
 
 from PyQt5.QtGui import QPainter, QPixmap, QValidator, QIcon
 from PyQt5.QtCore import QRect, QSize, Qt, QObject, QTimer, pyqtSignal, QSettings
@@ -10,6 +11,7 @@ from PyQt5.QtWidgets import QWidget, QDialog, QPushButton, QVBoxLayout, \
 from hcheckers.common import *
 from hcheckers.game import AI, GameSettings
 from hcheckers.lobby import LobbyWidget
+from hcheckers.settingsdlg import SettingsDialog
 
 START_AI_GAME = 1
 START_HUMAN_GAME = 2
@@ -61,10 +63,12 @@ class NameValidator(QValidator):
             return name
 
 class NewGameDialog(DialogBase):
-    def __init__(self, settings, client, parent=None):
+    def __init__(self, settings, client, share_dir, show_exit=False, parent=None):
         DialogBase.__init__(self, parent)
         self.settings = settings
         self.client = client
+        self.share_dir = share_dir
+        self.show_exit = show_exit
 
         widget = QWidget()
         self.form_layout = layout = QFormLayout()
@@ -126,13 +130,7 @@ class NewGameDialog(DialogBase):
         self.ok_button = buttons.button(QDialogButtonBox.Ok)
 
         self.ai = QComboBox(self)
-        self.ais = AI.list_from_settings(settings)
-        for idx, ai in enumerate(self.ais):
-            self.ai.addItem(ai.title, idx)
-        ai = settings.value("ai")
-        if ai is not None:
-            idx = self.ai.findText(ai)
-            self.ai.setCurrentIndex(idx)
+        self._fill_ais(settings)
         layout.addRow(_("AI"), self.ai)
 
         lobby_hbox = QHBoxLayout()
@@ -142,7 +140,7 @@ class NewGameDialog(DialogBase):
         self.lobby.hide()
         lobby_hbox.addWidget(self.lobby)
 
-        self.refresh_button = refresh = QPushButton(self)
+        self.refresh_button = refresh = QPushButton(_("Refresh"), self)
         refresh.setIcon(QIcon.fromTheme("view-refresh"))
         refresh.clicked.connect(self.lobby.fill)
         refresh.hide()
@@ -158,7 +156,26 @@ class NewGameDialog(DialogBase):
 
         vbox.addWidget(self.message_label)
 
-        vbox.addWidget(buttons)
+        settings_btn = QPushButton(self)
+        settings_btn.setIcon(QIcon.fromTheme("preferences-system"))
+        settings_btn.setToolTip(_("Open settings dialog"))
+        settings_btn.clicked.connect(self._on_settings)
+
+        buttons_box = QHBoxLayout()
+        buttons_box.addWidget(settings_btn)
+        buttons_box.addStretch()
+        buttons_box.addWidget(buttons)
+        vbox.addLayout(buttons_box)
+
+    def _fill_ais(self, settings):
+        self.ai.clear()
+        self.ais = AI.list_from_settings(settings)
+        for idx, ai in enumerate(self.ais):
+            self.ai.addItem(ai.title, idx)
+        ai = settings.value("ai")
+        if ai is not None:
+            idx = self.ai.findText(ai)
+            self.ai.setCurrentIndex(idx)
 
     def message(self, text):
         self.message_label.setVisible(bool(text))
@@ -170,6 +187,14 @@ class NewGameDialog(DialogBase):
 
     def get_form_layout(self):
         return self.form_layout
+
+    def _on_settings(self):
+        dialog = SettingsDialog(self.settings, self.share_dir, self)
+        result = dialog.exec_()
+        if result == QDialog.Accepted:
+            self.settings.sync()
+            self._fill_ais(self.settings)
+            logging.info(_("Settings have been updated."))
 
     def _on_action_changed(self, idx):
         action = self.game_type.itemData(idx)

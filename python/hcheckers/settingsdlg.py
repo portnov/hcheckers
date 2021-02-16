@@ -143,10 +143,14 @@ class AiEditorWidget(QWidget):
         hbox = QHBoxLayout()
 
         save = QPushButton(_("Save..."), self)
+        save.setIcon(QIcon.fromTheme("document-save"))
+        save.setToolTip(_("Save AI settings to JSON file"))
         save.clicked.connect(self._on_save)
         hbox.addWidget(save)
 
         load = QPushButton(_("Load..."), self)
+        load.setIcon(QIcon.fromTheme("document-open"))
+        load.setToolTip(_("Load AI settings from JSON file"))
         load.clicked.connect(self._on_load)
         hbox.addWidget(load)
 
@@ -344,7 +348,7 @@ class GeneralPage(QWidget):
         self.use_local_server = QCheckBox(self)
         layout.addRow(_("Use local server"), self.use_local_server)
 
-        self.local_server_path = MandatoryField(_("Local server executable path"), QLineEdit(self))
+        self.local_server_path = MandatoryField(_("Local server start command"), QLineEdit(self))
         self.local_server_path.add_to_form(layout)
 
         self.use_local_server.stateChanged.connect(self._on_use_local_server)

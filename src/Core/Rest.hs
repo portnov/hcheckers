@@ -1,17 +1,24 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 module Core.Rest where
 
 import           Control.Monad.Reader
 import Control.Concurrent
 import Control.Concurrent.STM
+import Control.Exception (SomeException, fromException)
+import Data.String
 import qualified Data.Text                     as T
 import qualified Data.Text.Lazy                as TL
+import           Data.Default
 import           Data.Maybe
 import           Data.Aeson              hiding ( json )
 import           Web.Scotty.Trans
+import qualified Network.HTTP.Types as H
 import           Network.HTTP.Types.Status
+import           Network.Wai.Handler.Warp
+import qualified Network.Wai as Wai
 import           System.Log.Heavy
 import           System.Log.Heavy.TH
 
@@ -30,8 +37,24 @@ error400 message = do
   status status400
 
 transformError :: Error -> Rest ()
+transformError (Unhandled err) = do
+  error400 $ T.pack err
+transformError (NoSuchMoveExt move side board possible) = do
+  json $ object [
+      "error" .= ("no such move" :: T.Text),
+      "move" .= move,
+      "side" .= side,
+      "board" .= board,
+      "possible" .= possible
+    ]
+  status status400
 transformError err = do
   error400 $ T.pack $ show err
+
+raise500 :: Error -> Rest a
+raise500 err = do
+  text $ TL.pack $ show err
+  raiseStatus status500 err
 
 instance Parsable Side where
   parseParam "1" = Right First
@@ -56,7 +79,7 @@ liftCheckers' mbId actions = do
   res <- lift $ wrap $ tryC actions
   case res of
     Right result -> return result
-    Left  err    -> raise err
+    Left  err    -> raise500 err
  where
   wrap r = case mbId of
     Nothing     -> r
@@ -72,7 +95,10 @@ boardRq _ rules (NewGameRq { rqBoard = Nothing, rqFen = Just fen, rqPdn = Nothin
 boardRq rnd rules (NewGameRq { rqBoard = Nothing, rqFen = Nothing, rqPdn = Just pdn })
   = case parsePdn (Just rules) pdn of
     Left  err -> raise $ InvalidBoard err
-    Right gr  -> return (Nothing, Just $ boardRep $ loadPdn rnd gr)
+    Right gr  ->
+      case loadPdn rnd gr of
+        Left err -> raise err
+        Right board -> return (Nothing, Just $ boardRep board)
 boardRq _ _ (NewGameRq { rqPrevBoard = Just gameId }) = do
   board <- liftCheckers_ $ getInitialBoard gameId
   return (Nothing, Just $ boardRep board)
@@ -233,6 +259,20 @@ restServer shutdownVar = do
         liftIO $ putMVar shutdownVar ()
       else error400 "Server is not running in local mode"
 
+restOptions :: Port -> Web.Scotty.Trans.Options
+restOptions port = Options 0 $ setOnExceptionResponse errorHandler $ setPort port (settings def)
+
+errorHandler :: SomeException -> Wai.Response
+errorHandler e
+  | Just (err :: Error) <- fromException e =
+      Wai.responseLBS H.internalServerError500
+         [(H.hContentType, "text/plain; charset=utf-8")]
+         (fromString $ show err)
+  | otherwise =
+      Wai.responseLBS H.internalServerError500
+         [(H.hContentType, "text/plain; charset=utf-8")]
+         (fromString $ show e)
+
 runRestServer :: Checkers ()
 runRestServer = do
   cs <- ask
@@ -243,7 +283,7 @@ runRestServer = do
           Left  err      -> fail $ show err
   port <- asks (gcPort . csConfig)
   shutdownVar <- liftIO newEmptyMVar
-  forkCheckers $ scottyT (fromIntegral port) getResponse (restServer shutdownVar)
+  forkCheckers $ scottyOptsT (restOptions (fromIntegral port)) getResponse (restServer shutdownVar)
   liftIO $ takeMVar shutdownVar
   -- REST thread should be able to write the response to Shutdown request.
   liftIO $ threadDelay (1000 * 1000)

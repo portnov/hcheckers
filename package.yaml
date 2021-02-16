@@ -40,6 +40,8 @@ dependencies:
 - bits
 - scotty
 - http-types
+- warp
+- wai
 - clock
 - array
 - random
