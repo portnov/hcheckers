@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: 0.1.0.0\n"
-"POT-Creation-Date: 2021-02-16 18:31+0500\n"
+"POT-Creation-Date: 2021-02-16 18:55+0500\n"
 "PO-Revision-Date: 2018-11-07 22:30+5\n"
 "Last-Translator: Ilya Portnov <portnov84@rambler.ru>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -107,55 +107,61 @@ msgstr "Турецкие шашки"
 msgid "Armeinan draughts (Tama)"
 msgstr "Армянские шашки (Тама)"
 
-#: game.py:179
+#: game.py:178
 msgid "Beginner"
 msgstr "Начинающий"
 
-#: game.py:180
+#: game.py:179
 msgid "Novice"
 msgstr "Новичок"
 
-#: game.py:181
+#: game.py:180
 msgid "Average"
 msgstr "Средний"
 
-#: game.py:182
+#: game.py:181
 msgid "Good"
 msgstr "Хороший"
 
-#: game.py:183
+#: game.py:182
 msgid "Master"
 msgstr "Мастер"
 
-#: game.py:268 game.py:309 game.py:311 lobby.py:37 newgamedlg.py:97
+#: game.py:267 game.py:308 game.py:310 lobby.py:37 newgamedlg.py:98
 msgid "White"
 msgstr "Белые"
 
-#: game.py:270 game.py:309 game.py:311 lobby.py:37 newgamedlg.py:98
+#: game.py:269 game.py:308 game.py:310 lobby.py:37 newgamedlg.py:99
 msgid "Black"
 msgstr "Черные"
 
-#: game.py:272
+#: game.py:271
 msgid "Newly created game ID: {}. First side to move: {}."
 msgstr "ID созданной игры: {}. Первыми ходят: {}."
 
-#: game.py:413
+#: game.py:323
+msgid ""
+"AI parameters:\n"
+"{}"
+msgstr "Параметры ИИ:\n{}"
+
+#: game.py:414
 msgid "Offer for a draw posted."
 msgstr "Предложение ничьей послано."
 
-#: game.py:428
+#: game.py:429
 msgid "You accepted draw."
 msgstr "Вы согласились на ничью."
 
-#: game.py:430
+#: game.py:431
 msgid "You declined draw."
 msgstr "Вы отказались от ничьей."
 
-#: game.py:440
+#: game.py:441
 msgid "Game #{}: you capitulated."
 msgstr "Игра #{}: вы сдались."
 
-#: game.py:446
+#: game.py:447
 msgid "Server shutdown requested."
 msgstr "Запрошена остановка сервера."
 
@@ -167,9 +173,13 @@ msgstr "Ид"
 msgid "Status"
 msgstr "Статус"
 
-#: lobby.py:37 newgamedlg.py:88
+#: lobby.py:37 newgamedlg.py:89
 msgid "Rules"
 msgstr "Правила"
+
+#: lobby.py:88
+msgid "Cannot connect to server"
+msgstr "Не удалось подключиться к серверу"
 
 #: newgamedlg.py:34
 msgid "Browse..."
@@ -179,63 +189,71 @@ msgstr "Обзор..."
 msgid "Open file"
 msgstr "Открыть файл"
 
-#: newgamedlg.py:76
+#: newgamedlg.py:77
 msgid "Start a game against computer"
 msgstr "Начать игру против компьютера"
 
-#: newgamedlg.py:77
+#: newgamedlg.py:78
 msgid "Start a game against human"
 msgstr "Начать игру против человека"
 
-#: newgamedlg.py:78
+#: newgamedlg.py:79
 msgid "Join a game against human"
 msgstr "Присоединиться к игре против человека"
 
-#: newgamedlg.py:79
+#: newgamedlg.py:80
 msgid "Action"
 msgstr "Действие"
 
-#: newgamedlg.py:90
+#: newgamedlg.py:91
 msgid "User name"
 msgstr "Имя пользователя"
 
-#: newgamedlg.py:99
+#: newgamedlg.py:100
 msgid "User plays"
 msgstr "Пользователь играет"
 
-#: newgamedlg.py:105
+#: newgamedlg.py:106
 msgid "Use default initial position"
 msgstr "Использовать начальную расстановку по умолчанию"
 
-#: newgamedlg.py:106
+#: newgamedlg.py:107
 msgid "Manual initial position setup"
 msgstr "Ручная начальная расстановка"
 
-#: newgamedlg.py:107
+#: newgamedlg.py:108
 msgid "Use initial board of previous game"
 msgstr "Использовать начальную расстановку предыдущей игры"
 
-#: newgamedlg.py:108
+#: newgamedlg.py:109
 msgid "Load initial board from FEN file"
 msgstr "Загрузить начальную расстановку из файла FEN"
 
-#: newgamedlg.py:109
+#: newgamedlg.py:110
 msgid "Load initial board from PDN file"
 msgstr "Загрузить начальную расстановку из файла PDN"
 
-#: newgamedlg.py:110
+#: newgamedlg.py:111
 msgid "Initial board type"
 msgstr "Вид начальной расстановки"
 
-#: newgamedlg.py:114
+#: newgamedlg.py:115
 msgid "Select file"
 msgstr "Выберите файл"
 
-#: newgamedlg.py:133
+#: newgamedlg.py:134
 msgid "AI"
 msgstr "ИИ"
 
-#: newgamedlg.py:195 toplevel.py:526
+#: newgamedlg.py:143
+msgid "Refresh"
+msgstr "Обновить"
+
+#: newgamedlg.py:161
+msgid "Open settings dialog"
+msgstr "Открыть диалог настроек"
+
+#: newgamedlg.py:197 toplevel.py:526
 msgid "Settings have been updated."
 msgstr "Настройки были обновлены."
 
@@ -283,7 +301,7 @@ msgstr "Продолжать думать, пока есть время"
 msgid "Timeout (seconds)"
 msgstr "Таймаут (секунд)"
 
-#: settingsdlg.py:112 settingsdlg.py:385
+#: settingsdlg.py:112 settingsdlg.py:389
 msgid "General"
 msgstr "Общее"
 
@@ -339,59 +357,67 @@ msgstr "Дополнительные опции"
 msgid "Save..."
 msgstr "Сохранить..."
 
-#: settingsdlg.py:149
+#: settingsdlg.py:147
+msgid "Save AI settings to JSON file"
+msgstr "Сохранить настройки ИИ в файл JSON"
+
+#: settingsdlg.py:151
 msgid "Load..."
 msgstr "Загрузить..."
 
-#: settingsdlg.py:162 toplevel.py:363 toplevel.py:498
+#: settingsdlg.py:153
+msgid "Load AI settings from JSON file"
+msgstr "Загрузить настройки ИИ из файла JSON"
+
+#: settingsdlg.py:166 toplevel.py:363 toplevel.py:498
 msgid "Save file"
 msgstr "Сохранить файл"
 
-#: settingsdlg.py:170
+#: settingsdlg.py:174
 msgid "Load file"
 msgstr "Загрузить файл"
 
-#: settingsdlg.py:246
+#: settingsdlg.py:250
 msgid "Add AI preset"
 msgstr "Добавить настройку ИИ"
 
-#: settingsdlg.py:250
+#: settingsdlg.py:254
 msgid "Delete AI preset"
 msgstr "Удалить настройку ИИ"
 
-#: settingsdlg.py:291
+#: settingsdlg.py:295
 msgid "Show fields notation"
 msgstr "Показывать нотацию полей"
 
-#: settingsdlg.py:293
+#: settingsdlg.py:297
 msgid "Show possible moves"
 msgstr "Показывать возможные ходы"
 
-#: settingsdlg.py:299
+#: settingsdlg.py:303
 msgid "Theme"
 msgstr "Тема"
 
-#: settingsdlg.py:302
+#: settingsdlg.py:306
 msgid "Enable sounds"
 msgstr "Включить звуки"
 
-#: settingsdlg.py:341
+#: settingsdlg.py:345
 msgid "Server URL"
 msgstr "URL сервера"
 
-#: settingsdlg.py:345
+#: settingsdlg.py:349
 msgid "Use local server"
 msgstr "Использовать локальный сервер"
 
-#: settingsdlg.py:347
+#: settingsdlg.py:351
 msgid "Local server start command"
 msgstr "Команда запуска локального сервера"
 
-#: settingsdlg.py:387
+#: settingsdlg.py:391
 msgid "View Settings"
 msgstr "Настройки внешнего вида"
 
-#: settingsdlg.py:389
+#: settingsdlg.py:393
 msgid "AI Presets"
 msgstr "Настройки ИИ"
 

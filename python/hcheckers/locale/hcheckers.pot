@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2021-02-16 18:31+0500\n"
+"POT-Creation-Date: 2021-02-16 18:55+0500\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -107,55 +107,61 @@ msgstr ""
 msgid "Armeinan draughts (Tama)"
 msgstr ""
 
-#: game.py:179
+#: game.py:178
 msgid "Beginner"
 msgstr ""
 
-#: game.py:180
+#: game.py:179
 msgid "Novice"
 msgstr ""
 
-#: game.py:181
+#: game.py:180
 msgid "Average"
 msgstr ""
 
-#: game.py:182
+#: game.py:181
 msgid "Good"
 msgstr ""
 
-#: game.py:183
+#: game.py:182
 msgid "Master"
 msgstr ""
 
-#: game.py:268 game.py:309 game.py:311 lobby.py:37 newgamedlg.py:97
+#: game.py:267 game.py:308 game.py:310 lobby.py:37 newgamedlg.py:98
 msgid "White"
 msgstr ""
 
-#: game.py:270 game.py:309 game.py:311 lobby.py:37 newgamedlg.py:98
+#: game.py:269 game.py:308 game.py:310 lobby.py:37 newgamedlg.py:99
 msgid "Black"
 msgstr ""
 
-#: game.py:272
+#: game.py:271
 msgid "Newly created game ID: {}. First side to move: {}."
 msgstr ""
 
-#: game.py:413
+#: game.py:323
+msgid ""
+"AI parameters:\n"
+"{}"
+msgstr ""
+
+#: game.py:414
 msgid "Offer for a draw posted."
 msgstr ""
 
-#: game.py:428
+#: game.py:429
 msgid "You accepted draw."
 msgstr ""
 
-#: game.py:430
+#: game.py:431
 msgid "You declined draw."
 msgstr ""
 
-#: game.py:440
+#: game.py:441
 msgid "Game #{}: you capitulated."
 msgstr ""
 
-#: game.py:446
+#: game.py:447
 msgid "Server shutdown requested."
 msgstr ""
 
@@ -167,8 +173,12 @@ msgstr ""
 msgid "Status"
 msgstr ""
 
-#: lobby.py:37 newgamedlg.py:88
+#: lobby.py:37 newgamedlg.py:89
 msgid "Rules"
+msgstr ""
+
+#: lobby.py:88
+msgid "Cannot connect to server"
 msgstr ""
 
 #: newgamedlg.py:34
@@ -179,63 +189,71 @@ msgstr ""
 msgid "Open file"
 msgstr ""
 
-#: newgamedlg.py:76
+#: newgamedlg.py:77
 msgid "Start a game against computer"
 msgstr ""
 
-#: newgamedlg.py:77
+#: newgamedlg.py:78
 msgid "Start a game against human"
 msgstr ""
 
-#: newgamedlg.py:78
+#: newgamedlg.py:79
 msgid "Join a game against human"
 msgstr ""
 
-#: newgamedlg.py:79
+#: newgamedlg.py:80
 msgid "Action"
 msgstr ""
 
-#: newgamedlg.py:90
+#: newgamedlg.py:91
 msgid "User name"
 msgstr ""
 
-#: newgamedlg.py:99
+#: newgamedlg.py:100
 msgid "User plays"
 msgstr ""
 
-#: newgamedlg.py:105
+#: newgamedlg.py:106
 msgid "Use default initial position"
 msgstr ""
 
-#: newgamedlg.py:106
+#: newgamedlg.py:107
 msgid "Manual initial position setup"
 msgstr ""
 
-#: newgamedlg.py:107
+#: newgamedlg.py:108
 msgid "Use initial board of previous game"
 msgstr ""
 
-#: newgamedlg.py:108
+#: newgamedlg.py:109
 msgid "Load initial board from FEN file"
 msgstr ""
 
-#: newgamedlg.py:109
+#: newgamedlg.py:110
 msgid "Load initial board from PDN file"
 msgstr ""
 
-#: newgamedlg.py:110
+#: newgamedlg.py:111
 msgid "Initial board type"
 msgstr ""
 
-#: newgamedlg.py:114
+#: newgamedlg.py:115
 msgid "Select file"
 msgstr ""
 
-#: newgamedlg.py:133
+#: newgamedlg.py:134
 msgid "AI"
 msgstr ""
 
-#: newgamedlg.py:195 toplevel.py:526
+#: newgamedlg.py:143
+msgid "Refresh"
+msgstr ""
+
+#: newgamedlg.py:161
+msgid "Open settings dialog"
+msgstr ""
+
+#: newgamedlg.py:197 toplevel.py:526
 msgid "Settings have been updated."
 msgstr ""
 
@@ -283,7 +301,7 @@ msgstr ""
 msgid "Timeout (seconds)"
 msgstr ""
 
-#: settingsdlg.py:112 settingsdlg.py:385
+#: settingsdlg.py:112 settingsdlg.py:389
 msgid "General"
 msgstr ""
 
@@ -339,59 +357,67 @@ msgstr ""
 msgid "Save..."
 msgstr ""
 
-#: settingsdlg.py:149
+#: settingsdlg.py:147
+msgid "Save AI settings to JSON file"
+msgstr ""
+
+#: settingsdlg.py:151
 msgid "Load..."
 msgstr ""
 
-#: settingsdlg.py:162 toplevel.py:363 toplevel.py:498
+#: settingsdlg.py:153
+msgid "Load AI settings from JSON file"
+msgstr ""
+
+#: settingsdlg.py:166 toplevel.py:363 toplevel.py:498
 msgid "Save file"
 msgstr ""
 
-#: settingsdlg.py:170
+#: settingsdlg.py:174
 msgid "Load file"
 msgstr ""
 
-#: settingsdlg.py:246
+#: settingsdlg.py:250
 msgid "Add AI preset"
 msgstr ""
 
-#: settingsdlg.py:250
+#: settingsdlg.py:254
 msgid "Delete AI preset"
 msgstr ""
 
-#: settingsdlg.py:291
+#: settingsdlg.py:295
 msgid "Show fields notation"
 msgstr ""
 
-#: settingsdlg.py:293
+#: settingsdlg.py:297
 msgid "Show possible moves"
 msgstr ""
 
-#: settingsdlg.py:299
+#: settingsdlg.py:303
 msgid "Theme"
 msgstr ""
 
-#: settingsdlg.py:302
+#: settingsdlg.py:306
 msgid "Enable sounds"
 msgstr ""
 
-#: settingsdlg.py:341
+#: settingsdlg.py:345
 msgid "Server URL"
 msgstr ""
 
-#: settingsdlg.py:345
+#: settingsdlg.py:349
 msgid "Use local server"
 msgstr ""
 
-#: settingsdlg.py:347
+#: settingsdlg.py:351
 msgid "Local server start command"
 msgstr ""
 
-#: settingsdlg.py:387
+#: settingsdlg.py:391
 msgid "View Settings"
 msgstr ""
 
-#: settingsdlg.py:389
+#: settingsdlg.py:393
 msgid "AI Presets"
 msgstr ""
 

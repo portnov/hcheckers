@@ -143,10 +143,14 @@ class AiEditorWidget(QWidget):
         hbox = QHBoxLayout()
 
         save = QPushButton(_("Save..."), self)
+        save.setIcon(QIcon.fromTheme("document-save"))
+        save.setToolTip(_("Save AI settings to JSON file"))
         save.clicked.connect(self._on_save)
         hbox.addWidget(save)
 
         load = QPushButton(_("Load..."), self)
+        load.setIcon(QIcon.fromTheme("document-open"))
+        load.setToolTip(_("Load AI settings from JSON file"))
         load.clicked.connect(self._on_load)
         hbox.addWidget(load)
 

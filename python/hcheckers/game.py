@@ -159,7 +159,6 @@ class AI(object):
                 logging.error("Can't parse:")
                 logging.error(self.extra)
                 logging.exception(e)
-        logging.info(str(d))
         return d
     
     def load_json(self, settings):
@@ -320,7 +319,9 @@ class Game(object):
     def attach_ai(self, side, ai):
         self.ai_side = side
         url = join(self.base_url, "game", self.game_id, "attach", "ai", str(side))
-        rq = {"ai": "default", "params": ai.params()}
+        ai_params = ai.params()
+        logging.info(_("AI parameters:\n{}").format(json.dumps(ai_params, indent=2)))
+        rq = {"ai": "default", "params": ai_params}
         rs = self.post(url, json=rq)
         result = rs.json()
 

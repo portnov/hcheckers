@@ -85,7 +85,7 @@ class LobbyWidget(QWidget):
             self.dialog.get_ok_button().setEnabled(True)
             self.dialog.message(None)
         except ConnectionError as e:
-            self.dialog.message("Cannot connect to server")
+            self.dialog.message(_("Cannot connect to server"))
             self.dialog.get_ok_button().setEnabled(False)
             self.dialog.refresh_button.setVisible(True)
 

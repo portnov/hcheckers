@@ -63,11 +63,12 @@ class NameValidator(QValidator):
             return name
 
 class NewGameDialog(DialogBase):
-    def __init__(self, settings, client, share_dir, parent=None):
+    def __init__(self, settings, client, share_dir, show_exit=False, parent=None):
         DialogBase.__init__(self, parent)
         self.settings = settings
         self.client = client
         self.share_dir = share_dir
+        self.show_exit = show_exit
 
         widget = QWidget()
         self.form_layout = layout = QFormLayout()
@@ -139,7 +140,7 @@ class NewGameDialog(DialogBase):
         self.lobby.hide()
         lobby_hbox.addWidget(self.lobby)
 
-        self.refresh_button = refresh = QPushButton(self)
+        self.refresh_button = refresh = QPushButton(_("Refresh"), self)
         refresh.setIcon(QIcon.fromTheme("view-refresh"))
         refresh.clicked.connect(self.lobby.fill)
         refresh.hide()
@@ -157,6 +158,7 @@ class NewGameDialog(DialogBase):
 
         settings_btn = QPushButton(self)
         settings_btn.setIcon(QIcon.fromTheme("preferences-system"))
+        settings_btn.setToolTip(_("Open settings dialog"))
         settings_btn.clicked.connect(self._on_settings)
 
         buttons_box = QHBoxLayout()
