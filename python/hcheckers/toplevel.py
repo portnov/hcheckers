@@ -286,7 +286,7 @@ class Checkers(QMainWindow):
 
     @handling_error
     def _on_new_game(self, checked=None):
-        dialog = NewGameDialog(self.settings, self.game, self)
+        dialog = NewGameDialog(self.settings, self.game, self.share_dir, self)
         result = dialog.exec_()
 
 
