@@ -3,7 +3,7 @@
 HERE=$(dirname $0)
 cd $HERE/../hcheckers/
 
-pygettext -v -o locale/hcheckers.pot *.py
+pygettext3 -v -o locale/hcheckers.pot *.py
 cd locale
 for D in $(ls -d *)
 do if [ -d $D ]

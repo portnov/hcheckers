@@ -5,13 +5,13 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2021-02-14 23:03++05\n"
+"POT-Creation-Date: 2021-02-16 18:31+0500\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
-"Content-Type: text/plain; charset=CHARSET\n"
-"Content-Transfer-Encoding: ENCODING\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
 "Generated-By: pygettext.py 1.5\n"
 
 
@@ -127,11 +127,11 @@ msgstr ""
 msgid "Master"
 msgstr ""
 
-#: game.py:268 game.py:309 game.py:311 lobby.py:37 newgamedlg.py:94
+#: game.py:268 game.py:309 game.py:311 lobby.py:37 newgamedlg.py:97
 msgid "White"
 msgstr ""
 
-#: game.py:270 game.py:309 game.py:311 lobby.py:37 newgamedlg.py:95
+#: game.py:270 game.py:309 game.py:311 lobby.py:37 newgamedlg.py:98
 msgid "Black"
 msgstr ""
 
@@ -167,72 +167,76 @@ msgstr ""
 msgid "Status"
 msgstr ""
 
-#: lobby.py:37 newgamedlg.py:85
+#: lobby.py:37 newgamedlg.py:88
 msgid "Rules"
 msgstr ""
 
-#: newgamedlg.py:32
+#: newgamedlg.py:34
 msgid "Browse..."
 msgstr ""
 
-#: newgamedlg.py:40
+#: newgamedlg.py:42
 msgid "Open file"
 msgstr ""
 
-#: newgamedlg.py:73
+#: newgamedlg.py:76
 msgid "Start a game against computer"
 msgstr ""
 
-#: newgamedlg.py:74
+#: newgamedlg.py:77
 msgid "Start a game against human"
 msgstr ""
 
-#: newgamedlg.py:75
+#: newgamedlg.py:78
 msgid "Join a game against human"
 msgstr ""
 
-#: newgamedlg.py:76
+#: newgamedlg.py:79
 msgid "Action"
 msgstr ""
 
-#: newgamedlg.py:87
+#: newgamedlg.py:90
 msgid "User name"
 msgstr ""
 
-#: newgamedlg.py:96
+#: newgamedlg.py:99
 msgid "User plays"
 msgstr ""
 
-#: newgamedlg.py:102
+#: newgamedlg.py:105
 msgid "Use default initial position"
 msgstr ""
 
-#: newgamedlg.py:103
+#: newgamedlg.py:106
 msgid "Manual initial position setup"
 msgstr ""
 
-#: newgamedlg.py:104
+#: newgamedlg.py:107
 msgid "Use initial board of previous game"
 msgstr ""
 
-#: newgamedlg.py:105
+#: newgamedlg.py:108
 msgid "Load initial board from FEN file"
 msgstr ""
 
-#: newgamedlg.py:106
+#: newgamedlg.py:109
 msgid "Load initial board from PDN file"
 msgstr ""
 
-#: newgamedlg.py:107
+#: newgamedlg.py:110
 msgid "Initial board type"
 msgstr ""
 
-#: newgamedlg.py:111
+#: newgamedlg.py:114
 msgid "Select file"
 msgstr ""
 
-#: newgamedlg.py:136
+#: newgamedlg.py:133
 msgid "AI"
+msgstr ""
+
+#: newgamedlg.py:195 toplevel.py:526
+msgid "Settings have been updated."
 msgstr ""
 
 #: settingsdlg.py:84
@@ -380,7 +384,7 @@ msgid "Use local server"
 msgstr ""
 
 #: settingsdlg.py:347
-msgid "Local server executable path"
+msgid "Local server start command"
 msgstr ""
 
 #: settingsdlg.py:387
@@ -549,10 +553,6 @@ msgstr ""
 
 #: toplevel.py:492
 msgid "Log has been cleared."
-msgstr ""
-
-#: toplevel.py:526
-msgid "Settings have been updated."
 msgstr ""
 
 #: toplevel.py:529

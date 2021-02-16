@@ -344,7 +344,7 @@ class GeneralPage(QWidget):
         self.use_local_server = QCheckBox(self)
         layout.addRow(_("Use local server"), self.use_local_server)
 
-        self.local_server_path = MandatoryField(_("Local server executable path"), QLineEdit(self))
+        self.local_server_path = MandatoryField(_("Local server start command"), QLineEdit(self))
         self.local_server_path.add_to_form(layout)
 
         self.use_local_server.stateChanged.connect(self._on_use_local_server)
