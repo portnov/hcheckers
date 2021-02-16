@@ -39,6 +39,7 @@ dependencies:
 - bytes
 - bits
 - scotty
+- network
 - http-types
 - warp
 - wai

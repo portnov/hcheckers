@@ -17,6 +17,7 @@ import Control.Monad.Except
 import Control.Monad.Metrics as Metrics
 import Control.Concurrent
 import Control.Concurrent.STM
+import Control.Exception as E (try)
 import Data.List
 import Data.Array.Unboxed
 import qualified Data.Vector as V
@@ -820,6 +821,16 @@ tryC actions =
   (do
    r <- actions
    return $ Right r) `catchError` (\e -> return $ Left e)
+
+-- tryIO :: Checkers a -> Checkers (Either Error a)
+-- tryIO actions = do
+--   st <- ask
+--   rr <- liftIO $ E.try $ runCheckersT actions st
+--   case rr of
+--     Right (Right a) -> return $ Right a
+--     Right (Left err) -> return $ Left err
+--     Left (Right a) -> return $ Left $ Unhandled "IO error?"
+--     Left (Left err) -> return $ Left err
 
 askSupervisor :: Checkers SupervisorHandle
 askSupervisor = asks csSupervisor

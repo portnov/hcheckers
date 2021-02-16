@@ -7,7 +7,8 @@ module Core.Rest where
 import           Control.Monad.Reader
 import Control.Concurrent
 import Control.Concurrent.STM
-import Control.Exception (SomeException, fromException)
+import Control.Exception as E
+import Control.Monad.Catch
 import Data.String
 import qualified Data.Text                     as T
 import qualified Data.Text.Lazy                as TL
@@ -21,6 +22,8 @@ import           Network.Wai.Handler.Warp
 import qualified Network.Wai as Wai
 import           System.Log.Heavy
 import           System.Log.Heavy.TH
+import Network.Socket
+import System.Exit
 
 import           Core.Types
 import           Core.Board
@@ -264,8 +267,11 @@ restServer shutdownVar = do
         "status" .= ("ready" :: T.Text)
       ]
 
-restOptions :: Port -> Web.Scotty.Trans.Options
-restOptions port = Options 0 $ setOnExceptionResponse errorHandler $ setPort port (settings def)
+restOptions :: String -> Port -> Web.Scotty.Trans.Options
+restOptions host port =
+  Options 0 $ setOnExceptionResponse errorHandler $
+              setHost (fromString host) $
+              setPort port (settings def)
 
 errorHandler :: SomeException -> Wai.Response
 errorHandler e
@@ -278,6 +284,26 @@ errorHandler e
          [(H.hContentType, "text/plain; charset=utf-8")]
          (fromString $ show e)
 
+-- openSocket :: AddrInfo -> IO Socket
+-- openSocket addr = socket (addrFamily addr) (addrSocketType addr) (addrProtocol addr)
+-- 
+-- checkPort :: HostName -> Port -> IO Bool
+-- checkPort host port = do
+--   addr <- head <$> getAddrInfo (Just defaultHints) (Just host) (Just $ show port)
+--   E.bracketOnError (openSocket addr) close $ \sock -> do
+--     withFdSocket sock setCloseOnExecIfNeeded
+--     r <- E.try $ bind sock $ addrAddress addr
+--     case r of
+--       Right _ -> return True
+--       Left (e :: SomeException) -> do
+--         print e
+--         return False
+
+ioErrorHandler :: IOError -> Checkers ()
+ioErrorHandler err = liftIO $ do
+  putStrLn $ "IO error: " ++ show err
+  exitWith (ExitFailure 2)
+
 runRestServer :: Checkers ()
 runRestServer = do
   cs <- ask
@@ -286,9 +312,11 @@ runRestServer = do
         case res of
           Right response -> return response
           Left  err      -> fail $ show err
+  host <- asks (T.unpack . gcHost . csConfig)
   port <- asks (gcPort . csConfig)
+  -- portOpen <- liftIO $ checkPort host port
   shutdownVar <- liftIO newEmptyMVar
-  forkCheckers $ scottyOptsT (restOptions (fromIntegral port)) getResponse (restServer shutdownVar)
+  forkCheckers $ handleIOError ioErrorHandler $ scottyOptsT (restOptions host (fromIntegral port)) getResponse (restServer shutdownVar)
   liftIO $ takeMVar shutdownVar
   -- REST thread should be able to write the response to Shutdown request.
   liftIO $ threadDelay (1000 * 1000)

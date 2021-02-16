@@ -24,6 +24,7 @@ import Core.Supervisor (withRules)
 import Learn
 import Battle
 import Rules.Russian
+import Rules.Spancirety
 
   -- let stdout = LoggingSettings $ filtering defaultLogFilter defStdoutSettings
       -- debug = LoggingSettings $ Filtering (\m -> lmLevel m == trace_level) ((defFileSettings "trace.log") {lsFormat = "{time} {source} [{thread}]: {message}\n"})
@@ -88,7 +89,7 @@ special cmd args =
             return ()
 
     ("genetics": generations : size : best : paths) -> do
-      let rules = russian
+      let rules = spancirety
           nGenerations = read generations
           generationSize = read size
           nBest = read best

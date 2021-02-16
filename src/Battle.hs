@@ -40,15 +40,25 @@ v1 <-> v2 = V.zipWith (-) v1 v2
 scale :: Num a => a -> V.Vector a -> V.Vector a
 scale a v = V.map (\x -> a*x) v
 
+norm :: V.Vector Double -> Double
+-- norm v = sqrt $ V.sum $ V.map (\x -> x*x) v
+norm v = (V.sum $ V.map abs v) / fromIntegral (V.length v)
+
 cross :: (GameRules rules, VectorEvaluator (EvaluatorForRules rules), VectorEvaluatorSupport (EvaluatorForRules rules) rules) => rules -> (AB rules, AB rules) -> Checkers (AB rules)
 cross rules (ai1, ai2) = do
   let v1 = aiToVector ai1
       v2 = aiToVector ai2
-  s <- liftIO $ randomRIO (0.9, 1.1)
-  k1 <- liftIO $ randomRIO (0.4, 0.7)
-  let k2 = s - k1
-  let v3 = scale k1 v1 <+> scale k2 v2
-      v3' = V.take 3 v1 V.++ V.drop 3 v3
+  t <- liftIO $ randomRIO (0.0, 1.0)
+  let mid = scale (1.0 - t) v1 <+> scale t v2
+  p <- liftIO $ randomRIO (0.0, 1.0) :: Checkers Double
+  v3 <- if p < 0.9
+          then return mid
+          else do
+            let delta = {-0.5 *-} norm (v1 <-> v2)
+            dv <- liftIO $ replicateM (V.length v1) $ randomRIO (-delta, delta)
+            -- liftIO $ print delta
+            return $ mid <+> V.fromList dv
+  let v3' = V.take 3 v1 V.++ V.drop 3 v3
   return $ aiFromVector rules v3'
 
 breed :: (GameRules rules, VectorEvaluator (EvaluatorForRules rules), VectorEvaluatorSupport (EvaluatorForRules rules) rules) => rules -> Int -> [AB rules] -> Checkers [AB rules]
@@ -149,7 +159,7 @@ hasKing side (BoardRep lst) = any isKing (map snd lst)
 loopGame :: FilePath -> GameId -> Side -> Int -> Checkers GameResult
 loopGame path gameId side i = do
   StateRs board status side <- getState gameId
-  if i > 100 && boardRepLen board <= 8 && hasKing First board && hasKing Second board
+  if (i > 100) || (i > 60 && boardRepLen board <= 8 && hasKing First board && hasKing Second board)
     then do
       liftIO $ putStrLn "Too long a game, probably a draw"
       -- pdn <- getPdn gameId
