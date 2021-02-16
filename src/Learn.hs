@@ -47,13 +47,13 @@ doLearn' rules eval var params gameRec = do
       let board1 = case mrFirst moveRec of
                      Nothing -> board0
                      Just rec ->
-                      let move1 = parseMoveRec rules First board0 rec
+                      let Right move1 = parseMoveRec rules First board0 rec
                           (board1, _, _) = applyMove rules First move1 board0
                       in board1
           board2 = case mrSecond moveRec of
                      Nothing -> board1
                      Just rec ->
-                      let move2 = parseMoveRec rules Second board1 rec
+                      let Right move2 = parseMoveRec rules Second board1 rec
                           (board2, _, _) = applyMove rules Second move2 board1
                       in board2
       in  go (board1 : boards) board2 mbResult rest
@@ -89,7 +89,7 @@ doLearn rules eval var params gameId gameRec = do
         case mrFirst moveRec of
           Nothing -> return (board0, [], score0)
           Just rec -> do
-            let move1 = parseMoveRec rules First board0 rec
+            let Right move1 = parseMoveRec rules First board0 rec
             if move1 `elem` map pmMove predicted
               then Metrics.increment "learn.hit"
               else Metrics.increment "learn.miss"
@@ -99,7 +99,7 @@ doLearn rules eval var params gameId gameRec = do
       case mrSecond moveRec of
         Nothing -> return (score2, board0 : board1 : boards)
         Just rec -> do
-          let move2 = parseMoveRec rules Second board1 rec
+          let Right move2 = parseMoveRec rules Second board1 rec
           if move2 `elem` map pmMove predict2
             then Metrics.increment "learn.hit"
             else Metrics.increment "learn.miss"

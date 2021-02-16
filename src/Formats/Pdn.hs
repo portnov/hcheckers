@@ -203,7 +203,7 @@ parsePdnFile dfltRules path = do
     Left err -> fail $ errorBundlePretty err
     Right pdn -> return pdn
 
-parseMoveRec :: GameRules rules => rules -> Side -> Board -> SemiMoveRec -> Move
+parseMoveRec :: GameRules rules => rules -> Side -> Board -> SemiMoveRec -> Either Error Move
 parseMoveRec rules side board rec =
   let moves = possibleMoves rules side board
       passedFields m = nonCaptureLabels rules side board (pmMove m) 
@@ -217,11 +217,9 @@ parseMoveRec rules side board rec =
                 (not $ null $ pmVictims m) &&
                 smrLabels `isSubsequenceOf` passedFields m
   in case filter suits moves of
-    [m] -> pmMove m
-    [] -> error $ printf "no such move: %s; side: %s; board: %s; possible: %s"
-                    (show rec) (show side) (show board) (show $ map passedFields moves)
-    ms -> error $ printf "ambigous move: %s; candidates are: %s; board: %s"
-                    (show rec) (show ms) (show board)
+    [m] -> return $ pmMove m
+    [] -> Left $ NoSuchMoveExt (show rec) side (boardRep board) (map (moveRep rules side . pmMove) moves)
+    ms -> Left $ AmbigousPdnMove (show rec) (show ms) (boardRep board)
 
 fenFromTags :: [Tag] -> Maybe Fen
 fenFromTags [] = Nothing
@@ -298,37 +296,39 @@ instructionsToMoves instructions =
       state = execState (forM_ instructions interpret) initState
   in  map M.elems $ M.elems $ isVariants state
 
-loadPdn :: SupervisorState -> GameRecord -> Board
-loadPdn rnd r =
+loadPdn :: SupervisorState -> GameRecord -> Either Error Board
+loadPdn rnd r = do
     let findRules [] = Nothing
         findRules (GameType rules:_) = Just rules
         findRules (_:rest) = findRules rest
 
-        withRules :: SomeRules -> Board
-        withRules some@(SomeRules rules) =
+        withRules :: SomeRules -> Either Error Board
+        withRules some@(SomeRules rules) = do
             let board0 = initBoardFromTags rnd some (grTags r)
                 
-                go board [] = board
-                go board0 (moveRec : rest) =
-                  let board1 = case mrFirst moveRec of
-                                 Just rec -> let move1 = parseMoveRec rules First board0 rec
-                                                 (board1,_,_) = applyMove rules First move1 board0
-                                                 in board1
-                                 Nothing -> board0
-                  in  case mrSecond moveRec of
-                        Nothing -> board1
-                        Just rec ->
-                          let move2 = parseMoveRec rules Second board1 rec
-                              (board2,_,_) = applyMove rules Second move2 board1
-                          in  go board2 rest
+                go :: Board -> [MoveRec] -> Either Error Board
+                go board [] = return board
+                go board0 (moveRec : rest) = do
+                  board1 <- case mrFirst moveRec of
+                              Just rec -> do
+                                move1 <- parseMoveRec rules First board0 rec
+                                let (board1,_,_) = applyMove rules First move1 board0
+                                return board1
+                              Nothing -> return board0
+                  case mrSecond moveRec of
+                    Nothing -> return board1
+                    Just rec -> do
+                      move2 <- parseMoveRec rules Second board1 rec
+                      let (board2,_,_) = applyMove rules Second move2 board1
+                      go board2 rest
 
-            in  case instructionsToMoves (grMoves r) of
-                  [moves] -> go board0 moves
-                  vars -> error $ "multiple variants: " ++ show vars
+            case instructionsToMoves (grMoves r) of
+              [moves] -> go board0 moves
+              vars -> Left $ AmbigousPdnInstruction $ show vars
 
-    in  case findRules (grTags r) of
-          Nothing -> error "rules are not specified"
-          Just rules -> withRules rules
+    case findRules (grTags r) of
+      Nothing -> Left $ Unhandled "rules are not specified"
+      Just rules -> withRules rules
 
 moveToInstructions :: Int -> MoveRec -> [Instruction]
 moveToInstructions n move =

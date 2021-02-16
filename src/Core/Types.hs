@@ -777,7 +777,10 @@ data Error =
     NotYourTurn
   | NotAllowedMove
   | NoSuchMoveError
+  | NoSuchMoveExt String Side BoardRep [MoveRep]
   | AmbigousMoveError [MoveRep]
+  | AmbigousPdnInstruction String
+  | AmbigousPdnMove String String BoardRep
   | NothingToUndo
   | NoSuchGame GameId
   | NoSuchUserInGame
