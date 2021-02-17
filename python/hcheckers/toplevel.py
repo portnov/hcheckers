@@ -87,11 +87,12 @@ class Checkers(QMainWindow):
                 QApplication.processEvents()
                 server_path = self.settings.value("local_server_path")
                 logging.info(_("Running local server: {}").format(server_path))
-                server = subprocess.Popen(server_path, shell=True)
+                server = subprocess.Popen(server_path, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
                 time.sleep(1)
                 server.poll()
                 if server.returncode is not None and server.returncode != 0:
-                    message = _("Could not start local server; exit code is {}").format(server.returncode)
+                    output = server.stdout.read()
+                    message = _("Could not start local server; exit code: {}; message:\n{}").format(server.returncode, output.decode('utf-8'))
                     logging.error(message)
                     QMessageBox.critical(self, _("Exception"), message)
                 else:
@@ -278,7 +279,7 @@ class Checkers(QMainWindow):
         self._on_new_game(show_exit=True)
 
     @handling_error
-    def _on_exit(self):
+    def _on_exit(self, *args):
         self.close()
 
     def _screen_size(self):

@@ -210,6 +210,7 @@ class NewGameDialog(DialogBase):
         if result == QDialog.Accepted:
             self.settings.sync()
             self._fill_ais(self.settings)
+            self.client.base_url = self.settings.value("server_url", DEFAULT_SERVER_URL)
             logging.info(_("Settings have been updated."))
 
     def _on_action_changed(self, idx):
