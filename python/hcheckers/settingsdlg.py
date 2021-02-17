@@ -123,8 +123,8 @@ class AiEditorWidget(QWidget):
         self.asymetry_weight = make_spinbox(_("Asymetry"), -100, 100, evaluator)
         self.pre_king_weight = make_spinbox(_("Pre-king"), 1, 100, evaluator)
         self.king_coef = make_spinbox(_("King"), 1, 100, evaluator)
-        self.attacked_man_coef = make_spinbox(_("Attacked man"), 0, 100, evaluator)
-        self.attacked_king_coef = make_spinbox(_("Attacked king"), 0, 100, evaluator)
+        self.attacked_man_coef = make_spinbox(_("Attacked man"), 0, 200, evaluator)
+        self.attacked_king_coef = make_spinbox(_("Attacked king"), 0, 200, evaluator)
 
         self.tabs.addTab(evaluator, _("Board evaluation"))
 
