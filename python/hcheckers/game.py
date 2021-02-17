@@ -20,7 +20,7 @@ class MoveRequest(Thread):
         try:
             self.owner.move_lock.acquire()
             self.owner.move_exception = None
-            rs = self.owner.post(self.url, json=self.rq)
+            rs = Game.post(self.url, json=self.rq)
             result = rs.json()
             #logging.debug(result)
             self.owner.last_move_result = Game.parse_board(result["response"]), result["messages"]
@@ -218,28 +218,42 @@ class Game(object):
         defined = not (self.base_url is None or self.user_name is None or self.game_id is None)
         return defined and not self.finished
 
-    def process_response(self, rs, action=None):
+    @staticmethod
+    def process_response(rs, action=None):
         if rs is None:
             return
         if rs.status_code != requests.codes.ok:
             raise RequestError(rs)
     
-    def get(self, url, *args, **kwargs):
+    @staticmethod
+    def get(url, *args, **kwargs):
         rs = requests.get(url, *args, **kwargs)
-        self.process_response(rs)
+        Game.process_response(rs)
         return rs
 
-    def post(self, url, *args, **kwargs):
+    @staticmethod
+    def post(url, *args, **kwargs):
         rs = requests.post(url, *args, **kwargs)
-        self.process_response(rs)
+        Game.process_response(rs)
         return rs
+
+    @staticmethod
+    def check_server(server_url):
+        try:
+            url = join(server_url, "status")
+            rs = Game.get(url)
+            status = rs.json()["status"]
+            return status == "ready"
+        except Exception as e:
+            print(e)
+            return False
 
     def get_games(self, rules=None):
         if rules is not None:
             url = join(self.base_url, "lobby", rules)
         else:
             url = join(self.base_url, "lobby")
-        rs = self.get(url)
+        rs = Game.get(url)
         result = rs.json()["response"]
         return result
 
@@ -256,7 +270,7 @@ class Game(object):
         elif pdn_path is not None:
             pdn_text = open(pdn_path).read()
             rq["pdn"] = pdn_text
-        rs = self.post(url, json=rq)
+        rs = Game.post(url, json=rq)
         result = rs.json()
         self.game_id = result["response"]["id"]
         self.draw_state = None
@@ -275,14 +289,14 @@ class Game(object):
 
     def get_notation(self, rules):
         url = join(self.base_url, "notation", rules)
-        rs = self.get(url)
+        rs = Game.get(url)
         result = rs.json()["response"]
         invert = result["orientation"] == 'SecondAtBottom'
         return result["size"], invert, result["notation"]
 
     def get_topology(self, rules):
         url = join(self.base_url, "topology", rules)
-        rs = self.get(url)
+        rs = Game.get(url)
         result = rs.json()["response"]
         return result["topology"]
     
@@ -313,7 +327,7 @@ class Game(object):
         self.user_name = name
         self.user_side = side
         url = join(self.base_url, "game", self.game_id, "attach", name, str(side))
-        rs = self.post(url)
+        rs = Game.post(url)
         result = rs.json()
 
     def attach_ai(self, side, ai):
@@ -322,12 +336,12 @@ class Game(object):
         ai_params = ai.params()
         logging.info(_("AI parameters:\n{}").format(json.dumps(ai_params, indent=2)))
         rq = {"ai": "default", "params": ai_params}
-        rs = self.post(url, json=rq)
+        rs = Game.post(url, json=rq)
         result = rs.json()
 
     def run_game(self):
         url = join(self.base_url, "game", self.game_id, "run")
-        rs = self.post(url)
+        rs = Game.post(url)
         result = rs.json()
 
     def start_new_game(self, user_name, rules="russian", board=None, fen_path=None, pdn_path=None, previous_board_game = None,  user_turn_first=True, ai=None):
@@ -344,7 +358,7 @@ class Game(object):
 
     def get_state(self):
         url = join(self.base_url, "game", self.game_id, "state")
-        rs = self.get(url)
+        rs = Game.get(url)
         result = rs.json()
         return result["response"]
     
@@ -352,13 +366,13 @@ class Game(object):
         if self.game_id is None:
             return None
         url = join(self.base_url, "game", self.game_id, "history")
-        rs = self.get(url)
+        rs = Game.get(url)
         result = rs.json()
         return result["response"]
     
     def poll(self):
         url = join(self.base_url, "poll", self.user_name)
-        rs = self.get(url)
+        rs = Game.get(url)
         result = rs.json()
         messages = result["response"]
         self._process_messages(messages)
@@ -380,17 +394,17 @@ class Game(object):
     
     def get_fen(self):
         url = join(self.base_url, "game", self.game_id, "fen")
-        rs = self.get(url)
+        rs = Game.get(url)
         return rs.text
     
     def get_pdn(self):
         url = join(self.base_url, "game", self.game_id, "pdn")
-        rs = self.get(url)
+        rs = Game.get(url)
         return rs.text
     
     def get_possible_moves(self, field=None):
         url = join(self.base_url, "game", self.game_id, "moves", self.user_name)
-        rs = self.get(url)
+        rs = Game.get(url)
         result = rs.json()
         moves = [Move.fromJson(item) for item in result["response"]]
         if field is None:
@@ -400,14 +414,14 @@ class Game(object):
 
     def undo(self):
         url = join(self.base_url, "game", self.game_id, "undo", self.user_name)
-        rs = self.post(url)
+        rs = Game.post(url)
         result = rs.json()
         board = Game.parse_board(result["response"])
         return board
     
     def request_draw(self):
         url = join(self.base_url, "game", self.game_id, "draw", "request", self.user_name)
-        rs = self.post(url)
+        rs = Game.post(url)
         result = rs.json()
         messages = result["messages"]
         self._process_messages(messages)
@@ -421,7 +435,7 @@ class Game(object):
         else:
             verb = "decline"
         url = join(self.base_url, "game", self.game_id, "draw", verb, self.user_name)
-        rs = self.post(url)
+        rs = Game.post(url)
         result = rs.json()
         messages = result["messages"]
         self._process_messages(messages)
@@ -434,7 +448,7 @@ class Game(object):
 
     def capitulate(self):
         url = join(self.base_url, "game", self.game_id, "capitulate", self.user_name)
-        rs = self.post(url)
+        rs = Game.post(url)
         result = rs.json()
         messages = result["messages"]
         self._process_messages(messages)
@@ -443,7 +457,7 @@ class Game(object):
     
     def shutdown(self):
         url = join(self.base_url, "server", "shutdown")
-        rs = self.post(url)
+        rs = Game.post(url)
         logging.info(_("Server shutdown requested."))
     
     def begin_move(self, src, dst):

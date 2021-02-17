@@ -34,6 +34,7 @@ class Checkers(QMainWindow):
         self._poll_try_number = 0
         self.splashscreen = None
         self._show_splashcreen(_("Starting HCheckers..."))
+        self.server_url = self.settings.value("server_url", DEFAULT_SERVER_URL)
         self._start_server()
         self._prepare()
         self._gui_setup()
@@ -74,19 +75,27 @@ class Checkers(QMainWindow):
     game_active = property(get_game_active, set_game_active)
 
     def _start_server(self):
+        server_running = Game.check_server(self.server_url)
         use_local_server = self.settings.value("use_local_server", type=bool)
-        if use_local_server:
-            self.splashscreen.showMessage(_("Starting local server..."))
-            QApplication.processEvents()
-            server_path = self.settings.value("local_server_path")
-            logging.info(_("Running local server: {}").format(server_path))
-            server = subprocess.Popen(server_path, shell=True)
-            time.sleep(1)
-            server.poll()
-            if server.returncode is not None and server.returncode != 0:
-                message = _("Could not start local server; exit code is {}").format(server.returncode)
-                logging.error(message)
-                QMessageBox.critical(self, _("Exception"), message)
+        self.local_server_used = False
+        if server_running:
+            if use_local_server:
+                logging.info(_("Server appears to be already running, do not start a local server"))
+        else:
+            if use_local_server:
+                self.splashscreen.showMessage(_("Starting local server..."))
+                QApplication.processEvents()
+                server_path = self.settings.value("local_server_path")
+                logging.info(_("Running local server: {}").format(server_path))
+                server = subprocess.Popen(server_path, shell=True)
+                time.sleep(1)
+                server.poll()
+                if server.returncode is not None and server.returncode != 0:
+                    message = _("Could not start local server; exit code is {}").format(server.returncode)
+                    logging.error(message)
+                    QMessageBox.critical(self, _("Exception"), message)
+                else:
+                    self.local_server_used = True
 
     def _prepare(self):
         if self.share_dir is None:
@@ -94,7 +103,6 @@ class Checkers(QMainWindow):
         theme_name = self.settings.value("theme", "default")
         self.theme = Theme(join(self.share_dir, "themes", theme_name), None)
         self.theme.enable_sound = self.settings.value("enable_sound", type=bool)
-        self.server_url = self.settings.value("server_url", DEFAULT_SERVER_URL)
         self.game = Game(self.server_url)
         self.poll_timer = self.startTimer(500)
         self.setup_fields_on_poll = False
@@ -569,7 +577,7 @@ class Checkers(QMainWindow):
                 print(e)
 
         use_local_server = self.settings.value("use_local_server", type=bool)
-        if use_local_server:
+        if use_local_server and self.local_server_used:
             try:
                 self.game.shutdown()
             except RequestError as e:

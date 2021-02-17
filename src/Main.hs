@@ -77,15 +77,15 @@ special cmd args =
               runMatch (SomeRules rules) (SomeAi ai1) (SomeAi ai2) n
               return ()
 
-    ("tournament": rulesName : matches : games : paths) -> do 
-      withRules rulesName $ \rules -> do
-        let nMatches = read matches
-            nGames = read games
-        ais <- forM paths $ \path -> loadAi "default" rules path
-        withCheckers cmd $
-            withLogContext (LogContextFrame [] (include defaultLogFilter)) $ do
-              runTournament rules ais nMatches nGames
-              return ()
+    ("tournament": matches : games : paths) -> do 
+      let rules = russian
+          nMatches = read matches
+          nGames = read games
+      ais <- forM paths $ \path -> loadAi "default" rules path
+      withCheckers cmd $
+          withLogContext (LogContextFrame [] (include defaultLogFilter)) $ do
+            runTournament rules ais nMatches nGames
+            return ()
 
     ("genetics": generations : size : best : paths) -> do
       let rules = russian

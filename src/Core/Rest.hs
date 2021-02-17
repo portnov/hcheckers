@@ -259,6 +259,11 @@ restServer shutdownVar = do
         liftIO $ putMVar shutdownVar ()
       else error400 "Server is not running in local mode"
 
+  get "/status" $ do
+    json $ object [
+        "status" .= ("ready" :: T.Text)
+      ]
+
 restOptions :: Port -> Web.Scotty.Trans.Options
 restOptions port = Options 0 $ setOnExceptionResponse errorHandler $ setPort port (settings def)
 
