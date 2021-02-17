@@ -510,7 +510,7 @@ class Checkers(QMainWindow):
         (path,mask) = QFileDialog.getSaveFileName(self, _("Save file"), ".", LOG_MASK)
         if path:
             with open(path, 'w') as f:
-                f.write(text.encode("utf-8"))
+                f.write(text)#.encode("utf-8"))
 
     def _on_copy_log(self, checked):
         items = self.log.selectedItems()
