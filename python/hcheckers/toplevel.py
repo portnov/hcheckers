@@ -265,7 +265,7 @@ class Checkers(QMainWindow):
     @handling_error
     def _default_new_game(self):
         self.splashscreen.finish(self)
-        self._on_new_game()
+        self._on_new_game(show_exit=True)
 
     def _screen_size(self):
         rect = QApplication.desktop().availableGeometry(self)
@@ -286,10 +286,9 @@ class Checkers(QMainWindow):
             QApplication.processEvents()
 
     @handling_error
-    def _on_new_game(self, checked=None):
-        dialog = NewGameDialog(self.settings, self.game, self.share_dir, self)
+    def _on_new_game(self, checked=None, show_exit=False):
+        dialog = NewGameDialog(self.settings, self.game, self.share_dir, show_exit, self)
         result = dialog.exec_()
-
 
         if result == QDialog.Accepted:
             # Show splashcreen after user pressed Ok in the "new game" dialog
@@ -358,6 +357,10 @@ class Checkers(QMainWindow):
         if self.splashscreen:
             self.splashscreen.finish(self)
 
+        if result == EXIT:
+            print("Exit!")
+            #QApplication.quit()
+            QTimer.singleShot(0, lambda: self.close())
 
     @handling_error
     def _on_save_game(self, checked=None):

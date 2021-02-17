@@ -6,7 +6,7 @@ from PyQt5.QtGui import QPainter, QPixmap, QValidator, QIcon
 from PyQt5.QtCore import QRect, QSize, Qt, QObject, QTimer, pyqtSignal, QSettings
 from PyQt5.QtWidgets import QWidget, QDialog, QPushButton, QVBoxLayout, \
         QHBoxLayout, QFormLayout, QLineEdit, QComboBox, QGroupBox, QCheckBox, \
-        QDialogButtonBox, QFileDialog, QLabel
+        QDialogButtonBox, QFileDialog, QLabel, QApplication
 
 from hcheckers.common import *
 from hcheckers.game import AI, GameSettings
@@ -25,6 +25,8 @@ PREVIOUS_BOARD = 5
 
 FEN_MASK = "FEN notation (*.fen)"
 PDN_MASK = "Portable Draughts Notation (*.pdn)"
+
+EXIT = 2
 
 class FileSelectWidget(QWidget):
     def __init__(self, parent=None):
@@ -128,6 +130,9 @@ class NewGameDialog(DialogBase):
         buttons.accepted.connect(self._on_accept)
         buttons.rejected.connect(self.reject)
         self.ok_button = buttons.button(QDialogButtonBox.Ok)
+        self.ok_button.setToolTip(_("Start a new game"))
+        cancel_button = buttons.button(QDialogButtonBox.Cancel)
+        cancel_button.setToolTip(_("Close this dialog without starting a new game"))
 
         self.ai = QComboBox(self)
         self._fill_ais(settings)
@@ -165,6 +170,14 @@ class NewGameDialog(DialogBase):
         buttons_box.addWidget(settings_btn)
         buttons_box.addStretch()
         buttons_box.addWidget(buttons)
+
+        if self.show_exit:
+            exit = QPushButton(_("E&xit"), self)
+            exit.setIcon(QIcon.fromTheme("application-exit"))
+            exit.setToolTip(_("Close this dialog and exit the program"))
+            exit.clicked.connect(self._on_exit)
+            buttons_box.addWidget(exit)
+
         vbox.addLayout(buttons_box)
 
     def _fill_ais(self, settings):
@@ -187,6 +200,9 @@ class NewGameDialog(DialogBase):
 
     def get_form_layout(self):
         return self.form_layout
+
+    def _on_exit(self):
+        self.done(EXIT)
 
     def _on_settings(self):
         dialog = SettingsDialog(self.settings, self.share_dir, self)
