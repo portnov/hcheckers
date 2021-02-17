@@ -2,8 +2,8 @@
 
 clean:
 	rm -rf debian/hcheckersd
-	rm *.log
-	rm *.cabal
+	rm -f *.log
+	rm -f *.cabal
 	stack clean --allow-different-user
 
 check:
