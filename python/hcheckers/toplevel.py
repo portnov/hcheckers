@@ -209,6 +209,8 @@ class Checkers(QMainWindow):
         self.run_action = self._create_action(QIcon.fromTheme("media-playback-start"), _("Start &Game"), menu, self._on_run_game, key="Ctrl+R")
         menu.addSeparator()
         self._create_action(QIcon.fromTheme("preferences-system"), _("Se&ttings"), menu, self._on_settings, toolbar=False)
+        menu.addSeparator()
+        self._create_action(QIcon.fromTheme("application-exit"), _("E&xit"), menu, self._on_exit, toolbar=False, key="Ctrl+Q")
 
         menu = self.menuBar().addMenu(_("&Position"))
         setup = QActionGroup(self)
@@ -274,6 +276,10 @@ class Checkers(QMainWindow):
     def _default_new_game(self):
         self.splashscreen.finish(self)
         self._on_new_game(show_exit=True)
+
+    @handling_error
+    def _on_exit(self):
+        self.close()
 
     def _screen_size(self):
         rect = QApplication.desktop().availableGeometry(self)
