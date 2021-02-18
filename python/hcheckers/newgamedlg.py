@@ -28,6 +28,11 @@ PDN_MASK = "Portable Draughts Notation (*.pdn)"
 
 EXIT = 2
 
+def select_game_file(widget):
+    any_mask = FEN_MASK + ";;" + PDN_MASK
+    (path,mask) = QFileDialog.getOpenFileName(widget, _("Open file"), ".", any_mask)
+    return path, mask
+
 class FileSelectWidget(QWidget):
     def __init__(self, parent=None):
         QWidget.__init__(self, parent)
@@ -40,7 +45,7 @@ class FileSelectWidget(QWidget):
         self.setLayout(layout)
         self.mask = FEN_MASK
 
-    selected = pyqtSignal(str)
+    selected = pyqtSignal(str, str)
 
     def _on_browse(self):
         (path,mask) = QFileDialog.getOpenFileName(self, _("Open file"), ".", self.mask)
@@ -49,6 +54,9 @@ class FileSelectWidget(QWidget):
 
     def path(self):
         return self.textbox.text()
+
+    def setPath(self, path):
+        self.textbox.setText(path)
 
 class NameValidator(QValidator):
     def __init__(self, used_name, parent=None):
@@ -68,12 +76,13 @@ class NameValidator(QValidator):
             return name
 
 class NewGameDialog(DialogBase):
-    def __init__(self, settings, client, share_dir, show_exit=False, parent=None):
+    def __init__(self, settings, client, share_dir, show_exit=False, open_file=(None,None), parent=None):
         DialogBase.__init__(self, parent)
         self.settings = settings
         self.client = client
         self.share_dir = share_dir
         self.show_exit = show_exit
+        self.preset_file, self.preset_mask = open_file
 
         widget = QWidget()
         self.form_layout = layout = QFormLayout()
@@ -108,11 +117,11 @@ class NewGameDialog(DialogBase):
             self.user_side.setCurrentIndex(user_side)
 
         self.board_type = QComboBox(self)
-        self.board_type.addItem(_("Use default initial position"), DEFAULT_BOARD)
-        self.board_type.addItem(_("Manual initial position setup"), MANUAL_BOARD)
-        self.board_type.addItem(_("Use initial board of previous game"), PREVIOUS_BOARD)
-        self.board_type.addItem(_("Load initial board from FEN file"), LOAD_FEN)
-        self.board_type.addItem(_("Load initial board from PDN file"), LOAD_PDN)
+        self.board_type.addItem(_("Use default initial position"), DEFAULT_BOARD)         # 0
+        self.board_type.addItem(_("Manual initial position setup"), MANUAL_BOARD)         # 1
+        self.board_type.addItem(_("Use initial board of previous game"), PREVIOUS_BOARD)  # 2
+        self.board_type.addItem(_("Load initial board from FEN file"), LOAD_FEN)          # 3
+        self.board_type.addItem(_("Load initial board from PDN file"), LOAD_PDN)          # 4
         layout.addRow(_("Initial board type"), self.board_type)
 
         self.file_path = FileSelectWidget(self)
@@ -183,6 +192,14 @@ class NewGameDialog(DialogBase):
             buttons_box.addWidget(exit)
 
         vbox.addLayout(buttons_box)
+
+        if self.preset_file:
+            if self.preset_mask == PDN_MASK:
+                self.board_type.setCurrentIndex(4)
+            elif self.preset_mask == FEN_MASK:
+                self.board_type.setCurrentIndex(3)
+            self.file_path.mask = self.preset_mask
+            self.file_path.setPath(self.preset_file)
 
     def _fill_ais(self, settings):
         self.ai.clear()

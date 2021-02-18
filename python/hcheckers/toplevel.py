@@ -193,6 +193,7 @@ class Checkers(QMainWindow):
     def _setup_actions(self):
         menu = self.menuBar().addMenu(_("&Game"))
         self._create_action(QIcon.fromTheme("document-new"), _("&New Game"), menu, self._on_new_game, key="Ctrl+N")
+        self._create_action(QIcon.fromTheme("document-open"), _("&Open Game..."), menu, self._on_open_game, key="Ctrl+O")
         self._create_action(QIcon.fromTheme("document-save"), _("&Save Position"), menu, self._on_save_game, key="Ctrl+S")
         self._create_action(QIcon.fromTheme("edit-undo"), _("&Undo"), menu, self._on_undo, key="Ctrl+Z")
         self.request_draw_action = self._create_action(self._icon("draw_offer.svg"), _("Offer a &draw"), menu, self._on_draw_rq)
@@ -300,74 +301,77 @@ class Checkers(QMainWindow):
             self.splashscreen.showMessage(message)
             QApplication.processEvents()
 
+    def _new_game(self, dialog):
+        # Show splashcreen after user pressed Ok in the "new game" dialog
+        self._show_splashcreen(_("Starting new game..."))
+
+        if self.game.is_active():
+            self.game.capitulate()
+        self.board.text_message = None
+        self.game_active = True
+        self.game.game_id = None
+
+        self.request_draw_action.setEnabled(True)
+        self.capitulate_action.setEnabled(True)
+
+        self.game_settings = game = dialog.get_settings()
+        if game.action == START_AI_GAME:
+            if game.board_setup:
+                self.board.empty()
+                self.board_setup_mode = True
+                self.game.rules = game.rules
+            else:
+                self.game.start_new_game(game.user_name, rules=game.rules, user_turn_first=game.user_turn_first, ai=game.ai, fen_path=game.fen_path, pdn_path=game.pdn_path, previous_board_game=game.previous_board_game)
+                state = self.game.get_state()
+                my_side = 'First' if self.game.user_side == FIRST else 'Second'
+                self.my_turn = state["side"] == my_side
+                self.rules_info.setText(_("Rules: {}").format(rules_dict[game.rules]))
+                self.opponent_info.setText(_("AI: {}").format(game.ai.title))
+                self.status_info.setText("")
+        elif game.action == START_HUMAN_GAME:
+            game_id = self.game.new_game(game.rules)
+            logging.info(_("New game ID: {}").format(game_id))
+            if game.user_turn_first:
+                self.game.register_user(game.user_name, FIRST)
+            else:
+                self.game.register_user(game.user_name, SECOND)
+            self.setup_fields_on_poll = True
+            self.rules_info.setText(_("Rules: {}").format(game.rules))
+            self.opponent_info.setText("")
+            self.status_info.setText("")
+            self.game_active = False
+            message = _("Waiting for another side to join the game.")
+            self.statusBar().showMessage(message)
+            self.board.text_message = message
+        elif game.action == JOIN_HUMAN_GAME:
+            self.game.game_id = dialog.lobby.get_game_id()
+            self.game.user_side = side = dialog.lobby.get_free_side()
+            self.game.rules = dialog.lobby.get_rules()
+            #used_name = dialog.lobby.get_used_name()
+            self.game.register_user(game.user_name, side)
+            self.game.run_game()
+            self.setup_fields_on_poll = True
+            self.my_turn = side == FIRST
+            self.rules_info.setText(_("Rules: {}").format(game.rules))
+            self.opponent_info.setText("")
+            self.status_info.setText("")
+
+        size, invert, notation = self.game.get_notation(game.rules)
+        self.board.invert_colors = invert
+        self.board.topology = self.game.get_topology(game.rules)
+        self.board.set_notation(size, notation)
+
+        self.board.theme = self.board.theme
+        #self.board.repaint()
+        self.history.fill()
+
     @handling_error
     def _on_new_game(self, checked=None, show_exit=False):
-        dialog = NewGameDialog(self.settings, self.game, self.share_dir, show_exit, self)
+        dialog = NewGameDialog(self.settings, self.game, self.share_dir, show_exit, parent=self)
         result = dialog.exec_()
 
         if result == QDialog.Accepted:
-            # Show splashcreen after user pressed Ok in the "new game" dialog
-            self._show_splashcreen(_("Starting new game..."))
-
-            if self.game.is_active():
-                self.game.capitulate()
-            self.board.text_message = None
-            self.game_active = True
-            self.game.game_id = None
-
-            self.request_draw_action.setEnabled(True)
-            self.capitulate_action.setEnabled(True)
-
-            self.game_settings = game = dialog.get_settings()
-            if game.action == START_AI_GAME:
-                if game.board_setup:
-                    self.board.empty()
-                    self.board_setup_mode = True
-                    self.game.rules = game.rules
-                else:
-                    self.game.start_new_game(game.user_name, rules=game.rules, user_turn_first=game.user_turn_first, ai=game.ai, fen_path=game.fen_path, pdn_path=game.pdn_path, previous_board_game=game.previous_board_game)
-                    state = self.game.get_state()
-                    my_side = 'First' if self.game.user_side == FIRST else 'Second'
-                    self.my_turn = state["side"] == my_side
-                    self.rules_info.setText(_("Rules: {}").format(rules_dict[game.rules]))
-                    self.opponent_info.setText(_("AI: {}").format(game.ai.title))
-                    self.status_info.setText("")
-            elif game.action == START_HUMAN_GAME:
-                game_id = self.game.new_game(game.rules)
-                logging.info(_("New game ID: {}").format(game_id))
-                if game.user_turn_first:
-                    self.game.register_user(game.user_name, FIRST)
-                else:
-                    self.game.register_user(game.user_name, SECOND)
-                self.setup_fields_on_poll = True
-                self.rules_info.setText(_("Rules: {}").format(game.rules))
-                self.opponent_info.setText("")
-                self.status_info.setText("")
-                self.game_active = False
-                message = _("Waiting for another side to join the game.")
-                self.statusBar().showMessage(message)
-                self.board.text_message = message
-            elif game.action == JOIN_HUMAN_GAME:
-                self.game.game_id = dialog.lobby.get_game_id()
-                self.game.user_side = side = dialog.lobby.get_free_side()
-                self.game.rules = dialog.lobby.get_rules()
-                #used_name = dialog.lobby.get_used_name()
-                self.game.register_user(game.user_name, side)
-                self.game.run_game()
-                self.setup_fields_on_poll = True
-                self.my_turn = side == FIRST
-                self.rules_info.setText(_("Rules: {}").format(game.rules))
-                self.opponent_info.setText("")
-                self.status_info.setText("")
-
-            size, invert, notation = self.game.get_notation(game.rules)
-            self.board.invert_colors = invert
-            self.board.topology = self.game.get_topology(game.rules)
-            self.board.set_notation(size, notation)
-
-            self.board.theme = self.board.theme
-            #self.board.repaint()
-            self.history.fill()
+            self._new_game(dialog)
 
         if self.splashscreen:
             self.splashscreen.finish(self)
@@ -376,6 +380,19 @@ class Checkers(QMainWindow):
             print("Exit!")
             #QApplication.quit()
             QTimer.singleShot(0, lambda: self.close())
+
+    @handling_error
+    def _on_open_game(self, checked=None):
+        path, mask = select_game_file(self)
+        if path:
+            dialog = NewGameDialog(self.settings, self.game, self.share_dir, show_exit=False, open_file=(path,mask), parent=self)
+            result = dialog.exec_()
+
+            if result == QDialog.Accepted:
+                self._new_game(dialog)
+
+            if self.splashscreen:
+                self.splashscreen.finish(self)
 
     @handling_error
     def _on_save_game(self, checked=None):
