@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: 0.1.0.0\n"
-"POT-Creation-Date: 2021-02-18 21:22+0500\n"
+"POT-Creation-Date: 2021-02-18 22:48+0500\n"
 "PO-Revision-Date: 2018-11-07 22:30+5\n"
 "Last-Translator: Ilya Portnov <portnov84@rambler.ru>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -107,39 +107,39 @@ msgstr "Турецкие шашки"
 msgid "Armeinan draughts (Tama)"
 msgstr "Армянские шашки (Тама)"
 
-#: game.py:178
+#: game.py:185
 msgid "Beginner"
 msgstr "Начинающий"
 
-#: game.py:179
+#: game.py:186
 msgid "Novice"
 msgstr "Новичок"
 
-#: game.py:180
+#: game.py:187
 msgid "Average"
 msgstr "Средний"
 
-#: game.py:181
+#: game.py:188
 msgid "Good"
 msgstr "Хороший"
 
-#: game.py:182
+#: game.py:189
 msgid "Master"
 msgstr "Мастер"
 
-#: game.py:281 game.py:322 game.py:324 lobby.py:37 newgamedlg.py:112
+#: game.py:288 game.py:329 game.py:331 lobby.py:37 newgamedlg.py:112
 msgid "White"
 msgstr "Белые"
 
-#: game.py:283 game.py:322 game.py:324 lobby.py:37 newgamedlg.py:113
+#: game.py:290 game.py:329 game.py:331 lobby.py:37 newgamedlg.py:113
 msgid "Black"
 msgstr "Черные"
 
-#: game.py:285
+#: game.py:292
 msgid "Newly created game ID: {}. First side to move: {}."
 msgstr "ID созданной игры: {}. Первыми ходят: {}."
 
-#: game.py:337
+#: game.py:344
 msgid ""
 "AI parameters:\n"
 "{}"
@@ -147,23 +147,23 @@ msgstr ""
 "Параметры ИИ:\n"
 "{}"
 
-#: game.py:428
+#: game.py:435
 msgid "Offer for a draw posted."
 msgstr "Предложение ничьей послано."
 
-#: game.py:443
+#: game.py:450
 msgid "You accepted draw."
 msgstr "Вы согласились на ничью."
 
-#: game.py:445
+#: game.py:452
 msgid "You declined draw."
 msgstr "Вы отказались от ничьей."
 
-#: game.py:455
+#: game.py:462
 msgid "Game #{}: you capitulated."
 msgstr "Игра #{}: вы сдались."
 
-#: game.py:461
+#: game.py:468
 msgid "Server shutdown requested."
 msgstr "Запрошена остановка сервера."
 
@@ -271,7 +271,7 @@ msgstr "&Выход"
 msgid "Close this dialog and exit the program"
 msgstr "Закрыть этот диалог и выйти из программы"
 
-#: newgamedlg.py:235 toplevel.py:562
+#: newgamedlg.py:235 toplevel.py:572
 msgid "Settings have been updated."
 msgstr "Настройки были обновлены."
 
@@ -319,7 +319,7 @@ msgstr "Продолжать думать, пока есть время"
 msgid "Timeout (seconds)"
 msgstr "Таймаут (секунд)"
 
-#: settingsdlg.py:112 settingsdlg.py:389
+#: settingsdlg.py:112 settingsdlg.py:403
 msgid "General"
 msgstr "Общее"
 
@@ -387,7 +387,7 @@ msgstr "Загрузить..."
 msgid "Load AI settings from JSON file"
 msgstr "Загрузить настройки ИИ из файла JSON"
 
-#: settingsdlg.py:166 toplevel.py:399 toplevel.py:534
+#: settingsdlg.py:166 toplevel.py:409 toplevel.py:544
 msgid "Save file"
 msgstr "Сохранить файл"
 
@@ -395,47 +395,55 @@ msgstr "Сохранить файл"
 msgid "Load file"
 msgstr "Загрузить файл"
 
-#: settingsdlg.py:250
+#: settingsdlg.py:251
 msgid "Add AI preset"
 msgstr "Добавить настройку ИИ"
 
-#: settingsdlg.py:254
+#: settingsdlg.py:256
+msgid "Duplicate AI preset"
+msgstr "Дублировать настройку ИИ"
+
+#: settingsdlg.py:261
 msgid "Delete AI preset"
 msgstr "Удалить настройку ИИ"
 
-#: settingsdlg.py:295
+#: settingsdlg.py:297
+msgid "Copy of {}"
+msgstr "Копия {}"
+
+#: settingsdlg.py:309
 msgid "Show fields notation"
 msgstr "Показывать нотацию полей"
 
-#: settingsdlg.py:297
+#: settingsdlg.py:311
 msgid "Show possible moves"
 msgstr "Показывать возможные ходы"
 
-#: settingsdlg.py:303
+#: settingsdlg.py:317
 msgid "Theme"
 msgstr "Тема"
 
-#: settingsdlg.py:306
+#: settingsdlg.py:320
 msgid "Enable sounds"
 msgstr "Включить звуки"
 
-#: settingsdlg.py:345
+#: settingsdlg.py:359
 msgid "Server URL"
 msgstr "URL сервера"
 
-#: settingsdlg.py:349
+#: settingsdlg.py:363
 msgid "Use local server"
 msgstr "Использовать локальный сервер"
 
-#: settingsdlg.py:351
+#: settingsdlg.py:365
 msgid "Local server start command"
 msgstr "Команда запуска локального сервера"
 
-#: settingsdlg.py:391
+#: settingsdlg.py:405
 msgid "View Settings"
 msgstr "Настройки внешнего вида"
 
-#: settingsdlg.py:393
+#: settingsdlg.py:407
 msgid "AI Presets"
 msgstr "Настройки ИИ"
 
@@ -475,7 +483,7 @@ msgstr ""
 "Не могу запустить локальный сервер; код выхода: {}\n"
 "{}"
 
-#: toplevel.py:97 toplevel.py:585 toplevel.py:590
+#: toplevel.py:97 toplevel.py:595 toplevel.py:600
 msgid "Exception"
 msgstr "Исключение"
 
@@ -559,59 +567,59 @@ msgstr "&Вид"
 msgid "&Flip board"
 msgstr "&Перевернуть доску"
 
-#: toplevel.py:306
+#: toplevel.py:316
 msgid "Starting new game..."
 msgstr "Запуск новой игры..."
 
-#: toplevel.py:328 toplevel.py:339 toplevel.py:355
+#: toplevel.py:338 toplevel.py:349 toplevel.py:365
 msgid "Rules: {}"
 msgstr "Правила: {}"
 
-#: toplevel.py:329
+#: toplevel.py:339
 msgid "AI: {}"
 msgstr "ИИ: {}"
 
-#: toplevel.py:333
+#: toplevel.py:343
 msgid "New game ID: {}"
 msgstr "ID новой игры: {}"
 
-#: toplevel.py:343
+#: toplevel.py:353
 msgid "Waiting for another side to join the game."
 msgstr "Ожидаем подключения второй стороны к игре"
 
-#: toplevel.py:420
+#: toplevel.py:430
 msgid "Nothing to undo."
 msgstr "Нечего отменять."
 
-#: toplevel.py:455 toplevel.py:457
+#: toplevel.py:465 toplevel.py:467
 msgid "{} win"
 msgstr "{} выиграли"
 
-#: toplevel.py:459
+#: toplevel.py:469
 msgid "Draw"
 msgstr "Ничья"
 
-#: toplevel.py:465
+#: toplevel.py:475
 msgid "Game result: {}"
 msgstr "Результат игры: {}"
 
-#: toplevel.py:468
+#: toplevel.py:478
 msgid "Game over."
 msgstr "Игра окончена."
 
-#: toplevel.py:483
+#: toplevel.py:493
 msgid "Accept the draw?"
 msgstr "Согласиться на ничью?"
 
-#: toplevel.py:484
+#: toplevel.py:494
 msgid "Another side have offered you a draw. Do you wish to accept it?"
 msgstr "Другая сторона предложила вам ничью. Вы хотите согласиться на неё?"
 
-#: toplevel.py:528
+#: toplevel.py:538
 msgid "Log has been cleared."
 msgstr "Журнал был очищен."
 
-#: toplevel.py:570
+#: toplevel.py:580
 msgid ""
 "Unexpected response received from the server.\n"
 "Request URL: {}\n"
@@ -623,11 +631,11 @@ msgstr ""
 "Код ответа: {}\n"
 "Сообщение в ответе: {}"
 
-#: toplevel.py:581
+#: toplevel.py:591
 msgid "No such move: {}"
 msgstr "Нет такого хода: {}"
 
-#: toplevel.py:589
+#: toplevel.py:599
 msgid ""
 "An exception occured while connecting to the server.\n"
 "Request URL: {}\n"

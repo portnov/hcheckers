@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2021-02-18 21:22+0500\n"
+"POT-Creation-Date: 2021-02-18 22:48+0500\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -107,61 +107,61 @@ msgstr ""
 msgid "Armeinan draughts (Tama)"
 msgstr ""
 
-#: game.py:178
+#: game.py:185
 msgid "Beginner"
 msgstr ""
 
-#: game.py:179
+#: game.py:186
 msgid "Novice"
 msgstr ""
 
-#: game.py:180
+#: game.py:187
 msgid "Average"
 msgstr ""
 
-#: game.py:181
+#: game.py:188
 msgid "Good"
 msgstr ""
 
-#: game.py:182
+#: game.py:189
 msgid "Master"
 msgstr ""
 
-#: game.py:281 game.py:322 game.py:324 lobby.py:37 newgamedlg.py:112
+#: game.py:288 game.py:329 game.py:331 lobby.py:37 newgamedlg.py:112
 msgid "White"
 msgstr ""
 
-#: game.py:283 game.py:322 game.py:324 lobby.py:37 newgamedlg.py:113
+#: game.py:290 game.py:329 game.py:331 lobby.py:37 newgamedlg.py:113
 msgid "Black"
 msgstr ""
 
-#: game.py:285
+#: game.py:292
 msgid "Newly created game ID: {}. First side to move: {}."
 msgstr ""
 
-#: game.py:337
+#: game.py:344
 msgid ""
 "AI parameters:\n"
 "{}"
 msgstr ""
 
-#: game.py:428
+#: game.py:435
 msgid "Offer for a draw posted."
 msgstr ""
 
-#: game.py:443
+#: game.py:450
 msgid "You accepted draw."
 msgstr ""
 
-#: game.py:445
+#: game.py:452
 msgid "You declined draw."
 msgstr ""
 
-#: game.py:455
+#: game.py:462
 msgid "Game #{}: you capitulated."
 msgstr ""
 
-#: game.py:461
+#: game.py:468
 msgid "Server shutdown requested."
 msgstr ""
 
@@ -269,7 +269,7 @@ msgstr ""
 msgid "Close this dialog and exit the program"
 msgstr ""
 
-#: newgamedlg.py:235 toplevel.py:562
+#: newgamedlg.py:235 toplevel.py:572
 msgid "Settings have been updated."
 msgstr ""
 
@@ -317,7 +317,7 @@ msgstr ""
 msgid "Timeout (seconds)"
 msgstr ""
 
-#: settingsdlg.py:112 settingsdlg.py:389
+#: settingsdlg.py:112 settingsdlg.py:403
 msgid "General"
 msgstr ""
 
@@ -385,7 +385,7 @@ msgstr ""
 msgid "Load AI settings from JSON file"
 msgstr ""
 
-#: settingsdlg.py:166 toplevel.py:399 toplevel.py:534
+#: settingsdlg.py:166 toplevel.py:409 toplevel.py:544
 msgid "Save file"
 msgstr ""
 
@@ -393,47 +393,55 @@ msgstr ""
 msgid "Load file"
 msgstr ""
 
-#: settingsdlg.py:250
+#: settingsdlg.py:251
 msgid "Add AI preset"
 msgstr ""
 
-#: settingsdlg.py:254
+#: settingsdlg.py:256
+msgid "Duplicate AI preset"
+msgstr ""
+
+#: settingsdlg.py:261
 msgid "Delete AI preset"
 msgstr ""
 
-#: settingsdlg.py:295
+#: settingsdlg.py:297
+msgid "Copy of {}"
+msgstr ""
+
+#: settingsdlg.py:309
 msgid "Show fields notation"
 msgstr ""
 
-#: settingsdlg.py:297
+#: settingsdlg.py:311
 msgid "Show possible moves"
 msgstr ""
 
-#: settingsdlg.py:303
+#: settingsdlg.py:317
 msgid "Theme"
 msgstr ""
 
-#: settingsdlg.py:306
+#: settingsdlg.py:320
 msgid "Enable sounds"
 msgstr ""
 
-#: settingsdlg.py:345
+#: settingsdlg.py:359
 msgid "Server URL"
 msgstr ""
 
-#: settingsdlg.py:349
+#: settingsdlg.py:363
 msgid "Use local server"
 msgstr ""
 
-#: settingsdlg.py:351
+#: settingsdlg.py:365
 msgid "Local server start command"
 msgstr ""
 
-#: settingsdlg.py:391
+#: settingsdlg.py:405
 msgid "View Settings"
 msgstr ""
 
-#: settingsdlg.py:393
+#: settingsdlg.py:407
 msgid "AI Presets"
 msgstr ""
 
@@ -471,7 +479,7 @@ msgid ""
 "{}"
 msgstr ""
 
-#: toplevel.py:97 toplevel.py:585 toplevel.py:590
+#: toplevel.py:97 toplevel.py:595 toplevel.py:600
 msgid "Exception"
 msgstr ""
 
@@ -555,59 +563,59 @@ msgstr ""
 msgid "&Flip board"
 msgstr ""
 
-#: toplevel.py:306
+#: toplevel.py:316
 msgid "Starting new game..."
 msgstr ""
 
-#: toplevel.py:328 toplevel.py:339 toplevel.py:355
+#: toplevel.py:338 toplevel.py:349 toplevel.py:365
 msgid "Rules: {}"
 msgstr ""
 
-#: toplevel.py:329
+#: toplevel.py:339
 msgid "AI: {}"
 msgstr ""
 
-#: toplevel.py:333
+#: toplevel.py:343
 msgid "New game ID: {}"
 msgstr ""
 
-#: toplevel.py:343
+#: toplevel.py:353
 msgid "Waiting for another side to join the game."
 msgstr ""
 
-#: toplevel.py:420
+#: toplevel.py:430
 msgid "Nothing to undo."
 msgstr ""
 
-#: toplevel.py:455 toplevel.py:457
+#: toplevel.py:465 toplevel.py:467
 msgid "{} win"
 msgstr ""
 
-#: toplevel.py:459
+#: toplevel.py:469
 msgid "Draw"
 msgstr ""
 
-#: toplevel.py:465
+#: toplevel.py:475
 msgid "Game result: {}"
 msgstr ""
 
-#: toplevel.py:468
+#: toplevel.py:478
 msgid "Game over."
 msgstr ""
 
-#: toplevel.py:483
+#: toplevel.py:493
 msgid "Accept the draw?"
 msgstr ""
 
-#: toplevel.py:484
+#: toplevel.py:494
 msgid "Another side have offered you a draw. Do you wish to accept it?"
 msgstr ""
 
-#: toplevel.py:528
+#: toplevel.py:538
 msgid "Log has been cleared."
 msgstr ""
 
-#: toplevel.py:570
+#: toplevel.py:580
 msgid ""
 "Unexpected response received from the server.\n"
 "Request URL: {}\n"
@@ -615,11 +623,11 @@ msgid ""
 "Response message: {}"
 msgstr ""
 
-#: toplevel.py:581
+#: toplevel.py:591
 msgid "No such move: {}"
 msgstr ""
 
-#: toplevel.py:589
+#: toplevel.py:599
 msgid ""
 "An exception occured while connecting to the server.\n"
 "Request URL: {}\n"
