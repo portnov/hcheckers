@@ -7,7 +7,12 @@ tar-ignore = csv
 tar-ignore = games
 tar-ignore = python
 tar-ignore = test
+tar-ignore = ai
+tar-ignore = *.hp
+tar-ignore = *.eventlog
+tar-ignore = *.prof
 tar-ignore = *.tar.xz
+tar-ignore = *.log*
 
-extend-diff-ignore = "(^|/)(\.git|\.gitignore|\.stack-work|debian|docker|csv|games|python|test|work|.*tar.xz)"
+extend-diff-ignore = "(^|/)(\.git|\.gitignore|\.stack-work|debian|docker|csv|games|python|test|work|ai|.*tar.xz|.*.hp|.*.eventlog|.*.prof|.*.log.*)"
 
