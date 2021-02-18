@@ -277,7 +277,17 @@ class Checkers(QMainWindow):
     @handling_error
     def _default_new_game(self):
         self.splashscreen.finish(self)
-        self._on_new_game(show_exit=True)
+        if len(sys.argv) == 2:
+            path = sys.argv[1]
+            if path.endswith(".pdn"):
+                mask = PDN_MASK
+            elif path.endswith(".fen"):
+                mask = FEN_MASK
+            else:
+                mask = None
+        else:
+            path, mask = None, None
+        self._on_new_game(show_exit=True, open_file=(path,mask))
 
     @handling_error
     def _on_exit(self, *args):
@@ -366,8 +376,8 @@ class Checkers(QMainWindow):
         self.history.fill()
 
     @handling_error
-    def _on_new_game(self, checked=None, show_exit=False):
-        dialog = NewGameDialog(self.settings, self.game, self.share_dir, show_exit, parent=self)
+    def _on_new_game(self, checked=None, show_exit=False, open_file=(None,None)):
+        dialog = NewGameDialog(self.settings, self.game, self.share_dir, show_exit, open_file=open_file, parent=self)
         result = dialog.exec_()
 
         if result == QDialog.Accepted:
