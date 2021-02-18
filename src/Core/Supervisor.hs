@@ -72,6 +72,9 @@ data NewGameRq = NewGameRq {
 data AttachAiRq = AttachAiRq String Value
   deriving (Eq, Show, Generic)
 
+data PdnInfoRq = PdnInfoRq String T.Text
+  deriving (Eq, Show, Generic)
+
 -- | Response to the client.
 -- Contains payload and list of notification messages.
 data Response = Response RsPayload [Notify]
@@ -88,6 +91,7 @@ data RsPayload =
   | NotationRs BoardSize BoardOrientation [(Label, Notation)]
   | TopologyRs BoardTopology
   | StateRs BoardRep GameStatus Side
+  | PdnInfoRs PdnInfo
   | HistoryRs [HistoryRecordRep]
   | PossibleMovesRs [MoveRep]
   | MoveRs BoardRep

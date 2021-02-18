@@ -173,6 +173,11 @@ pGameType = do
     "43" -> return $ SomeRules simple
     _ -> fail $ "Unsupported rules: " ++ n
 
+titleFromTags :: [Tag] -> Maybe T.Text
+titleFromTags [] = Nothing
+titleFromTags (Event title:_) = Just title
+titleFromTags (_: rest) = titleFromTags rest
+
 rulesFromTags :: [Tag] -> Maybe SomeRules
 rulesFromTags [] = Nothing
 rulesFromTags (GameType r:_) = Just r
@@ -411,4 +416,20 @@ showPdn (SomeRules rules) gr =
     showTag (FEN fen) = T.pack (printf "[FEN \"%s\"]" (showFen (boardSize rules) fen))
     showTag (GameType _) = T.pack (printf "[GameType \"%s\"]" (pdnId rules))
     showTag (Unknown tag text) = T.pack (printf "[%s \"%s\"]" tag text)
+
+pdnInfo :: GameRecord -> PdnInfo
+pdnInfo gr = PdnInfo {
+        pdnTitle = titleFromTags (grTags gr)
+      , pdnRules = someRulesName (rulesFromTags $ grTags gr)
+      , pdnResult = grResult gr
+      , pdnNextMove = getNextMove (last $ head $ instructionsToMoves $ grMoves gr)
+    }
+  where
+    someRulesName Nothing = Nothing
+    someRulesName (Just (SomeRules rules)) = Just (rulesName rules)
+
+    getNextMove r =
+      case mrSecond r of
+        Nothing -> Second
+        _ -> First
 

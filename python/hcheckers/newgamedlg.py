@@ -40,9 +40,12 @@ class FileSelectWidget(QWidget):
         self.setLayout(layout)
         self.mask = FEN_MASK
 
+    selected = pyqtSignal(str)
+
     def _on_browse(self):
         (path,mask) = QFileDialog.getOpenFileName(self, _("Open file"), ".", self.mask)
         self.textbox.setText(path)
+        self.selected.emit(path, mask)
 
     def path(self):
         return self.textbox.text()
@@ -114,6 +117,7 @@ class NewGameDialog(DialogBase):
 
         self.file_path = FileSelectWidget(self)
         self.file_path.setVisible(False)
+        #self.file_path.selected.connect(self._on_file_selected)
         layout.addRow(_("Select file"), self.file_path)
 
         widget.setLayout(layout)

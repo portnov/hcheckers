@@ -11,6 +11,7 @@ import System.Log.Heavy
 import Core.Types
 import Core.Logging
 import Core.Supervisor
+import Formats.Types
 
 instance ToJSON PlayerDirection where
 
@@ -118,6 +119,19 @@ instance FromJSON AttachAiRq where
     <$> v .: "ai"
     <*> v .:? "params" .!= Null
 
+instance FromJSON PdnInfoRq where
+  parseJSON = withObject "PDN" $ \v -> PdnInfoRq
+    <$> v .: "rules"
+    <*> v .: "text"
+
+instance ToJSON PdnInfo where
+  toJSON pdn = object [
+        "title" .= pdnTitle pdn
+      , "rules" .= pdnRules pdn
+      , "result" .= pdnResult pdn
+      , "next_move" .= pdnNextMove pdn
+    ]
+
 instance ToJSON Notify where
   toJSON (MoveNotify to from move board) =
     object ["to_side" .= to, "from_side" .= from, "move" .= move, "board" .= board]
@@ -140,6 +154,7 @@ instance ToJSON RsPayload where
   toJSON (PollRs messages) = toJSON messages
   toJSON (StateRs board status side) = object ["board" .= board, "side" .= side, "status" .= status]
   toJSON (HistoryRs records) = toJSON records
+  toJSON (PdnInfoRs info) = toJSON info
   toJSON (PossibleMovesRs moves) = toJSON moves
   toJSON (MoveRs board) = toJSON board
   toJSON (UndoRs board) = toJSON board

@@ -1,6 +1,7 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE DeriveGeneric #-}
 
 module Formats.Types where
 
@@ -10,6 +11,8 @@ import Data.List (intercalate)
 import Data.Typeable
 import Text.Megaparsec hiding (Label, State)
 import Data.Void
+import Data.Aeson
+import GHC.Generics
 
 import Core.Types
 
@@ -75,6 +78,14 @@ data GameRecord = GameRecord {
   , grResult :: Maybe GameResult
   }
   deriving (Show, Typeable)
+
+data PdnInfo = PdnInfo {
+      pdnTitle :: Maybe T.Text
+    , pdnRules :: Maybe String
+    , pdnResult :: Maybe GameResult
+    , pdnNextMove :: Side
+  }
+  deriving (Eq, Show, Typeable, Generic)
 
 data Fen = Fen {
     fenNextMove :: Side

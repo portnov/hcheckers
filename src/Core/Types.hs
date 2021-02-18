@@ -788,6 +788,7 @@ data Error =
   | UserNameAlreadyUsed
   | InvalidGameStatus GameStatus GameStatus -- ^ Expected, actual
   | TimeExhaused
+  | UnknownRules
   | InvalidBoard String
   | Unhandled String
   deriving (Eq, Show, Typeable, Generic)

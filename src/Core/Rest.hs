@@ -29,6 +29,7 @@ import           Core.Types
 import           Core.Board
 import           Core.Supervisor
 import           Core.Json                      ( ) -- import instances only
+import           Formats.Types
 import           Formats.Fen
 import           Formats.Pdn
 
@@ -109,6 +110,15 @@ boardRq _ _ (NewGameRq { rqBoard = Nothing, rqFen = Nothing, rqPdn = Nothing }) 
   return (Nothing, Nothing)
 boardRq _ _ _ =
   raise $ InvalidBoard "only one of fields must be filled: board, fen, pdn"
+
+parsePdnInfo :: PdnInfoRq -> Rest PdnInfo
+parsePdnInfo (PdnInfoRq rname text) = do
+  case selectRules' rname of
+    Nothing -> raise UnknownRules
+    Just rules ->
+      case parsePdn (Just rules) text of
+        Left err -> raise $ InvalidBoard err
+        Right gr -> return $ pdnInfo gr
 
 restServer :: MVar () -> ScottyT Error Checkers ()
 restServer shutdownVar = do
@@ -253,6 +263,11 @@ restServer shutdownVar = do
     rules <- param "rules"
     topology <- liftCheckers_ $ getTopology rules
     json $ Response (TopologyRs topology) []
+
+  post "/file/info/pdn" $ do
+    rq <- jsonData
+    info <- parsePdnInfo rq
+    json $ Response (PdnInfoRs info) []
 
   post "/server/shutdown" $ do
     isLocal <- lift $ asks (gcLocal . csConfig)
