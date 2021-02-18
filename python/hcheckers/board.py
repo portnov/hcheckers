@@ -403,11 +403,15 @@ class Board(QWidget):
         font.setBold(True)
         painter.setFont(font)
         painter.setPen(self.theme.message_color)
-        painter.drawText(self.rect(), flags, text)
+        painter.drawText(self.get_board_rect(), flags, text)
 
     def get_size(self):
         field_size = self.get_target_field_size(self.size())
         return (field_size * self.n_cols, field_size * self.n_rows)
+
+    def get_board_rect(self):
+        w, h = self.get_size()
+        return QRect(0.0, 0.0, w, h)
 
     def get_target_field_size(self, size):
         w_max = size.width()

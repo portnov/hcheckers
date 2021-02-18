@@ -6,11 +6,15 @@ from os.path import join, exists, dirname, abspath
 import gettext
 import logging
 
+bindir = abspath(dirname(sys.argv[0]))
+if exists(join(bindir, "themes")):
+    print("Development mode")
+    sys.path.insert(0, dirname(bindir))
+
 import hcheckers
 
 def locate_share_dir():
     home = os.environ["HOME"]
-    bindir = abspath(dirname(sys.argv[0]))
     moduledir = abspath(dirname(hcheckers.__file__))
     bases = ["/usr/share/hcheckers", "/usr/local/share/hcheckers",
              join(home, ".local", "share", "hcheckers"),
