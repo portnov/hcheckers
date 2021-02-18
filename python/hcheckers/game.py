@@ -59,6 +59,13 @@ class AI(object):
         for key in kwargs:
             setattr(self, key, kwargs[key])
 
+    def copy(self):
+        json_data = self.params()
+        ai = AI()
+        ai.load_json(json_data)
+        ai.title = self.title
+        return ai
+
     @classmethod
     def from_settings(cls, settings):
         ai = AI()
@@ -101,7 +108,7 @@ class AI(object):
                 result.append(ai)
         settings.endArray()
         return result
-    
+
     def to_settings(self, settings):
         settings.setValue("title", self.title)
         settings.setValue("depth", self.depth)

@@ -247,14 +247,22 @@ class AiPresetsPage(QWidget):
         layout = QHBoxLayout()
         vbox = QVBoxLayout()
         self.toolbar = QToolBar(self)
+
         self.add_ai = QAction(_("Add AI preset"), self)
         self.add_ai.setIcon(QIcon.fromTheme("list-add"))
         self.add_ai.triggered.connect(self._on_add)
         self.toolbar.addAction(self.add_ai)
+
+        self.copy_ai = QAction(_("Duplicate AI preset"), self)
+        self.copy_ai.setIcon(QIcon.fromTheme("edit-copy"))
+        self.copy_ai.triggered.connect(self._on_copy)
+        self.toolbar.addAction(self.copy_ai)
+
         self.del_ai = QAction(_("Delete AI preset"), self)
         self.del_ai.setIcon(QIcon.fromTheme("list-remove"))
         self.del_ai.triggered.connect(self._on_del)
         self.toolbar.addAction(self.del_ai)
+
         vbox.addWidget(self.toolbar)
         vbox.addWidget(self.selector)
         layout.addLayout(vbox)
@@ -282,6 +290,12 @@ class AiPresetsPage(QWidget):
 
     def _on_add(self):
         self.selector.add_ai()
+        self.selector.setCurrentRow(self.selector.count()-1)
+
+    def _on_copy(self):
+        ai = self.selector.get_selected_ai().copy()
+        ai.title = _("Copy of {}").format(ai.title)
+        self.selector.add_ai(ai)
         self.selector.setCurrentRow(self.selector.count()-1)
 
     def _on_del(self):
