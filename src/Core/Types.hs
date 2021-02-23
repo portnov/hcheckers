@@ -24,6 +24,7 @@ import qualified Data.Vector as V
 import qualified Data.Map as M
 import qualified Data.IntMap.Strict as IM
 import qualified Data.IntSet as IS
+import Data.Array.IArray as A
 import qualified Data.Text as T
 import qualified Data.Text.Lazy as TL
 import qualified Data.Text.Lazy.Builder.Int as Builder
@@ -240,6 +241,11 @@ type BoardData = UArray FieldIndex UnboxedPiece
 
 class RandomTableProvider p where
   getRandomTable :: p -> RandomTable
+
+data DummyRandomTableProvider = DummyRandomTableProvider
+
+instance RandomTableProvider DummyRandomTableProvider where
+  getRandomTable _ = A.listArray ((1,0), (4, 16*16-1)) $ replicate (4*16*16) 0
 
 type TBoardMap a = SM.Map BoardHash a
 

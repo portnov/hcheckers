@@ -24,7 +24,8 @@ instance Show International where
 instance HasTopology International where
   boardTopology _ = Diagonal
 
-instance SimpleEvaluatorSupport International
+instance SimpleEvaluatorSupport International where
+  getAllAddresses r = addresses10 r
 
 instance GameRules International where
   type EvaluatorForRules International = SimpleEvaluator

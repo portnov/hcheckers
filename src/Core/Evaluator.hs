@@ -8,6 +8,8 @@ module Core.Evaluator
   ( SimpleEvaluator (..),
     SimpleEvaluatorInterface (..),
     SimpleEvaluatorSupport (..),
+    SimpleEvaluatorData (..),
+    weightForSide,
     defaultEvaluator
   ) where
 
@@ -15,9 +17,25 @@ import           Data.Aeson
 import           Data.Aeson.Types as AT
 import           Data.Default
 import qualified Data.Vector as V
+import qualified Data.Map as M
 
 import           Core.Types
 import           Core.Board
+
+data SimpleEvaluatorWeights = SimpleEvaluatorWeights {
+    sewFirst :: {-# UNPACK #-} ! ScoreBase
+  , sewSecond :: {-# UNPACK #-} ! ScoreBase
+  }
+  deriving (Show)
+
+weightForSide :: Side -> SimpleEvaluatorWeights -> ScoreBase
+weightForSide First w = sewFirst w
+weightForSide Second w = sewSecond w
+
+data SimpleEvaluatorData = SimpleEvaluatorData {  
+    sedCenter :: SimpleEvaluatorWeights
+  }
+  deriving (Show)
 
 data SimpleEvaluator = SimpleEvaluator {
     seRules :: SimpleEvaluatorInterface,
@@ -33,7 +51,8 @@ data SimpleEvaluator = SimpleEvaluator {
     seKingCoef :: ScoreBase,
     seHelpedKingCoef :: ScoreBase,
     seAttackedManCoef :: ScoreBase,
-    seAttackedKingCoef :: ScoreBase
+    seAttackedKingCoef :: ScoreBase,
+    seCache :: M.Map Address SimpleEvaluatorData
   }
   deriving (Show)
 
@@ -44,6 +63,8 @@ class GameRules rules => SimpleEvaluatorSupport rules where
   getForwardDirections :: rules -> [PlayerDirection]
   getForwardDirections _ = [ForwardLeft, ForwardRight]
 
+  getAllAddresses :: rules -> [Address]
+
 data SimpleEvaluatorInterface = forall g. SimpleEvaluatorSupport g => SimpleEvaluatorInterface g
 
 instance Show SimpleEvaluatorInterface where
@@ -51,21 +72,24 @@ instance Show SimpleEvaluatorInterface where
 
 defaultEvaluator :: SimpleEvaluatorSupport rules => rules -> SimpleEvaluator
 defaultEvaluator rules = SimpleEvaluator
-  { seRules              = SimpleEvaluatorInterface rules
-  , seUsePositionalScore = True
-  , seMobilityWeight     = 30
-  , seBackyardWeight     = 14
-  , seCenterWeight       = 16
-  , seOppositeSideWeight = 32
-  , seBorderMenBad       = True
-  , seBackedWeight       = 24
-  , seAsymetryWeight     = -12
-  , sePreKingWeight      = 28
-  , seKingCoef           = 3
-  , seHelpedKingCoef     = 5
-  , seAttackedManCoef = -40
-  , seAttackedKingCoef = -80
-  }
+    { seRules              = iface
+    , seUsePositionalScore = True
+    , seMobilityWeight     = 30
+    , seBackyardWeight     = 14
+    , seCenterWeight       = 16
+    , seOppositeSideWeight = 32
+    , seBorderMenBad       = True
+    , seBackedWeight       = 24
+    , seAsymetryWeight     = -12
+    , sePreKingWeight      = 28
+    , seKingCoef           = 3
+    , seHelpedKingCoef     = 5
+    , seAttackedManCoef = -40
+    , seAttackedKingCoef = -80
+    , seCache = buildCache iface
+    }
+  where
+    iface = SimpleEvaluatorInterface rules
 
 parseEvaluator :: SimpleEvaluator -> Value -> AT.Parser SimpleEvaluator
 parseEvaluator def = withObject "Evaluator" $ \v -> SimpleEvaluator
@@ -83,6 +107,7 @@ parseEvaluator def = withObject "Evaluator" $ \v -> SimpleEvaluator
     <*> v .:? "helped_king_coef" .!= seHelpedKingCoef def
     <*> v .:? "attacked_man_coef" .!= seAttackedManCoef def
     <*> v .:? "attacked_king_coef" .!= seAttackedKingCoef def
+    <*> pure (seCache def)
 
 instance ToJSON SimpleEvaluator where
   toJSON p = object [
@@ -142,8 +167,44 @@ instance Default PreScore where
           , psAttackedKings = 0
         }
 
+waveRho :: SimpleEvaluatorInterface -> Side -> (Address -> Bool) -> Address -> ScoreBase -> ScoreBase
+waveRho (SimpleEvaluatorInterface rules) side isGood addr best = go addr
+  where
+    go :: Address -> ScoreBase
+    go addr
+      | isGood addr = best
+      | otherwise =
+        let check :: PlayerDirection -> ScoreBase
+            check dir =
+              case myNeighbour rules side dir addr of
+                Nothing -> 0
+                Just dst -> max 0 $ go dst - 1
+        in  maximum $ map check $ getForwardDirections rules
+
+buildCache :: SimpleEvaluatorInterface -> M.Map Address SimpleEvaluatorData
+buildCache iface@(SimpleEvaluatorInterface rules) = M.fromList [(addr, labelData addr) | addr <- getAllAddresses rules]
+  where
+    labelData addr = SimpleEvaluatorData $ SimpleEvaluatorWeights {
+        sewFirst = waveRho iface First (isCenter . aLabel) addr best,
+        sewSecond = waveRho iface Second (isCenter . aLabel) addr best
+      }
+
+    (nrows, ncols) = boardSize rules
+
+    best = fromIntegral $ nrows `div` 2 - 1
+
+    crow           = nrows `div` 2
+    ccol           = ncols `div` 2
+    halfCol        = ccol `div` 2
+    halfRow        = crow `div` 2
+
+    isCenter (Label col row) =
+      (col >= ccol - halfCol && col < ccol + halfCol)
+        && (row >= crow - 1 && row < crow + 1)
+        -- && (row >= crow - halfRow && row < crow + halfRow)
+
 preEval :: SimpleEvaluator -> Side -> Board -> PreScore
-preEval (SimpleEvaluator { seRules = SimpleEvaluatorInterface rules, ..}) side board =
+preEval (SimpleEvaluator { seRules = iface@(SimpleEvaluatorInterface rules), ..}) side board =
   let
     kingCoef = seKingCoef
       -- King is much more useful when there are enough men to help it
@@ -159,10 +220,6 @@ preEval (SimpleEvaluator { seRules = SimpleEvaluatorInterface rules, ..}) side b
     ccol           = ncols `div` 2
     halfCol        = ccol `div` 2
     halfRow        = crow `div` 2
-
-    isCenter (Label col row) =
-      (col >= ccol - halfCol && col < ccol + halfCol)
-        && (row >= crow - halfRow && row < crow + halfRow)
 
     isLeftHalf (Label col _) = col >= ccol
 
@@ -197,9 +254,7 @@ preEval (SimpleEvaluator { seRules = SimpleEvaluatorInterface rules, ..}) side b
         Top    -> nrows - row
         Bottom -> row + 1
 
-    centerNumber (Label col row) =
-        min (nrows - row - 1) row *
-        min (ncols - col - 1) col
+    centerNumber addr = weightForSide side $ sedCenter $ seCache M.! addr
 
     opponentSideCount =
       sum $ map tempNumber $ myMen side board
@@ -221,7 +276,7 @@ preEval (SimpleEvaluator { seRules = SimpleEvaluatorInterface rules, ..}) side b
     attackedKings = getPiecesCount (Piece King side) attackedFields board
 
     centerScore =
-      let (men, kings) = myLabelsCount' side board centerNumber in men + kings
+      let (men, kings) = myAddressesCount' side board centerNumber in men + kings
   in
     PreScore
       { psNumeric  = numericScore
@@ -307,21 +362,24 @@ instance VectorEvaluator SimpleEvaluator where
         seAttackedKingCoef ]
 
   evalFromVector rules v = SimpleEvaluator {
-        seRules = SimpleEvaluatorInterface rules
-      , seUsePositionalScore = True
-      , seMobilityWeight = round (v V.! 0)
-      , seBackyardWeight = round (v V.! 1)
-      , seCenterWeight = round (v V.! 2)
-      , seOppositeSideWeight = round (v V.! 3)
-      , seBackedWeight = round (v V.! 4)
-      , seAsymetryWeight = round (v V.! 5)
-      , sePreKingWeight = round (v V.! 6)
-      , seKingCoef = round (v V.! 7)
-      , seAttackedManCoef = round (v V.! 8)
-      , seAttackedKingCoef = round (v V.! 9)
-      , seHelpedKingCoef = round (v V.! 7)
-      , seBorderMenBad = True
-    }
+          seRules = iface
+        , seUsePositionalScore = True
+        , seMobilityWeight = round (v V.! 0)
+        , seBackyardWeight = round (v V.! 1)
+        , seCenterWeight = round (v V.! 2)
+        , seOppositeSideWeight = round (v V.! 3)
+        , seBackedWeight = round (v V.! 4)
+        , seAsymetryWeight = round (v V.! 5)
+        , sePreKingWeight = round (v V.! 6)
+        , seKingCoef = round (v V.! 7)
+        , seAttackedManCoef = round (v V.! 8)
+        , seAttackedKingCoef = round (v V.! 9)
+        , seHelpedKingCoef = round (v V.! 7)
+        , seBorderMenBad = True
+        , seCache = buildCache iface
+      }
+    where
+      iface = SimpleEvaluatorInterface rules
         
 
 -- data ComplexEvaluator rules = ComplexEvaluator {

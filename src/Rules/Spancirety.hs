@@ -5,6 +5,7 @@
 module Rules.Spancirety (Spancirety, spancirety) where
 
 import Data.Typeable
+import qualified Data.IntMap as IM
 
 import Core.Types
 import Core.Board
@@ -21,7 +22,8 @@ instance Show Spancirety where
 instance HasTopology Spancirety where
   boardTopology _ = Diagonal
 
-instance SimpleEvaluatorSupport Spancirety
+instance SimpleEvaluatorSupport Spancirety where
+  getAllAddresses r = IM.elems $ bAddresses $ buildBoard DummyRandomTableProvider r FirstAtBottom (8, 10)
 
 instance GameRules Spancirety where
   type EvaluatorForRules Spancirety = SimpleEvaluator

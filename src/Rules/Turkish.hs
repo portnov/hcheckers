@@ -26,6 +26,7 @@ instance HasTopology Turkish where
 
 instance SimpleEvaluatorSupport Turkish where
   getBackDirections _ = [Backward]
+  getAllAddresses r = addresses8 r
 
 instance GameRules Turkish where
   type EvaluatorForRules Turkish = SimpleEvaluator

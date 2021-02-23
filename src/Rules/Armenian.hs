@@ -26,6 +26,7 @@ instance HasTopology Armenian where
 instance SimpleEvaluatorSupport Armenian where
   getBackDirections _ = [Backward]
   getForwardDirections _ = [ForwardLeft, Forward, ForwardRight]
+  getAllAddresses r = addresses8 r
 
 instance GameRules Armenian where
   type EvaluatorForRules Armenian = SimpleEvaluator

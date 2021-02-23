@@ -21,7 +21,8 @@ instance Show Canadian where
 instance HasTopology Canadian where
   boardTopology _ = Diagonal
 
-instance SimpleEvaluatorSupport Canadian
+instance SimpleEvaluatorSupport Canadian where
+  getAllAddresses r = addresses12 r
 
 instance GameRules Canadian where
   type EvaluatorForRules Canadian = SimpleEvaluator

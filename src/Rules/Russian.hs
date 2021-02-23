@@ -21,7 +21,8 @@ newtype Russian = Russian GenericRules
 instance Show Russian where
   show = rulesName
 
-instance SimpleEvaluatorSupport Russian
+instance SimpleEvaluatorSupport Russian where
+  getAllAddresses r = addresses8 r
 
 instance HasTopology Russian where
   boardTopology _ = Diagonal

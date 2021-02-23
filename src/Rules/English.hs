@@ -23,7 +23,8 @@ instance Show English where
 instance HasTopology English where
   boardTopology _ = Diagonal
 
-instance SimpleEvaluatorSupport English
+instance SimpleEvaluatorSupport English where
+  getAllAddresses r = addresses8' r
 
 instance GameRules English where
   type EvaluatorForRules English = SimpleEvaluator

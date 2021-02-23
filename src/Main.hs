@@ -6,10 +6,12 @@ import Control.Monad
 import Control.Monad.Reader
 import Control.Concurrent.STM
 import Data.Default
+import qualified Data.Map as M
 import qualified Data.ByteString.Lazy.Char8 as C8
 import qualified Data.Aeson as Aeson
 import System.Log.Heavy
 import Options.Applicative
+import Text.Printf
 
 import Core.Types
 import Core.Board
@@ -20,6 +22,7 @@ import Core.Rest
 import Core.Checkers
 import Core.CmdLine
 import Core.Supervisor (withRules)
+import Core.Evaluator
 
 import Learn
 import Battle
@@ -112,16 +115,13 @@ special cmd args =
 
     ["test"] -> do
       withCheckers cmd $ do
-        sh <- asks csSupervisor
-        st <- liftIO $ atomically $ readTVar sh
-        let b = movePiece' "c3" "e5" $ board8 st russian
-            b' = flipBoard b
-            b'' = flipBoard b'
-        liftIO $ do
-          print b
-          print b'
-          print b''
-          print (b == b'')
+        let rules = russian
+            cache = seCache $ defaultEvaluator rules
+        forM_ (M.assocs cache) $ \(addr, sed) -> do
+            liftIO $ printf "%s => %s, %s\n"
+                (show $ aLabel addr)
+                (show $ weightForSide First $ sedCenter sed)
+                (show $ weightForSide Second $ sedCenter sed)
     
 -- main :: IO ()
 -- main = do

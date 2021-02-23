@@ -62,6 +62,9 @@ opponentPiece (Piece k s) = Piece k (opposite s)
 allFields :: Board -> [FieldIndex]
 allFields b = IM.keys (bAddresses b)
 
+allLabels :: Board -> [Label]
+allLabels b = map unpackIndex $ allFields b
+
 allPieces :: Board -> [Maybe Piece]
 allPieces b =
     [getPiece' (Label col row) b | col <- [0 .. ncols-1], row <-  [0 .. nrows-1]]
@@ -685,6 +688,9 @@ line7labels = ["a7", "c7", "e7", "g7"]
 
 line8labels :: [Label]
 line8labels = ["b8", "d8", "f8", "h8"]
+
+emptyBoard8 :: (RandomTableProvider rnd, HasTopology rules) => rnd -> rules -> Board
+emptyBoard8 rnd rules = buildBoard rnd rules FirstAtBottom (8, 8)
 
 board8 :: (RandomTableProvider rnd, HasTopology rules) => rnd -> rules -> Board
 board8 rnd rules =

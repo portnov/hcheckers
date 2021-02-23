@@ -4,6 +4,7 @@ module Rules.Generic where
 
 import Data.List
 import Data.Maybe
+import qualified Data.IntMap as IM
 
 import Core.Types
 import Core.Board
@@ -449,4 +450,25 @@ abstractRules =
     , gRemoveCapturedImmediately = False
     }
   in rules
+
+labels8 :: [Label]
+labels8 = [Label col row | col <- [0..7], row <- [0..7], ((row+col) `mod` 2) == 0]
+
+addresses8 :: HasTopology rules => rules -> [Address]
+addresses8 r = IM.elems $ bAddresses $ buildBoard DummyRandomTableProvider r FirstAtBottom (8, 8)
+
+addresses8' :: HasTopology rules => rules -> [Address]
+addresses8' r = IM.elems $ bAddresses $ buildBoard DummyRandomTableProvider r SecondAtBottom (8, 8)
+
+labels8full :: [Label]
+labels8full = [Label col row | col <- [0..7], row <- [0..7]]
+
+labels10 :: [Label]
+labels10 = [Label col row | col <- [0..9], row <- [0..9], ((row+col) `mod` 2) == 0]
+
+addresses10 :: HasTopology rules => rules -> [Address]
+addresses10 r = IM.elems $ bAddresses $ buildBoard DummyRandomTableProvider r FirstAtBottom (10, 10)
+
+addresses12 :: HasTopology rules => rules -> [Address]
+addresses12 r = IM.elems $ bAddresses $ buildBoard DummyRandomTableProvider r FirstAtBottom (12, 12)
 

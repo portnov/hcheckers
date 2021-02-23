@@ -21,7 +21,8 @@ instance Show Czech where
 instance HasTopology Czech where
   boardTopology _ = Core.Types.Diagonal
 
-instance SimpleEvaluatorSupport Czech
+instance SimpleEvaluatorSupport Czech where
+  getAllAddresses r = addresses8 r
 
 instance GameRules Czech where
   type EvaluatorForRules Czech = SimpleEvaluator

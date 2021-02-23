@@ -21,7 +21,8 @@ instance Show DiagonalRussian where
 instance HasTopology DiagonalRussian where
   boardTopology _ = Core.Types.Diagonal
 
-instance SimpleEvaluatorSupport DiagonalRussian
+instance SimpleEvaluatorSupport DiagonalRussian where
+  getAllAddresses r = addresses8 r
 
 instance GameRules DiagonalRussian where
   type EvaluatorForRules DiagonalRussian = SimpleEvaluator

@@ -19,7 +19,8 @@ newtype Simple = Simple GenericRules
 instance Show Simple where
   show = rulesName
 
-instance SimpleEvaluatorSupport Simple
+instance SimpleEvaluatorSupport Simple where
+  getAllAddresses r = addresses8 r
 
 instance HasTopology Simple where
   boardTopology _ = Diagonal
