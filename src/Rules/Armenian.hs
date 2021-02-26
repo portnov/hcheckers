@@ -49,7 +49,7 @@ instance GameRules Armenian where
                                  seOppositeSideWeight = 5,
                                  seMobilityWeight = 4,
                                  seBackedWeight = 1,
-                                 seBorderMenBad = False
+                                 seBorderManWeight = 0
                                 }
 
   boardNotation _ = chessNotation

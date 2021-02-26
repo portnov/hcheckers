@@ -42,7 +42,7 @@ instance GameRules Turkish where
 
   boardSize _ = (8, 8)
 
-  dfltEvaluator r = (defaultEvaluator r) {seKingCoef = 5, seHelpedKingCoef = 6, seBorderMenBad = False}
+  dfltEvaluator r = (defaultEvaluator r) {seKingCoef = 5, seHelpedKingCoef = 6, seBorderManWeight = 0}
 
   boardNotation _ = chessNotation
 
