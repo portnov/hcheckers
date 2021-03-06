@@ -109,6 +109,9 @@ class AiEditorWidget(QWidget):
         self.timeout = make_spinbox(_("Timeout (seconds)"), 1, 120, general)
         self.timeout.setEnabled(False)
 
+        self.random_opening_depth = make_spinbox(_("Random opening depth"), 1, 5, general)
+        self.random_opening_options = make_spinbox(_("Random opening options"), 1, 5, general)
+
         self.tabs.addTab(general, _("General"))
 
         evaluator = QWidget(self.tabs)
@@ -197,6 +200,8 @@ class AiEditorWidget(QWidget):
         self.use_positional_score.setCheckState(Qt.Checked if ai.use_positional_score else Qt.Unchecked)
         self.use_timeout.setCheckState(Qt.Checked if ai.use_timeout else Qt.Unchecked)
         self.timeout.setValue(1 if ai.timeout is None else ai.timeout)
+        self.random_opening_depth.setValue(ai.random_opening_depth)
+        self.random_opening_options.setValue(ai.random_opening_options)
 
         self.mobility_weight.setValue(ai.mobility_weight)
         self.backyard_weight.setValue(ai.backyard_weight)
@@ -224,6 +229,8 @@ class AiEditorWidget(QWidget):
         ai.use_positional_score = self.use_positional_score.checkState() == Qt.Checked
         ai.use_timeout = self.use_timeout.checkState() == Qt.Checked
         ai.timeout = self.timeout.value()
+        ai.random_opening_depth = self.random_opening_depth.value()
+        ai.random_opening_options = self.random_opening_options.value()
 
         ai.mobility_weight = self.mobility_weight.value()
         ai.backyard_weight = self.backyard_weight.value()

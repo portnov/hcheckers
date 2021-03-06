@@ -42,6 +42,8 @@ class AI(object):
         self.use_positional_score = True
         self.timeout = None
         self.use_timeout = False
+        self.random_opening_depth = 1
+        self.random_opening_options = 1
 
         self.mobility_weight = 30
         self.backyard_weight = 14
@@ -80,6 +82,8 @@ class AI(object):
         ai.use_positional_score = settings.value("use_positional_score", type=bool)
         ai.use_timeout = settings.value("use_timeout", type=bool)
         ai.timeout = settings.value("timeout", type=int)
+        ai.random_opening_depth = settings.value("random_opening_depth", ai.random_opening_depth, type=int)
+        ai.random_opening_options = settings.value("random_opening_options", ai.random_opening_options, type=int)
 
         ai.mobility_weight = settings.value("mobility_weight", ai.mobility_weight, type=int)
         ai.backyard_weight = settings.value("backyard_weight", ai.backyard_weight, type=int)
@@ -121,6 +125,8 @@ class AI(object):
         settings.setValue("use_positional_score", self.use_positional_score)
         settings.setValue("use_timeout", self.use_timeout)
         settings.setValue("timeout", self.timeout)
+        settings.setValue("random_opening_depth", self.random_opening_depth)
+        settings.setValue("random_opening_options", self.random_opening_options)
 
         settings.setValue("mobility_weight", self.mobility_weight)
         settings.setValue("backyard_weight", self.backyard_weight)
@@ -147,6 +153,8 @@ class AI(object):
             "moves_bound_high": self.moves_bound_high,
             "use_positional_score": self.use_positional_score,
             "time": self.timeout if self.use_timeout else None,
+            "random_opening_depth": self.random_opening_depth,
+            "random_opening_options": self.random_opening_options,
 
             "mobility_weight": self.mobility_weight,
             "backyard_weight": self.backyard_weight,
