@@ -110,7 +110,9 @@ class AiEditorWidget(QWidget):
         self.timeout.setEnabled(False)
 
         self.random_opening_depth = make_spinbox(_("Random opening depth"), 1, 5, general)
+        self.random_opening_depth.setToolTip(_("Number of first moves to be considered as opening; during these moves, AI will select it's move randomly from several best options"))
         self.random_opening_options = make_spinbox(_("Random opening options"), 1, 5, general)
+        self.random_opening_options.setToolTip(_("From how many best options to select during the opening"))
 
         self.tabs.addTab(general, _("General"))
 

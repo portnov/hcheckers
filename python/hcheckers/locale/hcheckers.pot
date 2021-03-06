@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2021-02-18 22:48+0500\n"
+"POT-Creation-Date: 2021-03-06 18:47+0500\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -107,61 +107,61 @@ msgstr ""
 msgid "Armeinan draughts (Tama)"
 msgstr ""
 
-#: game.py:185
+#: game.py:193
 msgid "Beginner"
 msgstr ""
 
-#: game.py:186
+#: game.py:194
 msgid "Novice"
 msgstr ""
 
-#: game.py:187
+#: game.py:195
 msgid "Average"
 msgstr ""
 
-#: game.py:188
+#: game.py:196
 msgid "Good"
 msgstr ""
 
-#: game.py:189
+#: game.py:197
 msgid "Master"
 msgstr ""
 
-#: game.py:288 game.py:329 game.py:331 lobby.py:37 newgamedlg.py:112
+#: game.py:296 game.py:337 game.py:339 lobby.py:37 newgamedlg.py:112
 msgid "White"
 msgstr ""
 
-#: game.py:290 game.py:329 game.py:331 lobby.py:37 newgamedlg.py:113
+#: game.py:298 game.py:337 game.py:339 lobby.py:37 newgamedlg.py:113
 msgid "Black"
 msgstr ""
 
-#: game.py:292
+#: game.py:300
 msgid "Newly created game ID: {}. First side to move: {}."
 msgstr ""
 
-#: game.py:344
+#: game.py:352
 msgid ""
 "AI parameters:\n"
 "{}"
 msgstr ""
 
-#: game.py:435
+#: game.py:443
 msgid "Offer for a draw posted."
 msgstr ""
 
-#: game.py:450
+#: game.py:458
 msgid "You accepted draw."
 msgstr ""
 
-#: game.py:452
+#: game.py:460
 msgid "You declined draw."
 msgstr ""
 
-#: game.py:462
+#: game.py:470
 msgid "Game #{}: you capitulated."
 msgstr ""
 
-#: game.py:468
+#: game.py:476
 msgid "Server shutdown requested."
 msgstr ""
 
@@ -317,131 +317,147 @@ msgstr ""
 msgid "Timeout (seconds)"
 msgstr ""
 
-#: settingsdlg.py:112 settingsdlg.py:403
+#: settingsdlg.py:112
+msgid "Random opening depth"
+msgstr ""
+
+#: settingsdlg.py:113
+msgid "Number of first moves to be considered as opening; during these moves, AI will select it's move randomly from several best options"
+msgstr ""
+
+#: settingsdlg.py:114
+msgid "Random opening options"
+msgstr ""
+
+#: settingsdlg.py:115
+msgid "From how many best options to select during the opening"
+msgstr ""
+
+#: settingsdlg.py:117 settingsdlg.py:412
 msgid "General"
 msgstr ""
 
-#: settingsdlg.py:118
+#: settingsdlg.py:123
 msgid "Mobility"
 msgstr ""
 
-#: settingsdlg.py:119
+#: settingsdlg.py:124
 msgid "Back row"
 msgstr ""
 
-#: settingsdlg.py:120
+#: settingsdlg.py:125
 msgid "Center"
 msgstr ""
 
-#: settingsdlg.py:121
+#: settingsdlg.py:126
 msgid "Opposite side"
 msgstr ""
 
-#: settingsdlg.py:122
+#: settingsdlg.py:127
 msgid "Backed"
 msgstr ""
 
-#: settingsdlg.py:123
+#: settingsdlg.py:128
 msgid "Asymetry"
 msgstr ""
 
-#: settingsdlg.py:124
+#: settingsdlg.py:129
 msgid "Pre-king"
 msgstr ""
 
-#: settingsdlg.py:125
+#: settingsdlg.py:130
 msgid "King"
 msgstr ""
 
-#: settingsdlg.py:126
+#: settingsdlg.py:131
 msgid "Attacked man"
 msgstr ""
 
-#: settingsdlg.py:127
+#: settingsdlg.py:132
 msgid "Attacked king"
 msgstr ""
 
-#: settingsdlg.py:129
+#: settingsdlg.py:134
 msgid "Board evaluation"
 msgstr ""
 
-#: settingsdlg.py:138
+#: settingsdlg.py:143
 msgid "Extra options"
 msgstr ""
 
-#: settingsdlg.py:145
+#: settingsdlg.py:150
 msgid "Save..."
 msgstr ""
 
-#: settingsdlg.py:147
+#: settingsdlg.py:152
 msgid "Save AI settings to JSON file"
 msgstr ""
 
-#: settingsdlg.py:151
+#: settingsdlg.py:156
 msgid "Load..."
 msgstr ""
 
-#: settingsdlg.py:153
+#: settingsdlg.py:158
 msgid "Load AI settings from JSON file"
 msgstr ""
 
-#: settingsdlg.py:166 toplevel.py:409 toplevel.py:544
+#: settingsdlg.py:171 toplevel.py:409 toplevel.py:544
 msgid "Save file"
 msgstr ""
 
-#: settingsdlg.py:174
+#: settingsdlg.py:179
 msgid "Load file"
 msgstr ""
 
-#: settingsdlg.py:251
+#: settingsdlg.py:260
 msgid "Add AI preset"
 msgstr ""
 
-#: settingsdlg.py:256
+#: settingsdlg.py:265
 msgid "Duplicate AI preset"
 msgstr ""
 
-#: settingsdlg.py:261
+#: settingsdlg.py:270
 msgid "Delete AI preset"
 msgstr ""
 
-#: settingsdlg.py:297
+#: settingsdlg.py:306
 msgid "Copy of {}"
 msgstr ""
 
-#: settingsdlg.py:309
+#: settingsdlg.py:318
 msgid "Show fields notation"
 msgstr ""
 
-#: settingsdlg.py:311
+#: settingsdlg.py:320
 msgid "Show possible moves"
 msgstr ""
 
-#: settingsdlg.py:317
+#: settingsdlg.py:326
 msgid "Theme"
 msgstr ""
 
-#: settingsdlg.py:320
+#: settingsdlg.py:329
 msgid "Enable sounds"
 msgstr ""
 
-#: settingsdlg.py:359
+#: settingsdlg.py:368
 msgid "Server URL"
 msgstr ""
 
-#: settingsdlg.py:363
+#: settingsdlg.py:372
 msgid "Use local server"
 msgstr ""
 
-#: settingsdlg.py:365
+#: settingsdlg.py:374
 msgid "Local server start command"
 msgstr ""
 
-#: settingsdlg.py:405
+#: settingsdlg.py:414
 msgid "View Settings"
 msgstr ""
 
-#: settingsdlg.py:407
+#: settingsdlg.py:416
 msgid "AI Presets"
 msgstr ""
 

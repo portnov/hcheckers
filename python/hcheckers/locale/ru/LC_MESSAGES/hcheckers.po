@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: 0.1.0.0\n"
-"POT-Creation-Date: 2021-02-18 22:48+0500\n"
+"POT-Creation-Date: 2021-03-06 18:47+0500\n"
 "PO-Revision-Date: 2018-11-07 22:30+5\n"
 "Last-Translator: Ilya Portnov <portnov84@rambler.ru>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -107,39 +107,39 @@ msgstr "Турецкие шашки"
 msgid "Armeinan draughts (Tama)"
 msgstr "Армянские шашки (Тама)"
 
-#: game.py:185
+#: game.py:193
 msgid "Beginner"
 msgstr "Начинающий"
 
-#: game.py:186
+#: game.py:194
 msgid "Novice"
 msgstr "Новичок"
 
-#: game.py:187
+#: game.py:195
 msgid "Average"
 msgstr "Средний"
 
-#: game.py:188
+#: game.py:196
 msgid "Good"
 msgstr "Хороший"
 
-#: game.py:189
+#: game.py:197
 msgid "Master"
 msgstr "Мастер"
 
-#: game.py:288 game.py:329 game.py:331 lobby.py:37 newgamedlg.py:112
+#: game.py:296 game.py:337 game.py:339 lobby.py:37 newgamedlg.py:112
 msgid "White"
 msgstr "Белые"
 
-#: game.py:290 game.py:329 game.py:331 lobby.py:37 newgamedlg.py:113
+#: game.py:298 game.py:337 game.py:339 lobby.py:37 newgamedlg.py:113
 msgid "Black"
 msgstr "Черные"
 
-#: game.py:292
+#: game.py:300
 msgid "Newly created game ID: {}. First side to move: {}."
 msgstr "ID созданной игры: {}. Первыми ходят: {}."
 
-#: game.py:344
+#: game.py:352
 msgid ""
 "AI parameters:\n"
 "{}"
@@ -147,23 +147,23 @@ msgstr ""
 "Параметры ИИ:\n"
 "{}"
 
-#: game.py:435
+#: game.py:443
 msgid "Offer for a draw posted."
 msgstr "Предложение ничьей послано."
 
-#: game.py:450
+#: game.py:458
 msgid "You accepted draw."
 msgstr "Вы согласились на ничью."
 
-#: game.py:452
+#: game.py:460
 msgid "You declined draw."
 msgstr "Вы отказались от ничьей."
 
-#: game.py:462
+#: game.py:470
 msgid "Game #{}: you capitulated."
 msgstr "Игра #{}: вы сдались."
 
-#: game.py:468
+#: game.py:476
 msgid "Server shutdown requested."
 msgstr "Запрошена остановка сервера."
 
@@ -319,131 +319,149 @@ msgstr "Продолжать думать, пока есть время"
 msgid "Timeout (seconds)"
 msgstr "Таймаут (секунд)"
 
-#: settingsdlg.py:112 settingsdlg.py:403
+#: settingsdlg.py:112
+msgid "Random opening depth"
+msgstr "Глубина случайного дебюта"
+
+#: settingsdlg.py:113
+msgid ""
+"Number of first moves to be considered as opening; during these moves, AI "
+"will select it's move randomly from several best options"
+msgstr "Количество первых ходов, которые должны расцениваться как дебют; в течение этих ходов, ИИ будет выбирать его ход случайным образом из нескольких наилучших"
+
+#: settingsdlg.py:114
+msgid "Random opening options"
+msgstr "Варианты случайного дебюта"
+
+#: settingsdlg.py:115
+msgid "From how many best options to select during the opening"
+msgstr "Из скольки лучших опций выбирать ход в течение дебюта"
+
+#: settingsdlg.py:117 settingsdlg.py:412
 msgid "General"
 msgstr "Общее"
 
-#: settingsdlg.py:118
+#: settingsdlg.py:123
 msgid "Mobility"
 msgstr "Мобильность"
 
-#: settingsdlg.py:119
+#: settingsdlg.py:124
 msgid "Back row"
 msgstr "Первый ряд"
 
-#: settingsdlg.py:120
+#: settingsdlg.py:125
 msgid "Center"
 msgstr "Центр"
 
-#: settingsdlg.py:121
+#: settingsdlg.py:126
 msgid "Opposite side"
 msgstr "Противоположная сторона"
 
-#: settingsdlg.py:122
+#: settingsdlg.py:127
 msgid "Backed"
 msgstr "Прикрытие"
 
-#: settingsdlg.py:123
+#: settingsdlg.py:128
 msgid "Asymetry"
 msgstr "Асимметрия"
 
-#: settingsdlg.py:124
+#: settingsdlg.py:129
 msgid "Pre-king"
 msgstr "Почти-дамка"
 
-#: settingsdlg.py:125
+#: settingsdlg.py:130
 msgid "King"
 msgstr "Дамка"
 
-#: settingsdlg.py:126
+#: settingsdlg.py:131
 msgid "Attacked man"
 msgstr "Атакованая шашка"
 
-#: settingsdlg.py:127
+#: settingsdlg.py:132
 msgid "Attacked king"
 msgstr "Атакованая дамка"
 
-#: settingsdlg.py:129
+#: settingsdlg.py:134
 msgid "Board evaluation"
 msgstr "Оценка доски"
 
-#: settingsdlg.py:138
+#: settingsdlg.py:143
 msgid "Extra options"
 msgstr "Дополнительные опции"
 
-#: settingsdlg.py:145
+#: settingsdlg.py:150
 msgid "Save..."
 msgstr "Сохранить..."
 
-#: settingsdlg.py:147
+#: settingsdlg.py:152
 msgid "Save AI settings to JSON file"
 msgstr "Сохранить настройки ИИ в файл JSON"
 
-#: settingsdlg.py:151
+#: settingsdlg.py:156
 msgid "Load..."
 msgstr "Загрузить..."
 
-#: settingsdlg.py:153
+#: settingsdlg.py:158
 msgid "Load AI settings from JSON file"
 msgstr "Загрузить настройки ИИ из файла JSON"
 
-#: settingsdlg.py:166 toplevel.py:409 toplevel.py:544
+#: settingsdlg.py:171 toplevel.py:409 toplevel.py:544
 msgid "Save file"
 msgstr "Сохранить файл"
 
-#: settingsdlg.py:174
+#: settingsdlg.py:179
 msgid "Load file"
 msgstr "Загрузить файл"
 
-#: settingsdlg.py:251
+#: settingsdlg.py:260
 msgid "Add AI preset"
 msgstr "Добавить настройку ИИ"
 
-#: settingsdlg.py:256
+#: settingsdlg.py:265
 msgid "Duplicate AI preset"
 msgstr "Дублировать настройку ИИ"
 
-#: settingsdlg.py:261
+#: settingsdlg.py:270
 msgid "Delete AI preset"
 msgstr "Удалить настройку ИИ"
 
-#: settingsdlg.py:297
+#: settingsdlg.py:306
 msgid "Copy of {}"
 msgstr "Копия {}"
 
-#: settingsdlg.py:309
+#: settingsdlg.py:318
 msgid "Show fields notation"
 msgstr "Показывать нотацию полей"
 
-#: settingsdlg.py:311
+#: settingsdlg.py:320
 msgid "Show possible moves"
 msgstr "Показывать возможные ходы"
 
-#: settingsdlg.py:317
+#: settingsdlg.py:326
 msgid "Theme"
 msgstr "Тема"
 
-#: settingsdlg.py:320
+#: settingsdlg.py:329
 msgid "Enable sounds"
 msgstr "Включить звуки"
 
-#: settingsdlg.py:359
+#: settingsdlg.py:368
 msgid "Server URL"
 msgstr "URL сервера"
 
-#: settingsdlg.py:363
+#: settingsdlg.py:372
 msgid "Use local server"
 msgstr "Использовать локальный сервер"
 
-#: settingsdlg.py:365
+#: settingsdlg.py:374
 msgid "Local server start command"
 msgstr "Команда запуска локального сервера"
 
-#: settingsdlg.py:405
+#: settingsdlg.py:414
 msgid "View Settings"
 msgstr "Настройки внешнего вида"
 
-#: settingsdlg.py:407
+#: settingsdlg.py:416
 msgid "AI Presets"
 msgstr "Настройки ИИ"
 
