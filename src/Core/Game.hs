@@ -15,6 +15,7 @@ module Core.Game where
 import Control.Monad.State
 import Control.Monad.Except
 import Control.Concurrent.STM
+import qualified Data.Map as M
 
 import Core.Types
 import Core.Board
@@ -42,6 +43,15 @@ mkGame supervisor rules id firstSide mbBoardRep = do
           gMsgbox1 = msgbox1,
           gMsgbox2 = msgbox2
         }
+
+-- | Get game by Id
+getGame :: GameId -> Checkers Game
+getGame gameId = do
+  var <- askSupervisor
+  st <- liftIO $ atomically $ readTVar var
+  case M.lookup gameId (ssGames st) of
+    Just game -> return game
+    Nothing -> throwError $ NoSuchGame gameId
 
 -- | Check current game status. 
 -- Throw an error if it is not as expected.
@@ -84,6 +94,12 @@ gameHistory = do
     rep (SomeRules rules) r =
       let side = hrSide r
       in  HistoryRecordRep side (moveRep rules side $ hrMove r)
+
+-- | Number of half-moves done in this game
+gameMoveNumber :: Game -> Int
+gameMoveNumber g =
+  let history = gsHistory $ gState g
+  in  length history
 
 -- | Move result. Contains resulting board and a list of notification messages.
 data GMoveRs = GMoveRs Board [Notify]

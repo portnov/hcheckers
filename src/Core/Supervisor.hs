@@ -280,15 +280,6 @@ withGame gameId action = do
     Right result -> return result
     Left err -> throwError err
 
--- | Get game by Id
-getGame :: GameId -> Checkers Game
-getGame gameId = do
-  var <- askSupervisor
-  st <- liftIO $ atomically $ readTVar var
-  case M.lookup gameId (ssGames st) of
-    Just game -> return game
-    Nothing -> throwError $ NoSuchGame gameId
-
 -- | Get game rules by game Id
 getRules :: GameId -> Checkers SomeRules
 getRules gameId = do

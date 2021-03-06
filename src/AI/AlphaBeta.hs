@@ -35,6 +35,7 @@ import System.Clock
 import Core.Types
 import Core.Board
 import Core.BoardMap (labelSetMember)
+import Core.Game
 import Core.Parallel
 import Core.Logging
 import qualified Core.Monitoring as Monitoring
@@ -63,6 +64,8 @@ instance FromJSON AlphaBetaParams where
       <*> v .:? "moves_bound_low" .!= 4
       <*> v .:? "moves_bound_high" .!= 8
       <*> v .:? "time"
+      <*> v .:? "random_opening_depth" .!= abRandomOpeningDepth def
+      <*> v .:? "random_opening_options" .!= abRandomOpeningOptions def
 
 instance ToJSON AlphaBetaParams where
   toJSON p = object [
@@ -73,7 +76,9 @@ instance ToJSON AlphaBetaParams where
               "deeper_if_bad" .= abDeeperIfBad p,
               "moves_bound_low" .= abMovesLowBound p,
               "moves_bound_high" .= abMovesHighBound p,
-              "time" .= abBaseTime p
+              "time" .= abBaseTime p,
+              "random_opening_depth" .= abRandomOpeningDepth p,
+              "random_opening_options" .= abRandomOpeningOptions p
             ]
 
 instance ToJSON eval => ToJSON (AlphaBeta rules eval) where
@@ -133,6 +138,8 @@ instance (GameRules rules, VectorEvaluator eval) => VectorAi (AlphaBeta rules ev
                 , abMovesLowBound = abMovesLowBound def
                 , abMovesHighBound = abMovesHighBound def
                 , abBaseTime = Nothing
+                , abRandomOpeningDepth = 1
+                , abRandomOpeningOptions = 1
               }
 
       v' = V.drop 3 v
@@ -756,8 +763,20 @@ runAI ai@(AlphaBeta params rules eval) handle gameId side board = do
     select pairs = do
       let best = if maximize then maximum else minimum
           maxScore = best $ map rScore pairs
-          goodMoves = [rMove result | result <- pairs, rScore result == maxScore]
-      return (goodMoves, maxScore)
+      game <- getGame gameId
+      let halfMoves = gameMoveNumber game
+          moveNumber = halfMoves `div` 2
+          nOptions = if moveNumber <= abRandomOpeningDepth params
+                       then abRandomOpeningOptions params
+                       else 1
+      if nOptions == 1
+        then do
+          let goodMoves = [rMove result | result <- pairs, rScore result == maxScore]
+          return (goodMoves, maxScore)
+        else do
+          let srt = if maximize then sortOn (negate . rScore) else sortOn rScore
+              goodMoves = map rMove $ take nOptions $ srt pairs
+          return (goodMoves, maxScore)
 
 -- | Calculate score of the board
 doScore :: (GameRules rules, Evaluator eval)

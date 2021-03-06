@@ -68,6 +68,8 @@ data AlphaBetaParams = AlphaBetaParams {
   , abMovesLowBound :: Int
   , abMovesHighBound :: Int
   , abBaseTime :: Maybe Int
+  , abRandomOpeningDepth :: Int
+  , abRandomOpeningOptions :: Int
   }
   deriving (Eq, Ord, Show)
 
@@ -81,6 +83,8 @@ instance Default AlphaBetaParams where
         , abMovesLowBound = 4
         , abMovesHighBound = 8
         , abBaseTime = Nothing
+        , abRandomOpeningDepth = 1
+        , abRandomOpeningOptions = 1
         }
 
 -- Calculation depth parameters
