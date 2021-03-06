@@ -128,6 +128,7 @@ class NewGameDialog(DialogBase):
         self.file_path.setVisible(False)
         #self.file_path.selected.connect(self._on_file_selected)
         layout.addRow(_("Select file"), self.file_path)
+        layout.labelForField(self.file_path).setVisible(False)
 
         widget.setLayout(layout)
 
@@ -254,6 +255,7 @@ class NewGameDialog(DialogBase):
         board_type = self.board_type.itemData(idx)
         show_file = board_type == LOAD_FEN or board_type == LOAD_PDN
         self.file_path.setVisible(show_file)
+        self.form_layout.labelForField(self.file_path).setVisible(show_file)
 
         show_rules = board_type != LOAD_PDN
         self.rules.setVisible(show_rules)
