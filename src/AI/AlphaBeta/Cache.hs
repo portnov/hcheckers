@@ -13,6 +13,7 @@ module AI.AlphaBeta.Cache
     resetAiCache
   ) where
 
+import Control.Concurrent
 import Control.Monad.State
 import Control.Monad.Reader
 import Control.Concurrent.STM
@@ -28,10 +29,7 @@ import Core.BoardMap
 import Core.Parallel
 import qualified Core.Monitoring as Monitoring
 import AI.AlphaBeta.Types
--- import AI.AlphaBeta.Persistent
-
-newAiData :: Checkers AIData
-newAiData = liftIO $ atomically $ newTVar $ M.empty
+import AI.AlphaBeta.Persistent
 
 putAiData :: VectorEvaluator eval => AIData -> eval -> Board -> PerBoardData -> Checkers ()
 putAiData aiData eval board item =
@@ -65,7 +63,7 @@ loadAiCache scoreMove (AlphaBeta params rules eval) = do
   let getKey inputs = map smiIndex inputs
   aiCfg <- asks (gcAiConfig . csConfig)
   processor <- runProcessor (aiThreads aiCfg) getKey scoreMove
-  cache <- newAiData
+  cache <- loadAiData rules
 
   st <- ask
   counts <- liftIO $ atomically $ newTVar $ BoardCounts 50 50 50 50
@@ -82,7 +80,15 @@ loadAiCache scoreMove (AlphaBeta params rules eval) = do
       aichCurrentCounts = counts
     }
 
+  forkCheckers $ aiStorageSaver rules cache
+
   return handle
+
+aiStorageSaver :: GameRules rules => rules -> AIData -> Checkers ()
+aiStorageSaver rules aiData = do
+      saveAiData rules aiData
+      liftIO $ threadDelay $ 10 * 1000 * 1000
+      aiStorageSaver rules aiData
 
 normalize :: BoardSize -> (BoardCounts,BoardKey,Side) -> (BoardCounts,BoardKey,Side)
 normalize bsize (bc,bk,side) =

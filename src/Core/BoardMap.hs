@@ -101,16 +101,12 @@ removeBoard a p@(Piece King Second) b = b {
 newTBoardMap :: IO (TBoardMap a)
 newTBoardMap = atomically SM.new
 
-putBoardMap :: TBoardMap a -> Board -> a -> IO ()
-putBoardMap bmap board value = atomically $ do
+putBoardMap' :: TBoardMap a -> Board -> a -> STM ()
+putBoardMap' bmap board value = 
   SM.insert value (boardHash board) bmap
---   mbByHash <- SM.lookup (boardCounts board) bmap
---   case mbByHash of
---     Just byHash -> SM.insert value (boardHash board) byHash
---     Nothing -> do
---       byHash <- SM.new
---       SM.insert value (boardHash board) byHash
---       SM.insert byHash (boardCounts board) bmap
+
+putBoardMap :: TBoardMap a -> Board -> a -> IO ()
+putBoardMap bmap board value = atomically $ putBoardMap' bmap board value
 
 putBoardMapWith' :: TBoardMap a -> (a -> a -> a) -> Board -> a -> STM ()
 putBoardMapWith' bmap plus board value = do

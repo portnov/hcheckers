@@ -85,6 +85,8 @@ instance Show Label where
 data PieceKind = Man | King
   deriving (Eq, Ord, Generic, Typeable)
 
+instance Store PieceKind
+
 instance Show PieceKind where
   show Man = "M"
   show King = "K"
@@ -127,7 +129,9 @@ data Piece = Piece {
     pieceKind :: PieceKind
   , pieceSide :: Side
   }
-  deriving (Eq, Ord, Typeable)
+  deriving (Eq, Ord, Typeable, Generic)
+
+instance Store Piece
 
 instance Show Piece where
   show (Piece k s) = show k ++ show s
@@ -378,7 +382,9 @@ data MoveCheckResult =
 
 -- | Representation of Board for JSON
 data BoardRep = BoardRep [(Label, Piece)]
-  deriving (Eq, Ord, Show, Typeable)
+  deriving (Eq, Ord, Show, Typeable, Generic)
+
+instance Store BoardRep
 
 boardRepLen :: BoardRep -> Int
 boardRepLen (BoardRep lst) = length lst

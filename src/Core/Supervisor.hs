@@ -21,10 +21,12 @@ import Data.List
 import qualified Data.Map as M
 import qualified Data.Text as T
 import Data.Array.IArray as A
+import qualified Data.ByteString as B
 import Data.Text.Format.Heavy
 import Data.Default
 import Data.Aeson hiding (Error)
 import Data.Dynamic
+import Data.Store
 import GHC.Generics
 import System.Random
 import System.Log.Heavy
@@ -32,6 +34,9 @@ import System.Log.Heavy.TH
 import System.Log.Heavy.Format
 import System.Log.FastLogger.Date
 import System.Random.MWC
+import System.Environment
+import System.FilePath
+import System.Directory
 
 import Core.Types
 import Core.Board
@@ -102,14 +107,33 @@ data RsPayload =
   | ShutdownRs
   deriving (Eq, Show, Generic)
 
--- | Create supervisor handle
-mkSupervisor :: IO SupervisorHandle
-mkSupervisor = do
+newRandomTable :: IO RandomTable
+newRandomTable = do
   random <- withSystemRandom . asGenIO $ \gen ->
     forM [1 .. 4] $ \unboxedPiece ->
       forM [1 .. 16*16] $ \index ->
         uniform gen
   let randomArray = A.listArray ((1,0), (4, 16*16-1)) $ concat random
+  return randomArray
+
+loadRandomTable :: IO RandomTable
+loadRandomTable = do
+  home <- getEnv "HOME"
+  let path = home </> ".cache" </> "hcheckers" </> "random.table"
+  ex <- doesFileExist path
+  if ex
+    then do
+      bytes <- B.readFile path
+      Data.Store.decodeIO bytes
+    else do
+      table <- newRandomTable
+      B.writeFile path $ Data.Store.encode table
+      return table
+
+-- | Create supervisor handle
+mkSupervisor :: IO SupervisorHandle
+mkSupervisor = do
+  randomArray <- loadRandomTable
   var <- atomically $ newTVar $ SupervisorState M.empty 0 M.empty $! randomArray
   return var
 

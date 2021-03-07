@@ -41,6 +41,7 @@ import Core.Logging
 import qualified Core.Monitoring as Monitoring
 import AI.AlphaBeta.Types
 import AI.AlphaBeta.Cache
+import AI.AlphaBeta.Persistent
 
 chunksOf :: Int -> [a] -> [[a]]
 chunksOf n list
@@ -95,8 +96,8 @@ instance (GameRules rules, VectorEvaluator eval) => GameAi (AlphaBeta rules eval
     cache <- loadAiCache scoreMoveGroup ai
     return cache
 
-  saveAiStorage (AlphaBeta params rules _) cache = do
-      -- saveAiCache rules params cache
+  saveAiStorage (AlphaBeta params rules _) handle = do
+      saveAiData rules (aichData handle)
       return ()
 
   resetAiStorage ai cache = do

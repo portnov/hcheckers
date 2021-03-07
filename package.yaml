@@ -38,6 +38,7 @@ dependencies:
 - hashable
 - bytes
 - bits
+- list-t
 - scotty
 - network
 - http-types
@@ -51,6 +52,7 @@ dependencies:
 - store
 - filepath
 - directory
+- Glob
 - unix
 - unix-bytestring
 - data-default
