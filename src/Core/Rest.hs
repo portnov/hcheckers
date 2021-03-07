@@ -51,6 +51,12 @@ transformError (NoSuchMoveExt move side board possible) = do
       "possible" .= possible
     ]
   status status400
+transformError (InvalidGameStatus expected actual) = do
+  json $ object [
+      "error" .= ("invalid game status" :: T.Text),
+      "expected" .= expected,
+      "actual" .= actual
+    ]
 transformError err = do
   error400 $ T.pack $ show err
 
