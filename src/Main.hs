@@ -4,7 +4,6 @@ module Main where
 
 import Control.Monad
 import Control.Monad.Reader
-import Control.Concurrent.STM
 import Data.Default
 import qualified Data.Map as M
 import qualified Data.ByteString.Lazy.Char8 as C8
@@ -14,10 +13,9 @@ import Options.Applicative
 import Text.Printf
 
 import Core.Types
-import Core.Board
 import AI
 import AI.AlphaBeta.Types
-import AI.AlphaBeta.Persistent
+-- import AI.AlphaBeta.Persistent
 import Core.Rest
 import Core.Checkers
 import Core.CmdLine

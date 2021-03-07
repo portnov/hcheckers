@@ -11,7 +11,6 @@ import Data.List (intercalate)
 import Data.Typeable
 import Text.Megaparsec hiding (Label, State)
 import Data.Void
-import Data.Aeson
 import GHC.Generics
 
 import Core.Types

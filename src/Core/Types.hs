@@ -17,7 +17,6 @@ import Control.Monad.Except
 import Control.Monad.Metrics as Metrics
 import Control.Concurrent
 import Control.Concurrent.STM
-import Control.Exception as E (try)
 import Data.List
 import Data.Array.Unboxed
 import qualified Data.Vector as V

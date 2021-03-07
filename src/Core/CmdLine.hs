@@ -2,7 +2,6 @@
 module Core.CmdLine where
 
 import Options.Applicative
-import Data.Semigroup ((<>))
 import Data.Char (toLower)
 
 data CmdLine = CmdLine {

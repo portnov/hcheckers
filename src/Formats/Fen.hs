@@ -6,10 +6,8 @@ module Formats.Fen where
 
 import Control.Monad.State
 import qualified Data.Text as T
-import Data.Monoid ((<>))
 import Text.Megaparsec hiding (Label)
 import Text.Megaparsec.Char
-import Text.Megaparsec.Error (errorBundlePretty)
 
 import Core.Types
 import Core.Board

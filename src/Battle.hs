@@ -12,14 +12,13 @@ module Battle where
 
 import Control.Monad
 import Control.Monad.IO.Class
-import Data.List (intercalate, sortOn)
+import Data.List (sortOn)
 import Data.Aeson
 import Data.Aeson.Types
 import qualified Data.Map as M
 import qualified Data.Vector as V
 import qualified Data.HashMap.Strict as H
 import qualified Data.Text as T
-import qualified Data.Text.IO as TIO
 import Text.Printf
 import System.Random
 import System.Random.Shuffle

@@ -13,24 +13,11 @@ module AI.AlphaBeta.Cache
     resetAiCache
   ) where
 
-import Control.Monad
 import Control.Monad.State
 import Control.Monad.Reader
-import Control.Monad.Catch
-import Control.Concurrent
 import Control.Concurrent.STM
-import Control.Exception (SomeException)
-import qualified Control.Concurrent.ReadWriteLock as RWL
 import qualified Data.Map as M
-import qualified Data.HashPSQ as PQ
-import Data.Maybe
 import Data.Text.Format.Heavy (Single (..))
-import System.FilePath
-import System.Environment
-import System.Directory
-import System.Posix.IO
-import qualified System.IO.RandomAccessFile as File
-import System.Clock
 import System.Log.Heavy
 import System.Log.Heavy.TH
 
@@ -40,7 +27,7 @@ import Core.BoardMap
 import Core.Parallel
 import qualified Core.Monitoring as Monitoring
 import AI.AlphaBeta.Types
-import AI.AlphaBeta.Persistent
+-- import AI.AlphaBeta.Persistent
 
 -- | Prepare AI storage instance.
 -- This also contains Processor instance with several threads.

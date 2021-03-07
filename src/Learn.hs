@@ -8,7 +8,6 @@ import Control.Monad
 import Control.Monad.State
 import Control.Concurrent.STM
 import qualified Control.Monad.Metrics as Metrics
-import Control.Monad.Catch
 import Data.Text.Format.Heavy
 import System.Log.Heavy
 import System.Log.Heavy.TH
@@ -18,7 +17,7 @@ import Core.Board
 import AI.AlphaBeta
 import AI.AlphaBeta.Types
 import AI.AlphaBeta.Cache
-import AI.AlphaBeta.Persistent
+-- import AI.AlphaBeta.Persistent
 import Formats.Types
 import Formats.Pdn
 

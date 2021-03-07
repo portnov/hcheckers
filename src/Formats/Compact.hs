@@ -12,7 +12,6 @@ import Data.Maybe
 import qualified Data.Text as T
 import Text.Megaparsec hiding (Label, State)
 import Text.Megaparsec.Char
-import Text.Megaparsec.Error (errorBundlePretty)
 import qualified Data.Text.IO as TIO
 import Text.Printf
 

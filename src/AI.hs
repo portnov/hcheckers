@@ -8,15 +8,11 @@
 
 module AI where
 
-import Data.Maybe
 import Data.Default
 import Data.Aeson
 
 import Core.Types
-import Core.Board
-import Core.Logging
-import Core.Supervisor
-import Core.Evaluator
+import Core.Supervisor () -- import instances only
 import AI.AlphaBeta.Types
 
 loadAi :: (GameRules rules) => String -> rules -> FilePath -> IO (AlphaBeta rules (EvaluatorForRules rules))

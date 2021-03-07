@@ -22,7 +22,6 @@ import           Network.Wai.Handler.Warp
 import qualified Network.Wai as Wai
 import           System.Log.Heavy
 import           System.Log.Heavy.TH
-import Network.Socket
 import System.Exit
 
 import           Core.Types

@@ -15,7 +15,6 @@ import Control.Monad
 import Control.Monad.State
 import Control.Monad.Catch (catch, SomeException)
 import Control.Concurrent.STM
-import qualified Data.HashPSQ as PQ
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as BL
 import qualified Data.Map as M
@@ -30,7 +29,6 @@ import System.Clock
 import Text.Printf
 import GHC.Generics
 import System.Posix.Types
-import qualified System.IO.RandomAccessFile as File
 import System.Log.Heavy
 import System.Log.Heavy.TH
 
