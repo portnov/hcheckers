@@ -87,7 +87,7 @@ instance ToJSON eval => ToJSON (AlphaBeta rules eval) where
         Object evalV = toJSON eval
     in  Object $ H.union paramsV evalV
 
-instance (GameRules rules, Evaluator eval) => GameAi (AlphaBeta rules eval) where
+instance (GameRules rules, VectorEvaluator eval) => GameAi (AlphaBeta rules eval) where
 
   type AiStorage (AlphaBeta rules eval) = AICacheHandle rules eval
 
@@ -147,7 +147,7 @@ instance (GameRules rules, VectorEvaluator eval) => VectorAi (AlphaBeta rules ev
       eval = evalFromVector rules v'
 
 -- | Calculate score of one possible move.
-scoreMove :: (GameRules rules, Evaluator eval) => ScoreMoveInput rules eval -> Checkers MoveAndScore
+scoreMove :: (GameRules rules, VectorEvaluator eval) => ScoreMoveInput rules eval -> Checkers MoveAndScore
 scoreMove (ScoreMoveInput {..}) = do
      let AlphaBeta params rules eval = smiAi
      score <- Monitoring.timed "ai.score.move" $ do
@@ -162,7 +162,7 @@ scoreMove (ScoreMoveInput {..}) = do
      
      return $ MoveAndScore smiMove score
 
-scoreMoveGroup :: (GameRules rules, Evaluator eval) => [ScoreMoveInput rules eval] -> Checkers [MoveAndScore]
+scoreMoveGroup :: (GameRules rules, VectorEvaluator eval) => [ScoreMoveInput rules eval] -> Checkers [MoveAndScore]
 scoreMoveGroup inputs = go worst [] inputs
   where
     input0 = head inputs
@@ -229,24 +229,25 @@ getPossibleMoves handle side board = Monitoring.timed "ai.possible_moves.duratio
 --     return result
 
 class Monad m => EvalMoveMonad m where
-  checkPrimeVariation :: (GameRules rules, Evaluator eval) => AICacheHandle rules eval -> AlphaBetaParams -> Board -> DepthParams -> m (Maybe PerBoardData)
+  checkPrimeVariation :: (GameRules rules, VectorEvaluator eval) => AICacheHandle rules eval -> eval -> AlphaBetaParams -> Board -> DepthParams -> m (Maybe PerBoardData)
   getKillerMove :: Int -> m (Maybe MoveAndScore)
 
 instance EvalMoveMonad Checkers where
-  checkPrimeVariation var params board dp = do
-      lookupAiCache params board dp var
+  checkPrimeVariation var eval params board dp = do
+      lookupAiCache eval params board dp var
 
   getKillerMove _ = return Nothing
 
 -- ScoreM instance
 instance EvalMoveMonad (StateT (ScoreState rules eval) Checkers) where
-  checkPrimeVariation var params board dp = do
-      lift $ lookupAiCache params board dp var
+  checkPrimeVariation var eval params board dp = do
+      lift $ lookupAiCache eval params board dp var
 
   getKillerMove = getGoodMove
   
-evalMove :: (EvalMoveMonad m, GameRules rules, Evaluator eval)
-        => AlphaBetaParams
+evalMove :: (EvalMoveMonad m, GameRules rules, VectorEvaluator eval)
+        => eval
+        -> AlphaBetaParams
         -> AICacheHandle rules eval
         -> Side
         -> DepthParams
@@ -254,8 +255,8 @@ evalMove :: (EvalMoveMonad m, GameRules rules, Evaluator eval)
         -> Maybe PossibleMove
         -> LabelSet
         -> PossibleMove -> m Int
-evalMove params var side dp board mbPrevMove attacked move = do
-  prime <- checkPrimeVariation var params board dp
+evalMove eval params var side dp board mbPrevMove attacked move = do
+  prime <- checkPrimeVariation var eval params board dp
   let victimFields = pmVictims move
       -- nVictims = sum $ map victimWeight victimFields
       promotion = if isPromotion move then 1 else 0
@@ -304,8 +305,9 @@ evalMove params var side dp board mbPrevMove attacked move = do
           signedScore = if maximize then score else -score
       return $ fromIntegral signedScore
 
-sortMoves :: (EvalMoveMonad m, GameRules rules, Evaluator eval)
-          => AlphaBetaParams
+sortMoves :: (EvalMoveMonad m, GameRules rules, VectorEvaluator eval)
+          => eval
+          -> AlphaBetaParams
           -> AICacheHandle rules eval
           -> Side
           -> DepthParams
@@ -313,12 +315,12 @@ sortMoves :: (EvalMoveMonad m, GameRules rules, Evaluator eval)
           -> Maybe PossibleMove
           -> [PossibleMove]
           -> m [PossibleMove]
-sortMoves params var side dp board mbPrevMove moves = do
+sortMoves eval params var side dp board mbPrevMove moves = do
 --   if length moves >= 4
 --     then do
       let rules = aichRules var
           attacked = boardAttacked side board
-      interest <- mapM (evalMove params var side dp board mbPrevMove attacked) moves
+      interest <- mapM (evalMove eval params var side dp board mbPrevMove attacked) moves
       if any (/= 0) interest
         then return $ map fst $ sortOn (negate . snd) $ zip moves interest
         else return moves
@@ -779,7 +781,7 @@ runAI ai@(AlphaBeta params rules eval) handle gameId side board = do
           return (goodMoves, maxScore)
 
 -- | Calculate score of the board
-doScore :: (GameRules rules, Evaluator eval)
+doScore :: (GameRules rules, VectorEvaluator eval)
         => rules
         -> eval
         -> AICacheHandle rules eval
@@ -793,7 +795,7 @@ doScore :: (GameRules rules, Evaluator eval)
         -> Checkers Score
 doScore rules eval var params gameId side dp board alpha beta = do
     initState <- mkInitState
-    out <- evalStateT (cachedScoreAB var params input) initState
+    out <- evalStateT (cachedScoreAB var eval params input) initState
     return $ soScore out
   where
     input = ScoreInput side dp alpha beta board Nothing 
@@ -812,19 +814,20 @@ clamp alpha beta score
 
 -- | Calculate score of the board. 
 -- This uses the cache. It is called in the recursive call also.
-cachedScoreAB :: forall rules eval. (GameRules rules, Evaluator eval)
+cachedScoreAB :: forall rules eval. (GameRules rules, VectorEvaluator eval)
               => AICacheHandle rules eval
+              -> eval
               -> AlphaBetaParams
               -> ScoreInput
               -> ScoreM rules eval ScoreOutput
-cachedScoreAB var params input = do
+cachedScoreAB var eval params input = do
   let depth = dpCurrent dp
       side = siSide input
       board = siBoard input
       dp = siDepth input
       alpha = siAlpha input
       beta = siBeta input
-  mbItem <- lift $ lookupAiCache params board dp var
+  mbItem <- lift $ lookupAiCache eval params board dp var
   mbCached <- case mbItem of
                 Just item -> do
                   let cachedScore = itemScore item
@@ -844,7 +847,7 @@ cachedScoreAB var params input = do
   case mbCached of
     Just out -> return out
     Nothing -> do
-      out <- Monitoring.timed "ai.score.board" $ scoreAB var params input
+      out <- Monitoring.timed "ai.score.board" $ scoreAB var eval params input
       let score = soScore out
           bound
             | score <= alpha = Alpha
@@ -856,8 +859,8 @@ cachedScoreAB var params input = do
           item = PerBoardData (dpLast dp) score bound
           item' = PerBoardData (dpLast dp) (negate score) bound
       when (bound == Exact && soQuiescene out && not (dpStaticMode dp)) $ do
-          lift $ putAiCache params board item var
-          lift $ putAiCache params (flipBoard board) item' var
+          lift $ putAiCache eval params board item var
+          lift $ putAiCache eval params (flipBoard board) item' var
       return out
 
 -- | Check if target depth is reached
@@ -927,12 +930,13 @@ isTimeExhaused = do
 
 -- | Calculate score for the board.
 -- This implements the alpha-beta section algorithm itself.
-scoreAB :: forall rules eval. (GameRules rules, Evaluator eval)
+scoreAB :: forall rules eval. (GameRules rules, VectorEvaluator eval)
         => AICacheHandle rules eval
+        -> eval
         -> AlphaBetaParams
         -> ScoreInput
         -> ScoreM rules eval ScoreOutput
-scoreAB var params input
+scoreAB var eval params input
   | alpha == beta = do
       $verbose "Alpha == Beta == {}, return it" (Single $ show alpha)
       quiescene <- checkQuiescene
@@ -985,7 +989,7 @@ scoreAB var params input
                   rules <- gets ssRules
                   dp' <- updateDepth params moves dp
                   let prevMove = siPrevMove input
-                  moves' <- sortMoves params var side dp board prevMove moves
+                  moves' <- sortMoves eval params var side dp board prevMove moves
 --                   let depths = correspondingDepths (length moves') score0 quiescene dp'
                   let depths = repeat dp'
                   out <- iterateMoves $ zip3 [1..] moves' depths
@@ -1120,9 +1124,9 @@ scoreAB var params input
         let inputs = [input {siAlpha = alpha, siBeta = beta} | (alpha, beta) <- intervals]
         go inputs
       where
-        go [input] = cachedScoreAB var params input
+        go [input] = cachedScoreAB var eval params input
         go (input : inputs) = do
-          out <- cachedScoreAB var params input
+          out <- cachedScoreAB var eval params input
           let score = soScore out
           if maximize && score >= beta || minimize && score <= alpha
             then go inputs
@@ -1156,7 +1160,7 @@ scoreAB var params input
                     , siBoard = markAttacked rules $ applyMoveActions (pmResult move) board
                     , siDepth = dp
                   }
-      out <- cachedScoreAB var params input'
+      out <- cachedScoreAB var eval params input'
       let score = soScore out
       $verbose "{}| score for side {}: {}" (indent, show side, show score)
 

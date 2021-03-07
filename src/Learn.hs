@@ -113,7 +113,7 @@ processMove rules eval var params gameId side move board = do
   $info "Processed: side {}, move: {}, depth: {} => score {}; we think next best moves are: {}" (show side, show move, abDepth params, show score, show moves)
   return (moves, score)
 
-learnPdn :: (GameRules rules, Evaluator eval) => AlphaBeta rules eval -> FilePath -> Checkers ()
+learnPdn :: (GameRules rules, VectorEvaluator eval) => AlphaBeta rules eval -> FilePath -> Checkers ()
 learnPdn ai@(AlphaBeta params rules eval) path = do
   cache <- loadAiCache scoreMoveGroup ai
   pdn <- liftIO $ parsePdnFile (Just $ SomeRules rules) path

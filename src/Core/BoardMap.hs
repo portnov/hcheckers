@@ -112,28 +112,21 @@ putBoardMap bmap board value = atomically $ do
 --       SM.insert value (boardHash board) byHash
 --       SM.insert byHash (boardCounts board) bmap
 
-putBoardMapWith :: TBoardMap a -> (a -> a -> a) -> Board -> a -> IO ()
-putBoardMapWith bmap plus board value = atomically $ do
+putBoardMapWith' :: TBoardMap a -> (a -> a -> a) -> Board -> a -> STM ()
+putBoardMapWith' bmap plus board value = do
     mbOld <- SM.lookup (boardHash board) bmap
     case mbOld of
       Nothing -> SM.insert value (boardHash board) bmap
       Just old -> SM.insert (plus old value) (boardHash board) bmap
---   mbByHash <- SM.lookup (boardCounts board) bmap
---   byHash <- case mbByHash of
---               Nothing -> SM.new
---               Just byHash -> return byHash
---   mbOld <- SM.lookup (boardHash board) byHash
---   case mbOld of
---     Nothing -> SM.insert value (boardHash board) byHash
---     Just old -> SM.insert (plus old value) (boardHash board) byHash
+
+putBoardMapWith :: TBoardMap a -> (a -> a -> a) -> Board -> a -> IO ()
+putBoardMapWith bmap plus board value = atomically $ putBoardMapWith' bmap plus board value
+
+lookupBoardMap' :: TBoardMap a -> Board -> STM (Maybe a)
+lookupBoardMap' bmap board = SM.lookup (boardHash board) bmap
 
 lookupBoardMap :: TBoardMap a -> Board -> IO (Maybe a)
-lookupBoardMap bmap board = atomically $ do
-  SM.lookup (boardHash board) bmap
---   mbByHash <- SM.lookup (boardCounts board) bmap
---   case mbByHash of
---     Nothing -> return Nothing
---     Just byHash -> SM.lookup (boardHash board) byHash
+lookupBoardMap bmap board = atomically $ lookupBoardMap' bmap board
 
 resetBoardMap :: TBoardMap a -> IO ()
 resetBoardMap bmap = atomically $ SM.reset bmap

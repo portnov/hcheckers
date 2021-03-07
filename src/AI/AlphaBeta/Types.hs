@@ -39,6 +39,7 @@ import qualified Control.Monad.Metrics as Metrics
 import Control.Concurrent.STM
 import qualified Data.HashPSQ as PQ
 import qualified Data.Map as M
+import qualified Data.Vector as V
 import Data.Word
 import Data.Binary
 import Data.Store
@@ -58,6 +59,8 @@ import Core.Parallel
 -- and an instance of Evaluator.
 data AlphaBeta rules eval = AlphaBeta AlphaBetaParams rules eval
   deriving (Eq, Ord, Show, Typeable)
+
+type AlphaBetaR rules = AlphaBeta rules (EvaluatorForRules rules)
 
 data AlphaBetaParams = AlphaBetaParams {
     abDepth :: Depth
@@ -151,7 +154,7 @@ instance Monoid PerBoardData where
 instance Binary PerBoardData
 instance Store PerBoardData
 
-type AIData = TBoardMap PerBoardData
+type AIData = TVar (M.Map (V.Vector Double) (TBoardMap PerBoardData))
 
 type StorageKey = (DepthParams, BoardKey)
 

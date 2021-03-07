@@ -16,6 +16,7 @@ module AI.AlphaBeta.Cache
 import Control.Monad.State
 import Control.Monad.Reader
 import Control.Concurrent.STM
+import qualified StmContainers.Map as SM
 import qualified Data.Map as M
 import Data.Text.Format.Heavy (Single (..))
 import System.Log.Heavy
@@ -29,6 +30,31 @@ import qualified Core.Monitoring as Monitoring
 import AI.AlphaBeta.Types
 -- import AI.AlphaBeta.Persistent
 
+newAiData :: Checkers AIData
+newAiData = liftIO $ atomically $ newTVar $ M.empty
+
+putAiData :: VectorEvaluator eval => AIData -> eval -> Board -> PerBoardData -> Checkers ()
+putAiData aiData eval board item =
+  liftIO $ atomically $ do
+    perEval <- readTVar aiData
+    let vec = evalToVector eval
+    forEval <- case M.lookup vec perEval of
+                 Just map -> return map
+                 Nothing -> do
+                    map <- SM.new
+                    writeTVar aiData $ M.insert vec map perEval
+                    return map
+    putBoardMapWith' forEval (<>) board item
+
+lookupAiData :: VectorEvaluator eval => AIData -> eval -> Board -> Checkers (Maybe PerBoardData)
+lookupAiData aiData eval board =
+  liftIO $ atomically $ do
+    perEval <- readTVar aiData
+    let vec = evalToVector eval
+    case M.lookup vec perEval of
+      Nothing -> return Nothing
+      Just forEval -> lookupBoardMap' forEval board
+
 -- | Prepare AI storage instance.
 -- This also contains Processor instance with several threads.
 loadAiCache :: (GameRules rules, Evaluator eval)
@@ -39,7 +65,7 @@ loadAiCache scoreMove (AlphaBeta params rules eval) = do
   let getKey inputs = map smiIndex inputs
   aiCfg <- asks (gcAiConfig . csConfig)
   processor <- runProcessor (aiThreads aiCfg) getKey scoreMove
-  cache <- liftIO newTBoardMap
+  cache <- newAiData
 
   st <- ask
   counts <- liftIO $ atomically $ newTVar $ BoardCounts 50 50 50 50
@@ -68,8 +94,8 @@ normalize bsize (bc,bk,side) =
 
 -- | Look up for item in the cache. First lookup in the memory,
 -- then in the file (if it is open).
-lookupAiCache :: (GameRules rules, Evaluator eval) => AlphaBetaParams -> Board -> DepthParams -> AICacheHandle rules eval -> Checkers (Maybe PerBoardData)
-lookupAiCache params board depth handle = do
+lookupAiCache :: (GameRules rules, VectorEvaluator eval) => eval -> AlphaBetaParams -> Board -> DepthParams -> AICacheHandle rules eval -> Checkers (Maybe PerBoardData)
+lookupAiCache eval params board depth handle = do
     mbItem <- lookupMemory board
     case mbItem of
       Just item -> do
@@ -84,7 +110,7 @@ lookupAiCache params board depth handle = do
     lookupMemory board = Monitoring.timed "cache.lookup.memory" $ do
       cfg <- asks (gcAiConfig . csConfig)
       let cache = aichData handle
-      mbItem <- liftIO $ lookupBoardMap cache board 
+      mbItem <- lookupAiData cache eval board 
       case mbItem of
         Nothing -> return Nothing
         Just item@(PerBoardData {..}) ->
@@ -95,8 +121,8 @@ lookupAiCache params board depth handle = do
 -- | Put an item to the cache.
 -- It is always writen to the memory,
 -- and it is writen to the file if it is open.
-putAiCache :: GameRules rules => AlphaBetaParams -> Board -> StorageValue -> AICacheHandle rules eval -> Checkers ()
-putAiCache params board newItem handle = do
+putAiCache :: (GameRules rules, VectorEvaluator eval) => eval -> AlphaBetaParams -> Board -> StorageValue -> AICacheHandle rules eval -> Checkers ()
+putAiCache eval params board newItem handle = do
   let bc = calcBoardCounts board
   let bsize = boardSize (aichRules handle)
   let total = bcFirstMen bc + bcSecondMen bc + bcFirstKings bc + bcSecondKings bc
@@ -105,10 +131,11 @@ putAiCache params board newItem handle = do
   Monitoring.timed "cache.put.memory" $ do
     Monitoring.increment "cache.records.put"
     let cache = aichData handle
-    liftIO $ putBoardMapWith cache (<>) board newItem
+    putAiData cache eval board newItem
 
 resetAiCache :: AICacheHandle rules eval -> Checkers ()
-resetAiCache handle= do
+resetAiCache handle = do
   let cache = aichData handle
-  liftIO $ resetBoardMap cache
+  liftIO $ atomically $
+    writeTVar cache M.empty
 
