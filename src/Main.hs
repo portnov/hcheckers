@@ -15,7 +15,7 @@ import Text.Printf
 import Core.Types
 import AI
 import AI.AlphaBeta.Types
--- import AI.AlphaBeta.Persistent
+import AI.AlphaBeta.Persistent (loadAiData')
 import Core.Rest
 import Core.Checkers
 import Core.CmdLine
@@ -106,15 +106,13 @@ special cmd args =
           delta = read deltas
       generateAiVariations n delta path
 
-    ["test"] -> do
+    ["dump", path] -> do
       withCheckers cmd $ do
         let rules = russian
-            cache = seCache $ defaultEvaluator rules
-        forM_ (M.assocs cache) $ \(addr, sed) -> do
-            liftIO $ printf "%s => %s, %s\n"
-                (show $ aLabel addr)
-                (show $ weightForSide First $ sedCenter sed)
-                (show $ weightForSide Second $ sedCenter sed)
+        (vec, bmap) <- loadAiData' path
+        liftIO $ printf "Evaluator: %s\n" (show vec)
+        forM_ (M.assocs bmap) $ \(bHash, item) -> do
+            liftIO $ printf "Hash: %d => %s\n" bHash (show item)
     
 -- main :: IO ()
 -- main = do

@@ -91,6 +91,15 @@ getCachePath rules = liftIO $ do
 newAiData :: Checkers AIData
 newAiData = liftIO $ atomically $ newTVar $ M.empty
 
+loadAiData' :: FilePath -> Checkers (V.Vector Double, M.Map BoardHash PerBoardData)
+loadAiData' path = do
+  sHandle <- askSupervisor
+  sState <- liftIO $ atomically $ readTVar sHandle
+  bytes <- liftIO $ B.readFile path
+  (vec, pairs) <- liftIO $ decodeIO bytes :: Checkers (V.Vector Double, [(BoardHash, PerBoardData)])
+  $info "Load AI cache: {} - {} boards" (path, length pairs)
+  return (vec, M.fromList pairs)
+
 loadAiData :: GameRules rules => rules -> Checkers AIData
 loadAiData rules = do
   cachePath <- getCachePath rules
