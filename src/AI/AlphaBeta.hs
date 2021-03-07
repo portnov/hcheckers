@@ -34,7 +34,7 @@ import System.Clock
 
 import Core.Types
 import Core.Board
-import Core.BoardMap (labelSetMember)
+import Core.BoardMap
 import Core.Game
 import Core.Parallel
 import Core.Logging
