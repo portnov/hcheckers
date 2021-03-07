@@ -108,11 +108,6 @@ special cmd args =
           delta = read deltas
       generateAiVariations n delta path
 
-    -- ["dump", path] -> checkDataFile' path
-    ["load", path] -> do
-      idx <- loadIndexIO path
-      print path
-
     ["test"] -> do
       withCheckers cmd $ do
         let rules = russian

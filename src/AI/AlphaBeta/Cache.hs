@@ -53,57 +53,8 @@ loadAiCache scoreMove (AlphaBeta params rules eval) = do
   aiCfg <- asks (gcAiConfig . csConfig)
   processor <- runProcessor (aiThreads aiCfg) getKey scoreMove
   cache <- liftIO newTBoardMap
-  cachePath <- do
-              home <- liftIO $ getEnv "HOME"
-              let directory = home </> ".cache" </> "hcheckers" </> rulesName rules </> "ai.cache"
-              liftIO $ createDirectoryIfMissing True directory
-              return directory
-  let indexPath = cachePath </> "index"
-      dataPath = cachePath </> "data"
-
-  writeQueue <- liftIO $ atomically newTChan
-  cleanupQueue <- liftIO $ atomically $ newTVar PQ.empty
-  load <- asks (aiLoadCache . gcAiConfig . csConfig)
-  store <- asks (aiStoreCache . gcAiConfig . csConfig)
-  let mbMode
-        | store = Just ReadWrite
-        | load = Just ReadOnly
-        | otherwise = Nothing
-  (indexFile, dataFile, exist) <- case mbMode of
-                    Nothing -> return (Nothing, Nothing, False)
-                    Just mode -> do
-                      indexExists <- liftIO $ doesFileExist indexPath
-                      dataExists <- liftIO $ doesFileExist dataPath
-                      let exist = dataExists && indexExists
-                      if load && not store && not exist
-                        then return (Nothing, Nothing, exist)
-                        else liftIO $ do
-                          let page = 1024*1024
-                              params = File.MMapedParams page True
-                          indexFd <- File.initFile params indexPath
-                          dataFd <- File.initFile params dataPath
-                          return (Just indexFd, Just dataFd, exist)
-  when (isJust mbMode) $
-      $info "Opened cache: {}" (Single cachePath)
 
   st <- ask
-  indexLock <- liftIO RWL.new
-  dataLock <- liftIO RWL.new
-  indexBlockLocks <- liftIO $ atomically $ newTVar M.empty
-  dataBlockLocks <- liftIO $ atomically $ newTVar M.empty
-
-  let indexHandle = case indexFile of
-        Nothing -> Nothing
-        Just fd -> Just $ FHandle {
-                     fhOffset = 0,
-                     fhHandle = fd
-                   }
-  let dataHandle = case dataFile of
-        Nothing -> Nothing
-        Just fd -> Just $ FHandle {
-                     fhOffset = 0,
-                     fhHandle = fd
-                   }
   counts <- liftIO $ atomically $ newTVar $ BoardCounts 50 50 50 50
   moves <- liftIO newTBoardMap
   scoreShift <- liftIO $ atomically $ newTVar M.empty
@@ -115,40 +66,10 @@ loadAiCache scoreMove (AlphaBeta params rules eval) = do
       aichProcessor = processor,
       aichPossibleMoves = moves,
       aichLastMoveScoreShift = scoreShift,
-      aichWriteQueue = writeQueue,
-      aichCleanupQueue = cleanupQueue,
-      aichCurrentCounts = counts,
-      aichIndexFile = indexHandle,
-      aichDataFile = dataHandle
+      aichCurrentCounts = counts
     }
-  when (store && isJust indexFile && not exist) $ do
-     runStorage handle initFile
-  when store $
-    forkCheckers $ cacheDumper rules params handle
-  -- forkCheckers $ cacheCleaner handle
 
   return handle
-
-cacheDumper :: (GameRules rules, Evaluator eval) => rules -> AlphaBetaParams -> AICacheHandle rules eval -> Checkers ()
-cacheDumper rules params handle = do
-  store <- asks (aiStoreCache . gcAiConfig . csConfig)
-  when store $ forever $ do
-    repeatTimed "write" 30 $ do
-      -- threadDelay $ 100*1000
-      mbRecord <- liftIO $ atomically $ checkWriteQueue (aichWriteQueue handle)
-      case mbRecord of
-        Nothing -> return False
-        Just (board, value) -> do
-          Monitoring.increment "cache.records.writen"
-          runStorage handle $
-              putRecordFile board value
-          return True
-
-    liftIO $ threadDelay $ 30 * 1000 * 1000
-
-cacheCleaner :: AICacheHandle rules eval -> Checkers ()
-cacheCleaner handle = forever $ do
-    liftIO $ threadDelay $ 30 * 1000 * 1000
 
 normalize :: BoardSize -> (BoardCounts,BoardKey,Side) -> (BoardCounts,BoardKey,Side)
 normalize bsize (bc,bk,side) =
@@ -168,27 +89,9 @@ lookupAiCache params board depth handle = do
         Monitoring.increment "cache.hit.memory"
         return $ Just item
       Nothing -> do
-        mbFile <- lookupFile' board depth
-        case mbFile of
-          Nothing -> do
-            Monitoring.increment "cache.miss"
-            return Nothing
-          Just file -> do
-            putAiCache params board file handle
-            return $ Just file
-
+        Monitoring.increment "cache.miss"
+        return Nothing
   where
-
-    avg :: Stats -> Score
-    avg s =
-      let Score n p = statsSumScore s
-          cnt = statsCount s
-      in  Score (n `div` cnt) (p `div` cnt)
-
-    checkStats :: Stats -> Maybe Stats
-    checkStats s
-      | statsCount s < 10 = Nothing
-      | otherwise = Just s
 
     lookupMemory :: Board -> Checkers (Maybe PerBoardData)
     lookupMemory board = Monitoring.timed "cache.lookup.memory" $ do
@@ -202,23 +105,6 @@ lookupAiCache params board depth handle = do
             then return $ Just item
             else return Nothing
 
-    lookupFile' :: Board -> DepthParams -> Checkers (Maybe PerBoardData)
-    lookupFile' board depth = do
-      load <- asks (aiLoadCache . gcAiConfig . csConfig)
-      if load
-        then do
-          let bc = calcBoardCounts board
-          let total = bcFirstMen bc + bcSecondMen bc + bcFirstKings bc + bcSecondKings bc
-          cfg <- asks (gcAiConfig . csConfig)
-          if {-total <= aiUseCacheMaxPieces cfg &&-} dpTarget depth >= aiUseCacheMaxDepth cfg
-            then runStorage handle (lookupFile board depth)
-                  `catch`
-                      \(e :: SomeException) -> do
-                          $reportError "Exception: lookupFile: {}" (Single $ show e)
-                          return Nothing
-            else return Nothing
-        else return Nothing
-
 -- | Put an item to the cache.
 -- It is always writen to the memory,
 -- and it is writen to the file if it is open.
@@ -229,18 +115,10 @@ putAiCache params board newItem handle = do
   let total = bcFirstMen bc + bcSecondMen bc + bcFirstKings bc + bcSecondKings bc
   let depth = itemDepth newItem
   cfg <- asks (gcAiConfig . csConfig)
-  let needWriteFile = {-total <= aiUpdateCacheMaxPieces cfg &&-} depth > aiUpdateCacheMaxDepth cfg
   Monitoring.timed "cache.put.memory" $ do
-    now <- liftIO $ getTime RealtimeCoarse
     Monitoring.increment "cache.records.put"
-    fileCacheEnabled <- asks (aiStoreCache . gcAiConfig . csConfig)
     let cache = aichData handle
     liftIO $ putBoardMapWith cache (<>) board newItem
-
-    liftIO $ atomically $ do
-      when (fileCacheEnabled && needWriteFile) $
-          putWriteQueue (aichWriteQueue handle) (board, newItem)
-      -- putCleanupQueue (aichCleanupQueue handle) (bc, bk) now
 
 resetAiCache :: AICacheHandle rules eval -> Checkers ()
 resetAiCache handle= do

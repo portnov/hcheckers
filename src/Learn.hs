@@ -29,15 +29,9 @@ doLearn' rules eval var params gameRec = do
     let startBoard = initBoardFromTags supervisor (SomeRules rules) (grTags gameRec)
     let result = resultFromTags $ grTags gameRec
     $info "Initial board: {}; result: {}" (show startBoard, show result)
-    forM_ (instructionsToMoves $ grMoves gameRec) $ \moves -> (do
+    forM_ (instructionsToMoves $ grMoves gameRec) $ \moves -> do
         let (endScore, allBoards) = go [] startBoard result moves
         $info "End score: {}" (Single endScore)
-        runStorage var $ forM_ allBoards $ \board -> do
-          let stats = Stats 1 endScore endScore endScore
-          putStatsFile board stats
-        )
-          `catch`
-            (\(e :: SomeException) -> $reportError "Exception: {}" (Single $ show e))
   where
     go boards lastBoard (Just result) [] = (resultToScore result, lastBoard : boards)
     go boards lastBoard Nothing [] =
@@ -78,9 +72,6 @@ doLearn rules eval var params gameId gameRec = do
     forM_ (instructionsToMoves $ grMoves gameRec) $ \moves -> do
       (endScore, allBoards) <- go (0, []) startBoard [] moves
       $info "End score: {}" (Single endScore)
-      runStorage var $ forM_ allBoards $ \board -> do
-        let stats = Stats 1 endScore endScore endScore
-        putStatsFile board stats
 
   where
     go (score, boards) lastBoard _ [] = return (score, lastBoard : boards)

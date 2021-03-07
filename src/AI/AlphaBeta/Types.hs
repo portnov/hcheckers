@@ -196,11 +196,7 @@ data AICacheHandle rules eval = AICacheHandle {
   , aichProcessor ::  Processor [Int] [ScoreMoveInput rules eval] [MoveAndScore]
   , aichPossibleMoves :: MovesMemo
   , aichLastMoveScoreShift :: TVar (M.Map GameId ScoreBase)
-  , aichWriteQueue :: WriteQueue
-  , aichCleanupQueue :: CleanupQueue
   , aichCurrentCounts :: TVar BoardCounts
-  , aichIndexFile :: Maybe FHandle
-  , aichDataFile :: Maybe FHandle
   }
 
 type WriteQueue = TChan (Board, StorageValue)
@@ -221,8 +217,6 @@ data StorageState = StorageState {
   , ssMetrics :: Metrics.Metrics
   , ssMetricsEnabled :: Bool
   , ssBoardSize :: BoardSize
-  , ssIndex :: Maybe FHandle
-  , ssData :: Maybe FHandle
   }
 
 -- | Storage monad.
@@ -319,11 +313,9 @@ type AiOutput = ([PossibleMove], Score)
 runStorage :: (GameRules rules, Evaluator eval) => AICacheHandle rules eval -> Storage a -> Checkers a
 runStorage handle actions = do
   lts <- asks csLogging
-  let indexHandle = aichIndexFile handle
-  let dataHandle = aichDataFile handle
   let bsize = boardSize (aichRules handle)
   metrics <- Metrics.getMetrics
   metricsEnabled <- isMetricsEnabled
-  let initState = StorageState lts metrics metricsEnabled bsize indexHandle dataHandle
+  let initState = StorageState lts metrics metricsEnabled bsize
   liftIO $ evalStateT actions initState
   
