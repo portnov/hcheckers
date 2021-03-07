@@ -13,6 +13,7 @@ module AI.AlphaBeta.Persistent
 
 import Control.Monad
 import Control.Monad.State
+import Control.Monad.Reader
 import qualified ListT
 import Control.Monad.Catch (catch, SomeException)
 import Control.Concurrent.STM
@@ -104,25 +105,30 @@ loadAiData :: GameRules rules => rules -> Checkers AIData
 loadAiData rules = do
   cachePath <- getCachePath rules
   aiData <- newAiData
-  paths <- liftIO $ glob (cachePath </> "*.data")
-  sHandle <- askSupervisor
-  sState <- liftIO $ atomically $ readTVar sHandle
-  perEvalPairs <- forM paths $ \path -> do
-    bytes <- liftIO $ B.readFile path
-    (vec, pairs) <- liftIO $ decodeIO bytes :: Checkers (V.Vector Double, [(BoardHash, PerBoardData)])
-    $info "Load AI cache: {} - {} boards" (path, length pairs)
-    return (vec, pairs)
+  load <- asks (aiLoadCache . gcAiConfig . csConfig)
+  if load
+    then do
+      paths <- liftIO $ glob (cachePath </> "*.data")
+      sHandle <- askSupervisor
+      sState <- liftIO $ atomically $ readTVar sHandle
+      perEvalPairs <- forM paths $ \path -> do
+        bytes <- liftIO $ B.readFile path
+        (vec, pairs) <- liftIO $ decodeIO bytes :: Checkers (V.Vector Double, [(BoardHash, PerBoardData)])
+        $info "Load AI cache: {} - {} boards" (path, length pairs)
+        return (vec, pairs)
 
-  let vecs = map fst perEvalPairs
-      cachesForEval = map snd perEvalPairs
-  maps <- forM cachesForEval $ \pairs -> liftIO $ atomically $ do
-            bmap <- SM.new
-            forM pairs $ \(bHash, item) -> do
-              SM.insert item bHash bmap
-            return bmap
-  liftIO $ atomically $ do
-    aiData <- newTVar $ M.fromList $ zip vecs maps
-    return aiData
+      let vecs = map fst perEvalPairs
+          cachesForEval = map snd perEvalPairs
+      maps <- forM cachesForEval $ \pairs -> liftIO $ atomically $ do
+                bmap <- SM.new
+                forM pairs $ \(bHash, item) -> do
+                  SM.insert item bHash bmap
+                return bmap
+      liftIO $ atomically $ do
+        aiData <- newTVar $ M.fromList $ zip vecs maps
+        return aiData
+    else
+      return aiData
 
 saveAiData :: GameRules rules => rules -> AIData -> Checkers ()
 saveAiData rules var = do

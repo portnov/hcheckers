@@ -80,7 +80,9 @@ loadAiCache scoreMove (AlphaBeta params rules eval) = do
       aichCurrentCounts = counts
     }
 
-  forkCheckers $ aiStorageSaver rules cache
+  save <- asks (aiStoreCache . gcAiConfig . csConfig)
+  when save $
+      forkCheckers $ aiStorageSaver rules cache
 
   return handle
 
