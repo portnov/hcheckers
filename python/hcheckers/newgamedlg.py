@@ -245,10 +245,14 @@ class NewGameDialog(DialogBase):
         show_board_setup = action != JOIN_HUMAN_GAME
 
         self.ai.setVisible(show_ai)
+        self.form_layout.labelForField(self.ai).setVisible(show_ai)
         self.lobby.setVisible(show_lobby)
         self.refresh_button.setVisible(show_lobby)
+
         self.user_side.setVisible(show_side)
+        self.form_layout.labelForField(self.user_side).setVisible(show_side)
         self.board_type.setVisible(show_board_setup)
+        self.form_layout.labelForField(self.board_type).setVisible(show_board_setup)
 
     def _on_board_type_changed(self, idx):
         action = self.game_type.currentData()
