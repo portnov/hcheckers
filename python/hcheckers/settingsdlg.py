@@ -376,6 +376,14 @@ class GeneralPage(QWidget):
 
         self.use_local_server.stateChanged.connect(self._on_use_local_server)
 
+        self.log_level= QComboBox(self)
+        self.log_level.addItem(_("Debug"), logging.DEBUG)
+        self.log_level.addItem(_("Information"), logging.INFO)
+        self.log_level.addItem(_("Warning"), logging.WARN)
+        self.log_level.addItem(_("Error"), logging.ERROR)
+
+        layout.addRow(_("Logging level"), self.log_level)
+
         self.setLayout(layout)
 
     def _on_use_local_server(self):
@@ -395,11 +403,17 @@ class GeneralPage(QWidget):
         self.local_server_path.widget.setEnabled(use_local_server)
         self.local_server_path.widget.is_mandatory = use_local_server
 
+        level = settings.value("log_level", logging.INFO, type=int)
+        level_idx = self.log_level.findData(level)
+        self.log_level.setCurrentIndex(level_idx)
+
     def save(self, settings):
         settings.setValue("server_url", self.server_url.widget.text())
         use_local_server = self.use_local_server.checkState() == Qt.Checked
         settings.setValue("use_local_server", use_local_server)
         settings.setValue("local_server_path", self.local_server_path.widget.text())
+        level = self.log_level.currentData()
+        settings.setValue("log_level", level)
 
 class SettingsDialog(DialogBase):
     def __init__(self, settings, share_dir, parent=None):

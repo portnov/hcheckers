@@ -160,7 +160,8 @@ class Checkers(QMainWindow):
         console_handler = logging.getLogger().handlers[0]
         logging.getLogger().removeHandler(console_handler)
         log_handler = UiLogHandler(self.log)
-        logging.getLogger().setLevel(logging.INFO)
+        level = self.settings.value("log_level", logging.INFO, type=int)
+        logging.getLogger().setLevel(level)
         logging.getLogger().addHandler(log_handler)
         for logger in lowered_loggers:
             logging.getLogger(logger).addFilter(LogFilter(lowered_regexps=lowered_regexps))
@@ -511,21 +512,29 @@ class Checkers(QMainWindow):
                 self.capitulate_action.setEnabled(True)
 
     def _on_server_log(self, level, message):
-        item = QListWidgetItem(self.log)
-        item.setText(message)
-        icon = None
         if level == "DEBUG":
-            icon = QIcon.fromTheme("document-properties")
+            logging.debug(message)
         elif level == "INFO":
-            icon = QIcon.fromTheme("dialog-information")
-        elif level == "ERROR":
-            icon = QIcon.fromTheme("dialog-error")
+            logging.info(message)
         elif level == "WARNING":
-            icon = QIcon.fromTheme("dialog-warning")
-        if icon is not None:
-            item.setIcon(icon)
-        self.log.update()
-        self.log.scrollToBottom()
+            logging.warning(message)
+        elif level == "ERROR":
+            logging.error(message)
+#        item = QListWidgetItem(self.log)
+#        item.setText(message)
+#        icon = None
+#        if level == "DEBUG":
+#            icon = QIcon.fromTheme("document-properties")
+#        elif level == "INFO":
+#            icon = QIcon.fromTheme("dialog-information")
+#        elif level == "ERROR":
+#            icon = QIcon.fromTheme("dialog-error")
+#        elif level == "WARNING":
+#            icon = QIcon.fromTheme("dialog-warning")
+#        if icon is not None:
+#            item.setIcon(icon)
+#        self.log.update()
+#        self.log.scrollToBottom()
 
     def _log_context_menu(self):
         menu = QMenu(self)
@@ -573,6 +582,8 @@ class Checkers(QMainWindow):
             self.board.show_notation = dialog.get_show_notation()
             self.board.theme = dialog.get_theme()
             self.board.theme.enable_sound = dialog.get_enable_sound()
+            level = self.settings.value("log_level", logging.INFO, type=int)
+            logging.getLogger().setLevel(level)
             self.settings.sync()
             logging.info(_("Settings have been updated."))
 

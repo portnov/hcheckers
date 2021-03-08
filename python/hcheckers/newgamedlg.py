@@ -233,6 +233,8 @@ class NewGameDialog(DialogBase):
             self.settings.sync()
             self._fill_ais(self.settings)
             self.client.base_url = self.settings.value("server_url", DEFAULT_SERVER_URL)
+            level = self.settings.value("log_level", logging.INFO, type=int)
+            logging.getLogger().setLevel(level)
             logging.info(_("Settings have been updated."))
 
     def _on_action_changed(self, idx):
