@@ -60,8 +60,11 @@ class Checkers(QMainWindow):
         self.board.my_turn = value
         if value:
             self.statusBar().showMessage(_("Your turn."))
+            self.board.text_message = None
+            #self.board.repaint()
         else:
             self.statusBar().showMessage(_("Awaiting a turn from another side."))
+            #self.board.text_message = _("Waiting for another side turn")
 
     my_turn = property(get_my_turn, set_my_turn)
 
@@ -485,6 +488,8 @@ class Checkers(QMainWindow):
             self.message.setText(str(message))
             self.history.fill()
             self.my_turn = True
+            self.board.text_message = None
+            self.board.repaint()
         elif isinstance(message, WaitingMove):
             text = str(message)
             self.statusBar().showMessage(text)
