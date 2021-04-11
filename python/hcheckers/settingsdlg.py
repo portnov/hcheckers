@@ -440,6 +440,7 @@ class SettingsDialog(DialogBase):
         self.general.load(settings)
         self.view.load(settings)
         self.ais.load(settings)
+        self.setWindowTitle(_("HCheckers settings"))
 
     saved = pyqtSignal()
 

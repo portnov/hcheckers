@@ -84,6 +84,8 @@ class NewGameDialog(DialogBase):
         self.show_exit = show_exit
         self.preset_file, self.preset_mask = open_file
 
+        self.setWindowTitle(_("Start new game"))
+
         widget = QWidget()
         self.form_layout = layout = QFormLayout()
 

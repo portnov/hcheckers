@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2021-03-08 13:43+0500\n"
+"POT-Creation-Date: 2021-04-11 15:49+0500\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -127,11 +127,11 @@ msgstr ""
 msgid "Master"
 msgstr ""
 
-#: game.py:296 game.py:337 game.py:339 lobby.py:37 newgamedlg.py:112
+#: game.py:296 game.py:337 game.py:339 lobby.py:37 newgamedlg.py:114
 msgid "White"
 msgstr ""
 
-#: game.py:298 game.py:337 game.py:339 lobby.py:37 newgamedlg.py:113
+#: game.py:298 game.py:337 game.py:339 lobby.py:37 newgamedlg.py:115
 msgid "Black"
 msgstr ""
 
@@ -173,7 +173,7 @@ msgstr ""
 msgid "Status"
 msgstr ""
 
-#: lobby.py:37 newgamedlg.py:103
+#: lobby.py:37 newgamedlg.py:105
 msgid "Rules"
 msgstr ""
 
@@ -189,87 +189,91 @@ msgstr ""
 msgid "Browse..."
 msgstr ""
 
-#: newgamedlg.py:91
-msgid "Start a game against computer"
-msgstr ""
-
-#: newgamedlg.py:92
-msgid "Start a game against human"
+#: newgamedlg.py:87
+msgid "Start new game"
 msgstr ""
 
 #: newgamedlg.py:93
-msgid "Join a game against human"
+msgid "Start a game against computer"
 msgstr ""
 
 #: newgamedlg.py:94
+msgid "Start a game against human"
+msgstr ""
+
+#: newgamedlg.py:95
+msgid "Join a game against human"
+msgstr ""
+
+#: newgamedlg.py:96
 msgid "Action"
 msgstr ""
 
-#: newgamedlg.py:105
+#: newgamedlg.py:107
 msgid "User name"
 msgstr ""
 
-#: newgamedlg.py:114
+#: newgamedlg.py:116
 msgid "User plays"
 msgstr ""
 
-#: newgamedlg.py:120
+#: newgamedlg.py:122
 msgid "Use default initial position"
 msgstr ""
 
-#: newgamedlg.py:121
+#: newgamedlg.py:123
 msgid "Manual initial position setup"
 msgstr ""
 
-#: newgamedlg.py:122
+#: newgamedlg.py:124
 msgid "Use initial board of previous game"
 msgstr ""
 
-#: newgamedlg.py:123
+#: newgamedlg.py:125
 msgid "Load initial board from FEN file"
 msgstr ""
 
-#: newgamedlg.py:124
+#: newgamedlg.py:126
 msgid "Load initial board from PDN file"
 msgstr ""
 
-#: newgamedlg.py:125
+#: newgamedlg.py:127
 msgid "Initial board type"
 msgstr ""
 
-#: newgamedlg.py:130
+#: newgamedlg.py:132
 msgid "Select file"
 msgstr ""
 
-#: newgamedlg.py:147
+#: newgamedlg.py:149
 msgid "Start a new game"
 msgstr ""
 
-#: newgamedlg.py:149
+#: newgamedlg.py:151
 msgid "Close this dialog without starting a new game"
 msgstr ""
 
-#: newgamedlg.py:153
+#: newgamedlg.py:155
 msgid "AI"
 msgstr ""
 
-#: newgamedlg.py:162
+#: newgamedlg.py:164
 msgid "Refresh"
 msgstr ""
 
-#: newgamedlg.py:180
+#: newgamedlg.py:182
 msgid "Open settings dialog"
 msgstr ""
 
-#: newgamedlg.py:189 toplevel.py:219
+#: newgamedlg.py:191 toplevel.py:219
 msgid "E&xit"
 msgstr ""
 
-#: newgamedlg.py:191
+#: newgamedlg.py:193
 msgid "Close this dialog and exit the program"
 msgstr ""
 
-#: newgamedlg.py:238 toplevel.py:588
+#: newgamedlg.py:240 toplevel.py:588
 msgid "Settings have been updated."
 msgstr ""
 
@@ -479,6 +483,10 @@ msgstr ""
 
 #: settingsdlg.py:430
 msgid "AI Presets"
+msgstr ""
+
+#: settingsdlg.py:443
+msgid "HCheckers settings"
 msgstr ""
 
 #: toplevel.py:29

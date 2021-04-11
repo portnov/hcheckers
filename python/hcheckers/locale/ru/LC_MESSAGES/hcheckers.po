@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: 0.1.0.0\n"
-"POT-Creation-Date: 2021-03-08 13:43+0500\n"
+"POT-Creation-Date: 2021-04-11 15:49+0500\n"
 "PO-Revision-Date: 2018-11-07 22:30+5\n"
 "Last-Translator: Ilya Portnov <portnov84@rambler.ru>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -127,11 +127,11 @@ msgstr "Хороший"
 msgid "Master"
 msgstr "Мастер"
 
-#: game.py:296 game.py:337 game.py:339 lobby.py:37 newgamedlg.py:112
+#: game.py:296 game.py:337 game.py:339 lobby.py:37 newgamedlg.py:114
 msgid "White"
 msgstr "Белые"
 
-#: game.py:298 game.py:337 game.py:339 lobby.py:37 newgamedlg.py:113
+#: game.py:298 game.py:337 game.py:339 lobby.py:37 newgamedlg.py:115
 msgid "Black"
 msgstr "Черные"
 
@@ -175,7 +175,7 @@ msgstr "Ид"
 msgid "Status"
 msgstr "Статус"
 
-#: lobby.py:37 newgamedlg.py:103
+#: lobby.py:37 newgamedlg.py:105
 msgid "Rules"
 msgstr "Правила"
 
@@ -191,87 +191,91 @@ msgstr "Открыть файл"
 msgid "Browse..."
 msgstr "Обзор..."
 
-#: newgamedlg.py:91
+#: newgamedlg.py:87
+msgid "Start new game"
+msgstr "Начать новую игру"
+
+#: newgamedlg.py:93
 msgid "Start a game against computer"
 msgstr "Начать игру против компьютера"
 
-#: newgamedlg.py:92
+#: newgamedlg.py:94
 msgid "Start a game against human"
 msgstr "Начать игру против человека"
 
-#: newgamedlg.py:93
+#: newgamedlg.py:95
 msgid "Join a game against human"
 msgstr "Присоединиться к игре против человека"
 
-#: newgamedlg.py:94
+#: newgamedlg.py:96
 msgid "Action"
 msgstr "Действие"
 
-#: newgamedlg.py:105
+#: newgamedlg.py:107
 msgid "User name"
 msgstr "Имя пользователя"
 
-#: newgamedlg.py:114
+#: newgamedlg.py:116
 msgid "User plays"
 msgstr "Пользователь играет"
 
-#: newgamedlg.py:120
+#: newgamedlg.py:122
 msgid "Use default initial position"
 msgstr "Использовать начальную расстановку по умолчанию"
 
-#: newgamedlg.py:121
+#: newgamedlg.py:123
 msgid "Manual initial position setup"
 msgstr "Ручная начальная расстановка"
 
-#: newgamedlg.py:122
+#: newgamedlg.py:124
 msgid "Use initial board of previous game"
 msgstr "Использовать начальную расстановку предыдущей игры"
 
-#: newgamedlg.py:123
+#: newgamedlg.py:125
 msgid "Load initial board from FEN file"
 msgstr "Загрузить начальную расстановку из файла FEN"
 
-#: newgamedlg.py:124
+#: newgamedlg.py:126
 msgid "Load initial board from PDN file"
 msgstr "Загрузить начальную расстановку из файла PDN"
 
-#: newgamedlg.py:125
+#: newgamedlg.py:127
 msgid "Initial board type"
 msgstr "Вид начальной расстановки"
 
-#: newgamedlg.py:130
+#: newgamedlg.py:132
 msgid "Select file"
 msgstr "Выберите файл"
 
-#: newgamedlg.py:147
+#: newgamedlg.py:149
 msgid "Start a new game"
 msgstr "Начать новую игру"
 
-#: newgamedlg.py:149
+#: newgamedlg.py:151
 msgid "Close this dialog without starting a new game"
 msgstr "Закрыть этот диалог, не начиная новой игры"
 
-#: newgamedlg.py:153
+#: newgamedlg.py:155
 msgid "AI"
 msgstr "ИИ"
 
-#: newgamedlg.py:162
+#: newgamedlg.py:164
 msgid "Refresh"
 msgstr "Обновить"
 
-#: newgamedlg.py:180
+#: newgamedlg.py:182
 msgid "Open settings dialog"
 msgstr "Открыть диалог настроек"
 
-#: newgamedlg.py:189 toplevel.py:219
+#: newgamedlg.py:191 toplevel.py:219
 msgid "E&xit"
 msgstr "&Выход"
 
-#: newgamedlg.py:191
+#: newgamedlg.py:193
 msgid "Close this dialog and exit the program"
 msgstr "Закрыть этот диалог и выйти из программы"
 
-#: newgamedlg.py:238 toplevel.py:588
+#: newgamedlg.py:240 toplevel.py:588
 msgid "Settings have been updated."
 msgstr "Настройки были обновлены."
 
@@ -488,6 +492,10 @@ msgstr "Настройки внешнего вида"
 msgid "AI Presets"
 msgstr "Настройки ИИ"
 
+#: settingsdlg.py:443
+msgid "HCheckers settings"
+msgstr "Настройки HCheckers"
+
 #: toplevel.py:29
 msgid "HCheckers client"
 msgstr "Клиент HCheckers"
@@ -680,7 +688,7 @@ msgstr "Нет такого хода: {}"
 msgid ""
 "Status of current game is unsuitable for this operation. Game status is {}; "
 "required status is {}"
-msgstr ""
+msgstr "Статус текущей игры не подходит для данной операции. Статус игры {}; нужный статус {}"
 
 #: toplevel.py:619
 msgid ""
