@@ -27,6 +27,7 @@ class Checkers(QMainWindow):
         QMainWindow.__init__(self)
         self.share_dir = share_dir
         self.setWindowTitle(_("HCheckers client"))
+        self.setWindowIcon(self._icon("hcheckers.svg"))
         self.settings = QSettings("hcheckers", "hcheckers")
         self._board_setup_mode = False
         self._game_active = False
