@@ -8,11 +8,13 @@ import Data.Default
 import Data.Maybe
 import qualified Data.Map as M
 import qualified Data.Text as T
+import qualified Data.Text.IO as TIO
 import qualified Data.ByteString.Lazy.Char8 as C8
 import qualified Data.Aeson as Aeson
 import System.Log.Heavy
 import Options.Applicative
 import Text.Printf
+import System.Random
 
 import Core.Types
 import AI
@@ -110,15 +112,21 @@ special cmd args =
             runTournament runBattleLocal rules ais nMatches nGames
             return ()
 
-    ("genetics": generations : size : best : paths) -> do
+    ("genetics": listPath : generations : size : best : paths) -> do
       let rules = russian
           nGenerations = read generations
           generationSize = read size
           nBest = read best
       ais <- forM paths $ \path -> loadAi "default" rules path
+      battleRunner <- if listPath == "-"
+                        then return runBattleLocal
+                        else do
+                             text <- TIO.readFile listPath
+                             let urls = T.lines text
+                             return $ mkRemoteRunner urls
       withCheckers cmd $
           withLogContext (LogContextFrame [] (include defaultLogFilter)) $ do
-            result <- runGenetics runBattleLocal rules nGenerations generationSize nBest ais
+            result <- runGenetics battleRunner rules nGenerations generationSize nBest ais
             forM_ result $ \ai -> liftIO $ C8.putStrLn $ Aeson.encode ai
             return ()
 
@@ -134,6 +142,12 @@ special cmd args =
         liftIO $ printf "Evaluator: %s\n" (show vec)
         forM_ (M.assocs bmap) $ \(bHash, item) -> do
             liftIO $ printf "Hash: %d => %s\n" bHash (show item)
+
+mkRemoteRunner :: [T.Text] -> BattleRunner
+mkRemoteRunner urls rules ai1 ai2 path = do
+  i <- liftIO $ randomRIO (0, length urls - 1)
+  let url = urls !! i
+  runBattleRemote url rules ai1 ai2 path
     
 -- main :: IO ()
 -- main = do
