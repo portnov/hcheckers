@@ -158,7 +158,7 @@ hasKing side (BoardRep lst) = any isKing (map snd lst)
 loopGame :: FilePath -> GameId -> Side -> Int -> Checkers GameResult
 loopGame path gameId side i = do
   StateRs board status side <- getState gameId
-  if (i > 100) || (i > 60 && boardRepLen board <= 8 && hasKing First board && hasKing Second board)
+  if (i > 200) || (i > 120 && boardRepLen board <= 8 && hasKing First board && hasKing Second board)
     then do
       liftIO $ putStrLn "Too long a game, probably a draw"
       -- pdn <- getPdn gameId

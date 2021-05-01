@@ -460,7 +460,7 @@ class (Typeable g, Show g, HasBoardOrientation g, HasTopology g, VectorEvaluator
   mobilityScore g side board = length $ possibleMoves g side board
 
   updateRules :: g -> Value -> g
-  getGameResult :: g -> Board -> Side -> Maybe GameResult
+  getGameResult :: g -> GameState -> Board -> Side -> Maybe GameResult
   rulesName :: g -> String
   pdnId :: g -> String
 

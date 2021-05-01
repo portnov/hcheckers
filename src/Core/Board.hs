@@ -342,6 +342,9 @@ isCaptureM move = any sCapture (moveSteps move)
 isCapture :: PossibleMove -> Bool
 isCapture pm = not $ null $ pmVictims pm
 
+isPromotionM :: Move -> Bool
+isPromotionM move = any sPromote (moveSteps move)
+
 isPromotion :: PossibleMove -> Bool
 isPromotion = pmPromote
 
@@ -748,11 +751,40 @@ parseBoardRep rnd rules (BoardRep list) = foldr set (buildBoard rnd rules orient
 
 -- | Generic implementation of @getGameResult@, which suits most rules.
 -- This can not, however, recognize draws.
-genericGameResult :: GameRules rules => rules -> Board -> Side -> Maybe GameResult
-genericGameResult rules board side
+genericGameResult :: GameRules rules => rules -> GameState -> Board -> Side -> Maybe GameResult
+genericGameResult rules st board side
   | side == First && null (possibleMoves rules First board) = Just SecondWin
   | side == Second && null (possibleMoves rules Second board) = Just FirstWin
+  | detectRepeatedPosition 3 (gsHistory st) board = Just Draw
+  | detectStalemate (gsHistory st) board = Just Draw
   | otherwise = Nothing
+
+detectRepeatedPosition :: Int -> [HistoryRecord] -> Board -> Bool
+detectRepeatedPosition n history board =
+  case history of
+    [] -> False
+    [_] -> False
+    (record : prevRecord: history') ->
+      if hrPrevBoard record == board
+        then detectRepeatedPosition (n-1) history' (hrPrevBoard record)
+        else False
+
+detectStalemate :: [HistoryRecord] -> Board -> Bool
+detectStalemate history board
+  | totalCount board <= 3 = detectStalemate' 5 history board
+  | totalCount board <= 5 = detectStalemate' 30 history board
+  | totalCount board <= 7 = detectStalemate' 60 history board
+  | otherwise = False
+      
+detectStalemate' :: Int -> [HistoryRecord] -> Board -> Bool
+detectStalemate' nMoves history board =
+  let counts = calcBoardCounts board
+      change r = isCaptureM (hrMove r) || isPromotionM (hrMove r)
+      nHalfMoves = 2*nMoves
+  in  if bcFirstKings counts > 0 && bcSecondKings counts > 0
+        then  length history > nHalfMoves &&
+                (not $ any change $ take nHalfMoves history)
+        else False
 
 instance IsString Label where
   fromString str =

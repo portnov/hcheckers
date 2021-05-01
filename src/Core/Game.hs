@@ -114,9 +114,10 @@ doMoveRq side move = do
   if move `notElem` (map pmMove $ possibleMoves rules side board)
      then throwError NotAllowedMove
      else do
+          st <- gets gState
           let (board', _, _) = applyMove rules side move board
               moveMsg = MoveNotify (opposite side) side (moveRep rules side move) (boardRep board')
-              mbResult = getGameResult rules board' (opposite side)
+              mbResult = getGameResult rules st board' (opposite side)
               messages = case mbResult of
                            Nothing -> [moveMsg]
                            Just result ->
