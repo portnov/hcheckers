@@ -12,6 +12,7 @@ module Battle where
 
 import Control.Monad
 import Control.Monad.IO.Class
+import Control.Concurrent
 import Data.List (sortOn)
 import Data.Aeson
 import Data.Aeson.Types
@@ -91,6 +92,20 @@ runGenetics runBattle rules nGenerations generationSize nBest ais = do
         let best = take nBest $ sortOn (negate . snd) $ M.assocs results
             idxs = map fst best
         return [generation !! i | i <- idxs]
+
+mapP :: Int -> (input -> Checkers output) -> [input] -> Checkers [output]
+mapP nThreads fn inputs = do
+    let groups = splitBy nThreads inputs
+    vars <- replicateM nThreads $ liftIO $ newEmptyMVar
+    forM_ (zip groups vars) $ \(group, var) -> do
+      forkCheckers $ do
+        rs <- forM group fn
+        liftIO $ putMVar var rs
+    rsGroups <- forM vars $ \var -> liftIO $ takeMVar var
+    return $ concat rsGroups
+
+forMP :: Int -> [input] -> (input -> Checkers output) -> Checkers [output]
+forMP nThreads inputs fn = mapP nThreads fn inputs
 
 runTournament :: (GameRules rules, VectorEvaluator (EvaluatorForRules rules))
     => BattleRunner -> rules -> [AlphaBeta rules (EvaluatorForRules rules)] -> Int -> Int -> Checkers (M.Map Int Int)

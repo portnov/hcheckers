@@ -43,13 +43,6 @@ import AI.AlphaBeta.Types
 import AI.AlphaBeta.Cache
 import AI.AlphaBeta.Persistent
 
-chunksOf :: Int -> [a] -> [[a]]
-chunksOf n list
-  | length list <= n = [list]
-  | otherwise =
-      let (first, other) = splitAt n list
-      in  first : chunksOf n other
-
 concatE :: [Int] -> [Either e [a]] -> [Either e a]
 concatE _ [] = []
 concatE (n : ns) (Left e : rest) = replicate n (Left e) ++ concatE ns rest

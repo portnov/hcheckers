@@ -942,3 +942,16 @@ repeatTimed' label seconds action x = do
             $info "{}: work done, in {} iterations" (label, i)
             return result
 
+chunksOf :: Int -> [a] -> [[a]]
+chunksOf n list
+  | length list <= n = [list]
+  | otherwise =
+      let (first, other) = splitAt n list
+      in  first : chunksOf n other
+
+splitBy :: Int -> [a] -> [[a]]
+splitBy n xs =
+  let nxs = length xs
+      m = (nxs `div` n) + 1
+  in  chunksOf m xs
+

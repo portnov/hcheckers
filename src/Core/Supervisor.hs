@@ -209,14 +209,25 @@ selectAi (AttachAiRq name params) rules = go supportedAis
 initAiStorage :: SomeRules -> SomeAi -> Checkers ()
 initAiStorage (SomeRules rules) (SomeAi ai) = do
   var <- askSupervisor
-  st <- liftIO $ atomically $ readTVar var
   let key = (rulesName rules, aiName ai)
-  case M.lookup key (ssAiStorages st) of
-    Nothing -> do
-      storage <- createAiStorage ai
-      liftIO $ atomically $ modifyTVar var $ \st ->
+  storage <- createAiStorage ai
+
+  liftIO $ atomically $ do
+    st <- readTVar var
+    case M.lookup key (ssAiStorages st) of
+      Nothing -> do
+        modifyTVar var $ \st ->
           st {ssAiStorages = M.insert key (toDyn storage) (ssAiStorages st)}
-    Just _ -> return ()
+      Just _ -> return ()
+
+-- initAiStorage_ :: SomeRules -> SomeAi -> Checkers ()
+-- initAiStorage_ (SomeRules rules) (SomeAi ai) = do
+--   var <- askSupervisor
+--   let key = (rulesName rules, aiName ai)
+--   storage <- createAiStorage ai
+--   liftIO $ atomically $ modifyTVar var $ \st ->
+--           st {ssAiStorages = M.insert key (toDyn storage) (ssAiStorages st)}
+--   return ()
 
 -- | Create a game in the New state
 newGame :: SomeRules -> Side -> Maybe BoardRep -> Checkers GameId
