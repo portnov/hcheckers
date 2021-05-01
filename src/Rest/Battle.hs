@@ -57,6 +57,14 @@ restServer shutdownVar = do
       result <- liftCheckers_ $ runBattleLocal (SomeRules rules) ai1 ai2 "battle.pdn"
       json result
 
+  post "/server/shutdown" $ do
+    isLocal <- lift $ asks (gcLocal . csConfig)
+    if isLocal
+      then do
+        json $ object ["shutdown" .= ("ok" :: T.Text)]
+        liftIO $ putMVar shutdownVar ()
+      else error400 "Server is not running in local mode"
+
 decodeFile :: FromJSON a => FilePath -> IO a
 decodeFile path = do
   r <- eitherDecodeFileStrict' path
