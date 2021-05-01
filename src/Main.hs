@@ -5,7 +5,9 @@ module Main where
 import Control.Monad
 import Control.Monad.Reader
 import Data.Default
+import Data.Maybe
 import qualified Data.Map as M
+import qualified Data.Text as T
 import qualified Data.ByteString.Lazy.Char8 as C8
 import qualified Data.Aeson as Aeson
 import System.Log.Heavy
@@ -16,16 +18,17 @@ import Core.Types
 import AI
 import AI.AlphaBeta.Types
 import AI.AlphaBeta.Persistent (loadAiData')
-import Core.Rest
+import Rest.Common (runRestServer)
+import Rest.Game (restServer)
+import Rest.Battle (restServer, runBattleRemote)
 import Core.Checkers
 import Core.CmdLine
 import Core.Supervisor (withRules)
-import Core.Evaluator
 
 import Learn
 import Battle
 import Rules.Russian
-import Rules.Spancirety
+-- import Rules.Spancirety
 
   -- let stdout = LoggingSettings $ filtering defaultLogFilter defStdoutSettings
       -- debug = LoggingSettings $ Filtering (\m -> lmLevel m == trace_level) ((defFileSettings "trace.log") {lsFormat = "{time} {source} [{thread}]: {message}\n"})
@@ -37,10 +40,18 @@ main = do
   case cmdSpecial cmd of
     Nothing ->
       withCheckers cmd $ do
-          cfg <- asks csConfig
-          let fltr = [([], gcLogLevel cfg)]
-          withLogContext (LogContextFrame [] (include fltr)) $
-              runRestServer
+          logLevel <- asks (gcLogLevel . csConfig)
+          host <- asks (T.unpack . gcHost . csConfig)
+          port <- asks (gcPort . csConfig)
+          bsConfig <- asks (gcBattleServerConfig . csConfig)
+          let fltr = [([], logLevel)]
+          withLogContext (LogContextFrame [] (include fltr)) $ do
+              if fromMaybe False (cmdBattleServer cmd)
+                then if bsEnable bsConfig
+                       then runRestServer (T.unpack $ bsHost bsConfig) (bsPort bsConfig) Rest.Battle.restServer
+                       else fail "Battle server is not enabled in config"
+                else runRestServer host port Rest.Game.restServer
+                
     Just str -> special cmd (words str)
 
 special :: CmdLine -> [String] -> IO ()
@@ -64,7 +75,17 @@ special cmd args =
         ai2 <- loadAi "default" rules path2
         withCheckers cmd $
             withLogContext (LogContextFrame [] (include defaultLogFilter)) $ do
-              runBattle (SomeRules rules) (SomeAi ai1) (SomeAi ai2) "battle.pdn"
+              runBattleLocal (SomeRules rules) (SomeAi ai1) (SomeAi ai2) "battle.pdn"
+              return ()
+
+    ["battle-remote", host, rulesName, path1, path2] -> do
+      withRules rulesName $ \rules -> do
+        ai1 <- loadAi "default" rules path1
+        ai2 <- loadAi "default" rules path2
+        withCheckers cmd $
+            withLogContext (LogContextFrame [] (include defaultLogFilter)) $ do
+              rs <- runBattleRemote (T.pack host) (SomeRules rules) (SomeAi ai1) (SomeAi ai2) "battle.pdn"
+              liftIO $ putStrLn $ "Remote: " ++ show rs
               return ()
 
     ["match", rulesName, ns, path1, path2] -> do
@@ -76,7 +97,7 @@ special cmd args =
         putStrLn $ "AI2: " ++ show ai2
         withCheckers cmd $
             withLogContext (LogContextFrame [] (include defaultLogFilter)) $ do
-              runMatch (SomeRules rules) (SomeAi ai1) (SomeAi ai2) n
+              runMatch runBattleLocal (SomeRules rules) (SomeAi ai1) (SomeAi ai2) n
               return ()
 
     ("tournament": matches : games : paths) -> do 
@@ -86,18 +107,18 @@ special cmd args =
       ais <- forM paths $ \path -> loadAi "default" rules path
       withCheckers cmd $
           withLogContext (LogContextFrame [] (include defaultLogFilter)) $ do
-            runTournament rules ais nMatches nGames
+            runTournament runBattleLocal rules ais nMatches nGames
             return ()
 
     ("genetics": generations : size : best : paths) -> do
-      let rules = spancirety
+      let rules = russian
           nGenerations = read generations
           generationSize = read size
           nBest = read best
       ais <- forM paths $ \path -> loadAi "default" rules path
       withCheckers cmd $
           withLogContext (LogContextFrame [] (include defaultLogFilter)) $ do
-            result <- runGenetics rules nGenerations generationSize nBest ais
+            result <- runGenetics runBattleLocal rules nGenerations generationSize nBest ais
             forM_ result $ \ai -> liftIO $ C8.putStrLn $ Aeson.encode ai
             return ()
 

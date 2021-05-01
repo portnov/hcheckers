@@ -88,7 +88,7 @@ instance ToJSON eval => ToJSON (AlphaBeta rules eval) where
         Object evalV = toJSON eval
     in  Object $ H.union paramsV evalV
 
-instance (GameRules rules, VectorEvaluator eval) => GameAi (AlphaBeta rules eval) where
+instance (GameRules rules, VectorEvaluator eval, ToJSON eval) => GameAi (AlphaBeta rules eval) where
 
   type AiStorage (AlphaBeta rules eval) = AICacheHandle rules eval
 
@@ -115,7 +115,7 @@ instance (GameRules rules, VectorEvaluator eval) => GameAi (AlphaBeta rules eval
 
   aiName _ = "default"
 
-instance (GameRules rules, VectorEvaluator eval) => VectorAi (AlphaBeta rules eval) where
+instance (GameRules rules, VectorEvaluator eval, ToJSON eval) => VectorAi (AlphaBeta rules eval) where
   type VectorAiSupport (AlphaBeta rules eval) r = (VectorEvaluatorSupport eval r, rules ~ r)
 
   aiToVector (AlphaBeta params rules eval) = aiVector V.++ evalVector

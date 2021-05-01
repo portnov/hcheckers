@@ -2,27 +2,18 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
-module Core.Rest where
+module Rest.Game where
 
-import           Control.Monad.Reader
+import Control.Monad.Reader
 import Control.Concurrent
 import Control.Concurrent.STM
-import Control.Exception as E
-import Control.Monad.Catch
-import Data.String
 import qualified Data.Text                     as T
 import qualified Data.Text.Lazy                as TL
-import           Data.Default
 import           Data.Maybe
 import           Data.Aeson              hiding ( json )
 import           Web.Scotty.Trans
-import qualified Network.HTTP.Types as H
-import           Network.HTTP.Types.Status
-import           Network.Wai.Handler.Warp
-import qualified Network.Wai as Wai
 import           System.Log.Heavy
 import           System.Log.Heavy.TH
-import System.Exit
 
 import           Core.Types
 import           Core.Board
@@ -31,68 +22,7 @@ import           Core.Json                      ( ) -- import instances only
 import           Formats.Types
 import           Formats.Fen
 import           Formats.Pdn
-
-type Rest a = ActionT Error Checkers a
-
-error400 :: T.Text -> Rest ()
-error400 message = do
-  json $ object ["error" .= message]
-  status status400
-
-transformError :: Error -> Rest ()
-transformError (Unhandled err) = do
-  error400 $ T.pack err
-transformError (NoSuchMoveExt move side board possible) = do
-  json $ object [
-      "error" .= ("no such move" :: T.Text),
-      "move" .= move,
-      "side" .= side,
-      "board" .= board,
-      "possible" .= possible
-    ]
-  status status400
-transformError (InvalidGameStatus expected actual) = do
-  json $ object [
-      "error" .= ("invalid game status" :: T.Text),
-      "expected" .= expected,
-      "actual" .= actual
-    ]
-transformError err = do
-  error400 $ T.pack $ show err
-
-raise500 :: Error -> Rest a
-raise500 err = do
-  text $ TL.pack $ show err
-  raiseStatus status500 err
-
-instance Parsable Side where
-  parseParam "1" = Right First
-  parseParam "2" = Right Second
-  parseParam text = Left $ "unknown side"
-
-instance ScottyError Error where
-  stringError str = Unhandled str
-  showError err = TL.pack $ show err
-
-withGameContext :: GameId -> Checkers a -> Checkers a
-withGameContext gameId actions = withLogVariable "game" gameId actions
-
-liftCheckers :: GameId -> Checkers a -> Rest a
-liftCheckers gameId actions = liftCheckers' (Just gameId) actions
-
-liftCheckers_ :: Checkers a -> Rest a
-liftCheckers_ actions = liftCheckers' Nothing actions
-
-liftCheckers' :: Maybe GameId -> Checkers a -> Rest a
-liftCheckers' mbId actions = do
-  res <- lift $ wrap $ tryC actions
-  case res of
-    Right result -> return result
-    Left  err    -> raise500 err
- where
-  wrap r = case mbId of
-    Nothing     -> r
-    Just gameId -> withGameContext gameId r
+import Rest.Common
 
 boardRq :: SupervisorState -> SomeRules -> NewGameRq -> Rest (Maybe Side, Maybe BoardRep)
 boardRq _ _ (NewGameRq { rqBoard = Just br, rqFen = Nothing, rqPdn = Nothing }) =
@@ -287,23 +217,6 @@ restServer shutdownVar = do
         "status" .= ("ready" :: T.Text)
       ]
 
-restOptions :: String -> Port -> Web.Scotty.Trans.Options
-restOptions host port =
-  Options 0 $ setOnExceptionResponse errorHandler $
-              setHost (fromString host) $
-              setPort port (settings def)
-
-errorHandler :: SomeException -> Wai.Response
-errorHandler e
-  | Just (err :: Error) <- fromException e =
-      Wai.responseLBS H.internalServerError500
-         [(H.hContentType, "text/plain; charset=utf-8")]
-         (fromString $ show err)
-  | otherwise =
-      Wai.responseLBS H.internalServerError500
-         [(H.hContentType, "text/plain; charset=utf-8")]
-         (fromString $ show e)
-
 -- openSocket :: AddrInfo -> IO Socket
 -- openSocket addr = socket (addrFamily addr) (addrSocketType addr) (addrProtocol addr)
 -- 
@@ -318,26 +231,4 @@ errorHandler e
 --       Left (e :: SomeException) -> do
 --         print e
 --         return False
-
-ioErrorHandler :: IOError -> Checkers ()
-ioErrorHandler err = liftIO $ do
-  putStrLn $ "IO error: " ++ show err
-  exitWith (ExitFailure 2)
-
-runRestServer :: Checkers ()
-runRestServer = do
-  cs <- ask
-  let getResponse m = do
-        res <- runCheckersT m cs
-        case res of
-          Right response -> return response
-          Left  err      -> fail $ show err
-  host <- asks (T.unpack . gcHost . csConfig)
-  port <- asks (gcPort . csConfig)
-  -- portOpen <- liftIO $ checkPort host port
-  shutdownVar <- liftIO newEmptyMVar
-  forkCheckers $ handleIOError ioErrorHandler $ scottyOptsT (restOptions host (fromIntegral port)) getResponse (restServer shutdownVar)
-  liftIO $ takeMVar shutdownVar
-  -- REST thread should be able to write the response to Shutdown request.
-  liftIO $ threadDelay (1000 * 1000)
 

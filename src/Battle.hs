@@ -69,8 +69,8 @@ breed rules nNew ais = do
   mapM (cross rules) $ take nNew $ cycle ais'
 
 runGenetics :: (GameRules rules, VectorEvaluator (EvaluatorForRules rules), VectorEvaluatorSupport (EvaluatorForRules rules) rules)
-            => rules -> Int -> Int -> Int -> [AB rules] -> Checkers [AB rules]
-runGenetics rules nGenerations generationSize nBest ais = do
+            => BattleRunner -> rules -> Int -> Int -> Int -> [AB rules] -> Checkers [AB rules]
+runGenetics runBattle rules nGenerations generationSize nBest ais = do
       generation0 <- breed rules generationSize ais
       run 1 generation0
   where
@@ -87,13 +87,14 @@ runGenetics rules nGenerations generationSize nBest ais = do
       nMatches = generationSize
 
       selectBest generation = do
-        results <- runTournament rules generation nMatches nGames
+        results <- runTournament runBattle rules generation nMatches nGames
         let best = take nBest $ sortOn (negate . snd) $ M.assocs results
             idxs = map fst best
         return [generation !! i | i <- idxs]
 
-runTournament :: (GameRules rules, VectorEvaluator (EvaluatorForRules rules)) => rules -> [AlphaBeta rules (EvaluatorForRules rules)] -> Int -> Int -> Checkers (M.Map Int Int)
-runTournament rules ais nMatches nGames = do
+runTournament :: (GameRules rules, VectorEvaluator (EvaluatorForRules rules))
+    => BattleRunner -> rules -> [AlphaBeta rules (EvaluatorForRules rules)] -> Int -> Int -> Checkers (M.Map Int Int)
+runTournament runBattle rules ais nMatches nGames = do
   forM_ ais $ \ai ->
     liftIO $ print $ aiToVector ai
   let n = length ais
@@ -101,7 +102,7 @@ runTournament rules ais nMatches nGames = do
       ais' = map SomeAi ais
   idxPairs' <- liftIO $ shuffleM idxPairs
   stats <- forM (take nMatches idxPairs') $ \(i,j) ->
-             runMatch (SomeRules rules) (ais' !! i) (ais' !! j) nGames
+             runMatch runBattle (SomeRules rules) (ais' !! i) (ais' !! j) nGames
   forM_ (zip idxPairs' stats) $ \((i,j),(first,second,draw)) -> do
       liftIO $ printf "AI#%d vs AI#%d: First %d, Second %d, Draw %d\n" i j first second draw
 
@@ -116,8 +117,8 @@ runTournament rules ais nMatches nGames = do
 --       liftIO $ putStrLn str
   return results
 
-runMatch :: SomeRules -> SomeAi -> SomeAi -> Int -> Checkers (Int, Int, Int)
-runMatch rules ai1 ai2 nGames = do
+runMatch :: BattleRunner -> SomeRules -> SomeAi -> SomeAi -> Int -> Checkers (Int, Int, Int)
+runMatch runBattle rules ai1 ai2 nGames = do
     (nFirst, nSecond, nDraw) <- go 0 (0, 0, 0)
     liftIO $ printf "First: %d, Second: %d, Draws(?): %d\n" nFirst nSecond nDraw
     return (nFirst, nSecond, nDraw)
@@ -133,8 +134,10 @@ runMatch rules ai1 ai2 nGames = do
                         Draw -> (first, second, draw+1)
           go (i+1) stats
 
-runBattle :: SomeRules -> SomeAi -> SomeAi -> FilePath -> Checkers GameResult
-runBattle rules ai1 ai2 path = do
+type BattleRunner = SomeRules -> SomeAi -> SomeAi -> FilePath -> Checkers GameResult
+
+runBattleLocal :: BattleRunner
+runBattleLocal rules ai1 ai2 path = do
   initAiStorage rules ai1
   let firstSide = First
   gameId <- newGame rules firstSide Nothing

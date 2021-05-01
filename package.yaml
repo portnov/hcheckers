@@ -44,6 +44,8 @@ dependencies:
 - http-types
 - warp
 - wai
+- modern-uri
+- req
 - clock
 - array
 - random

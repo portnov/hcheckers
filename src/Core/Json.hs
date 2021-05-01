@@ -6,6 +6,7 @@ import Data.Aeson
 import Data.Aeson.Types
 import qualified Data.Text as T
 import Data.Default
+import qualified Data.HashMap.Strict as HM
 import System.Log.Heavy
 
 import Core.Types
@@ -24,6 +25,8 @@ instance ToJSON Side
 instance FromJSON Side
 
 instance ToJSON GameResult
+
+instance FromJSON GameResult
 
 instance ToJSON BoardOrientation
 
@@ -183,6 +186,12 @@ instance FromJSON AiConfig where
       <*> v .:? "update_cache_max_depth" .!= (aiUpdateCacheMaxDepth def)
       <*> v .:? "update_cache_max_pieces" .!= (aiUpdateCacheMaxPieces def)
 
+instance FromJSON BattleServerConfig where
+  parseJSON = withObject "BattleServerConfig" $ \v -> BattleServerConfig
+    <$> v .:? "enable" .!= bsEnable def
+    <*> v .:? "host" .!= bsHost def
+    <*> v .:? "port" .!= bsPort def
+
 instance FromJSON GeneralConfig where
   parseJSON = withObject "GeneralConfig" $ \v -> GeneralConfig
     <$> v .:? "host" .!= (gcHost def)
@@ -193,6 +202,7 @@ instance FromJSON GeneralConfig where
     <*> v .:? "log_path" .!= (gcLogFile def)
     <*> v .:? "log_level" .!= (gcLogLevel def)
     <*> v .:? "ai" .!= (gcAiConfig def)
+    <*> v .:? "battle_server" .!= (gcBattleServerConfig def)
 
 instance FromJSON Level where
   parseJSON (String "debug") = return debug_level
@@ -204,4 +214,8 @@ instance FromJSON Level where
   parseJSON (String "fatal") = return fatal_level
   parseJSON (String "disable") = return disable_logging
   parseJSON invalid = typeMismatch "logging level" invalid
+
+mergeObjects :: Value -> Value -> Value
+mergeObjects (Object v1) (Object v2) = Object (HM.union v1 v2)
+mergeObjects _ _ = error "not object value"
 

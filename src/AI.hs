@@ -25,3 +25,9 @@ loadAi name rules path = do
           ai = AlphaBeta def rules (dfltEvaluator rules)
       return $ updateAi ai value
 
+parseAi :: (GameRules rules) => rules -> Value -> AlphaBeta rules (EvaluatorForRules rules)
+parseAi rules json =
+      let rules' = SomeRules rules
+          ai = AlphaBeta def rules (dfltEvaluator rules)
+      in  updateAi ai json
+

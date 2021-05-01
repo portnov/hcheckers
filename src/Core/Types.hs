@@ -19,6 +19,7 @@ import Control.Concurrent
 import Control.Concurrent.STM
 import Data.List
 import Data.Array.Unboxed
+import Data.Aeson.Types
 import qualified Data.Vector as V
 import qualified Data.Map as M
 import qualified Data.IntMap.Strict as IM
@@ -30,7 +31,6 @@ import qualified Data.Text.Lazy.Builder.Int as Builder
 import qualified StmContainers.Map as SM
 import Data.Text.Format.Heavy
 import Data.Dynamic
-import Data.Aeson (Value)
 import Data.Int
 import Data.Word
 import Data.Binary
@@ -42,6 +42,7 @@ import GHC.Generics
 import System.Log.Heavy
 import System.Log.Heavy.TH
 import System.Clock
+import Web.Scotty.Trans
 import GHC.Exts (Constraint)
 
 import Debug.Trace (traceEventIO)
@@ -440,7 +441,7 @@ class HasTopology a where
   boardTopology :: a -> BoardTopology
 
 -- | Interface of game rules
-class (Typeable g, Show g, HasBoardOrientation g, HasTopology g, VectorEvaluator (EvaluatorForRules g)) => GameRules g where
+class (Typeable g, Show g, HasBoardOrientation g, HasTopology g, VectorEvaluator (EvaluatorForRules g), ToJSON (EvaluatorForRules g)) => GameRules g where
   type EvaluatorForRules g
   -- | Initial board with initial pieces position
   initBoard :: SupervisorState -> g -> Board
@@ -585,7 +586,7 @@ instance Evaluator SomeEval where
   evaluatorName (SomeEval e) = evaluatorName e
   updateEval (SomeEval e) v = SomeEval (updateEval e v)
 
-class (Show ai, Typeable (AiStorage ai)) => GameAi ai where
+class (Show ai, Typeable (AiStorage ai), ToJSON ai) => GameAi ai where
   type AiStorage ai
 
   createAiStorage :: ai -> Checkers (AiStorage ai)
@@ -752,6 +753,20 @@ instance Default AiConfig where
         , aiUpdateCacheMaxPieces = 8
       }
 
+data BattleServerConfig = BattleServerConfig {
+    bsEnable :: Bool
+  , bsHost :: T.Text
+  , bsPort :: Int
+  }
+  deriving (Show, Typeable, Generic)
+
+instance Default BattleServerConfig where
+  def = BattleServerConfig {
+            bsEnable = False
+          , bsHost = "localhost"
+          , bsPort = 8865
+        }
+
 data GeneralConfig = GeneralConfig {
     gcHost :: T.Text
   , gcPort :: Int
@@ -761,6 +776,7 @@ data GeneralConfig = GeneralConfig {
   , gcLogFile :: FilePath
   , gcLogLevel :: Level
   , gcAiConfig :: AiConfig
+  , gcBattleServerConfig :: BattleServerConfig
   }
   deriving (Show, Typeable, Generic)
 
@@ -773,7 +789,8 @@ instance Default GeneralConfig where
     gcMetricsPort = 8000,
     gcLogFile = "hcheckers.log",
     gcLogLevel = info_level,
-    gcAiConfig = def
+    gcAiConfig = def,
+    gcBattleServerConfig = def
   }
 
 -- | Commonly used data
@@ -814,6 +831,8 @@ newtype Checkers a = Checkers {
 
 instance MonadFail Checkers where
   fail msg = throwError (Unhandled msg)
+
+type Rest a = ActionT Error Checkers a
 
 runCheckersT :: Checkers a -> CheckersState -> IO (Either Error a)
 runCheckersT actions st = runReaderT (runExceptT $ runCheckers actions) st

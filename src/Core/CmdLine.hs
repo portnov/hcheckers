@@ -7,6 +7,7 @@ import Data.Char (toLower)
 data CmdLine = CmdLine {
       cmdConfigPath :: Maybe FilePath
     , cmdLocal :: Maybe Bool
+    , cmdBattleServer :: Maybe Bool
     , cmdSpecial :: Maybe String
     }
   deriving (Eq, Show)
@@ -32,6 +33,11 @@ cmdline = CmdLine
          <> short 'L'
          <> metavar "on|off"
          <> help "Run server in local mode" ) )
+  <*> optional (option bool
+        ( long "battle"
+          <> short 'B'
+          <> metavar "on|off"
+          <> help "Run `battle server' instead of normal game server") )
   <*> optional (strOption
         ( long "special"
          <> metavar "COMMAND" ) )
