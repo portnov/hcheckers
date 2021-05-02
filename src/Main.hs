@@ -99,7 +99,7 @@ special cmd args =
         putStrLn $ "AI2: " ++ show ai2
         withCheckers cmd $
             withLogContext (LogContextFrame [] (include defaultLogFilter)) $ do
-              runMatch runBattleLocal (SomeRules rules) (SomeAi ai1) (SomeAi ai2) n
+              runMatch runBattleLocal (SomeRules rules) (1, SomeAi ai1) (2, SomeAi ai2) n
               return ()
 
     ("tournament": matches : games : paths) -> do 

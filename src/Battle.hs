@@ -116,10 +116,11 @@ runTournament runBattle rules ais nMatches nGames = do
       idxPairs = [(i,j) | i <- [0..n-1], j <- [i+1 .. n-1]]
       ais' = map SomeAi ais
   idxPairs' <- liftIO $ shuffleM idxPairs
-  stats <- forM (take nMatches idxPairs') $ \(i,j) ->
-             runMatch runBattle (SomeRules rules) (ais' !! i) (ais' !! j) nGames
-  forM_ (zip idxPairs' stats) $ \((i,j),(first,second,draw)) -> do
-      liftIO $ printf "AI#%d vs AI#%d: First %d, Second %d, Draw %d\n" i j first second draw
+  stats <- forMP 4 (take nMatches idxPairs') $ \(i,j) ->
+             runMatch runBattle (SomeRules rules) (i, ais' !! i) (j, ais' !! j) nGames
+  liftIO $ putStrLn "Tournament results:"
+  -- forM_ (zip idxPairs' stats) $ \((i,j),(first,second,draw)) -> do
+  --     liftIO $ printf "AI#%d vs AI#%d: First %d, Second %d, Draw %d\n" i j first second draw
 
   let results1 = [(i, first - second) | ((i,j), (first,second,draw)) <- zip idxPairs' stats]
       results2 = [(j, second - first) | ((i,j), (first,second,draw)) <- zip idxPairs' stats]
@@ -132,10 +133,10 @@ runTournament runBattle rules ais nMatches nGames = do
 --       liftIO $ putStrLn str
   return results
 
-runMatch :: BattleRunner -> SomeRules -> SomeAi -> SomeAi -> Int -> Checkers (Int, Int, Int)
-runMatch runBattle rules ai1 ai2 nGames = do
+runMatch :: BattleRunner -> SomeRules -> (Int, SomeAi) -> (Int, SomeAi) -> Int -> Checkers (Int, Int, Int)
+runMatch runBattle rules (i,ai1) (j,ai2) nGames = do
     (nFirst, nSecond, nDraw) <- go 0 (0, 0, 0)
-    liftIO $ printf "First: %d, Second: %d, Draws(?): %d\n" nFirst nSecond nDraw
+    liftIO $ printf "Match: AI#%d: %d, AI#%d: %d, Draws(?): %d\n" i nFirst j nSecond nDraw
     return (nFirst, nSecond, nDraw)
   where
     go :: Int -> (Int, Int, Int) -> Checkers (Int, Int, Int)
