@@ -1,0 +1,16 @@
+FROM debian:buster
+MAINTAINER Ilya V. Portnov <portnov84@rambler.ru>
+
+RUN apt-get update -y && apt-get install -y ca-certificates curl
+RUN apt-get install -y unzip zlib1g-dev c2hs pkg-config libreadline-dev debhelper devscripts
+# Version of stack in ubuntu repos is too old.
+RUN curl -sSL https://get.haskellstack.org/ | sh
+RUN ln /usr/local/bin/stack /usr/bin/stack
+
+WORKDIR /src
+VOLUME /dst
+
+ADD debian-entrypoint.sh /
+
+CMD ["/bin/bash", "/debian-entrypoint.sh"]
+
