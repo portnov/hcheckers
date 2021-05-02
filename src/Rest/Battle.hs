@@ -54,7 +54,7 @@ restServer shutdownVar = do
           ab2 = parseAi rules (brqAi2 rq)
           ai1 = SomeAi ab1
           ai2 = SomeAi ab2
-      result <- liftCheckers_ $ runBattleLocal (SomeRules rules) ai1 ai2 "battle.pdn"
+      result <- liftCheckers_ $ runBattleLocal (SomeRules rules) (1,ai1) (2,ai2) "battle.pdn"
       json result
 
   post "/server/shutdown" $ do
@@ -92,7 +92,7 @@ runBattleRemoteIO baseUrl rulesName aiPath1 aiPath2 = do
   return (responseBody rs)
 
 runBattleRemote :: T.Text -> BattleRunner
-runBattleRemote baseUrl (SomeRules rules) (SomeAi ai1) (SomeAi ai2) path = do
+runBattleRemote baseUrl (SomeRules rules) (i,SomeAi ai1) (j,SomeAi ai2) path = do
   let rq = BattleRq (rulesName rules) (toJSON ai1) (toJSON ai2)
       (url, opts) = http_ baseUrl
   rs <- liftIO $ runReq defaultHttpConfig $

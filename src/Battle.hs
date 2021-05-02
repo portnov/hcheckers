@@ -31,6 +31,10 @@ import AI.AlphaBeta.Types
 
 type AB rules = AlphaBeta rules (EvaluatorForRules rules)
 
+type BattleRunner = SomeRules -> (Int,SomeAi) -> (Int,SomeAi) -> FilePath -> Checkers GameResult
+
+type MatchRunner = Int -> SomeRules -> [(Int,Int)] -> [SomeAi] -> Checkers [(Int, Int, Int)]
+
 (<+>) :: Num a => V.Vector a -> V.Vector a -> V.Vector a
 v1 <+> v2 = V.zipWith (+) v1 v2
 
@@ -70,8 +74,8 @@ breed rules nNew ais = do
   mapM (cross rules) $ take nNew $ cycle ais'
 
 runGenetics :: (GameRules rules, VectorEvaluator (EvaluatorForRules rules), VectorEvaluatorSupport (EvaluatorForRules rules) rules)
-            => BattleRunner -> rules -> Int -> Int -> Int -> [AB rules] -> Checkers [AB rules]
-runGenetics runBattle rules nGenerations generationSize nBest ais = do
+            => MatchRunner -> rules -> Int -> Int -> Int -> [AB rules] -> Checkers [AB rules]
+runGenetics runMatches rules nGenerations generationSize nBest ais = do
       generation0 <- breed rules generationSize ais
       run 1 generation0
   where
@@ -88,7 +92,7 @@ runGenetics runBattle rules nGenerations generationSize nBest ais = do
       nMatches = generationSize
 
       selectBest generation = do
-        results <- runTournament runBattle rules generation nMatches nGames
+        results <- runTournament runMatches rules generation nMatches nGames
         let best = take nBest $ sortOn (negate . snd) $ M.assocs results
             idxs = map fst best
         return [generation !! i | i <- idxs]
@@ -107,17 +111,21 @@ mapP nThreads fn inputs = do
 forMP :: Int -> [input] -> (input -> Checkers output) -> Checkers [output]
 forMP nThreads inputs fn = mapP nThreads fn inputs
 
+dumbMatchRunner :: BattleRunner -> MatchRunner
+dumbMatchRunner runBattle nGames rules idxPairs ais =
+  forMP 4 idxPairs $ \(i,j) ->
+      runMatch runBattle rules (i, ais !! i) (j, ais !! j) nGames
+
 runTournament :: (GameRules rules, VectorEvaluator (EvaluatorForRules rules))
-    => BattleRunner -> rules -> [AlphaBeta rules (EvaluatorForRules rules)] -> Int -> Int -> Checkers (M.Map Int Int)
-runTournament runBattle rules ais nMatches nGames = do
+    => MatchRunner -> rules -> [AlphaBeta rules (EvaluatorForRules rules)] -> Int -> Int -> Checkers (M.Map Int Int)
+runTournament runMatches rules ais nMatches nGames = do
   forM_ ais $ \ai ->
     liftIO $ print $ aiToVector ai
   let n = length ais
       idxPairs = [(i,j) | i <- [0..n-1], j <- [i+1 .. n-1]]
       ais' = map SomeAi ais
   idxPairs' <- liftIO $ shuffleM idxPairs
-  stats <- forMP 4 (take nMatches idxPairs') $ \(i,j) ->
-             runMatch runBattle (SomeRules rules) (i, ais' !! i) (j, ais' !! j) nGames
+  stats <- runMatches nGames (SomeRules rules) (take nMatches idxPairs') ais'
   liftIO $ putStrLn "Tournament results:"
   -- forM_ (zip idxPairs' stats) $ \((i,j),(first,second,draw)) -> do
   --     liftIO $ printf "AI#%d vs AI#%d: First %d, Second %d, Draw %d\n" i j first second draw
@@ -140,20 +148,29 @@ runMatch runBattle rules (i,ai1) (j,ai2) nGames = do
     return (nFirst, nSecond, nDraw)
   where
     go :: Int -> (Int, Int, Int) -> Checkers (Int, Int, Int)
-    go i (first, second, draw)
-      | i >= nGames = return (first, second, draw)
+    go k (first, second, draw)
+      | k >= nGames = return (first, second, draw)
       | otherwise = do
-          result <- runBattle rules ai1 ai2 (printf "battle_%d.pdn" i)
+          result <- runBattle rules (i,ai1) (j,ai2) (printf "battle_%d.pdn" k)
           let stats = case result of
                         FirstWin -> (first+1, second, draw)
                         SecondWin -> (first, second+1, draw)
                         Draw -> (first, second, draw+1)
-          go (i+1) stats
+          go (k+1) stats
 
-type BattleRunner = SomeRules -> SomeAi -> SomeAi -> FilePath -> Checkers GameResult
+calcMatchStats :: [GameResult] -> (Int, Int, Int)
+calcMatchStats rs = go (0, 0, 0) rs
+  where
+    go (first, second, draw) [] = (first, second, draw)
+    go (first, second, draw) (r : rs) =
+      let stats = case r of
+                    FirstWin -> (first+1, second, draw)
+                    SecondWin -> (first, second+1, draw)
+                    Draw -> (first, second, draw+1)
+      in go stats rs
 
 runBattleLocal :: BattleRunner
-runBattleLocal rules ai1 ai2 path = do
+runBattleLocal rules (i,ai1) (j,ai2) path = do
   initAiStorage rules ai1
   let firstSide = First
   gameId <- newGame rules firstSide Nothing
@@ -165,7 +182,7 @@ runBattleLocal rules ai1 ai2 path = do
   resetAiStorageG gameId Second
   runGame gameId
   result <- loopGame path gameId (opposite firstSide) 0
-  liftIO $ print result
+  liftIO $ printf "Battle AI#%d vs AI#%d: %s\n" i j (show result)
   return result
 
 hasKing :: Side -> BoardRep -> Bool
