@@ -24,10 +24,6 @@ instance Show Turkish where
 instance HasTopology Turkish where
   boardTopology _ = Orthogonal
 
-instance SimpleEvaluatorSupport Turkish where
-  getBackDirections _ = [Backward]
-  getAllAddresses r = addresses8 r
-
 instance GameRules Turkish where
   type EvaluatorForRules Turkish = SimpleEvaluator
   initBoard rnd r =
@@ -57,6 +53,9 @@ instance GameRules Turkish where
   getGameResult = genericGameResult
 
   pdnId _ = "43"
+
+  getBackDirections _ = [Backward]
+  getAllAddresses r = addresses8 r
 
 turkishBase :: GenericRules -> GenericRules
 turkishBase =

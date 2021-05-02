@@ -21,9 +21,6 @@ instance Show DiagonalRussian where
 instance HasTopology DiagonalRussian where
   boardTopology _ = Core.Types.Diagonal
 
-instance SimpleEvaluatorSupport DiagonalRussian where
-  getAllAddresses r = addresses8 r
-
 instance GameRules DiagonalRussian where
   type EvaluatorForRules DiagonalRussian = SimpleEvaluator
   initBoard rnd r =
@@ -62,6 +59,7 @@ instance GameRules DiagonalRussian where
   getGameResult = genericGameResult
 
   pdnId _ = "42"
+  getAllAddresses r = addresses8 r
 
 diagonal :: DiagonalRussian
 diagonal = DiagonalRussian $

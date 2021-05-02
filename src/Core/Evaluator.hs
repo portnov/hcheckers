@@ -6,8 +6,6 @@
 {-# LANGUAGE ConstraintKinds #-}
 module Core.Evaluator
   ( SimpleEvaluator (..),
-    SimpleEvaluatorInterface (..),
-    SimpleEvaluatorSupport (..),
     SimpleEvaluatorData (..),
     weightForSide,
     defaultEvaluator
@@ -38,7 +36,7 @@ data SimpleEvaluatorData = SimpleEvaluatorData {
   deriving (Show)
 
 data SimpleEvaluator = SimpleEvaluator {
-    seRules :: SimpleEvaluatorInterface,
+    seRules :: SomeRules,
     seUsePositionalScore :: Bool,
     seMobilityWeight :: ScoreBase,
     seBackyardWeight :: ScoreBase,
@@ -57,21 +55,7 @@ data SimpleEvaluator = SimpleEvaluator {
   }
   deriving (Show)
 
-class GameRules rules => SimpleEvaluatorSupport rules where
-  getBackDirections :: rules -> [PlayerDirection]
-  getBackDirections _ = [BackwardLeft, BackwardRight]
-
-  getForwardDirections :: rules -> [PlayerDirection]
-  getForwardDirections _ = [ForwardLeft, ForwardRight]
-
-  getAllAddresses :: rules -> [Address]
-
-data SimpleEvaluatorInterface = forall g. SimpleEvaluatorSupport g => SimpleEvaluatorInterface g
-
-instance Show SimpleEvaluatorInterface where
-  show (SimpleEvaluatorInterface rules) = rulesName rules
-
-defaultEvaluator :: SimpleEvaluatorSupport rules => rules -> SimpleEvaluator
+defaultEvaluator :: GameRules rules => rules -> SimpleEvaluator
 defaultEvaluator rules = SimpleEvaluator
     { seRules              = iface
     , seUsePositionalScore = True
@@ -91,7 +75,7 @@ defaultEvaluator rules = SimpleEvaluator
     , seCache = buildCache iface
     }
   where
-    iface = SimpleEvaluatorInterface rules
+    iface = SomeRules rules
 
 parseEvaluator :: SimpleEvaluator -> Value -> AT.Parser SimpleEvaluator
 parseEvaluator def = withObject "Evaluator" $ \v -> SimpleEvaluator
@@ -177,8 +161,8 @@ instance Default PreScore where
           , psThreats = 0
         }
 
-waveRho :: SimpleEvaluatorInterface -> Side -> (Address -> Bool) -> Address -> ScoreBase -> ScoreBase
-waveRho (SimpleEvaluatorInterface rules) side isGood addr best = go addr
+waveRho :: SomeRules -> Side -> (Address -> Bool) -> Address -> ScoreBase -> ScoreBase
+waveRho (SomeRules rules) side isGood addr best = go addr
   where
     go :: Address -> ScoreBase
     go addr
@@ -191,8 +175,8 @@ waveRho (SimpleEvaluatorInterface rules) side isGood addr best = go addr
                 Just dst -> max 0 $ go dst - 1
         in  maximum $ map check $ getForwardDirections rules
 
-buildCache :: SimpleEvaluatorInterface -> M.Map Address SimpleEvaluatorData
-buildCache iface@(SimpleEvaluatorInterface rules) = M.fromList [(addr, labelData addr) | addr <- getAllAddresses rules]
+buildCache :: SomeRules -> M.Map Address SimpleEvaluatorData
+buildCache iface@(SomeRules rules) = M.fromList [(addr, labelData addr) | addr <- getAllAddresses rules]
   where
     labelData addr = SimpleEvaluatorData $ SimpleEvaluatorWeights {
         sewFirst = waveRho iface First (isCenter . aLabel) addr best,
@@ -214,7 +198,7 @@ buildCache iface@(SimpleEvaluatorInterface rules) = M.fromList [(addr, labelData
         -- && (row >= crow - halfRow && row < crow + halfRow)
 
 preEval :: SimpleEvaluator -> Side -> Board -> PreScore
-preEval (SimpleEvaluator { seRules = iface@(SimpleEvaluatorInterface rules), ..}) side board =
+preEval (SimpleEvaluator { seRules = iface@(SomeRules rules), ..}) side board =
   let
     kingCoef = seKingCoef
       -- King is much more useful when there are enough men to help it
@@ -337,7 +321,7 @@ instance Evaluator SimpleEvaluator where
       Nothing -> e
       Just e' -> e'
 
-  evalBoard eval@(SimpleEvaluator {seRules = SimpleEvaluatorInterface rules, ..}) whoAsks board =
+  evalBoard eval@(SimpleEvaluator {seRules = SomeRules rules, ..}) whoAsks board =
     let ps1 = preEval eval whoAsks board
         ps2 = preEval eval (opposite whoAsks) board
 
@@ -387,7 +371,6 @@ instance Evaluator SimpleEvaluator where
                  else (myScore - opponentScore)
 
 instance VectorEvaluator SimpleEvaluator where
-  type VectorEvaluatorSupport SimpleEvaluator rules = SimpleEvaluatorSupport rules
 
   evalToVector (SimpleEvaluator {..}) = V.fromList $ map fromIntegral $ [
         seMobilityWeight, seBackyardWeight,
@@ -417,7 +400,7 @@ instance VectorEvaluator SimpleEvaluator where
         , seCache = buildCache iface
       }
     where
-      iface = SimpleEvaluatorInterface rules
+      iface = SomeRules rules
         
 
 -- data ComplexEvaluator rules = ComplexEvaluator {

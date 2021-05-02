@@ -465,6 +465,14 @@ class (Typeable g, Show g, HasBoardOrientation g, HasTopology g, VectorEvaluator
   rulesName :: g -> String
   pdnId :: g -> String
 
+  getBackDirections :: g -> [PlayerDirection]
+  getBackDirections _ = [BackwardLeft, BackwardRight]
+
+  getForwardDirections :: g -> [PlayerDirection]
+  getForwardDirections _ = [ForwardLeft, ForwardRight]
+
+  getAllAddresses :: g -> [Address]
+
 fieldsCount :: GameRules rules => rules -> Line
 fieldsCount rules =
   let (nrows, ncols) = boardSize rules
@@ -571,9 +579,8 @@ class (Show e, Typeable e) => Evaluator e where
   updateEval e _ = e
 
 class Evaluator e => VectorEvaluator e where
-  type VectorEvaluatorSupport e rules :: Constraint
   evalToVector :: e -> V.Vector Double
-  evalFromVector :: VectorEvaluatorSupport e rules => rules -> V.Vector Double -> e
+  evalFromVector :: GameRules rules => rules -> V.Vector Double -> e
 
 data SomeEval = forall e. VectorEvaluator e => SomeEval e
   deriving (Typeable)

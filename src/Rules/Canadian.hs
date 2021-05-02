@@ -21,9 +21,6 @@ instance Show Canadian where
 instance HasTopology Canadian where
   boardTopology _ = Diagonal
 
-instance SimpleEvaluatorSupport Canadian where
-  getAllAddresses r = addresses12 r
-
 instance GameRules Canadian where
   type EvaluatorForRules Canadian = SimpleEvaluator
 
@@ -63,6 +60,7 @@ instance GameRules Canadian where
 
   possibleMoves (Canadian rules) side board = gPossibleMoves rules side board
   mobilityScore (Canadian rules) side board = gMobilityScore rules side board
+  getAllAddresses r = addresses12 r
 
 canadian :: Canadian
 canadian = Canadian $

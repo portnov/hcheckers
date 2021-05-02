@@ -22,9 +22,6 @@ instance Show Spancirety where
 instance HasTopology Spancirety where
   boardTopology _ = Diagonal
 
-instance SimpleEvaluatorSupport Spancirety where
-  getAllAddresses r = IM.elems $ bAddresses $ buildBoard DummyRandomTableProvider r FirstAtBottom (8, 10)
-
 instance GameRules Spancirety where
   type EvaluatorForRules Spancirety = SimpleEvaluator
   initBoard rnd r =
@@ -57,6 +54,7 @@ instance GameRules Spancirety where
   getGameResult = genericGameResult
 
   pdnId _ = "41"
+  getAllAddresses r = IM.elems $ bAddresses $ buildBoard DummyRandomTableProvider r FirstAtBottom (8, 10)
 
 spancirety :: Spancirety
 spancirety = Spancirety $

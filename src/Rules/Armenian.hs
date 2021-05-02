@@ -23,11 +23,6 @@ instance Show Armenian where
 instance HasTopology Armenian where
   boardTopology _ = DiagonalAndOrthogonal
 
-instance SimpleEvaluatorSupport Armenian where
-  getBackDirections _ = [Backward]
-  getForwardDirections _ = [ForwardLeft, Forward, ForwardRight]
-  getAllAddresses r = addresses8 r
-
 instance GameRules Armenian where
   type EvaluatorForRules Armenian = SimpleEvaluator
 
@@ -65,6 +60,10 @@ instance GameRules Armenian where
   getGameResult = genericGameResult
 
   pdnId _ = "44"
+
+  getBackDirections _ = [Backward]
+  getForwardDirections _ = [ForwardLeft, Forward, ForwardRight]
+  getAllAddresses r = addresses8 r
 
 armenianBase :: GenericRules -> GenericRules
 armenianBase =

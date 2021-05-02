@@ -21,9 +21,6 @@ instance Show Czech where
 instance HasTopology Czech where
   boardTopology _ = Core.Types.Diagonal
 
-instance SimpleEvaluatorSupport Czech where
-  getAllAddresses r = addresses8 r
-
 instance GameRules Czech where
   type EvaluatorForRules Czech = SimpleEvaluator
   pdnId _ = "29"
@@ -47,6 +44,7 @@ instance GameRules Czech where
   updateRules r _ = r
 
   getGameResult = genericGameResult
+  getAllAddresses r = addresses8 r
 
 manCaptures :: GenericRules -> CaptureState -> [PossibleMove]
 manCaptures rules ct@(CaptureState {..}) =

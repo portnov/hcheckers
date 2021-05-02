@@ -109,7 +109,7 @@ instance (GameRules rules, VectorEvaluator eval, ToJSON eval) => GameAi (AlphaBe
   aiName _ = "default"
 
 instance (GameRules rules, VectorEvaluator eval, ToJSON eval) => VectorAi (AlphaBeta rules eval) where
-  type VectorAiSupport (AlphaBeta rules eval) r = (VectorEvaluatorSupport eval r, rules ~ r)
+  type VectorAiSupport (AlphaBeta rules eval) r = (rules ~ r)
 
   aiToVector (AlphaBeta params rules eval) = aiVector V.++ evalVector
     where

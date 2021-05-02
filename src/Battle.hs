@@ -7,6 +7,7 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE DataKinds #-}
 
 module Battle where
 
@@ -14,26 +15,57 @@ import Control.Monad
 import Control.Monad.IO.Class
 import Control.Concurrent
 import Data.List (sortOn)
-import Data.Aeson
+import Data.Aeson hiding (json)
 import Data.Aeson.Types
+import Data.Yaml
+import Data.Maybe
 import qualified Data.Map as M
 import qualified Data.Vector as V
 import qualified Data.HashMap.Strict as H
 import qualified Data.Text as T
+import qualified Data.Text.IO as TIO
 import Text.Printf
 import System.Random
 import System.Random.Shuffle
+import Web.Scotty.Trans
+import Network.HTTP.Req
+import Text.URI (mkURI)
 
-import Core.Types
+import Core.Types hiding (timed)
 import Core.Board
+import Core.Json () -- instances only
 import Core.Supervisor
+import Core.Parallel
+import Core.Monitoring
+import Rest.Common
 import AI.AlphaBeta.Types
+import AI
 
 type AB rules = AlphaBeta rules (EvaluatorForRules rules)
 
 type BattleRunner = SomeRules -> (Int,SomeAi) -> (Int,SomeAi) -> FilePath -> Checkers GameResult
 
 type MatchRunner = Int -> SomeRules -> [(Int,Int)] -> [SomeAi] -> Checkers [(Int, Int, Int)]
+
+data GeneticSettings = GeneticSettings {
+    gsRules :: String
+  , gsUrls :: [T.Text]
+  , gsGenerations :: Int
+  , gsGames :: Int
+  , gsGenerationSize :: Int
+  , gsBestCount :: Int
+  , gsInitFiles :: [FilePath]
+  } deriving (Show)
+
+instance FromJSON GeneticSettings where
+  parseJSON = withObject "GeneticSettings" $ \v -> GeneticSettings
+    <$> v .: "rules"
+    <*> v .: "urls"
+    <*> v .: "generations"
+    <*> v .: "games_per_match"
+    <*> v .: "generation_size"
+    <*> v .: "select_best"
+    <*> v .: "init_files"
 
 (<+>) :: Num a => V.Vector a -> V.Vector a -> V.Vector a
 v1 <+> v2 = V.zipWith (+) v1 v2
@@ -48,7 +80,7 @@ norm :: V.Vector Double -> Double
 -- norm v = sqrt $ V.sum $ V.map (\x -> x*x) v
 norm v = (V.sum $ V.map abs v) / fromIntegral (V.length v)
 
-cross :: (GameRules rules, VectorEvaluator (EvaluatorForRules rules), VectorEvaluatorSupport (EvaluatorForRules rules) rules) => rules -> (AB rules, AB rules) -> Checkers (AB rules)
+cross :: (GameRules rules, VectorEvaluator (EvaluatorForRules rules)) => rules -> (AB rules, AB rules) -> Checkers (AB rules)
 cross rules (ai1, ai2) = do
   let v1 = aiToVector ai1
       v2 = aiToVector ai2
@@ -68,7 +100,7 @@ cross rules (ai1, ai2) = do
   let v3' = V.take 3 v1 V.++ V.drop 3 v3
   return $ aiFromVector rules v3'
 
-breed :: (GameRules rules, VectorEvaluator (EvaluatorForRules rules), VectorEvaluatorSupport (EvaluatorForRules rules) rules) => rules -> Int -> [AB rules] -> Checkers [AB rules]
+breed :: (GameRules rules, VectorEvaluator (EvaluatorForRules rules)) => rules -> Int -> [AB rules] -> Checkers [AB rules]
 breed rules nNew ais = do
   let n = length ais
       idxPairs = [(i,j) | i <- [0..n-1], j <- [i+1 .. n-1]]
@@ -76,9 +108,44 @@ breed rules nNew ais = do
   let ais' = [(ais !! i, ais !! j) | (i,j) <- idxPairs']
   mapM (cross rules) $ take nNew $ cycle ais'
 
-runGenetics :: (GameRules rules, VectorEvaluator (EvaluatorForRules rules), VectorEvaluatorSupport (EvaluatorForRules rules) rules)
-            => MatchRunner -> rules -> Int -> Int -> Int -> [AB rules] -> Checkers [AB rules]
-runGenetics runMatches rules nGenerations generationSize nBest ais = do
+runGeneticsJ :: FilePath -> Checkers [SomeAi]
+runGeneticsJ cfgPath = do
+  cfg <- liftIO $ decodeYamlFile cfgPath
+  matchRunner <- if null (gsUrls cfg)
+                    then return $ dumbMatchRunner runBattleLocal
+                    else do
+                         let process url (gameNr, rules, (i,ai1), (j,ai2), path) = do
+                                liftIO $ printf "Battle AI#%d vs AI#%d on %s\n" i j (T.unpack url)
+                                timed ("battle.duration." <> url) $ do
+                                  increment ("battle.count." <> url)
+                                  runBattleRemote url rules (i,ai1) (j,ai2) path
+                         processor <- runProcessor' (gsUrls cfg) getJobKey process
+                         return $ mkRemoteRunner processor
+  withRules (gsRules cfg) $ \rules -> do
+      ais <- forM (gsInitFiles cfg) $ \path -> liftIO $ loadAi "default" rules path
+      rs <- runGenetics matchRunner rules (gsGenerations cfg) (gsGenerationSize cfg) (gsBestCount cfg) (gsGames cfg) ais
+      return $ map SomeAi rs
+
+type BattleProcessor = Processor (Int,Int,Int) (Int, SomeRules, (Int,SomeAi), (Int,SomeAi), FilePath) GameResult
+
+getJobKey (gameNr, rules, (i,ai1), (j,ai2), _) = (gameNr, i,j)
+
+mkRemoteRunner :: BattleProcessor -> MatchRunner
+mkRemoteRunner processor nGames rules idxPairs ais = do
+  let inputs = [(gameNr, rules, (i, ais !! i), (j, ais !! j), "battle.pdn") | (i,j) <- idxPairs, gameNr <- [1..nGames]]
+      keys = map getJobKey inputs
+  gameResults <- process processor inputs
+  let list = [((i,j), result) | (result, (gameNr, i,j)) <- zip gameResults keys]
+      byPair = foldr (\(ij, result) m -> M.insertWith (++) ij [result] m) M.empty list
+      groupedResults = [fromJust $ M.lookup ij byPair | ij <- idxPairs]
+      totals = [calcMatchStats results | results <- groupedResults]
+  forM_ (zip idxPairs totals) $ \((i,j), (first, second, draw)) -> do
+    liftIO $ printf "Match: AI#%d: %d, AI#%d: %d, Draws(?): %d\n" i first j second draw
+  return totals
+
+runGenetics :: (GameRules rules, VectorEvaluator (EvaluatorForRules rules))
+            => MatchRunner -> rules -> Int -> Int -> Int -> Int -> [AB rules] -> Checkers [AB rules]
+runGenetics runMatches rules nGenerations generationSize nBest nGames ais = do
       generation0 <- breed rules generationSize ais
       run 1 generation0
   where
@@ -91,7 +158,6 @@ runGenetics runMatches rules nGenerations generationSize nBest ais = do
               generation' <- breed rules generationSize best
               run (n+1) generation'
 
-      nGames = 5
       nMatches = generationSize
 
       selectBest generation = do
@@ -258,5 +324,46 @@ generateAiVariations n dv path = do
     Nothing -> fail "Cannot load initial AI"
     Just initValue -> forM_ [1..n] $ \i -> do
                         value <- generateVariation dv initValue
-                        encodeFile (printf "ai_variation_%d.json" i) value
+                        Data.Aeson.encodeFile (printf "ai_variation_%d.json" i) value
+
+decodeJsonFile :: FromJSON a => FilePath -> IO a
+decodeJsonFile path = do
+  r <- eitherDecodeFileStrict' path
+  case r of
+    Left err -> fail err
+    Right x -> return x
+
+decodeYamlFile :: FromJSON a => FilePath -> IO a
+decodeYamlFile path = do
+  r <- Data.Yaml.decodeFileEither path
+  case r of
+    Left err -> fail (show err)
+    Right x -> return x
+
+http_ :: T.Text -> (Url 'Http, Option s)
+http_ text =
+  case mkURI text of
+    Nothing -> error $ "Can't parse URI: " ++ T.unpack text
+    Just uri ->
+      case useHttpURI uri of
+        Nothing -> error $ "Unsupported URI: " ++ T.unpack text
+        Just (url, opts) -> (url, opts)
+
+runBattleRemote :: T.Text -> BattleRunner
+runBattleRemote baseUrl (SomeRules rules) (i,SomeAi ai1) (j,SomeAi ai2) path = do
+  let rq = BattleRq (rulesName rules) (toJSON ai1) (toJSON ai2)
+      (url, opts) = http_ baseUrl
+  rs <- liftIO $ runReq defaultHttpConfig $
+          req POST (url /: "battle" /: "run") (ReqBodyJson rq) jsonResponse opts
+  return (responseBody rs)
+
+runBattleRemoteIO :: T.Text -> String -> FilePath -> FilePath -> IO GameResult
+runBattleRemoteIO baseUrl rulesName aiPath1 aiPath2 = do
+  ai1 <- decodeJsonFile aiPath1
+  ai2 <- decodeJsonFile aiPath2
+  let rq = BattleRq rulesName ai1 ai2
+      (url, opts) = http_ baseUrl 
+  rs <- runReq defaultHttpConfig $
+          req POST (url /: "battle" /: "run") (ReqBodyJson rq) jsonResponse opts
+  return (responseBody rs)
 

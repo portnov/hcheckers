@@ -21,9 +21,6 @@ newtype Russian = Russian GenericRules
 instance Show Russian where
   show = rulesName
 
-instance SimpleEvaluatorSupport Russian where
-  getAllAddresses r = addresses8 r
-
 instance HasTopology Russian where
   boardTopology _ = Diagonal
 
@@ -51,6 +48,7 @@ instance GameRules Russian where
   getGameResult = genericGameResult
 
   pdnId _ = "25"
+  getAllAddresses r = addresses8 r
 
 russianBase :: GenericRules -> GenericRules
 russianBase =

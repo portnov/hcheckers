@@ -19,9 +19,6 @@ newtype Simple = Simple GenericRules
 instance Show Simple where
   show = rulesName
 
-instance SimpleEvaluatorSupport Simple where
-  getAllAddresses r = addresses8 r
-
 instance HasTopology Simple where
   boardTopology _ = Diagonal
 
@@ -47,6 +44,7 @@ instance GameRules Simple where
   mobilityScore (Simple rules) side board = gMobilityScore rules side board
 
   pdnId _ = "43"
+  getAllAddresses r = addresses8 r
 
 simple :: Simple
 simple = Simple $

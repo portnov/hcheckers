@@ -24,7 +24,7 @@ import AI.AlphaBeta.Types
 import AI.AlphaBeta.Persistent (loadAiData')
 import Rest.Common (runRestServer)
 import Rest.Game (restServer)
-import Rest.Battle (restServer, runBattleRemote)
+import Rest.Battle (restServer)
 import Core.Checkers
 import Core.CmdLine
 import Core.Supervisor (withRules)
@@ -116,29 +116,11 @@ special cmd args =
             runTournament (dumbMatchRunner runBattleLocal) rules ais nMatches nGames
             return ()
 
-    ("genetics": listPath : generations : size : best : paths) -> do
-      let rules = russian
-          nGenerations = read generations
-          generationSize = read size
-          nBest = read best
-          nGames = 5
-      ais <- forM paths $ \path -> loadAi "default" rules path
+    ["genetics", yamlPath] -> do
       withCheckers cmd $ do
-          matchRunner <- if listPath == "-"
-                            then return $ dumbMatchRunner runBattleLocal
-                            else do
-                                 text <- liftIO $ TIO.readFile listPath
-                                 let urls = filter (\url -> not $ "#" `T.isPrefixOf` url) $ T.lines text
-                                     process url (gameNr, rules, (i,ai1), (j,ai2), path) = do
-                                        liftIO $ printf "Battle AI#%d vs AI#%d on %s\n" i j (T.unpack url)
-                                        timed ("battle.duration." <> url) $ do
-                                          increment ("battle.count." <> url)
-                                          runBattleRemote url rules (i,ai1) (j,ai2) path
-                                 processor <- runProcessor' urls getJobKey process
-                                 return $ mkRemoteRunner processor
           withLogContext (LogContextFrame [] (include defaultLogFilter)) $ do
-            result <- runGenetics matchRunner rules nGenerations generationSize nBest ais
-            forM_ result $ \ai -> liftIO $ C8.putStrLn $ Aeson.encode ai
+            result <- runGeneticsJ yamlPath
+            forM_ result $ \(SomeAi ai) -> liftIO $ C8.putStrLn $ Aeson.encode ai
             return ()
 
     ["generate", ns, deltas, path] -> do
@@ -153,21 +135,4 @@ special cmd args =
         liftIO $ printf "Evaluator: %s\n" (show vec)
         forM_ (M.assocs bmap) $ \(bHash, item) -> do
             liftIO $ printf "Hash: %d => %s\n" bHash (show item)
-
-type BattleProcessor = Processor (Int,Int,Int) (Int, SomeRules, (Int,SomeAi), (Int,SomeAi), FilePath) GameResult
-
-getJobKey (gameNr, rules, (i,ai1), (j,ai2), _) = (gameNr, i,j)
-
-mkRemoteRunner :: BattleProcessor -> MatchRunner
-mkRemoteRunner processor nGames rules idxPairs ais = do
-  let inputs = [(gameNr, rules, (i, ais !! i), (j, ais !! j), "battle.pdn") | (i,j) <- idxPairs, gameNr <- [1..nGames]]
-      keys = map getJobKey inputs
-  gameResults <- process processor inputs
-  let list = [((i,j), result) | (result, (gameNr, i,j)) <- zip gameResults keys]
-      byPair = foldr (\(ij, result) m -> M.insertWith (++) ij [result] m) M.empty list
-      groupedResults = [fromJust $ M.lookup ij byPair | ij <- idxPairs]
-      totals = [calcMatchStats results | results <- groupedResults]
-  forM_ (zip idxPairs totals) $ \((i,j), (first, second, draw)) -> do
-    liftIO $ printf "Match: AI#%d: %d, AI#%d: %d, Draws(?): %d\n" i first j second draw
-  return totals
 

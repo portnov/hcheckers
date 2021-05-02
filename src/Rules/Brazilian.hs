@@ -19,9 +19,6 @@ newtype Brazilian = Brazilian GenericRules
 instance HasTopology Brazilian where
   boardTopology _ = Diagonal
 
-instance SimpleEvaluatorSupport Brazilian where
-  getAllAddresses r = addresses8 r
-
 instance Show Brazilian where
   show = rulesName
 
@@ -49,6 +46,7 @@ instance GameRules Brazilian where
   mobilityScore (Brazilian rules) side board = gMobilityScore rules side board
 
   getGameResult = genericGameResult
+  getAllAddresses r = addresses8 r
 
 brazilian :: Brazilian
 brazilian = Brazilian $

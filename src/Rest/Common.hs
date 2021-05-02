@@ -121,3 +121,19 @@ runRestServer host port restServer = do
   -- REST thread should be able to write the response to Shutdown request.
   liftIO $ threadDelay (1000 * 1000)
 
+data BattleRq = BattleRq {
+      brqRules :: String
+    , brqAi1 :: Value
+    , brqAi2 :: Value
+    }
+
+instance ToJSON BattleRq where
+  toJSON rq =
+    object ["rules" .= brqRules rq, "ai1" .= brqAi1 rq, "ai2" .= brqAi2 rq]
+
+instance FromJSON BattleRq where
+  parseJSON (Object v) = BattleRq
+    <$> v .: "rules"
+    <*> v .: "ai1"
+    <*> v .: "ai2"
+

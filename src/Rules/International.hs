@@ -24,9 +24,6 @@ instance Show International where
 instance HasTopology International where
   boardTopology _ = Diagonal
 
-instance SimpleEvaluatorSupport International where
-  getAllAddresses r = addresses10 r
-
 instance GameRules International where
   type EvaluatorForRules International = SimpleEvaluator
   boardSize _ = (10, 10)
@@ -63,6 +60,7 @@ instance GameRules International where
   mobilityScore (International rules) side board = gMobilityScore rules side board
 
   pdnId _ = "20"
+  getAllAddresses r = addresses10 r
 
 internationalBase :: GenericRules -> GenericRules
 internationalBase =
