@@ -45,5 +45,8 @@ loadConfig cmd = do
   let config' = case cmdLocal cmd of
                   Nothing -> config
                   Just local -> config {gcLocal = local}
-  return config'
+      config'' = case cmdMetrics cmd of
+                  Nothing -> config'
+                  Just metrics -> config {gcEnableMetrics = metrics}
+  return config''
 

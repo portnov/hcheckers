@@ -8,6 +8,7 @@ data CmdLine = CmdLine {
       cmdConfigPath :: Maybe FilePath
     , cmdLocal :: Maybe Bool
     , cmdBattleServer :: Maybe Bool
+    , cmdMetrics :: Maybe Bool
     , cmdSpecial :: Maybe String
     }
   deriving (Eq, Show)
@@ -38,6 +39,11 @@ cmdline = CmdLine
           <> short 'B'
           <> metavar "on|off"
           <> help "Run `battle server' instead of normal game server") )
+  <*> optional (option bool
+        ( long "metrics"
+          <> metavar "on|off"
+          <> help "Enable or disable metrics monitoring. This command-line option overrides one specified in the config file.")
+        )
   <*> optional (strOption
         ( long "special"
          <> metavar "COMMAND" ) )

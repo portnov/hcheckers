@@ -18,7 +18,7 @@ import Options.Applicative
 import Text.Printf
 import System.Random
 
-import Core.Types
+import Core.Types hiding (timed)
 import AI
 import AI.AlphaBeta.Types
 import AI.AlphaBeta.Persistent (loadAiData')
@@ -29,6 +29,7 @@ import Core.Checkers
 import Core.CmdLine
 import Core.Supervisor (withRules)
 import Core.Parallel
+import Core.Monitoring
 
 import Learn
 import Battle
@@ -130,7 +131,9 @@ special cmd args =
                                  let urls = T.lines text
                                      process url (gameNr, rules, (i,ai1), (j,ai2), path) = do
                                         liftIO $ printf "Battle AI#%d vs AI#%d on %s\n" i j (T.unpack url)
-                                        runBattleRemote url rules (i,ai1) (j,ai2) path
+                                        timed ("battle.duration." <> url) $ do
+                                          increment ("battle.count." <> url)
+                                          runBattleRemote url rules (i,ai1) (j,ai2) path
                                  processor <- runProcessor' urls getJobKey process
                                  return $ mkRemoteRunner processor
           withLogContext (LogContextFrame [] (include defaultLogFilter)) $ do
