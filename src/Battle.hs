@@ -55,10 +55,13 @@ cross rules (ai1, ai2) = do
   t <- liftIO $ randomRIO (0.0, 1.0)
   let mid = scale (1.0 - t) v1 <+> scale t v2
   p <- liftIO $ randomRIO (0.0, 1.0) :: Checkers Double
-  v3 <- if p < 0.9
+  v3 <- if p < 0.5
           then return mid
           else do
-            let delta = {-0.5 *-} norm (v1 <-> v2)
+            let len = {-0.5 *-} norm (v1 <-> v2)
+                delta
+                  | len < 5 = 5 - len
+                  | otherwise = len
             dv <- liftIO $ replicateM (V.length v1) $ randomRIO (-delta, delta)
             -- liftIO $ print delta
             return $ mid <+> V.fromList dv

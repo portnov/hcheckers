@@ -128,7 +128,7 @@ special cmd args =
                             then return $ dumbMatchRunner runBattleLocal
                             else do
                                  text <- liftIO $ TIO.readFile listPath
-                                 let urls = T.lines text
+                                 let urls = filter (\url -> not $ "#" `T.isPrefixOf` url) $ T.lines text
                                      process url (gameNr, rules, (i,ai1), (j,ai2), path) = do
                                         liftIO $ printf "Battle AI#%d vs AI#%d on %s\n" i j (T.unpack url)
                                         timed ("battle.duration." <> url) $ do
