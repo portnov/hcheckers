@@ -1,6 +1,7 @@
 
 import math
 import logging
+from collections import defaultdict
 
 from PyQt5.QtGui import QPainter, QPixmap
 from PyQt5.QtCore import QRect, QSize, Qt, QObject, QTimer, pyqtSignal
@@ -151,6 +152,10 @@ class Board(QWidget):
 
     server_log = pyqtSignal(str, str)
 
+    on_fields_setup = pyqtSignal()
+
+    on_theme_changed = pyqtSignal()
+
     def _init_fields(self, rows, cols):
         self.n_rows = rows
         self.n_cols = cols
@@ -220,6 +225,7 @@ class Board(QWidget):
         self.fields_setup()
 
         self.repaint()
+        self.on_theme_changed.emit()
 
     theme = property(get_theme, set_theme)
 
@@ -301,6 +307,22 @@ class Board(QWidget):
             field.invalidate()
         self._pixmap = None
 
+    def piece_counts(self):
+        if self._board is None:
+            return 0, 0, 0, 0
+        by_piece = defaultdict(int)
+        for label in self.field_by_label:
+            piece = self._board.get(label, None)
+            if piece is not None:
+                by_piece[piece] += 1
+
+        first_men = by_piece.get(Piece(MAN, FIRST), 0)
+        first_kings = by_piece.get(Piece(KING, FIRST), 0)
+        second_men = by_piece.get(Piece(MAN, SECOND), 0)
+        second_kings = by_piece.get(Piece(KING, SECOND), 0)
+
+        return first_men, first_kings, second_men, second_kings
+
     @handling_error
     def fields_setup(self, board=None):
         if board is None:
@@ -320,6 +342,7 @@ class Board(QWidget):
             else:
                 field.piece = None
 
+        self.on_fields_setup.emit()
         self.invalidate()
 
     def draw_field(self, painter, field, row, col, hide=False):

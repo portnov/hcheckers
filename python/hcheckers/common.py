@@ -25,6 +25,14 @@ class Piece(object):
         piece = Piece(self.kind, (FIRST+SECOND) - self.side)
         return piece
 
+    def __hash__(self):
+        return hash((self.kind, self.side))
+
+    def __eq__(self, that):
+        if not isinstance(that, Piece):
+            return False
+        return (self.kind, self.side) == (that.kind, that.side)
+
     def json(self):
         kind = 'Man' if self.kind == MAN else 'King'
         side = 'First' if self.side == FIRST else 'Second'

@@ -9,11 +9,12 @@ import shlex
 import time
 
 from PyQt5.QtGui import QPainter, QPixmap, QIcon
+from PyQt5.Qt import QStyle
 from PyQt5.QtCore import QRect, QSize, Qt, QObject, QTimer, pyqtSignal, QSettings
 from PyQt5.QtWidgets import QApplication, QWidget, QToolBar, QMainWindow, QDialog, QVBoxLayout, QAction, QActionGroup, QLabel, QFileDialog, QFrame, QDockWidget, QMessageBox, QListWidget, QListWidgetItem, QMenu, QSplashScreen
 
 from hcheckers.field import Field
-from hcheckers.common import Move
+from hcheckers.common import *
 from hcheckers.game import Game, AI, RequestError
 from hcheckers.board import Board
 from hcheckers.theme import Theme
@@ -21,6 +22,48 @@ from hcheckers.history import HistoryWidget
 from hcheckers.newgamedlg import *
 from hcheckers.settingsdlg import SettingsDialog
 from hcheckers.logutils import *
+
+class CountsWidget(QWidget):
+    def __init__(self, parent):
+        QWidget.__init__(self, parent)
+        self.toplevel = parent
+        layout = QHBoxLayout()
+
+        self.first_men_icon, self.first_men = self._label(layout, MAN, FIRST)
+        self.first_kings_icon, self.first_kings = self._label(layout, KING, FIRST)
+        self.second_men_icon, self.second_men = self._label(layout, MAN, SECOND)
+        self.second_kings_icon, self.second_kings = self._label(layout, KING, SECOND)
+
+        self.setLayout(layout)
+
+    def _get_piece(self, kind, side):
+        icon_size = self.style().pixelMetric(QStyle.PM_ToolBarIconSize)
+        inverted = self.toplevel.board.invert_colors
+        pixmap = self.toplevel.board.theme.get_piece(Piece(kind, side), size=icon_size, invert=inverted)
+        return pixmap
+
+    def _label(self, layout, kind, side):
+        pixmap = self._get_piece(kind, side)
+        icon_label = QLabel(self)
+        icon_label.setPixmap(pixmap)
+
+        text_label = QLabel("0", self)
+        layout.addWidget(icon_label)
+        layout.addWidget(text_label)
+
+        return icon_label, text_label
+
+    def update_icons(self):
+        self.first_men_icon.setPixmap(self._get_piece(MAN, FIRST))
+        self.first_kings_icon.setPixmap(self._get_piece(KING, FIRST))
+        self.second_men_icon.setPixmap(self._get_piece(MAN, SECOND))
+        self.second_kings_icon.setPixmap(self._get_piece(KING, SECOND))
+
+    def set(self, first_men, first_kings, second_men, second_kings):
+        self.first_men.setText(str(first_men))
+        self.first_kings.setText(str(first_kings))
+        self.second_men.setText(str(second_men))
+        self.second_kings.setText(str(second_kings))
 
 class Checkers(QMainWindow):
     def __init__(self, share_dir):
@@ -121,12 +164,21 @@ class Checkers(QMainWindow):
         layout = QVBoxLayout()
         self.board = Board(self.theme, self.settings, self.game, self)
         self.board.message.connect(self._on_board_message)
+        self.board.on_fields_setup.connect(self._on_board_update)
         self.board.field_clicked.connect(self._on_field_clicked)
         #self.board.show()
         self.toolbar = QToolBar(self)
+
+        topbox = QHBoxLayout()
         self.message = QLabel(self)
+        topbox.addWidget(self.message)
+        self.count_status = CountsWidget(self)
+        self.board.on_theme_changed.connect(self.count_status.update_icons)
+        topbox.addStretch()
+        topbox.addWidget(self.count_status)
+
         layout.addWidget(self.toolbar)
-        layout.addWidget(self.message)
+        layout.addLayout(topbox)
         layout.addWidget(self.board, stretch=1)
         widget.setLayout(layout)
         self.setCentralWidget(widget)
@@ -379,6 +431,7 @@ class Checkers(QMainWindow):
         self.board.theme = self.board.theme
         #self.board.repaint()
         self.history.fill()
+        self.count_status.update_icons()
 
     @handling_error
     def _on_new_game(self, checked=None, show_exit=False, open_file=(None,None)):
@@ -472,6 +525,10 @@ class Checkers(QMainWindow):
             return _("{} win").format(second)
         else:
             return _("Draw")
+
+    def _on_board_update(self):
+        counts = self.board.piece_counts()
+        self.count_status.set(*counts)
 
     def _on_board_message(self, message):
         if isinstance(message, GameResultMessage):

@@ -156,19 +156,21 @@ class Theme(object):
         else:
             return self.get_pattern2()
 
-    def get_piece(self, piece, invert=False):
+    def get_piece(self, piece, invert=False, size=None):
         if piece is None:
             return None
+        if size is None:
+            size = self.size
         if invert:
             piece = piece.inverted()
         if piece.kind == MAN and piece.side == FIRST:
-            return self.man_white.get(self.size)
+            return self.man_white.get(size)
         elif piece.kind == MAN and piece.side == SECOND:
-            return self.man_black.get(self.size)
+            return self.man_black.get(size)
         elif piece.kind == KING and piece.side == FIRST:
-            return self.king_white.get(self.size)
+            return self.king_white.get(size)
         else:
-            return self.king_black.get(self.size)
+            return self.king_black.get(size)
 
     def get_field_size(self):
         return self.man_white.get(None).width()
