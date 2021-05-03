@@ -242,6 +242,10 @@ newGame r@(SomeRules rules) firstSide mbBoardRep = do
     modifyTVar var $ \st -> st {ssGames = M.insert (show gameId) game (ssGames st)}
     return $ show gameId
 
+setHistory :: GameId -> [HistoryRecord] -> Checkers ()
+setHistory gameId history = 
+  withGame gameId $ \_ -> setGameHistory history
+
 -- | Register a user in the game
 registerUser :: GameId -> Side -> String -> Checkers ()
 registerUser gameId side name = do

@@ -24,25 +24,25 @@ import           Formats.Fen
 import           Formats.Pdn
 import Rest.Common
 
-boardRq :: SupervisorState -> SomeRules -> NewGameRq -> Rest (Maybe Side, Maybe BoardRep)
+boardRq :: SupervisorState -> SomeRules -> NewGameRq -> Rest (Maybe Side, [HistoryRecord], Maybe BoardRep)
 boardRq _ _ (NewGameRq { rqBoard = Just br, rqFen = Nothing, rqPdn = Nothing }) =
-  return $ (Nothing, Just br)
+  return $ (Nothing, [], Just br)
 boardRq _ rules (NewGameRq { rqBoard = Nothing, rqFen = Just fen, rqPdn = Nothing })
   = case parseFen rules fen of
     Left  err        -> raise $ InvalidBoard err
-    Right (side, br) -> return (Just side, Just br)
+    Right (side, br) -> return (Just side, [], Just br)
 boardRq rnd rules (NewGameRq { rqBoard = Nothing, rqFen = Nothing, rqPdn = Just pdn })
   = case parsePdn (Just rules) pdn of
     Left  err -> raise $ InvalidBoard err
     Right gr  ->
       case loadPdn rnd gr of
         Left err -> raise err
-        Right board -> return (Nothing, Just $ boardRep board)
+        Right (history, board) -> return (Nothing, history, Just $ boardRep board)
 boardRq _ _ (NewGameRq { rqPrevBoard = Just gameId }) = do
   board <- liftCheckers_ $ getInitialBoard gameId
-  return (Nothing, Just $ boardRep board)
+  return (Nothing, [], Just $ boardRep board)
 boardRq _ _ (NewGameRq { rqBoard = Nothing, rqFen = Nothing, rqPdn = Nothing }) =
-  return (Nothing, Nothing)
+  return (Nothing, [], Nothing)
 boardRq _ _ _ =
   raise $ InvalidBoard "only one of fields must be filled: board, fen, pdn"
 
@@ -68,9 +68,10 @@ restServer shutdownVar = do
         rnd <- liftCheckers_ $ do
                  sup <- askSupervisor
                  liftIO $ atomically $ readTVar sup
-        (mbFirstSide, board) <- boardRq rnd rules rq
+        (mbFirstSide, history, board) <- boardRq rnd rules rq
         let firstSide = fromMaybe First mbFirstSide
         gameId <- liftCheckers_ $ newGame rules firstSide board
+        liftCheckers_ $ setHistory gameId history
         liftCheckers gameId $ $info
           "Created new game #{}; First turn: {}; initial board: {}"
           (gameId, show firstSide, show board)

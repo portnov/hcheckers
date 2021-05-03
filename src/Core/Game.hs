@@ -95,6 +95,13 @@ gameHistory = do
       let side = hrSide r
       in  HistoryRecordRep side (moveRep rules side $ hrMove r)
 
+setGameHistory :: [HistoryRecord] -> GameM ()
+setGameHistory history = do
+  checkStatus New
+  modify $ \st -> st {
+              gState = (gState st) {gsHistory = history}
+            }
+
 -- | Number of half-moves done in this game
 gameMoveNumber :: Game -> Int
 gameMoveNumber g =

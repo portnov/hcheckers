@@ -300,34 +300,37 @@ instructionsToMoves instructions =
       state = execState (forM_ instructions interpret) initState
   in  map M.elems $ M.elems $ isVariants state
 
-loadPdn :: SupervisorState -> GameRecord -> Either Error Board
+loadPdn :: SupervisorState -> GameRecord -> Either Error ([HistoryRecord], Board)
 loadPdn rnd r = do
     let findRules [] = Nothing
         findRules (GameType rules:_) = Just rules
         findRules (_:rest) = findRules rest
 
-        withRules :: SomeRules -> Either Error Board
+        withRules :: SomeRules -> Either Error ([HistoryRecord], Board)
         withRules some@(SomeRules rules) = do
             let board0 = initBoardFromTags rnd some (grTags r)
                 
-                go :: Board -> [MoveRec] -> Either Error Board
-                go board [] = return board
-                go board0 (moveRec : rest) = do
-                  board1 <- case mrFirst moveRec of
-                              Just rec -> do
-                                move1 <- parseMoveRec rules First board0 rec
-                                let (board1,_,_) = applyMove rules First move1 board0
-                                return board1
-                              Nothing -> return board0
+                go :: ([HistoryRecord], Board) -> [MoveRec] -> Either Error ([HistoryRecord], Board)
+                go (history, board) [] = return (history, board)
+                go (history, board0) (moveRec : rest) = do
+                  (records1, board1) <-
+                      case mrFirst moveRec of
+                        Just rec -> do
+                          move1 <- parseMoveRec rules First board0 rec
+                          let (board1,_,_) = applyMove rules First move1 board0
+                              record = HistoryRecord First move1 board0
+                          return ([record], board1)
+                        Nothing -> return ([], board0)
                   case mrSecond moveRec of
-                    Nothing -> return board1
+                    Nothing -> return (records1 ++ history, board1)
                     Just rec -> do
                       move2 <- parseMoveRec rules Second board1 rec
                       let (board2,_,_) = applyMove rules Second move2 board1
-                      go board2 rest
+                          record = HistoryRecord Second move2 board1
+                      go ([record] ++ records1 ++ history, board2) rest
 
             case instructionsToMoves (grMoves r) of
-              [moves] -> go board0 moves
+              [moves] -> go ([], board0) moves
               vars -> Left $ AmbigousPdnInstruction $ show vars
 
     case findRules (grTags r) of
