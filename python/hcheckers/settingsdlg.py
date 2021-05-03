@@ -120,16 +120,16 @@ class AiEditorWidget(QWidget):
         layout = QFormLayout()
         evaluator.setLayout(layout)
 
-        self.mobility_weight = make_spinbox(_("Mobility"), 0, 100, evaluator)
+        self.mobility_weight = make_spinbox(_("Mobility"), -100, 100, evaluator)
         self.backyard_weight = make_spinbox(_("Back row"), -100, 100, evaluator)
-        self.center_weight = make_spinbox(_("Center"), 0, 100, evaluator)
-        self.opposite_side_weight = make_spinbox(_("Opposite side"), 0, 100, evaluator)
-        self.backed_weight = make_spinbox(_("Backed"), 0, 100, evaluator)
+        self.center_weight = make_spinbox(_("Center"), -100, 100, evaluator)
+        self.opposite_side_weight = make_spinbox(_("Opposite side"), -100, 100, evaluator)
+        self.backed_weight = make_spinbox(_("Backed"), -100, 100, evaluator)
         self.asymetry_weight = make_spinbox(_("Asymetry"), -100, 100, evaluator)
         self.pre_king_weight = make_spinbox(_("Pre-king"), 1, 100, evaluator)
         self.king_coef = make_spinbox(_("King"), 1, 100, evaluator)
-        self.attacked_man_coef = make_spinbox(_("Attacked man"), 0, 200, evaluator)
-        self.attacked_king_coef = make_spinbox(_("Attacked king"), 0, 200, evaluator)
+        self.attacked_man_coef = make_spinbox(_("Attacked man"), -300, 300, evaluator)
+        self.attacked_king_coef = make_spinbox(_("Attacked king"), -300, 300, evaluator)
 
         self.tabs.addTab(evaluator, _("Board evaluation"))
 
