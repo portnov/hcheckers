@@ -53,6 +53,7 @@ data GeneticSettings = GeneticSettings {
   , gsGenerations :: Int
   , gsGames :: Int
   , gsGenerationSize :: Int
+  , gsPrevGeneration :: Int
   , gsBestCount :: Int
   , gsInitFiles :: [FilePath]
   } deriving (Show)
@@ -64,6 +65,7 @@ instance FromJSON GeneticSettings where
     <*> v .: "generations"
     <*> v .: "games_per_match"
     <*> v .: "generation_size"
+    <*> v .: "keep_previous_generation"
     <*> v .: "select_best"
     <*> v .: "init_files"
 
@@ -80,33 +82,41 @@ norm :: V.Vector Double -> Double
 -- norm v = sqrt $ V.sum $ V.map (\x -> x*x) v
 norm v = (V.sum $ V.map abs v) / fromIntegral (V.length v)
 
+mix :: V.Vector a -> V.Vector a -> IO (V.Vector a)
+mix v1 v2 = do
+  t <- randomRIO (0.0, 1.0) :: IO Double
+  V.forM (V.zip v1 v2) $ \(x1, x2) -> do
+    p <- randomRIO (0.0, 1.0)
+    if p < t
+      then return x1
+      else return x2
+
 cross :: (GameRules rules, VectorEvaluator (EvaluatorForRules rules)) => rules -> (AB rules, AB rules) -> Checkers (AB rules)
 cross rules (ai1, ai2) = do
   let v1 = aiToVector ai1
       v2 = aiToVector ai2
-  t <- liftIO $ randomRIO (0.0, 1.0)
-  let mid = scale (1.0 - t) v1 <+> scale t v2
+  mid <- liftIO $ mix v1 v2
   p <- liftIO $ randomRIO (0.0, 1.0) :: Checkers Double
-  v3 <- if p < 0.5
+  v3 <- if p < 0.7
           then return mid
           else do
-            let len = {-0.5 *-} norm (v1 <-> v2)
-                delta
-                  | len < 5 = 5 - len
-                  | otherwise = len
-            dv <- liftIO $ replicateM (V.length v1) $ randomRIO (-delta, delta)
-            -- liftIO $ print delta
-            return $ mid <+> V.fromList dv
+            let delta = 0.05
+            liftIO $ V.forM mid $ \v -> do
+                             let a = abs v
+                             randomRIO (v - delta*a, v + delta*a)
   let v3' = V.take 3 v1 V.++ V.drop 3 v3
   return $ aiFromVector rules v3'
 
-breed :: (GameRules rules, VectorEvaluator (EvaluatorForRules rules)) => rules -> Int -> [AB rules] -> Checkers [AB rules]
-breed rules nNew ais = do
+breed :: (GameRules rules, VectorEvaluator (EvaluatorForRules rules)) => rules -> Int -> Int -> [AB rules] -> Checkers [AB rules]
+breed rules nNew nOld ais = do
   let n = length ais
       idxPairs = [(i,j) | i <- [0..n-1], j <- [i+1 .. n-1]]
+      nNew' = nNew - nOld
   idxPairs' <- liftIO $ shuffleM idxPairs
   let ais' = [(ais !! i, ais !! j) | (i,j) <- idxPairs']
-  mapM (cross rules) $ take nNew $ cycle ais'
+  new <- mapM (cross rules) $ take nNew' $ cycle ais'
+  let old = take nOld ais
+  return $ old ++ new
 
 runGeneticsJ :: FilePath -> Checkers [SomeAi]
 runGeneticsJ cfgPath = do
@@ -123,7 +133,7 @@ runGeneticsJ cfgPath = do
                          return $ mkRemoteRunner processor
   withRules (gsRules cfg) $ \rules -> do
       ais <- forM (gsInitFiles cfg) $ \path -> liftIO $ loadAi "default" rules path
-      rs <- runGenetics matchRunner rules (gsGenerations cfg) (gsGenerationSize cfg) (gsBestCount cfg) (gsGames cfg) ais
+      rs <- runGenetics matchRunner rules (gsGenerations cfg) (gsGenerationSize cfg) (gsPrevGeneration cfg) (gsBestCount cfg) (gsGames cfg) ais
       return $ map SomeAi rs
 
 type BattleProcessor = Processor (Int,Int,Int) (Int, SomeRules, (Int,SomeAi), (Int,SomeAi), FilePath) GameResult
@@ -144,9 +154,17 @@ mkRemoteRunner processor nGames rules idxPairs ais = do
   return totals
 
 runGenetics :: (GameRules rules, VectorEvaluator (EvaluatorForRules rules))
-            => MatchRunner -> rules -> Int -> Int -> Int -> Int -> [AB rules] -> Checkers [AB rules]
-runGenetics runMatches rules nGenerations generationSize nBest nGames ais = do
-      generation0 <- breed rules generationSize ais
+            => MatchRunner
+            -> rules
+            -> Int           -- ^ Number of generations
+            -> Int           -- ^ Generation size
+            -> Int           -- ^ number of items to keep from previous generation
+            -> Int           -- ^ Number of best items to select for breeding
+            -> Int           -- ^ number of games in each match
+            -> [AB rules]
+            -> Checkers [AB rules]
+runGenetics runMatches rules nGenerations generationSize nOld nBest nGames ais = do
+      generation0 <- breed rules generationSize nOld ais
       run 1 generation0
   where
       run n generation = do
@@ -155,7 +173,7 @@ runGenetics runMatches rules nGenerations generationSize nBest nGames ais = do
         if n == nGenerations
           then return best
           else do
-              generation' <- breed rules generationSize best
+              generation' <- breed rules generationSize nOld best
               run (n+1) generation'
 
       nMatches = generationSize
