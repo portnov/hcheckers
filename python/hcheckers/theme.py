@@ -6,6 +6,7 @@ import logging
 from PyQt5.QtCore import Qt, QSettings, QTimer
 from PyQt5.QtGui import QPixmap, QPainter, QColor
 from PyQt5.Qt import QSvgRenderer
+from PyQt5.QtWidgets import QApplication
 from PyQt5.QtMultimedia import QSound
 
 from hcheckers.common import *
@@ -30,15 +31,18 @@ class CachedPixmap(object):
         else:
             self.size = size
             if self.path.endswith(".svg"):
+                pixel_ratio = QApplication.primaryScreen().devicePixelRatio()
                 renderer = QSvgRenderer(self.path)
                 if size is None:
                     self.size = size = renderer.defaultSize().width()
                 #print("Rendering SVG {}: {}".format(self.path, size))
-                self._pixmap = QPixmap(size, size)
+                self._pixmap = QPixmap(size*pixel_ratio, size*pixel_ratio)
                 self._pixmap.fill(Qt.transparent)
                 painter = QPainter(self._pixmap)
+                painter.setRenderHint(QPainter.HighQualityAntialiasing)
                 renderer.render(painter)
                 painter.end()
+                self._pixmap.setDevicePixelRatio(pixel_ratio)
             else:
                 if size is None:
                     self._pixmap = QPixmap(self.path)

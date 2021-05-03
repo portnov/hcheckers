@@ -37,9 +37,11 @@ else:
     gettext.install("hcheckers", localedir=locate_locales())
 
 from PyQt5.QtWidgets import QApplication, QWidget
+from PyQt5.QtCore import Qt, QCoreApplication
 
 from hcheckers.toplevel import Checkers
 
+QCoreApplication.setAttribute(Qt.AA_EnableHighDpiScaling)
 app = QApplication(sys.argv)
 
 window = Checkers(locate_share_dir())
