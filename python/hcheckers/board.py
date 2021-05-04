@@ -110,6 +110,12 @@ class MoveAnimation(QObject):
         self.update(self.progress())
         return True
 
+class SizeData():
+    def __init__(self, init_x, init_y, cell_size):
+        self.cell_size = cell_size
+        self.init_x = init_x
+        self.init_y = init_y
+
 class Board(QWidget):
     def __init__(self, theme, settings, game, toplevel):
         QWidget.__init__(self, toplevel)
@@ -345,13 +351,24 @@ class Board(QWidget):
         self.on_fields_setup.emit()
         self.invalidate()
 
-    def draw_field(self, painter, field, row, col, hide=False):
+    def get_size_data(self):
         width = self.size().width()
         height = self.size().height()
 
         row_height = height // self.n_rows
         col_width = width // self.n_cols
-        size = min(row_height, col_width)
+        cell_size = min(row_height, col_width)
+
+        board_height = cell_size * self.n_rows
+        board_width = cell_size * self.n_cols
+
+        init_x = (width - board_width) / 2.0
+        init_y = (height - board_height) / 2.0
+
+        return SizeData(init_x, init_y, cell_size)
+
+    def draw_field(self, painter, field, row, col, hide=False):
+        sz = self.get_size_data()
 
         prev_hide_piece = field.hide_piece
         if hide:
@@ -370,12 +387,12 @@ class Board(QWidget):
             field.captured = True
 
         if self.flip:
-            x = (self.n_cols-1-col) * size
-            y = row * size
+            x = (self.n_cols-1-col) * sz.cell_size
+            y = row * sz.cell_size
         else:
-            x = col * size
-            y = (self.n_rows-1-row) * size
-        field.draw(painter, QRect(x, y, size, size))
+            x = col * sz.cell_size
+            y = (self.n_rows-1-row) * sz.cell_size
+        field.draw(painter, QRect(sz.init_x + x, sz.init_y + y, sz.cell_size, sz.cell_size))
         if hide:
             field.hide_piece = prev_hide_piece
         field.possible_piece = prev_possible_piece
@@ -389,6 +406,8 @@ class Board(QWidget):
         pixmap.fill(Qt.white)
         painter = QPainter(pixmap)
         painter.setRenderHint(QPainter.Antialiasing, True)
+
+        self.draw_background(painter)
 
         for (row, col) in self.fields:
             field = self.fields[(row, col)]
@@ -414,6 +433,23 @@ class Board(QWidget):
         self._pixmap = pixmap
         self.update()
 
+    def draw_background(self, painter):
+        if self.theme.background_color is not None:
+            painter.fillRect(self.rect(), self.theme.background_color)
+        else:
+            painter.fillRect(self.rect(), self.palette().window())
+
+        if self.theme.background_image.defined:
+            if self.theme.background_style == 'SCALED':
+                width = self.size().width()
+                height = self.size().height()
+                background = self.theme.background_image.get((width, height))
+                painter.drawPixmap(self.rect(), background)
+            elif self.theme.background_style == 'TILED':
+                background = self.theme.background_image.get(None)
+                painter.drawTiledPixmap(self.rect(), background)
+
+
     def drawText(self, painter, text):
         flags = Qt.AlignHCenter | Qt.AlignVCenter | Qt.TextWordWrap
 #         box = painter.boundingRect(self.rect(), flags, text)
@@ -434,7 +470,8 @@ class Board(QWidget):
 
     def get_board_rect(self):
         w, h = self.get_size()
-        return QRect(0.0, 0.0, w, h)
+        sz = self.get_size_data()
+        return QRect(sz.init_x, sz.init_y, w, h)
 
     def get_target_field_size(self, size):
         w_max = size.width()
@@ -465,6 +502,7 @@ class Board(QWidget):
             self.fields_setup()
 
     def get_field_center(self, idx):
+        sz = self.get_size_data()
         row, col = idx
         (width, height) = self.get_size()
         if self.flip:
@@ -474,7 +512,7 @@ class Board(QWidget):
             x = (col + 0.5) / self.n_cols
             y = (self.n_rows - 1 - row + 0.5) / self.n_rows
         #logging.debug("{} => {}".format(idx, (x,y)))
-        return (x*width, y*height)
+        return (sz.init_x + x*width, sz.init_y + y*height)
 
     def get_move_end_field(self, move):
         label = move.steps[-1].field

@@ -7,3 +7,4 @@ man_black = manblack.svg
 king_white = kingwhite.svg
 king_black = kingblack.svg
 message_color = #f0FFFFFF
+background = #CCC8B8

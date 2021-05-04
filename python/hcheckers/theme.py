@@ -24,6 +24,9 @@ class CachedPixmap(object):
     def get(self, size):
         if not self.defined:
             return None
+        if isinstance(size, (int, float)):
+            size = (size, size)
+
         if self.size == size and self._pixmap is not None:
             #logging.debug("{}: already rendered".format(self.path))
             return self._pixmap
@@ -32,9 +35,9 @@ class CachedPixmap(object):
             if self.path.endswith(".svg"):
                 renderer = QSvgRenderer(self.path)
                 if size is None:
-                    self.size = size = renderer.defaultSize().width()
+                    self.size = size = renderer.defaultSize().width(), renderer.defaultSize().height()
                 #print("Rendering SVG {}: {}".format(self.path, size))
-                self._pixmap = QPixmap(size, size)
+                self._pixmap = QPixmap(*size)
                 self._pixmap.fill(Qt.transparent)
                 painter = QPainter(self._pixmap)
                 renderer.render(painter)
@@ -42,9 +45,9 @@ class CachedPixmap(object):
             else:
                 if size is None:
                     self._pixmap = QPixmap(self.path)
-                    self.size = self._pixmap.width()
+                    self.size = self._pixmap.width(), self._pixmap.height()
                 else:
-                    self._pixmap = QPixmap(self.path).scaled(size, size)
+                    self._pixmap = QPixmap(self.path).scaled(*size)
             return self._pixmap
 
 class Sound(object):
@@ -96,6 +99,18 @@ class Theme(object):
         self.id = basename(path) 
         self.name = settings.value("name", self.id)
 
+        self.background_image = CachedPixmap(join(path, settings.value("background", "background.png")))
+        self.background_color = None
+        if not self.background_image.defined:
+            color = settings.value("background")
+            if color is not None:
+                self.background_color = QColor(color)
+
+        background_style = settings.value("background_style", "TILED")
+        self.background_style = background_style.upper()
+        if not self.background_style in {'TILED', 'SCALED'}:
+            raise Exception("Unsupported background style: " + self.background_style)
+
         self.pattern1 = CachedPixmap(join(path, settings.value("tile1", "tile1.svg")))
         self.pattern2 = CachedPixmap(join(path, settings.value("tile2", "tile2.svg")))
         self.frame = CachedPixmap(join(path, settings.value("frame", "frame.svg")))
@@ -116,6 +131,7 @@ class Theme(object):
         self.message_color = QColor(message_color)
 
     def reset(self):
+        self.background_image.invalidate()
         self.pattern1.invalidate()
         self.pattern2.invalidate()
         self.frame.invalidate()
