@@ -251,7 +251,7 @@ data DummyRandomTableProvider = DummyRandomTableProvider
 instance RandomTableProvider DummyRandomTableProvider where
   getRandomTable _ = A.listArray ((1,0), (4, 16*16-1)) $ replicate (4*16*16) 0
 
-type TBoardMap a = SM.Map BoardHash a
+type TBoardMap a = SM.Map BoardHash (Board, a)
 
 -- | Direction on the board.
 -- For example, B2 is at UpRight of A1.

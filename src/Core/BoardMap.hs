@@ -103,7 +103,8 @@ newTBoardMap = atomically SM.new
 
 putBoardMap' :: TBoardMap a -> Board -> a -> STM ()
 putBoardMap' bmap board value = 
-  SM.insert value (boardHash board) bmap
+  -- "Replace always"
+  SM.insert (board, value) (boardHash board) bmap
 
 putBoardMap :: TBoardMap a -> Board -> a -> IO ()
 putBoardMap bmap board value = atomically $ putBoardMap' bmap board value
@@ -112,14 +113,23 @@ putBoardMapWith' :: TBoardMap a -> (a -> a -> a) -> Board -> a -> STM ()
 putBoardMapWith' bmap plus board value = do
     mbOld <- SM.lookup (boardHash board) bmap
     case mbOld of
-      Nothing -> SM.insert value (boardHash board) bmap
-      Just old -> SM.insert (plus old value) (boardHash board) bmap
+      Nothing -> SM.insert (board,value) (boardHash board) bmap
+      Just (oldBoard, oldValue) ->
+        -- "Replace always"
+        SM.insert (board, plus oldValue value) (boardHash board) bmap
 
 putBoardMapWith :: TBoardMap a -> (a -> a -> a) -> Board -> a -> IO ()
 putBoardMapWith bmap plus board value = atomically $ putBoardMapWith' bmap plus board value
 
 lookupBoardMap' :: TBoardMap a -> Board -> STM (Maybe a)
-lookupBoardMap' bmap board = SM.lookup (boardHash board) bmap
+lookupBoardMap' bmap board = do
+  item <- SM.lookup (boardHash board) bmap
+  case item of
+    Nothing -> return Nothing
+    Just (oldBoard, value) ->
+      if board == oldBoard
+        then return (Just value)
+        else return Nothing
 
 lookupBoardMap :: TBoardMap a -> Board -> IO (Maybe a)
 lookupBoardMap bmap board = atomically $ lookupBoardMap' bmap board

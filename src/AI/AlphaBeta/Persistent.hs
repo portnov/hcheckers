@@ -95,15 +95,6 @@ getCachePath rules = liftIO $ do
 newAiData :: Checkers AIData
 newAiData = liftIO $ atomically $ newTVar $ AM.empty 2
 
-loadAiData' :: FilePath -> Checkers (V.Vector Double, M.Map BoardHash PerBoardData)
-loadAiData' path = do
-  sHandle <- askSupervisor
-  sState <- liftIO $ atomically $ readTVar sHandle
-  bytes <- liftIO $ B.readFile path
-  (vec, pairs) <- liftIO $ decodeIO bytes :: Checkers (V.Vector Double, [(BoardHash, PerBoardData)])
-  $info "Load AI cache: {} - {} boards" (path, length pairs)
-  return (vec, M.fromList pairs)
-
 loadAiData :: GameRules rules => rules -> Checkers AIData
 loadAiData rules = do
   cachePath <- getCachePath rules
@@ -116,16 +107,17 @@ loadAiData rules = do
       sState <- liftIO $ atomically $ readTVar sHandle
       perEvalPairs <- forM paths $ \path -> do
         bytes <- liftIO $ B.readFile path
-        (vec, pairs) <- liftIO $ decodeIO bytes :: Checkers (V.Vector Double, [(BoardHash, PerBoardData)])
-        $info "Load AI cache: {} - {} boards" (path, length pairs)
-        return (vec, pairs)
+        (vec, items) <- liftIO $ decodeIO bytes :: Checkers (V.Vector Double, [(BoardRep, PerBoardData)])
+        $info "Load AI cache: {} - {} boards" (path, length items)
+        return (vec, items)
 
       let vecs = map fst perEvalPairs
           cachesForEval = map snd perEvalPairs
-      maps <- forM cachesForEval $ \pairs -> liftIO $ atomically $ do
+      maps <- forM cachesForEval $ \items -> liftIO $ atomically $ do
                 bmap <- SM.new
-                forM pairs $ \(bHash, item) -> do
-                  SM.insert item bHash bmap
+                forM items $ \(bRep, item) -> do
+                  let board = parseBoardRep sState rules bRep
+                  SM.insert (board, item) (boardHash board) bmap
                 return bmap
       liftIO $ atomically $ do
         aiData <- newTVar $ AM.fromList 2 $ zip vecs maps
@@ -140,8 +132,10 @@ saveAiData rules var = do
   forM_ (zip [1..] $ AM.toList perEvalMap) $ \(i, (vec, mapForEval)) -> do
     let path = cachePath </> show i ++ ".data"
         getPairs = ListT.toList $ SM.listT mapForEval
-    boardsData <- liftIO $ atomically getPairs
-    let fileData = (vec, boardsData) :: (V.Vector Double, [(BoardHash, PerBoardData)])
+    boardsData <- liftIO $ atomically $ do
+                    pairs <- getPairs
+                    return [(boardRep board, value) | (bHash, (board, value)) <- pairs]
+    let fileData = (vec, boardsData) :: (V.Vector Double, [(BoardRep, PerBoardData)])
     liftIO $ B.writeFile path $ Data.Store.encode fileData
     $info "Save AI cache: {} - {} boards" (path, length boardsData)
 

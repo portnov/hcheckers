@@ -21,7 +21,7 @@ import System.Random
 import Core.Types hiding (timed)
 import AI
 import AI.AlphaBeta.Types
-import AI.AlphaBeta.Persistent (loadAiData')
+import AI.AlphaBeta.Persistent
 import Rest.Common (runRestServer)
 import Rest.Game (restServer)
 import Rest.Battle (restServer)
@@ -128,12 +128,4 @@ special cmd args =
       let n = read ns
           delta = read deltas
       generateAiVariations n delta path
-
-    ["dump", path] -> do
-      withCheckers cmd $ do
-        let rules = russian
-        (vec, bmap) <- loadAiData' path
-        liftIO $ printf "Evaluator: %s\n" (show vec)
-        forM_ (M.assocs bmap) $ \(bHash, item) -> do
-            liftIO $ printf "Hash: %d => %s\n" bHash (show item)
 
