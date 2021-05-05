@@ -876,9 +876,9 @@ boardAttacked :: Side -> Board -> LabelSet
 boardAttacked First = bFirstAttacked
 boardAttacked Second = bSecondAttacked
 
-markAttacked :: GameRules rules => rules -> Board -> Board
-markAttacked rules board =
-  let attackedBy side = labelSetFromList $ map aLabel $ concatMap pmVictims $ possibleMoves rules side board
+markAttacked :: [PossibleMove] -> Board -> Board
+markAttacked moves board =
+  let attackedBy side = labelSetFromList $ map aLabel $ concatMap pmVictims moves
   in  board {
         bFirstAttacked = attackedBy Second,
         bSecondAttacked = attackedBy First

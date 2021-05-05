@@ -36,6 +36,7 @@ dependencies:
 - bytestring
 - text
 - hashable
+- vector-instances
 - bytes
 - bits
 - list-t

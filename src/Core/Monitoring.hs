@@ -6,6 +6,11 @@ import Control.Monad.Reader
 import Control.Monad.Catch
 import qualified Control.Monad.Metrics as Metrics
 import qualified Data.Text as T
+import qualified Data.HashMap.Lazy as H
+import qualified System.Metrics as EKG
+import qualified System.Metrics.Distribution as EKG
+import Lens.Micro ((^.))
+import Text.Printf
 
 import Core.Types
 
@@ -27,4 +32,21 @@ timed name action = do
 distribution :: (MonadIO m, Metrics.MonadMetrics m, HasMetricsConfig m) => T.Text -> Double -> m ()
 distribution name x =
   ifMetricsEnabled $ Metrics.distribution name x
+
+getCurrentMetrics :: (MonadIO m, Metrics.MonadMetrics m) => Maybe T.Text -> m EKG.Sample
+getCurrentMetrics mbPrefix = do
+    metrics <- Metrics.getMetrics
+    let store = metrics ^. Metrics.metricsStore
+    sample <- liftIO $ EKG.sampleAll store
+    let good = case mbPrefix of
+                 Just prefix -> H.filterWithKey (\name _ -> prefix `T.isPrefixOf` name) sample
+                 Nothing -> sample
+    return good
+
+printCurrentMetrics :: (MonadIO m, Metrics.MonadMetrics m) => Maybe T.Text -> m ()
+printCurrentMetrics mbPrefix = do
+  liftIO $ putStrLn "Metrics:"
+  sample <- getCurrentMetrics mbPrefix
+  forM_ (H.toList sample) $ \(key, value) ->
+    liftIO $ printf "%s\t%s\n" (T.unpack key) (show value)
 

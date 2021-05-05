@@ -10,19 +10,14 @@ module AI.AlphaBeta.Types
   ( AlphaBeta (..),
     AlphaBetaParams (..),
     DepthParams (..),
+    CacheKey,
     dpLast,
     Stats (..),
     Bound (..),
     MoveAndScore (..),
     PerBoardData (..),
-    AIData, StorageKey, StorageValue,
+    BoardDataCache, AIData, CacheValue,
     ScoreMoveInput (..),
-    QueueKey,
-    IndexBlockNumber, DataBlockNumber,
-    CleanupQueue, WriteQueue, FileDescriptor,
-    FHandle (..),
-    FileType (..),
-    MovesMemo,
     AICacheHandle (..),
     StorageState (..),
     ScoreState (..), ScoreM (..),
@@ -40,6 +35,7 @@ import Control.Concurrent.STM
 import qualified Data.HashPSQ as PQ
 import qualified Data.Map as M
 import qualified Data.Vector as V
+import qualified Data.HashMap.Strict as H
 import Data.Word
 import Data.Binary
 import Data.Store
@@ -52,6 +48,7 @@ import System.IO.RandomAccessFile
 import System.Log.Heavy
 
 import Core.Types
+import qualified Core.AdaptiveMap as AM
 import Core.Parallel
 
 -- | Alpha-beta prunning AI engine.
@@ -154,11 +151,11 @@ instance Monoid PerBoardData where
 instance Binary PerBoardData
 instance Store PerBoardData
 
-type AIData = TVar (M.Map (V.Vector Double) (TBoardMap PerBoardData))
+type CacheKey = (V.Vector Double, Board)
+type CacheValue = PerBoardData
 
-type StorageKey = (DepthParams, BoardKey)
-
-type StorageValue = PerBoardData
+type BoardDataCache = TBoardMap CacheValue
+type AIData = TVar (AM.AdaptiveMap (V.Vector Double) BoardDataCache)
 
 -- | Input for the `scoreMove` method
 data ScoreMoveInput rules eval = ScoreMoveInput {
@@ -173,14 +170,6 @@ data ScoreMoveInput rules eval = ScoreMoveInput {
   , smiAlpha :: {-# UNPACK #-} ! Score
   , smiBeta :: {-# UNPACK #-} ! Score
   }
-
-type QueueKey = (BoardCounts, BoardKey)
-
-type IndexBlockNumber = Word32
-type DataBlockNumber = Word32
-
-data FileType = IndexFile | DataFile
-  deriving (Eq, Show)
 
 type MovesMemo = TBoardMap (Maybe [PossibleMove], Maybe [PossibleMove])
 
@@ -200,18 +189,6 @@ data AICacheHandle rules eval = AICacheHandle {
   , aichPossibleMoves :: MovesMemo
   , aichLastMoveScoreShift :: TVar (M.Map GameId ScoreBase)
   , aichCurrentCounts :: TVar BoardCounts
-  }
-
-type WriteQueue = TChan (Board, StorageValue)
-
-type CleanupQueue = TVar (PQ.HashPSQ QueueKey TimeSpec ())
-
-type FileDescriptor = MMaped
-
--- | File handle
-data FHandle = FHandle {
-    fhOffset :: FileOffset
-  , fhHandle :: FileDescriptor
   }
 
 -- | State for the Storage monad
@@ -257,6 +234,7 @@ instance Metrics.MonadMetrics (StateT StorageState IO) where
 data ScoreState rules eval = ScoreState {
     ssRules :: rules
   , ssEvaluator :: eval
+  , ssCache :: BoardDataCache
   , ssGameId :: GameId
   , ssBestScores :: [Score] -- ^ At each level of depth-first search, there is own "best score"
   , ssBestMoves :: M.Map Int MoveAndScore
@@ -271,6 +249,7 @@ data ScoreInput = ScoreInput {
   , siAlpha :: Score
   , siBeta :: Score
   , siBoard :: Board
+  , siPossibleMoves :: Maybe [PossibleMove]
   , siPrevMove :: Maybe PossibleMove
   }
 

@@ -96,7 +96,7 @@ instance (GameRules rules, VectorEvaluator eval, ToJSON eval) => GameAi (AlphaBe
   resetAiStorage ai cache = do
       resetAiCache cache
 
-  chooseMove ai storage gameId side board = do
+  chooseMove ai storage gameId side board = Monitoring.timed "ai.choose.move" $ do
     (moves, _) <- runAI ai storage gameId side board
     -- liftIO $ atomically $ writeTVar (aichCurrentCounts storage) $ calcBoardCounts board
     return moves
@@ -223,34 +223,35 @@ getPossibleMoves handle side board = Monitoring.timed "ai.possible_moves.duratio
 --     return result
 
 class Monad m => EvalMoveMonad m where
-  checkPrimeVariation :: (GameRules rules, VectorEvaluator eval) => AICacheHandle rules eval -> eval -> AlphaBetaParams -> Board -> DepthParams -> m (Maybe PerBoardData)
+  checkPrimeVariation :: (GameRules rules) => AICacheHandle rules eval -> CacheKey -> DepthParams -> m (Maybe PerBoardData)
   getKillerMove :: Int -> m (Maybe MoveAndScore)
 
 instance EvalMoveMonad Checkers where
-  checkPrimeVariation var eval params board dp = do
-      lookupAiCache eval params board dp var
+  checkPrimeVariation var key dp = do
+      lookupAiCache key dp var
 
   getKillerMove _ = return Nothing
 
 -- ScoreM instance
 instance EvalMoveMonad (StateT (ScoreState rules eval) Checkers) where
-  checkPrimeVariation var eval params board dp = do
-      lift $ lookupAiCache eval params board dp var
+  checkPrimeVariation var key@(eval,board) dp = do
+      cache <- gets ssCache
+      lookupAiCacheS key dp cache
 
   getKillerMove = getGoodMove
   
 evalMove :: (EvalMoveMonad m, GameRules rules, VectorEvaluator eval)
-        => eval
-        -> AlphaBetaParams
-        -> AICacheHandle rules eval
+        => AICacheHandle rules eval
+        -> CacheKey
         -> Side
         -> DepthParams
         -> Board
         -> Maybe PossibleMove
         -> LabelSet
-        -> PossibleMove -> m Int
-evalMove eval params var side dp board mbPrevMove attacked move = do
-  prime <- checkPrimeVariation var eval params board dp
+        -> PossibleMove
+        -> m Int
+evalMove var cacheKey side dp board mbPrevMove attacked move = do
+  prime <- checkPrimeVariation var cacheKey dp
   let victimFields = pmVictims move
       -- nVictims = sum $ map victimWeight victimFields
       promotion = if isPromotion move then 1 else 0
@@ -314,7 +315,8 @@ sortMoves eval params var side dp board mbPrevMove moves = do
 --     then do
       let rules = aichRules var
           attacked = boardAttacked side board
-      interest <- mapM (evalMove eval params var side dp board mbPrevMove attacked) moves
+          cacheKey = mkCacheKey eval board
+      interest <- mapM (evalMove var cacheKey side dp board mbPrevMove attacked) moves
       if any (/= 0) interest
         then return $ map fst $ sortOn (negate . snd) $ zip moves interest
         else return moves
@@ -792,13 +794,14 @@ doScore rules eval var params gameId side dp board alpha beta = do
     out <- evalStateT (cachedScoreAB var eval params input) initState
     return $ soScore out
   where
-    input = ScoreInput side dp alpha beta board Nothing 
+    input = ScoreInput side dp alpha beta board Nothing Nothing 
     mkInitState = do
+      cache <- allocateCache var eval
       now <- liftIO $ getTime RealtimeCoarse
       let timeout = case abBaseTime params of
                       Nothing -> Nothing
                       Just sec -> Just $ TimeSpec (fromIntegral sec) 0
-      return $ ScoreState rules eval gameId [loose] M.empty now timeout
+      return $ ScoreState rules eval cache gameId [loose] M.empty now timeout
 
 clamp :: Ord a => a -> a -> a -> a
 clamp alpha beta score
@@ -814,14 +817,17 @@ cachedScoreAB :: forall rules eval. (GameRules rules, VectorEvaluator eval)
               -> AlphaBetaParams
               -> ScoreInput
               -> ScoreM rules eval ScoreOutput
-cachedScoreAB var eval params input = do
+cachedScoreAB var eval params input = do -- scoreAB var eval params input
   let depth = dpCurrent dp
       side = siSide input
       board = siBoard input
       dp = siDepth input
       alpha = siAlpha input
       beta = siBeta input
-  mbItem <- lift $ lookupAiCache eval params board dp var
+      cacheKey = mkCacheKey eval board
+      cacheKey' = mkCacheKey eval (flipBoard board)
+  cache <- gets ssCache
+  mbItem <- lookupAiCacheS cacheKey dp cache
   mbCached <- case mbItem of
                 Just item -> do
                   let cachedScore = itemScore item
@@ -853,8 +859,8 @@ cachedScoreAB var eval params input = do
           item = PerBoardData (dpLast dp) score bound
           item' = PerBoardData (dpLast dp) (negate score) bound
       when (bound == Exact && soQuiescene out && not (dpStaticMode dp)) $ do
-          lift $ putAiCache eval params board item var
-          lift $ putAiCache eval params (flipBoard board) item' var
+          lift $ putAiCache cacheKey item var
+          lift $ putAiCache cacheKey' item' var
       return out
 
 -- | Check if target depth is reached
@@ -954,7 +960,9 @@ scoreAB var eval params input
             return out
         Nothing -> do
                 
-          moves <- lift $ getPossibleMoves var side board
+          moves <- case siPossibleMoves input of
+                     Nothing -> lift $ getPossibleMoves var side board
+                     Just ms -> return ms
           let quiescene = isQuiescene moves
           let worst
                 | maximize = alpha
@@ -1142,8 +1150,11 @@ scoreAB var eval params input
       evaluator <- gets ssEvaluator
       rules <- gets ssRules
       best <- getBest
-      let input' = input {
-                      siSide = opposite side
+      let board' = applyMoveActions (pmResult move) board
+          side' = opposite side
+          nextMoves = possibleMoves rules side' board'
+          input' = input {
+                      siSide = side'
                     , siAlpha = if maximize
                                  then max alpha best
                                  else alpha
@@ -1151,7 +1162,8 @@ scoreAB var eval params input
                                  then beta
                                  else min beta best
                     , siPrevMove = Just move
-                    , siBoard = markAttacked rules $ applyMoveActions (pmResult move) board
+                    , siBoard = markAttacked nextMoves board'
+                    , siPossibleMoves = Just nextMoves
                     , siDepth = dp
                   }
       out <- cachedScoreAB var eval params input'

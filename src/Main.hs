@@ -79,10 +79,11 @@ special cmd args =
       withRules rulesName $ \rules -> do
         ai1 <- loadAi "default" rules path1
         ai2 <- loadAi "default" rules path2
-        withCheckers cmd $
+        withCheckers cmd $ do
             withLogContext (LogContextFrame [] (include defaultLogFilter)) $ do
               runBattleLocal (SomeRules rules) (1,SomeAi ai1) (2,SomeAi ai2) "battle.pdn"
               return ()
+            printCurrentMetrics Nothing
 
     ["battle-remote", host, rulesName, path1, path2] -> do
       withRules rulesName $ \rules -> do

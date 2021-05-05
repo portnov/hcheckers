@@ -22,6 +22,8 @@ import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as BL
 import qualified Data.Map as M
 import qualified Data.Vector as V
+import Data.Vector.Instances () -- import instances only
+import qualified Data.HashMap.Strict as H
 import Data.Maybe
 import Data.Word
 import Data.Text.Format.Heavy
@@ -41,6 +43,7 @@ import System.FilePath.Glob
 import System.Directory
 
 import Core.Types
+import qualified Core.AdaptiveMap as AM
 import Core.Board
 import Core.BoardMap
 import qualified Core.Monitoring as Monitoring
@@ -90,7 +93,7 @@ getCachePath rules = liftIO $ do
   return directory
 
 newAiData :: Checkers AIData
-newAiData = liftIO $ atomically $ newTVar $ M.empty
+newAiData = liftIO $ atomically $ newTVar $ AM.empty 2
 
 loadAiData' :: FilePath -> Checkers (V.Vector Double, M.Map BoardHash PerBoardData)
 loadAiData' path = do
@@ -125,7 +128,7 @@ loadAiData rules = do
                   SM.insert item bHash bmap
                 return bmap
       liftIO $ atomically $ do
-        aiData <- newTVar $ M.fromList $ zip vecs maps
+        aiData <- newTVar $ AM.fromList 2 $ zip vecs maps
         return aiData
     else
       return aiData
@@ -134,7 +137,7 @@ saveAiData :: GameRules rules => rules -> AIData -> Checkers ()
 saveAiData rules var = do
   cachePath <- getCachePath rules
   perEvalMap <- liftIO $ atomically $ readTVar var
-  forM_ (zip [1..] $ M.assocs perEvalMap) $ \(i, (vec, mapForEval)) -> do
+  forM_ (zip [1..] $ AM.toList perEvalMap) $ \(i, (vec, mapForEval)) -> do
     let path = cachePath </> show i ++ ".data"
         getPairs = ListT.toList $ SM.listT mapForEval
     boardsData <- liftIO $ atomically getPairs
