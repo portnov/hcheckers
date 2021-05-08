@@ -544,6 +544,8 @@ class Checkers(QMainWindow):
         messages = self.game.capitulate()
         for message in messages:
             self.board.process_message(message)
+        self.board.invalidate()
+        self.board.repaint()
         #self.my_turn = False
 
     @handling_error
@@ -598,6 +600,8 @@ class Checkers(QMainWindow):
             if not message.result:
                 self.request_draw_action.setEnabled(True)
                 self.capitulate_action.setEnabled(True)
+            self.board.invalidate()
+            self.board.repaint()
 
     def _on_server_log(self, level, message):
         if level == "DEBUG":
