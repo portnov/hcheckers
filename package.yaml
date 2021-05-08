@@ -56,8 +56,6 @@ dependencies:
 - filepath
 - directory
 - Glob
-- unix
-- unix-bytestring
 - data-default
 - megaparsec
 - fast-logger
