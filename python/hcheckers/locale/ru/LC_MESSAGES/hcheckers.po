@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: 0.1.0.0\n"
-"POT-Creation-Date: 2021-04-11 15:49+0500\n"
+"POT-Creation-Date: 2021-05-08 20:44+0500\n"
 "PO-Revision-Date: 2018-11-07 22:30+5\n"
 "Last-Translator: Ilya Portnov <portnov84@rambler.ru>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -15,131 +15,131 @@ msgstr ""
 "Content-Transfer-Encoding: utf-8\n"
 "Generated-By: pygettext.py 1.5\n"
 
-#: board.py:486
+#: board.py:596
 msgid "Piece at {} does not have moves"
 msgstr "Фишка на {} не имеет ходов"
 
-#: board.py:493
+#: board.py:603
 msgid "Possible target fields: {}"
 msgstr "Возможные целевые поля: {}"
 
-#: board.py:519
+#: board.py:630
 msgid "Piece at {} cannot be moved to {}"
 msgstr "Фишка на {} не может быть передвинута на {}"
 
-#: board.py:523
+#: board.py:634
 msgid "Field {} does not belong to you"
 msgstr "Поле {} не принадлежит вам"
 
-#: board.py:601
+#: board.py:713
 msgid "Awaiting a response about draw."
 msgstr "Ожидаем ответа на предложение ничьей."
 
-#: board.py:604
+#: board.py:716
 msgid "Another side have offered a draw. You have to accept or decline it."
-msgstr "Другая сторана предложила ничью. Вам нужно согласиться или отказаться."
+msgstr "Соперник предложил ничью. Вам нужно согласиться или отказаться."
 
-#: common.py:138
+#: common.py:146
 msgid "Other side move: {}"
-msgstr "Ход другой стороны: {}"
+msgstr "Ход соперника: {}"
 
-#: common.py:143
+#: common.py:151
 msgid "Other side requested undo"
-msgstr "Другая сторона запросила откат"
+msgstr "Соперник запросил откат"
 
-#: common.py:154
+#: common.py:162
 msgid "Wating for another side turn"
-msgstr "Ожидаем хода другой стороны"
-
-#: common.py:158
-msgid "Another side have offered a draw"
-msgstr "Другая сторона предложила ничью"
+msgstr "Ожидаем хода соперника"
 
 #: common.py:166
+msgid "Another side have offered a draw"
+msgstr "Соперник предложил ничью"
+
+#: common.py:174
 msgid "Another side accepted the draw."
-msgstr "Другая сторона согласилась на ничью."
+msgstr "Соперник согласился на ничью."
 
-#: common.py:168
+#: common.py:176
 msgid "Another side declined the draw."
-msgstr "Другая сторона отказалась от ничьей."
+msgstr "Соперник не согласился на ничью."
 
-#: common.py:233
+#: common.py:241
 msgid "Russian draughts"
 msgstr "Русские шашки"
 
-#: common.py:234
+#: common.py:242
 msgid "Simple draughts"
 msgstr "Простые шашки"
 
-#: common.py:235
+#: common.py:243
 msgid "English draughts"
 msgstr "Английские шашки"
 
-#: common.py:236
+#: common.py:244
 msgid "International draughts"
 msgstr "Международные шашки"
 
-#: common.py:237
+#: common.py:245
 msgid "Brazilian draughts"
 msgstr "Бразильские шашки"
 
-#: common.py:238
+#: common.py:246
 msgid "Canadian draughts"
 msgstr "Канадские шашки"
 
-#: common.py:239
+#: common.py:247
 msgid "Spancirety draughts"
 msgstr "Шашки Спанцирети"
 
-#: common.py:240
+#: common.py:248
 msgid "Diagonal draughts"
 msgstr "Диагональные шашки"
 
-#: common.py:241
+#: common.py:249
 msgid "Czech draughts"
 msgstr "Чешские шашки"
 
-#: common.py:242
+#: common.py:250
 msgid "Turkish draughts"
 msgstr "Турецкие шашки"
 
-#: common.py:243
+#: common.py:251
 msgid "Armeinan draughts (Tama)"
 msgstr "Армянские шашки (Тама)"
 
-#: game.py:193
+#: game.py:196
 msgid "Beginner"
 msgstr "Начинающий"
 
-#: game.py:194
+#: game.py:197
 msgid "Novice"
 msgstr "Новичок"
 
-#: game.py:195
+#: game.py:198
 msgid "Average"
 msgstr "Средний"
 
-#: game.py:196
+#: game.py:199
 msgid "Good"
 msgstr "Хороший"
 
-#: game.py:197
+#: game.py:200
 msgid "Master"
 msgstr "Мастер"
 
-#: game.py:296 game.py:337 game.py:339 lobby.py:37 newgamedlg.py:114
+#: game.py:299 game.py:340 game.py:342 lobby.py:37 newgamedlg.py:114
 msgid "White"
 msgstr "Белые"
 
-#: game.py:298 game.py:337 game.py:339 lobby.py:37 newgamedlg.py:115
+#: game.py:301 game.py:340 game.py:342 lobby.py:37 newgamedlg.py:115
 msgid "Black"
 msgstr "Черные"
 
-#: game.py:300
+#: game.py:303
 msgid "Newly created game ID: {}. First side to move: {}."
 msgstr "ID созданной игры: {}. Первыми ходят: {}."
 
-#: game.py:352
+#: game.py:355
 msgid ""
 "AI parameters:\n"
 "{}"
@@ -147,25 +147,29 @@ msgstr ""
 "Параметры ИИ:\n"
 "{}"
 
-#: game.py:443
+#: game.py:446
 msgid "Offer for a draw posted."
 msgstr "Предложение ничьей послано."
 
-#: game.py:458
+#: game.py:461
 msgid "You accepted draw."
 msgstr "Вы согласились на ничью."
 
-#: game.py:460
+#: game.py:463
 msgid "You declined draw."
 msgstr "Вы отказались от ничьей."
 
-#: game.py:470
+#: game.py:473
 msgid "Game #{}: you capitulated."
 msgstr "Игра #{}: вы сдались."
 
-#: game.py:476
+#: game.py:479
 msgid "Server shutdown requested."
 msgstr "Запрошена остановка сервера."
+
+#: game.py:521
+msgid "Requested AI to stop thinking"
+msgstr "Послан запрос ИИ прекратить обдумывание"
 
 #: lobby.py:37
 msgid "ID"
@@ -267,7 +271,7 @@ msgstr "Обновить"
 msgid "Open settings dialog"
 msgstr "Открыть диалог настроек"
 
-#: newgamedlg.py:191 toplevel.py:219
+#: newgamedlg.py:191 toplevel.py:290
 msgid "E&xit"
 msgstr "&Выход"
 
@@ -275,7 +279,7 @@ msgstr "&Выход"
 msgid "Close this dialog and exit the program"
 msgstr "Закрыть этот диалог и выйти из программы"
 
-#: newgamedlg.py:240 toplevel.py:588
+#: newgamedlg.py:240 toplevel.py:680
 msgid "Settings have been updated."
 msgstr "Настройки были обновлены."
 
@@ -412,7 +416,7 @@ msgstr "Загрузить..."
 msgid "Load AI settings from JSON file"
 msgstr "Загрузить настройки ИИ из файла JSON"
 
-#: settingsdlg.py:171 toplevel.py:413 toplevel.py:558
+#: settingsdlg.py:171 toplevel.py:492 toplevel.py:650
 msgid "Save file"
 msgstr "Сохранить файл"
 
@@ -496,35 +500,35 @@ msgstr "Настройки ИИ"
 msgid "HCheckers settings"
 msgstr "Настройки HCheckers"
 
-#: toplevel.py:29
+#: toplevel.py:74
 msgid "HCheckers client"
 msgstr "Клиент HCheckers"
 
-#: toplevel.py:36
+#: toplevel.py:83
 msgid "Starting HCheckers..."
 msgstr "Запуск HCheckers..."
 
-#: toplevel.py:62
+#: toplevel.py:109
 msgid "Your turn."
 msgstr "Ваш ход."
 
-#: toplevel.py:66
+#: toplevel.py:113
 msgid "Awaiting a turn from another side."
-msgstr "Ожидаем хода другой стороны."
+msgstr "Ожидаем хода соперника."
 
-#: toplevel.py:86
+#: toplevel.py:146
 msgid "Server appears to be already running, do not start a local server"
 msgstr "Похоже, сервер уже запущен; не запускаю локальный сервер"
 
-#: toplevel.py:89
+#: toplevel.py:149
 msgid "Starting local server..."
 msgstr "Запуск локального сервера..."
 
-#: toplevel.py:92
+#: toplevel.py:152
 msgid "Running local server: {}"
 msgstr "Запускается локальный сервер: {}"
 
-#: toplevel.py:98
+#: toplevel.py:158
 msgid ""
 "Could not start local server; exit code: {}; message:\n"
 "{}"
@@ -532,143 +536,147 @@ msgstr ""
 "Не могу запустить локальный сервер; код выхода: {}\n"
 "{}"
 
-#: toplevel.py:100 toplevel.py:615 toplevel.py:620
+#: toplevel.py:160 toplevel.py:707 toplevel.py:712
 msgid "Exception"
 msgstr "Исключение"
 
-#: toplevel.py:145
+#: toplevel.py:214
 msgid "History"
 msgstr "История"
 
-#: toplevel.py:154
+#: toplevel.py:223
 msgid "Log"
 msgstr "Журнал"
 
-#: toplevel.py:198
+#: toplevel.py:267
 msgid "&Game"
 msgstr "&Игра"
 
-#: toplevel.py:199
+#: toplevel.py:268
 msgid "&New Game"
 msgstr "&Новая игра"
 
-#: toplevel.py:200
+#: toplevel.py:269
 msgid "&Open Game..."
 msgstr "&Открыть игру..."
 
-#: toplevel.py:201
+#: toplevel.py:270
 msgid "&Save Position"
 msgstr "&Сохранить позицию"
 
-#: toplevel.py:202
+#: toplevel.py:271
 msgid "&Undo"
 msgstr "&Отменить"
 
-#: toplevel.py:203
+#: toplevel.py:272
+msgid "Ask AI to stop thinking"
+msgstr "Попросить ИИ прекратить обдумывание"
+
+#: toplevel.py:274
 msgid "Offer a &draw"
 msgstr "&Предложить ничью"
 
-#: toplevel.py:204
+#: toplevel.py:275
 msgid "Capitulate"
 msgstr "Сдаться"
 
-#: toplevel.py:208
+#: toplevel.py:279
 msgid "&Clear log"
 msgstr "О&чистить журнал"
 
-#: toplevel.py:209
+#: toplevel.py:280
 msgid "Copy selected log record"
 msgstr "Копировать выбранную запись журнала"
 
-#: toplevel.py:210
+#: toplevel.py:281
 msgid "Save &log..."
 msgstr "Сохранить &журнал..."
 
-#: toplevel.py:215
+#: toplevel.py:286
 msgid "Start &Game"
 msgstr "Начать &игру"
 
-#: toplevel.py:217
+#: toplevel.py:288
 msgid "Se&ttings"
 msgstr "Нас&тройки"
 
-#: toplevel.py:221
+#: toplevel.py:292
 msgid "&Position"
 msgstr "&Позиция"
 
-#: toplevel.py:224
+#: toplevel.py:295
 msgid "Put &white piece"
 msgstr "Установить &белую шашку"
 
-#: toplevel.py:225
+#: toplevel.py:296
 msgid "Put &black piece"
 msgstr "Установить &черную шашку"
 
-#: toplevel.py:226
+#: toplevel.py:297
 msgid "&Remove piece"
 msgstr "&Удалить шашку"
 
-#: toplevel.py:231
+#: toplevel.py:302
 msgid "&View"
 msgstr "&Вид"
 
-#: toplevel.py:232
+#: toplevel.py:303
 msgid "&Flip board"
 msgstr "&Перевернуть доску"
 
-#: toplevel.py:320
+#: toplevel.py:398
 msgid "Starting new game..."
 msgstr "Запуск новой игры..."
 
-#: toplevel.py:342 toplevel.py:353 toplevel.py:369
+#: toplevel.py:420 toplevel.py:431 toplevel.py:447
 msgid "Rules: {}"
 msgstr "Правила: {}"
 
-#: toplevel.py:343
+#: toplevel.py:421
 msgid "AI: {}"
 msgstr "ИИ: {}"
 
-#: toplevel.py:347
+#: toplevel.py:425
 msgid "New game ID: {}"
 msgstr "ID новой игры: {}"
 
-#: toplevel.py:357
+#: toplevel.py:435
 msgid "Waiting for another side to join the game."
 msgstr "Ожидаем подключения второй стороны к игре"
 
-#: toplevel.py:434
+#: toplevel.py:513
 msgid "Nothing to undo."
 msgstr "Нечего отменять."
 
-#: toplevel.py:469 toplevel.py:471
+#: toplevel.py:555 toplevel.py:557
 msgid "{} win"
 msgstr "{} выиграли"
 
-#: toplevel.py:473
+#: toplevel.py:559
 msgid "Draw"
 msgstr "Ничья"
 
-#: toplevel.py:479
+#: toplevel.py:569
 msgid "Game result: {}"
 msgstr "Результат игры: {}"
 
-#: toplevel.py:482
+#: toplevel.py:572
 msgid "Game over."
 msgstr "Игра окончена."
 
-#: toplevel.py:499
+#: toplevel.py:589
 msgid "Accept the draw?"
 msgstr "Согласиться на ничью?"
 
-#: toplevel.py:500
+#: toplevel.py:590
 msgid "Another side have offered you a draw. Do you wish to accept it?"
-msgstr "Другая сторона предложила вам ничью. Вы хотите согласиться на неё?"
+msgstr "Соперник предложил вам ничью. Вы хотите согласиться на неё?"
 
-#: toplevel.py:552
+#: toplevel.py:644
 msgid "Log has been cleared."
 msgstr "Журнал был очищен."
 
-#: toplevel.py:596
+#: toplevel.py:688
 msgid ""
 "Unexpected response received from the server.\n"
 "Request URL: {}\n"
@@ -680,17 +688,19 @@ msgstr ""
 "Код ответа: {}\n"
 "Сообщение в ответе: {}"
 
-#: toplevel.py:607
+#: toplevel.py:699
 msgid "No such move: {}"
 msgstr "Нет такого хода: {}"
 
-#: toplevel.py:611
+#: toplevel.py:703
 msgid ""
 "Status of current game is unsuitable for this operation. Game status is {}; "
 "required status is {}"
-msgstr "Статус текущей игры не подходит для данной операции. Статус игры {}; нужный статус {}"
+msgstr ""
+"Статус текущей игры не подходит для данной операции. Статус игры {}; нужный "
+"статус {}"
 
-#: toplevel.py:619
+#: toplevel.py:711
 msgid ""
 "An exception occured while connecting to the server.\n"
 "Request URL: {}\n"
