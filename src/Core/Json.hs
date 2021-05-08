@@ -32,6 +32,12 @@ instance ToJSON BoardOrientation
 
 instance ToJSON BoardTopology
 
+instance ToJSON AiSessionStatus where
+  toJSON AiRunning = object ["status" .= ("running" :: T.Text)]
+  toJSON AiStopping = object ["status" .= ("stopping" :: T.Text)]
+  toJSON NoAiHere = object ["status" .= ("human" :: T.Text)]
+  toJSON (AiDone rs) = object ["status" .= ("done" :: T.Text), "response" .= rs]
+
 instance ToJSON Label where
   toJSON (Label col row) = toJSON (col, row)
 
@@ -159,7 +165,9 @@ instance ToJSON RsPayload where
   toJSON (HistoryRs records) = toJSON records
   toJSON (PdnInfoRs info) = toJSON info
   toJSON (PossibleMovesRs moves) = toJSON moves
-  toJSON (MoveRs board) = toJSON board
+  toJSON (MoveRs board sessionId) = object ["board" .= board, "poll" .= sessionId]
+  toJSON (PollMoveRs status) = toJSON status
+  toJSON (StopAiRs) = object ["stop" .= ("ok" :: T.Text)]
   toJSON (UndoRs board) = toJSON board
   toJSON CapitulateRs = object ["capitulate" .= ("ok" :: T.Text)]
   toJSON DrawRqRs = object ["draw_request" .= ("pending" :: T.Text)]

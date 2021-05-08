@@ -27,17 +27,24 @@ class MoveAnimation(QObject):
         self.start_field = None
         self.end_field = None
         self.process_result = False
+        self.captured_fields = []
+        self._delayed_start = None
 
     finished = pyqtSignal(bool)
 
     def start(self, start_field, end_field, move, start_position, piece, process_result = True):
         if piece is None:
             raise Exception("piece is None")
+
+        if self.is_active():
+            self._delayed_start = (start_field, end_field, move, start_position, piece, process_result)
+            return
+
+        self.move = move
         self.piece = piece
         self.piece_position = start_position
         self.step = 0
         self.steps = ANIMATION_STEPS_PER_STEP * len(move.steps)
-        self.move = move
         self.captured_fields = [step.field for step in move.steps if step.capture == True]
         self.start_field = start_field
         self.end_field = end_field
@@ -107,7 +114,12 @@ class MoveAnimation(QObject):
             return False
         if self.step > self.steps:
             self.stop()
-            return False
+            if self._delayed_start is None:
+                return False
+            else:
+                self.start(*self._delayed_start)
+                self._delayed_start = None
+                return True
         self.step = self.step + 1
         self.update(self.progress())
         return True
@@ -637,11 +649,12 @@ class Board(QWidget):
         if process_result:
             res = self.game.get_move_result()
             if res: 
-                board, messages = res
+                board, session, messages = res
                 self._board = board
                 for message in messages:
                     self.process_message(message)
                 self.selected_field = None
+                self.toplevel.ai_session = session
         elif self._new_board is not None:
             self._board = self._new_board
             self._new_board = None

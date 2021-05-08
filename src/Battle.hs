@@ -298,7 +298,7 @@ loopGame path gameId side i = do
               -- liftIO $ TIO.writeFile path pdn
               return result
         _ ->  do
-              letAiMove gameId side Nothing
+              letAiMove False gameId side Nothing
               loopGame path gameId (opposite side) (i+1)
 
 variableParameters :: [T.Text]

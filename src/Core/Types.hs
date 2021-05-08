@@ -605,7 +605,7 @@ class (Show ai, Typeable (AiStorage ai), ToJSON ai) => GameAi ai where
   
   updateAi :: ai -> Value -> ai
 
-  chooseMove :: ai -> AiStorage ai -> GameId -> Side -> Board -> Checkers [PossibleMove]
+  chooseMove :: ai -> AiStorage ai -> GameId -> Side -> AiSession -> Board -> Checkers [PossibleMove]
 
   -- | Answer for a draw request.
   -- Default implementation always accepts the draw.
@@ -717,11 +717,28 @@ data Notify =
     }
   deriving (Eq, Show, Generic)
 
+data AiSession = AiSession {
+      aiStopSignal :: MVar ()
+    , aiResult :: MVar Board
+  }
+
+type AiResponse = BoardRep
+
+data AiSessionStatus =
+    AiRunning
+  | AiStopping
+  | AiDone AiResponse
+  | NoAiHere
+  deriving (Eq, Show, Generic)
+
+type AiSessionId = Integer
+
 -- | State of supervisor singleton
 data SupervisorState = SupervisorState {
     ssGames :: M.Map GameId Game                  -- ^ Set of games running
   , ssLastGameId :: Int                           -- ^ ID of last created game
   , ssAiStorages :: M.Map (String,String) Dynamic -- ^ AI storage instance per (AI engine; game rules) tuple
+  , ssAiSessions :: M.Map AiSessionId AiSession
   , ssRandomTable :: RandomTable
   }
 
@@ -818,6 +835,7 @@ data Error =
   | AmbigousPdnInstruction String
   | AmbigousPdnMove String String BoardRep
   | NothingToUndo
+  | NoSuchAiSession
   | NoSuchGame GameId
   | NoSuchUserInGame
   | UserNameAlreadyUsed
@@ -844,7 +862,7 @@ type Rest a = ActionT Error Checkers a
 runCheckersT :: Checkers a -> CheckersState -> IO (Either Error a)
 runCheckersT actions st = runReaderT (runExceptT $ runCheckers actions) st
 
-forkCheckers :: Checkers () -> Checkers ()
+forkCheckers :: Checkers () -> Checkers ThreadId
 forkCheckers actions = do
   st <- ask
   liftIO $ forkIO $ do
@@ -852,7 +870,6 @@ forkCheckers actions = do
     case res of
       Right _ -> return ()
       Left err -> fail $ show err
-  return ()
 
 tryC :: Checkers a -> Checkers (Either Error a)
 tryC actions =

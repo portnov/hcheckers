@@ -19,6 +19,7 @@ import Control.Monad
 import Control.Monad.State
 import Control.Monad.Reader
 import Control.Monad.Except
+import Control.Concurrent
 import Control.Concurrent.STM
 import qualified Data.Map as M
 import qualified Data.Vector as V
@@ -96,8 +97,8 @@ instance (GameRules rules, VectorEvaluator eval, ToJSON eval) => GameAi (AlphaBe
   resetAiStorage ai cache = do
       resetAiCache cache
 
-  chooseMove ai storage gameId side board = Monitoring.timed "ai.choose.move" $ do
-    (moves, _) <- runAI ai storage gameId side board
+  chooseMove ai storage gameId side aiSession board = Monitoring.timed "ai.choose.move" $ do
+    (moves, _) <- runAI ai storage gameId side aiSession board
     -- liftIO $ atomically $ writeTVar (aichCurrentCounts storage) $ calcBoardCounts board
     return moves
 
@@ -146,7 +147,7 @@ scoreMove (ScoreMoveInput {..}) = do
      let AlphaBeta params rules eval = smiAi
      score <- Monitoring.timed "ai.score.move" $ do
                 let board' = applyMoveActions (pmResult smiMove) smiBoard
-                score <- doScore rules eval smiCache params smiGameId (opposite smiSide) smiDepth board' smiAlpha smiBeta
+                score <- doScore rules eval smiCache params smiGameId (opposite smiSide) smiAiSession smiDepth board' smiAlpha smiBeta
                           `catchError` (\(e :: Error) -> do
                                         $info "doScore: move {}, depth {}: {}" (show smiMove, dpTarget smiDepth, show e)
                                         throwError e
@@ -394,9 +395,10 @@ runAI :: (GameRules rules, Evaluator eval)
       -> AICacheHandle rules eval
       -> GameId
       -> Side
+      -> AiSession
       -> Board
       -> Checkers AiOutput
-runAI ai@(AlphaBeta params rules eval) handle gameId side board = do
+runAI ai@(AlphaBeta params rules eval) handle gameId side aiSession board = do
     options <- depthDriver =<< getPossibleMoves handle side board
     output <- select options
     let bestScore = sNumeric $ snd output
@@ -707,6 +709,7 @@ runAI ai@(AlphaBeta params rules eval) handle gameId side board = do
               smiCache = handle,
               smiGameId = gameId,
               smiSide = side,
+              smiAiSession = aiSession,
               smiIndex = index,
               smiDepth = dp,
               smiBoard = board,
@@ -784,12 +787,13 @@ doScore :: (GameRules rules, VectorEvaluator eval)
         -> AlphaBetaParams
         -> GameId
         -> Side
+        -> AiSession
         -> DepthParams
         -> Board
         -> Score -- ^ Alpha
         -> Score -- ^ Beta
         -> Checkers Score
-doScore rules eval var params gameId side dp board alpha beta = do
+doScore rules eval var params gameId side aiSession dp board alpha beta = do
     initState <- mkInitState
     out <- evalStateT (cachedScoreAB var eval params input) initState
     return $ soScore out
@@ -801,7 +805,7 @@ doScore rules eval var params gameId side dp board alpha beta = do
       let timeout = case abBaseTime params of
                       Nothing -> Nothing
                       Just sec -> Just $ TimeSpec (fromIntegral sec) 0
-      return $ ScoreState rules eval cache gameId [loose] M.empty now timeout
+      return $ ScoreState rules eval cache gameId aiSession [loose] M.empty now timeout
 
 clamp :: Ord a => a -> a -> a -> a
 clamp alpha beta score
@@ -927,6 +931,14 @@ isTimeExhaused = do
       start <- gets ssStartTime
       now <- liftIO $ getTime RealtimeCoarse
       return $ start + delta <= now
+
+isStopSignalled :: ScoreM rules eval Bool
+isStopSignalled = do
+  stopSignal <- gets (aiStopSignal . ssAiSession)
+  check <- liftIO $ tryReadMVar stopSignal
+  case check of
+    Nothing -> return False
+    Just () -> return True
 
 -- | Calculate score for the board.
 -- This implements the alpha-beta section algorithm itself.
@@ -1146,44 +1158,52 @@ scoreAB var eval params input
       when timeout $ do
         -- $info "Timeout exhaused for depth {}." (Single $ dpCurrent dp)
         throwError TimeExhaused
-      $verbose "{}|+Check move of side {}: {}" (indent, show side, show move)
-      evaluator <- gets ssEvaluator
-      rules <- gets ssRules
-      best <- getBest
-      let board' = applyMoveActions (pmResult move) board
-          side' = opposite side
-          nextMoves = possibleMoves rules side' board'
-          input' = input {
-                      siSide = side'
-                    , siAlpha = if maximize
-                                 then max alpha best
-                                 else alpha
-                    , siBeta = if maximize
-                                 then beta
-                                 else min beta best
-                    , siPrevMove = Just move
-                    , siBoard = markAttacked nextMoves board'
-                    , siPossibleMoves = Just nextMoves
-                    , siDepth = dp
-                  }
-      out <- cachedScoreAB var eval params input'
-      let score = soScore out
-      $verbose "{}| score for side {}: {}" (indent, show side, show score)
-
-      if (maximize && score > best) || (minimize && score < best)
+      stopSignal <- isStopSignalled
+      if stopSignal
         then do
-             setBest score
-             if (maximize && score >= beta) || (minimize && score <= alpha)
-               then do
-                    -- rememberGoodMove (dpCurrent dp) side move score
-                    Monitoring.distribution "ai.section.at" $ fromIntegral i
-                    $verbose "{}`—Return {} for depth {} = {}" (indent, bestStr, dpCurrent dp, show score)
-                    quiescene <- checkQuiescene
-                    return $ ScoreOutput score quiescene
-                    
-               else iterateMoves moves
+          best <- getBest
+          quiescene <- checkQuiescene
+          $info "Requested stop. Current level = {}, return best = {}" (dpCurrent dp, show best)
+          return $ ScoreOutput best quiescene
         else do
-             iterateMoves moves
+          $verbose "{}|+Check move of side {}: {}" (indent, show side, show move)
+          evaluator <- gets ssEvaluator
+          rules <- gets ssRules
+          best <- getBest
+          let board' = applyMoveActions (pmResult move) board
+              side' = opposite side
+              nextMoves = possibleMoves rules side' board'
+              input' = input {
+                          siSide = side'
+                        , siAlpha = if maximize
+                                     then max alpha best
+                                     else alpha
+                        , siBeta = if maximize
+                                     then beta
+                                     else min beta best
+                        , siPrevMove = Just move
+                        , siBoard = markAttacked nextMoves board'
+                        , siPossibleMoves = Just nextMoves
+                        , siDepth = dp
+                      }
+          out <- cachedScoreAB var eval params input'
+          let score = soScore out
+          $verbose "{}| score for side {}: {}" (indent, show side, show score)
+
+          if (maximize && score > best) || (minimize && score < best)
+            then do
+                 setBest score
+                 if (maximize && score >= beta) || (minimize && score <= alpha)
+                   then do
+                        -- rememberGoodMove (dpCurrent dp) side move score
+                        Monitoring.distribution "ai.section.at" $ fromIntegral i
+                        $verbose "{}`—Return {} for depth {} = {}" (indent, bestStr, dpCurrent dp, show score)
+                        quiescene <- checkQuiescene
+                        return $ ScoreOutput score quiescene
+                        
+                   else iterateMoves moves
+            else do
+                 iterateMoves moves
         
 instance (Evaluator eval, GameRules rules) => Evaluator (AlphaBeta rules eval) where
   evaluatorName (AlphaBeta _ _ eval) = evaluatorName eval

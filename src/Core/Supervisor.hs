@@ -99,7 +99,9 @@ data RsPayload =
   | PdnInfoRs PdnInfo
   | HistoryRs [HistoryRecordRep]
   | PossibleMovesRs [MoveRep]
-  | MoveRs BoardRep
+  | MoveRs BoardRep (Maybe AiSessionId)
+  | PollMoveRs AiSessionStatus
+  | StopAiRs
   | UndoRs BoardRep
   | CapitulateRs
   | DrawRqRs
@@ -134,7 +136,7 @@ loadRandomTable = do
 mkSupervisor :: IO SupervisorHandle
 mkSupervisor = do
   randomArray <- loadRandomTable
-  var <- atomically $ newTVar $ SupervisorState M.empty 0 M.empty $! randomArray
+  var <- atomically $ newTVar $ SupervisorState M.empty 0 M.empty M.empty $! randomArray
   return var
 
 -- | List of supported rules with their identifiers
@@ -294,7 +296,7 @@ runGame gameId = do
     liftIO $ atomically $ modifyTVar var $ \st -> st {ssGames = M.update (Just . update) gameId (ssGames st)}
     game <- getGame gameId
     let firstSide = gsSide $ gState game
-    letAiMove gameId firstSide Nothing
+    letAiMove False gameId firstSide Nothing
     return ()
   where
     update game = game {gStatus = Running}
@@ -379,14 +381,14 @@ getPossibleMoves gameId side =
           return $ map (moveRep rules side) moves
 
 -- | Execute specified move in specified game and return a new board.
-doMove :: GameId -> String -> MoveRep -> Checkers BoardRep
+doMove :: GameId -> String -> MoveRep -> Checkers RsPayload
 doMove gameId name moveRq = do
   game <- getGame gameId
   side <- sideByUser game name
   GMoveRs board' messages <- withGame gameId $ \_ -> doMoveRepRq side moveRq
   queueNotifications gameId messages
-  letAiMove gameId (opposite side) (Just board')
-  return $ boardRep board'
+  sessionId <- letAiMove True gameId (opposite side) (Just board')
+  return $ MoveRs (boardRep board') sessionId
 
 -- | Undo last pair of moves in the specified game.
 doUndo :: GameId -> String -> Checkers BoardRep
@@ -395,7 +397,7 @@ doUndo gameId name = do
   side <- sideByUser game name
   GUndoRs board' messages <- withGame gameId $ \_ -> doUndoRq side
   queueNotifications gameId messages
-  letAiMove gameId side (Just board')
+  letAiMove False gameId side (Just board')
   return $ boardRep board'
 
 doCapitulate :: GameId -> String -> Checkers ()
@@ -463,9 +465,41 @@ withAiStorage (SomeRules rules) ai fn = do
               result <- fn storage
               return result
 
+newAiSession :: Checkers (AiSessionId, AiSession)
+newAiSession = do
+  var <- askSupervisor
+  signal <- liftIO newEmptyMVar
+  resultVar <- liftIO newEmptyMVar
+  sessionId <- liftIO randomIO
+  let newSession = AiSession signal resultVar
+  liftIO $ atomically $ modifyTVar var $ \st -> st {
+                          ssAiSessions = M.insert sessionId newSession (ssAiSessions st)
+                        }
+  return (sessionId, newSession)
+
+signalStopAiSession :: AiSessionId -> Checkers ()
+signalStopAiSession sessionId = do
+  var <- askSupervisor
+  st <- liftIO $ atomically $ readTVar var
+  case M.lookup sessionId (ssAiSessions st) of
+    Nothing -> throwError NoSuchAiSession
+    Just session -> liftIO $ void $ tryPutMVar (aiStopSignal session) ()
+
+getAiSessionStatus :: AiSessionId -> Checkers AiSessionStatus
+getAiSessionStatus sessionId = do
+  var <- askSupervisor
+  st <- liftIO $ atomically $ readTVar var
+  case M.lookup sessionId (ssAiSessions st) of
+    Nothing -> return NoAiHere
+    Just state -> do
+      check <- liftIO $ tryTakeMVar (aiResult state)
+      case check of
+        Nothing -> return AiRunning
+        Just board -> return $ AiDone (boardRep board)
+
 -- | Let AI make it's turn.
-letAiMove :: GameId -> Side -> Maybe Board -> Checkers Board
-letAiMove gameId side mbBoard = do
+letAiMove :: Bool -> GameId -> Side -> Maybe Board -> Checkers (Maybe AiSessionId)
+letAiMove separateThread gameId side mbBoard = do
   board <- case mbBoard of
              Just b -> return b
              Nothing -> do
@@ -476,24 +510,31 @@ letAiMove gameId side mbBoard = do
   case getPlayer game side of
     AI ai -> do
 
+      let inThread = if separateThread
+                       then \a -> (void $ forkCheckers a)
+                       else \a -> (void a)
+
       rules <- getRules gameId
       withAiStorage rules ai $ \storage -> do
         timed "Selecting AI move" $ do
-            aiMoves <- chooseMove ai storage gameId side board
-            if null aiMoves
-              then do
-                $info "AI failed to move." ()
-                return board
-              else do
-                i <- liftIO $ randomRIO (0, length aiMoves - 1)
-                let aiMove = aiMoves !! i
-                $info "AI returned {} move(s), selected: {}" (length aiMoves, show aiMove)
-                GMoveRs board' messages <- withGame gameId $ \_ -> doMoveRq side (pmMove aiMove)
-                $debug "Messages: {}" (Single $ show messages)
-                queueNotifications (getGameId game) messages
-                return board'
+            (sessionId, aiSession) <- newAiSession
+            inThread $ do
+              aiMoves <- chooseMove ai storage gameId side aiSession board
+              if null aiMoves
+                then do
+                  $info "AI failed to move." ()
+                  return ()
+                else do
+                  i <- liftIO $ randomRIO (0, length aiMoves - 1)
+                  let aiMove = aiMoves !! i
+                  $info "AI returned {} move(s), selected: {}" (length aiMoves, show aiMove)
+                  GMoveRs board' messages <- withGame gameId $ \_ -> doMoveRq side (pmMove aiMove)
+                  $debug "Messages: {}" (Single $ show messages)
+                  queueNotifications (getGameId game) messages
+                  liftIO $ putMVar (aiResult aiSession) board'
+            return (Just sessionId)
 
-    _ -> return board
+    _ -> return Nothing
 
 resetAiStorageG :: GameId -> Side -> Checkers ()
 resetAiStorageG gameId side = do

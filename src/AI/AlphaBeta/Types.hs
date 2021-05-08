@@ -163,6 +163,7 @@ data ScoreMoveInput rules eval = ScoreMoveInput {
   , smiCache :: AICacheHandle rules eval
   , smiGameId :: GameId
   , smiSide :: ! Side 
+  , smiAiSession :: ! AiSession
   , smiIndex :: ! Int
   , smiDepth :: {-# UNPACK #-} ! DepthParams
   , smiBoard :: {-# UNPACK #-} ! Board
@@ -236,6 +237,7 @@ data ScoreState rules eval = ScoreState {
   , ssEvaluator :: eval
   , ssCache :: BoardDataCache
   , ssGameId :: GameId
+  , ssAiSession :: AiSession
   , ssBestScores :: [Score] -- ^ At each level of depth-first search, there is own "best score"
   , ssBestMoves :: M.Map Int MoveAndScore
   , ssStartTime :: TimeSpec -- ^ Start time of calculation

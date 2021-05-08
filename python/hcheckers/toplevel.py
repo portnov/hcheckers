@@ -76,6 +76,7 @@ class Checkers(QMainWindow):
         self._game_active = False
         self._connection_failed = False
         self._poll_try_number = 0
+        self._ai_session = None
         self.splashscreen = None
         self._show_splashcreen(_("Starting HCheckers..."))
         self.server_url = self.settings.value("server_url", DEFAULT_SERVER_URL)
@@ -120,6 +121,15 @@ class Checkers(QMainWindow):
         self.board.locked = not value
 
     game_active = property(get_game_active, set_game_active)
+
+    def get_ai_session(self):
+        return self._ai_session
+
+    def set_ai_session(self, value):
+        self._ai_session = value
+        self.stop_ai_action.setEnabled(value is not None)
+    
+    ai_session = property(get_ai_session, set_ai_session)
 
     def _start_server(self):
         server_running = Game.check_server(self.server_url)
@@ -253,6 +263,8 @@ class Checkers(QMainWindow):
         self._create_action(QIcon.fromTheme("document-open"), _("&Open Game..."), menu, self._on_open_game, key="Ctrl+O")
         self._create_action(QIcon.fromTheme("document-save"), _("&Save Position"), menu, self._on_save_game, key="Ctrl+S")
         self._create_action(QIcon.fromTheme("edit-undo"), _("&Undo"), menu, self._on_undo, key="Ctrl+Z")
+        self.stop_ai_action = self._create_action(QIcon.fromTheme("process-stop"), _("Stop thinking"), menu, self._on_stop_ai)
+        self.stop_ai_action.setEnabled(False)
         self.request_draw_action = self._create_action(self._icon("draw_offer.svg"), _("Offer a &draw"), menu, self._on_draw_rq)
         self.capitulate_action = self._create_action(self._icon("handsup.svg"), _("Capitulate"), menu, self._on_capitulate)
 
@@ -488,6 +500,11 @@ class Checkers(QMainWindow):
                 logging.warning(_("Nothing to undo."))
             else:
                 raise e
+
+    @handling_error
+    def _on_stop_ai(self, checked=None):
+        self.game.stop_ai(self.ai_session)
+        self.ai_session = None
 
     @handling_error
     def _on_draw_rq(self, checked=None):

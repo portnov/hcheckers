@@ -14,6 +14,7 @@ import System.Log.Heavy.TH
 
 import Core.Types
 import Core.Board
+import Core.Supervisor (newAiSession)
 import AI.AlphaBeta
 import AI.AlphaBeta.Types
 import AI.AlphaBeta.Cache
@@ -109,7 +110,8 @@ processMove :: (GameRules rules, Evaluator eval)
             -> Checkers ([PossibleMove], Score)
 processMove rules eval var params gameId side move board = do
   let ai = AlphaBeta params rules eval
-  (moves, score) <- runAI ai var gameId side board
+  (sessionId, newSession) <- newAiSession
+  (moves, score) <- runAI ai var gameId side newSession board
   $info "Processed: side {}, move: {}, depth: {} => score {}; we think next best moves are: {}" (show side, show move, abDepth params, show score, show moves)
   return (moves, score)
 

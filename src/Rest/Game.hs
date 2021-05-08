@@ -129,9 +129,17 @@ restServer shutdownVar = do
     gameId   <- param "id"
     name     <- param "name"
     moveRq   <- jsonData
-    board    <- liftCheckers gameId $ doMove gameId name moveRq
+    moveRs    <- liftCheckers gameId $ doMove gameId name moveRq
     messages <- liftCheckers gameId $ getMessages name
-    json $ Response (MoveRs board) messages
+    json $ Response moveRs messages
+
+  post "/game/:id/move/:name/:session/stop" $ do
+    gameId   <- param "id"
+    name     <- param "name"
+    sessionId <- param "session"
+    liftCheckers gameId $ signalStopAiSession sessionId
+    messages <- liftCheckers gameId $ getMessages name
+    json $ Response StopAiRs messages
 
   get "/game/:id/moves/:name" $ do
     gameId   <- param "id"
@@ -180,6 +188,13 @@ restServer shutdownVar = do
     name     <- param "name"
     messages <- liftCheckers_ $ getMessages name
     json $ Response (PollRs messages) []
+
+  get "/poll/move/:name/:id" $ do
+    sessionId <- param "id"
+    name     <- param "name"
+    status <- liftCheckers_ $ getAiSessionStatus sessionId
+    messages <- liftCheckers_ $ getMessages name
+    json $ Response (PollMoveRs status) messages
 
   get "/lobby/:rules" $ do
     rules <- param "rules"

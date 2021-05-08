@@ -23,7 +23,10 @@ class MoveRequest(Thread):
             rs = Game.post(self.url, json=self.rq)
             result = rs.json()
             #logging.debug(result)
-            self.owner.last_move_result = Game.parse_board(result["response"]), result["messages"]
+            messages = result["messages"]
+            board = result["response"]["board"]
+            session = result["response"]["poll"]
+            self.owner.last_move_result = Game.parse_board(board), session, messages
         except Exception as e:
             self.owner.move_exception = e
         finally:
@@ -492,13 +495,30 @@ class Game(object):
             self.move_lock.acquire()
             if self.move_exception is not None:
                 raise self.move_exception
-            result, messages = self.last_move_result
+            result, session, messages = self.last_move_result
             self._process_messages(messages)
             self.last_move_result = None
             self.move_thread = None
-            return result, messages
+            return result, session, messages
         finally:
             self.move_lock.release()
+
+    def poll_move(self, session_id):
+        url = join(self.base_url, "poll", "move", self.game_id, session_id)
+        rs = Game.get(url)
+        result = rs.json()
+        messages = result["messages"]
+        response = result["response"]
+        self._process_messages(messages)
+        return response, messages
+
+    def stop_ai(self, session_id):
+        url = join(self.base_url, "game", self.game_id, "move", self.user_name, str(session_id), "stop")
+        rs = Game.post(url)
+        result = rs.json()
+        messages = result["messages"]
+        self._process_messages(messages)
+        logging.info(_("Requested AI to stop thinking"))
 
     def _process_messages(self, messages):
         for message in messages:
