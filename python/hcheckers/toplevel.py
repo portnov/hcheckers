@@ -110,6 +110,7 @@ class Checkers(QMainWindow):
         else:
             self.statusBar().showMessage(_("Awaiting a turn from another side."))
             #self.board.text_message = _("Waiting for another side turn")
+        self._ai_session_dependencies()
 
     my_turn = property(get_my_turn, set_my_turn)
 
@@ -127,9 +128,13 @@ class Checkers(QMainWindow):
 
     def set_ai_session(self, value):
         self._ai_session = value
-        self.stop_ai_action.setEnabled(value is not None)
+        self._ai_session_dependencies()
     
     ai_session = property(get_ai_session, set_ai_session)
+
+    def _ai_session_dependencies(self):
+        self.stop_ai_action.setEnabled(not self.my_turn and self._ai_session is not None)
+        self._enable_game_control_actions(self.my_turn)
 
     def _start_server(self):
         server_running = Game.check_server(self.server_url)
@@ -259,10 +264,10 @@ class Checkers(QMainWindow):
 
     def _setup_actions(self):
         menu = self.menuBar().addMenu(_("&Game"))
-        self._create_action(QIcon.fromTheme("document-new"), _("&New Game"), menu, self._on_new_game, key="Ctrl+N")
-        self._create_action(QIcon.fromTheme("document-open"), _("&Open Game..."), menu, self._on_open_game, key="Ctrl+O")
-        self._create_action(QIcon.fromTheme("document-save"), _("&Save Position"), menu, self._on_save_game, key="Ctrl+S")
-        self._create_action(QIcon.fromTheme("edit-undo"), _("&Undo"), menu, self._on_undo, key="Ctrl+Z")
+        self.new_game_action = self._create_action(QIcon.fromTheme("document-new"), _("&New Game"), menu, self._on_new_game, key="Ctrl+N")
+        self.open_game_action = self._create_action(QIcon.fromTheme("document-open"), _("&Open Game..."), menu, self._on_open_game, key="Ctrl+O")
+        self.save_game_action = self._create_action(QIcon.fromTheme("document-save"), _("&Save Position"), menu, self._on_save_game, key="Ctrl+S")
+        self.undo_action = self._create_action(QIcon.fromTheme("edit-undo"), _("&Undo"), menu, self._on_undo, key="Ctrl+Z")
         self.stop_ai_action = self._create_action(QIcon.fromTheme("process-stop"), _("Stop thinking"), menu, self._on_stop_ai)
         self.stop_ai_action.setEnabled(False)
         self.request_draw_action = self._create_action(self._icon("draw_offer.svg"), _("Offer a &draw"), menu, self._on_draw_rq)
@@ -300,6 +305,13 @@ class Checkers(QMainWindow):
         self._set_flip_board(flip)
         menu.addAction(self.history_dock.toggleViewAction())
         menu.addAction(self.log_dock.toggleViewAction())
+
+    def _game_control_actions(self):
+        return [self.new_game_action, self.open_game_action, self.save_game_action, self.undo_action, self.request_draw_action, self.capitulate_action]
+
+    def _enable_game_control_actions(self, enable):
+        for action in self._game_control_actions():
+            action.setEnabled(enable)
 
     @handling_error
     def _on_run_game(self, checked=None):
