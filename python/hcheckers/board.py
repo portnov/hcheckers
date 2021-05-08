@@ -127,6 +127,29 @@ class MoveAnimation(QObject):
         self.update(self.progress())
         return True
 
+class TextMessage(QObject):
+    sequence = 0
+
+    def __init__(self, board, message, delay=None):
+        QObject.__init__(self, board)
+        TextMessage.sequence += 1
+        self._sequence = TextMessage.sequence
+        self.board = board
+        self.message = message
+        self.delay = delay
+        self.actual = True
+        self.show = delay is None
+        if delay is not None:
+            self.timer = QTimer.singleShot(delay*1000, self._show)
+        else:
+            self.timer = None
+
+    def _show(self):
+        if self.actual:
+            self.show = True
+            self.board.invalidate()
+            self.board.repaint()
+
 class SizeData():
     def __init__(self, init_x, init_y, cell_size):
         self.cell_size = cell_size
@@ -160,7 +183,6 @@ class Board(QWidget):
         self._drawing_my_move = False
         self._text_message = None
         self._text_message_timer = None
-        self._text_message_shown = False
         self._prev_hovered_field = None
 
         self._my_turn = True
@@ -301,21 +323,15 @@ class Board(QWidget):
         self.fields_setup()
 
     def show_text_message(self, text, delay=None):
-        self._text_message = text
-        if delay is None:
-            self._show_text_message()
-        else:
-            self._text_message_timer = QTimer.singleShot(delay*1000, self._show_text_message)
+        if self._text_message is not None:
+            self._text_message.actual = False
+        self._text_message = TextMessage(self, text, delay=delay)
 
     def hide_text_message(self):
+        if self._text_message is not None:
+            self._text_message.actual = False
         self._text_message = None
-        self._text_message_shown = False
         self.invalidate()
-
-    def _show_text_message(self):
-        self._text_message_shown = True
-        self.invalidate()
-        self.repaint()
 
     def json(self):
         board = []
@@ -456,8 +472,8 @@ class Board(QWidget):
                 y = y0 - h*0.5
                 painter.drawPixmap(x, y, piece)
 
-        if self._text_message and self._text_message_shown:
-            self.drawText(painter, self._text_message)
+        if self._text_message and self._text_message.show:
+            self.drawText(painter, self._text_message.message)
 
         painter.end()
 
