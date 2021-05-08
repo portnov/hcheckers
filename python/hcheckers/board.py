@@ -29,6 +29,7 @@ class MoveAnimation(QObject):
         self.process_result = False
         self.captured_fields = []
         self._delayed_start = None
+        self.started = False
 
     finished = pyqtSignal(bool)
 
@@ -49,6 +50,7 @@ class MoveAnimation(QObject):
         self.start_field = start_field
         self.end_field = end_field
         self.process_result = process_result
+        self.started = True
         self.play_sound()
 
     def play_sound(self):
@@ -99,6 +101,7 @@ class MoveAnimation(QObject):
         self.piece_position = None
         self.piece = None
         self.finished.emit(self.process_result)
+        self.started = False
         self.process_result = False
 
     def is_active(self):
@@ -154,7 +157,10 @@ class Board(QWidget):
         self._last_moved_field = None
         self._board = dict()
         self._new_board = None
+        self._drawing_my_move = False
         self._text_message = None
+        self._text_message_timer = None
+        self._text_message_shown = False
         self._prev_hovered_field = None
 
         self._my_turn = True
@@ -294,15 +300,22 @@ class Board(QWidget):
             self.fields[idx].notation = notation
         self.fields_setup()
 
-    def get_text_message(self):
-        return self._text_message
-
-    def set_text_message(self, text):
+    def show_text_message(self, text, delay=None):
         self._text_message = text
-        self.invalidate()
-        #self.repaint()
+        if delay is None:
+            self._show_text_message()
+        else:
+            self._text_message_timer = QTimer.singleShot(delay*1000, self._show_text_message)
 
-    text_message = property(get_text_message, set_text_message)
+    def hide_text_message(self):
+        self._text_message = None
+        self._text_message_shown = False
+        self.invalidate()
+
+    def _show_text_message(self):
+        self._text_message_shown = True
+        self.invalidate()
+        self.repaint()
 
     def json(self):
         board = []
@@ -426,8 +439,12 @@ class Board(QWidget):
         for (row, col) in self.fields:
             field = self.fields[(row, col)]
             hide = False
+            is_start_field = ((row, col) == self.move_animation.start_field)
+            is_end_field = ((row, col) == self.move_animation.end_field)
             if self.move_animation.is_active():
-                hide = ((row, col) == self.move_animation.start_field) or ((row, col) == self.move_animation.end_field)
+                hide = is_start_field or is_end_field
+            elif self._drawing_my_move:
+                hide = is_start_field
             self.draw_field(painter, field, row, col, hide=hide)
 
         if self.move_animation.is_active():
@@ -439,8 +456,8 @@ class Board(QWidget):
                 y = y0 - h*0.5
                 painter.drawPixmap(x, y, piece)
 
-        if self.text_message:
-            self.drawText(painter, self.text_message)
+        if self._text_message and self._text_message_shown:
+            self.drawText(painter, self._text_message)
 
         painter.end()
 
@@ -462,7 +479,6 @@ class Board(QWidget):
             elif self.theme.background_style == 'TILED':
                 background = self.theme.background_image.get(None)
                 painter.drawTiledPixmap(self.rect(), background)
-
 
     def drawText(self, painter, text):
         flags = Qt.AlignHCenter | Qt.AlignVCenter | Qt.TextWordWrap
@@ -533,9 +549,12 @@ class Board(QWidget):
         return self.index_by_label[label]
     
     def timerEvent(self, e):
-        if self.move_animation.tick(e):
-            self._pixmap = None
-            self.repaint()
+        if e.timerId() == self._text_message_timer:
+            pass
+        else:
+            if self.move_animation.tick(e):
+                self._pixmap = None
+                self.repaint()
     
     def _is_mine(self, piece):
         return piece is not None and piece.side == self.game.user_side
@@ -587,6 +606,7 @@ class Board(QWidget):
                     raise Exception("No piece at {}!".format(src_index))
                 if self.invert_colors:
                     piece = piece.inverted()
+                self._drawing_my_move = True
                 self.move_animation.start(src_index, (row, col), move, start_position, piece, process_result=True)
                 self._valid_target_fields = None
                 self.repaint()
@@ -651,6 +671,7 @@ class Board(QWidget):
             if res: 
                 board, session, messages = res
                 self._board = board
+                self._drawing_my_move = True
                 for message in messages:
                     self.process_message(message)
                 self.selected_field = None
@@ -659,10 +680,9 @@ class Board(QWidget):
             self._board = self._new_board
             self._new_board = None
         self.last_moved = self.move_animation.end_field
-        #if not self.game.finished:
-        #    self.text_message = None
         self.fields_setup(self._board)
         self.repaint()
+        self._drawing_my_move = False
 
     def _is_mouse_active(self):
         if self.move_animation.is_active():

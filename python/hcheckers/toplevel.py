@@ -23,6 +23,8 @@ from hcheckers.newgamedlg import *
 from hcheckers.settingsdlg import SettingsDialog
 from hcheckers.logutils import *
 
+WAITING_MOVE_MESSAGE_DELAY = 3 # in seconds
+
 class CountsWidget(QWidget):
     def __init__(self, parent):
         QWidget.__init__(self, parent)
@@ -105,11 +107,10 @@ class Checkers(QMainWindow):
         self.board.my_turn = value
         if value:
             self.statusBar().showMessage(_("Your turn."))
-            self.board.text_message = None
+            self.board.hide_text_message()
             #self.board.repaint()
         else:
             self.statusBar().showMessage(_("Awaiting a turn from another side."))
-            #self.board.text_message = _("Waiting for another side turn")
         self._ai_session_dependencies()
 
     my_turn = property(get_my_turn, set_my_turn)
@@ -318,7 +319,7 @@ class Checkers(QMainWindow):
         self.board_setup_mode = False
         board = self.board.json()
         self.game.start_new_game(self.game_settings.user_name, rules=self.game_settings.rules, user_turn_first=self.game_settings.user_turn_first, ai=self.game_settings.ai, board=board)
-        self.board.text_message = None
+        self.board.hide_text_message()
         self.board.fields_setup()
 
     @handling_error
@@ -398,7 +399,7 @@ class Checkers(QMainWindow):
 
         if self.game.is_active():
             self.game.capitulate()
-        self.board.text_message = None
+        self.board.hide_text_message()
         self.game_active = True
         self.game.game_id = None
 
@@ -433,7 +434,7 @@ class Checkers(QMainWindow):
             self.game_active = False
             message = _("Waiting for another side to join the game.")
             self.statusBar().showMessage(message)
-            self.board.text_message = message
+            self.board.show_text_message(message)
         elif game.action == JOIN_HUMAN_GAME:
             self.game.game_id = dialog.lobby.get_game_id()
             self.game.user_side = side = dialog.lobby.get_free_side()
@@ -568,7 +569,7 @@ class Checkers(QMainWindow):
             self.board.setCursor(Qt.ArrowCursor)
             game_over = _("Game over.")
             self.statusBar().showMessage(game_over)
-            self.board.text_message = game_over + " " + result_text
+            self.board.show_text_message(game_over + " " + result_text)
             self.history.fill()
             self.request_draw_action.setEnabled(False)
             self.capitulate_action.setEnabled(False)
@@ -576,12 +577,12 @@ class Checkers(QMainWindow):
             self.message.setText(str(message))
             self.history.fill()
             self.my_turn = True
-            self.board.text_message = None
+            self.board.hide_text_message()
             self.board.repaint()
         elif isinstance(message, WaitingMove):
             text = str(message)
             self.statusBar().showMessage(text)
-            self.board.text_message = text
+            self.board.show_text_message(text, delay=WAITING_MOVE_MESSAGE_DELAY)
         elif isinstance(message, DrawRequestedMessage):
             ok = QMessageBox.question(self, _("Accept the draw?"),
                     _("Another side have offered you a draw. Do you wish to accept it?"))
@@ -592,7 +593,7 @@ class Checkers(QMainWindow):
         elif isinstance(message, DrawResponseMessage):
             text = str(message)
             self.message.setText(text)
-            self.board.text_message = text
+            self.board.show_text_message(text)
             self.board.repaint()
             if not message.result:
                 self.request_draw_action.setEnabled(True)
