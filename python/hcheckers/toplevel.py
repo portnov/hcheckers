@@ -134,8 +134,9 @@ class Checkers(QMainWindow):
     ai_session = property(get_ai_session, set_ai_session)
 
     def _ai_session_dependencies(self):
-        self.stop_ai_action.setEnabled(not self.my_turn and self._ai_session is not None)
+        self.stop_ai_action.setEnabled(self.game_active and (not self.my_turn and self._ai_session is not None))
         self._enable_game_control_actions(self.my_turn)
+        self._enable_file_actions(self.my_turn or not self.game_active)
 
     def _start_server(self):
         server_running = Game.check_server(self.server_url)
@@ -308,10 +309,17 @@ class Checkers(QMainWindow):
         menu.addAction(self.log_dock.toggleViewAction())
 
     def _game_control_actions(self):
-        return [self.new_game_action, self.open_game_action, self.save_game_action, self.undo_action, self.request_draw_action, self.capitulate_action]
+        return  [self.undo_action, self.request_draw_action, self.capitulate_action]
+
+    def _file_actions(self):
+        return [self.new_game_action, self.open_game_action, self.save_game_action]
 
     def _enable_game_control_actions(self, enable):
         for action in self._game_control_actions():
+            action.setEnabled(enable)
+
+    def _enable_file_actions(self, enable):
+        for action in self._file_actions():
             action.setEnabled(enable)
 
     @handling_error
@@ -573,8 +581,9 @@ class Checkers(QMainWindow):
             self.statusBar().showMessage(game_over)
             self.board.show_text_message(game_over + " " + result_text)
             self.history.fill()
-            self.request_draw_action.setEnabled(False)
-            self.capitulate_action.setEnabled(False)
+            #self.request_draw_action.setEnabled(False)
+            #self.capitulate_action.setEnabled(False)
+            self.stop_ai_action.setEnabled(False)
         elif isinstance(message, OtherSideMove):
             self.message.setText(str(message))
             self.history.fill()
