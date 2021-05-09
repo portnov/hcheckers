@@ -146,6 +146,8 @@ instance ToJSON Notify where
     object ["to_side" .= to, "from_side" .= from, "move" .= move, "board" .= board]
   toJSON (UndoNotify to from board) =
     object ["to_side" .= to, "from_side" .= from, "undo" .= True, "board" .= board]
+  toJSON (AiHintNotify to from moves) =
+    object ["to_side" .= to, "from_side" .= from, "hint" .= moves]
   toJSON (ResultNotify to from result) =
     object ["to_side" .= to, "from_side" .= from, "result" .= result]
   toJSON (DrawRqNotify to from) =
@@ -167,6 +169,7 @@ instance ToJSON RsPayload where
   toJSON (PossibleMovesRs moves) = toJSON moves
   toJSON (MoveRs board sessionId) = object ["board" .= board, "poll" .= sessionId]
   toJSON (PollMoveRs status) = toJSON status
+  toJSON (AiHintRs sessionId) = object ["poll" .= sessionId]
   toJSON (StopAiRs) = object ["stop" .= ("ok" :: T.Text)]
   toJSON (UndoRs board) = toJSON board
   toJSON CapitulateRs = object ["capitulate" .= ("ok" :: T.Text)]

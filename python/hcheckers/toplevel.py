@@ -134,7 +134,9 @@ class Checkers(QMainWindow):
     ai_session = property(get_ai_session, set_ai_session)
 
     def _ai_session_dependencies(self):
-        self.stop_ai_action.setEnabled(self.game_active and (not self.my_turn and self._ai_session is not None))
+        stop_ai_enabled = self.game_active and (not self.my_turn and self._ai_session is not None)
+        self.stop_ai_action.setEnabled(stop_ai_enabled)
+        self.ai_hint_action.setEnabled(not stop_ai_enabled)
         self._enable_game_control_actions(self.my_turn)
         self._enable_file_actions(self.my_turn or not self.game_active)
 
@@ -274,6 +276,7 @@ class Checkers(QMainWindow):
         self.undo_action = self._create_action(QIcon.fromTheme("edit-undo"), _("&Undo"), menu, self._on_undo, key="Ctrl+Z")
         self.stop_ai_action = self._create_action(QIcon.fromTheme("process-stop"), _("Ask AI to stop thinking"), menu, self._on_stop_ai)
         self.stop_ai_action.setEnabled(False)
+        self.ai_hint_action = self._create_action(QIcon.fromTheme("dialog-information"), _("Ask for AI advice"), menu, self._on_ai_hint)
         self.request_draw_action = self._create_action(self._icon("draw_offer.svg"), _("Offer a &draw"), menu, self._on_draw_rq)
         self.capitulate_action = self._create_action(self._icon("handsup.svg"), _("Capitulate"), menu, self._on_capitulate)
 
@@ -528,6 +531,16 @@ class Checkers(QMainWindow):
     def _on_stop_ai(self, checked=None):
         self.game.stop_ai(self.ai_session)
         self.ai_session = None
+    
+    @handling_error
+    def _on_ai_hint(self, checked=None):
+        self.ai_session = self.game.ai_hint()
+        self.board.setCursor(Qt.WaitCursor)
+        self.board.locked = True
+        self.ai_hint_action.setEnabled(False)
+        text = _("Waiting for an advice from AI")
+        self.statusBar().showMessage(text)
+        self.board.show_text_message(text, delay=WAITING_MOVE_MESSAGE_DELAY)
 
     @handling_error
     def _on_draw_rq(self, checked=None):
@@ -586,6 +599,7 @@ class Checkers(QMainWindow):
             #self.request_draw_action.setEnabled(False)
             #self.capitulate_action.setEnabled(False)
             self.stop_ai_action.setEnabled(False)
+            self.ai_hint_action.setEnabled(False)
         elif isinstance(message, OtherSideMove):
             self.message.setText(str(message))
             self.history.fill()
@@ -613,6 +627,15 @@ class Checkers(QMainWindow):
                 self.capitulate_action.setEnabled(True)
             self.board.invalidate()
             self.board.repaint()
+        elif isinstance(message, AiHintMessage):
+            logging.info(_("AI suggested the following move(s): {}".format("; ".join([self.board.show_move(m) for m in message.moves]))))
+            self.board.hint_moves = message.moves
+            self.board.setCursor(Qt.ArrowCursor)
+            self.board.locked = False
+            self.board.hide_text_message()
+            self.board.repaint()
+            self.statusBar().showMessage(str(message))
+            self.ai_hint_action.setEnabled(True)
 
     def _on_server_log(self, level, message):
         if level == "DEBUG":

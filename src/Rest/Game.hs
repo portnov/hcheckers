@@ -149,6 +149,14 @@ restServer shutdownVar = do
     messages <- liftCheckers gameId $ getMessages name
     json $ Response (PossibleMovesRs moves) messages
 
+  get "/game/:id/ai/hint/:name" $ do
+    gameId   <- param "id"
+    name     <- param "name"
+    side     <- liftCheckers gameId $ getSideByUser gameId name
+    sessionId <- liftCheckers gameId $ askAiMove gameId side 
+    messages <- liftCheckers gameId $ getMessages name
+    json $ Response (AiHintRs sessionId) messages
+
   post "/game/:id/undo/:name" $ do
     gameId   <- param "id"
     name     <- param "name"

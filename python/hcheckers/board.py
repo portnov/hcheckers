@@ -3,8 +3,8 @@ import math
 import logging
 from collections import defaultdict
 
-from PyQt5.QtGui import QPainter, QPixmap
-from PyQt5.QtCore import QRect, QSize, Qt, QObject, QTimer, pyqtSignal
+from PyQt5.QtGui import QPainter, QPainterPath, QPixmap,QPen
+from PyQt5.QtCore import QPointF, QRect, QSize, Qt, QObject, QTimer, pyqtSignal
 from PyQt5.QtWidgets import QApplication, QWidget
 
 from hcheckers.common import *
@@ -190,6 +190,7 @@ class Board(QWidget):
 
         self.move_animation = MoveAnimation(self)
         self.move_animation.finished.connect(self.on_animation_finished)
+        self.hint_moves = None
 
         self.setMouseTracking(True)
         self.setup_patterns()
@@ -472,6 +473,12 @@ class Board(QWidget):
                 y = y0 - h*0.5
                 painter.drawPixmap(x, y, piece)
 
+        if self.hint_moves is not None:
+            painter.setPen(QPen(self.theme.hint_color, self._get_hint_arrow_width(), cap=Qt.RoundCap, join=Qt.MiterJoin))
+            for move in self.hint_moves:
+                path = self._draw_hint_move_path(move)
+                painter.drawPath(path)
+
         if self._text_message and self._text_message.show:
             self.drawText(painter, self._text_message.message)
 
@@ -510,9 +517,38 @@ class Board(QWidget):
         painter.setPen(self.theme.message_color)
         painter.drawText(self.get_board_rect(), flags, text)
 
+    def _draw_hint_move_path(self, move):
+        path = QPainterPath()
+        start = QPointF(*self.get_field_center(self.index_by_label[move.from_field]))
+        path.moveTo(start)
+        prev = start
+        for step in move.steps:
+            pos = QPointF(*self.get_field_center(self.index_by_label[step.field]))
+            path.lineTo(pos)
+            last_line = pos - prev
+        sz = math.sqrt(last_line.x()**2 + last_line.y()**2)
+        direction = last_line / sz
+        head_size = self._get_hint_arrow_head_size()
+        w = 0.2 * head_size * QPointF(-direction.y(), direction.x())
+        p1 = pos + w
+        p2 = pos + 0.3*head_size*direction
+        p3 = pos - w
+        path.moveTo(p1)
+        path.lineTo(p2)
+        path.lineTo(p3)
+        return path
+
     def get_size(self):
         field_size = self.get_target_field_size(self.size())
         return (field_size * self.n_cols, field_size * self.n_rows)
+    
+    def _get_hint_arrow_width(self):
+        field_size = self.get_target_field_size(self.size())
+        return 0.2*field_size
+
+    def _get_hint_arrow_head_size(self):
+        field_size = self.get_target_field_size(self.size())
+        return field_size
 
     def get_board_rect(self):
         w, h = self.get_size()
@@ -615,6 +651,7 @@ class Board(QWidget):
                 self.message.emit(WaitingMove())
                 self.last_moved = (row,col)
 
+                self.hint_moves = None
                 move = self._valid_target_fields[field.label]
                 start_position = self.get_field_center(self.index_by_label[src_field])
                 piece = self.fields[src_index].piece
@@ -667,6 +704,9 @@ class Board(QWidget):
         elif "undo" in message:
             self.message.emit(UndoMessage())
             self._board = Game.parse_board(message["board"])
+        elif "hint" in message:
+            moves = [Move.fromJson(m) for m in message["hint"]]
+            self.message.emit(AiHintMessage(moves))
         elif "result" in message:
             result = message["result"]
             self.message.emit(GameResultMessage(result))

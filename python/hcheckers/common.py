@@ -94,6 +94,9 @@ class Step(object):
     def __str__(self):
         return "{}[capture={}][promote={}]".format(self.field, self.capture, self.promote)
     
+    def __repr__(self):
+        return "{}[capture={}][promote={}]".format(self.field, self.capture, self.promote)
+
     def json(self):
         json = dict()
         json["field"] = self.field.json()
@@ -115,6 +118,9 @@ class Move(object):
         self.steps = []
 
     def __str__(self):
+        return "[{}] {}".format(self.from_field, self.steps)
+
+    def __repr__(self):
         return "[{}] {}".format(self.from_field, self.steps)
 
     def json(self):
@@ -174,6 +180,13 @@ class DrawResponseMessage(Message):
             return _("Another side accepted the draw.")
         else:
             return _("Another side declined the draw.")
+
+class AiHintMessage(Message):
+    def __init__(self, moves):
+        self.moves = moves
+
+    def __str__(self):
+        return _("AI suggested {} moves".format(len(self.moves)))
 
 class RequestError(Exception):
     def __init__(self, rs):

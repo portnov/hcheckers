@@ -101,6 +101,7 @@ data RsPayload =
   | PossibleMovesRs [MoveRep]
   | MoveRs BoardRep (Maybe AiSessionId)
   | PollMoveRs AiSessionStatus
+  | AiHintRs AiSessionId
   | StopAiRs
   | UndoRs BoardRep
   | CapitulateRs
@@ -535,6 +536,29 @@ letAiMove separateThread gameId side mbBoard = do
             return (Just sessionId)
 
     _ -> return Nothing
+
+askAiMove :: GameId -> Side -> Checkers AiSessionId
+askAiMove gameId side = do
+  game <- getGame gameId
+  (_, _, board) <- withGame gameId $ \_ -> do
+                     checkStatus Running
+                     checkCurrentSide side
+                     gameState
+  let side' = opposite side
+  case getPlayer game side' of
+    AI ai -> do
+      someRules@(SomeRules rules) <- getRules gameId
+      withAiStorage someRules ai $ \storage -> do
+        timed "Asking AI hint" $ do
+          (sessionId, aiSession) <- newAiSession
+          forkCheckers $ do
+            aiMoves <- chooseMove ai storage gameId side aiSession board
+            let moves = map (moveRep rules side . pmMove) aiMoves
+            $info "AI returned {} move(s)" (Single $ length aiMoves)
+            let message = AiHintNotify side side moves
+            queueNotifications (getGameId game) [message]
+          return sessionId
+    _ -> throwError NotAnAi
 
 resetAiStorageG :: GameId -> Side -> Checkers ()
 resetAiStorageG gameId side = do

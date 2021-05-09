@@ -695,6 +695,11 @@ data Notify =
     , nSource :: Side
     , nBoard :: BoardRep
     }
+  | AiHintNotify {
+      nDestination :: Side
+    , nSource :: Side
+    , nMoves :: [MoveRep]
+    }
   | ResultNotify {
       nDestination :: Side
     , nSource :: Side
@@ -836,6 +841,7 @@ data Error =
   | AmbigousPdnMove String String BoardRep
   | NothingToUndo
   | NoSuchAiSession
+  | NotAnAi
   | NoSuchGame GameId
   | NoSuchUserInGame
   | UserNameAlreadyUsed

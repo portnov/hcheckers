@@ -429,6 +429,15 @@ class Game(object):
             return moves
         else:
             return [move for move in moves if move.from_field == field]
+    
+    def ai_hint(self):
+        url = join(self.base_url, "game", self.game_id, "ai", "hint", self.user_name)
+        rs = Game.get(url)
+        result = rs.json()
+        session = result["response"]["poll"]
+        messages = result["messages"]
+        self._process_messages(messages)
+        return session
 
     def undo(self):
         url = join(self.base_url, "game", self.game_id, "undo", self.user_name)

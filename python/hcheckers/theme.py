@@ -130,6 +130,9 @@ class Theme(object):
         message_color = settings.value("message_color", "black")
         self.message_color = QColor(message_color)
 
+        hint_color = settings.value("hint_color", "#8800ff00")
+        self.hint_color = QColor(hint_color)
+
     def reset(self):
         self.background_image.invalidate()
         self.pattern1.invalidate()
