@@ -79,6 +79,7 @@ class Checkers(QMainWindow):
         self._connection_failed = False
         self._poll_try_number = 0
         self._ai_session = None
+        self._waiting_ai_hint = False
         self.splashscreen = None
         self._show_splashcreen(_("Starting HCheckers..."))
         self.server_url = self.settings.value("server_url", DEFAULT_SERVER_URL)
@@ -141,7 +142,7 @@ class Checkers(QMainWindow):
     ai_session = property(get_ai_session, set_ai_session)
 
     def _ai_session_dependencies(self):
-        stop_ai_enabled = self.game_active and (not self.my_turn and self._ai_session is not None)
+        stop_ai_enabled = self.game_active and ((self._waiting_ai_hint or not self.my_turn) and self._ai_session is not None)
         self.stop_ai_action.setEnabled(stop_ai_enabled)
         self.ai_hint_action.setEnabled(not stop_ai_enabled)
         self._enable_game_control_actions(self.my_turn)
@@ -546,9 +547,11 @@ class Checkers(QMainWindow):
     def _on_stop_ai(self, checked=None):
         self.game.stop_ai(self.ai_session)
         self.ai_session = None
+        self._waiting_ai_hint = False
     
     @handling_error
     def _on_ai_hint(self, checked=None):
+        self._waiting_ai_hint = True
         self.ai_session = self.game.ai_hint()
         self.board.setCursor(Qt.WaitCursor)
         self.board.locked = True
@@ -647,6 +650,7 @@ class Checkers(QMainWindow):
             self.board.repaint()
         elif isinstance(message, AiHintMessage):
             logging.info(_("AI suggested the following move(s): {}".format("; ".join([self.board.show_move(m) for m in message.moves]))))
+            self._waiting_ai_hint = False
             self.board.hint_moves = message.moves
             self.board.setCursor(Qt.ArrowCursor)
             self.board.locked = False
@@ -664,21 +668,6 @@ class Checkers(QMainWindow):
             logging.warning(message)
         elif level == "ERROR":
             logging.error(message)
-#        item = QListWidgetItem(self.log)
-#        item.setText(message)
-#        icon = None
-#        if level == "DEBUG":
-#            icon = QIcon.fromTheme("document-properties")
-#        elif level == "INFO":
-#            icon = QIcon.fromTheme("dialog-information")
-#        elif level == "ERROR":
-#            icon = QIcon.fromTheme("dialog-error")
-#        elif level == "WARNING":
-#            icon = QIcon.fromTheme("dialog-warning")
-#        if icon is not None:
-#            item.setIcon(icon)
-#        self.log.update()
-#        self.log.scrollToBottom()
 
     def _log_context_menu(self):
         menu = QMenu(self)

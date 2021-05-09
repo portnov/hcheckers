@@ -186,7 +186,7 @@ class AiHintMessage(Message):
         self.moves = moves
 
     def __str__(self):
-        return _("AI suggested {} moves".format(len(self.moves)))
+        return _("AI suggested {} move(s)").format(len(self.moves))
 
 class RequestError(Exception):
     def __init__(self, rs):
