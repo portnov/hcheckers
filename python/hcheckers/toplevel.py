@@ -579,12 +579,15 @@ class Checkers(QMainWindow):
 
     @handling_error
     def _on_capitulate(self, checked=None):
-        messages = self.game.capitulate()
-        for message in messages:
-            self.board.process_message(message)
-        self.board.invalidate()
-        self.board.repaint()
-        #self.my_turn = False
+        ok = QMessageBox.question(self, _("Capitulate?"),
+                _("Are you sure you want to capitulate? This action can not be undone."))
+        if ok == QMessageBox.Yes:
+            messages = self.game.capitulate()
+            for message in messages:
+                self.board.process_message(message)
+            self.board.invalidate()
+            self.board.repaint()
+            #self.my_turn = False
 
     @handling_error
     def get_result_str(self, result):
