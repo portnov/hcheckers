@@ -483,7 +483,9 @@ class Checkers(QMainWindow):
         self.board.set_notation(size, notation)
 
         self.board.theme = self.board.theme
-        #self.board.repaint()
+        self.board.hint_moves = None
+        self.board.invalidate()
+        self.board.repaint()
         self.history.fill()
         self.count_status.update_icons()
 
@@ -621,6 +623,7 @@ class Checkers(QMainWindow):
             #self.capitulate_action.setEnabled(False)
             self.stop_ai_action.setEnabled(False)
             self.ai_hint_action.setEnabled(False)
+            self.board.hint_moves = None
         elif isinstance(message, OtherSideMove):
             self.message.setText(str(message))
             self.history.fill()
