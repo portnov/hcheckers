@@ -658,6 +658,7 @@ class Checkers(QMainWindow):
             self.board.repaint()
             self.statusBar().showMessage(str(message))
             self.ai_hint_action.setEnabled(True)
+            self.stop_ai_action.setEnabled(False)
 
     def _on_server_log(self, level, message):
         if level == "DEBUG":
