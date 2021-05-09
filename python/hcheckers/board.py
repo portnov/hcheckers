@@ -526,6 +526,7 @@ class Board(QWidget):
             pos = QPointF(*self.get_field_center(self.index_by_label[step.field]))
             path.lineTo(pos)
             last_line = pos - prev
+            prev = pos
         sz = math.sqrt(last_line.x()**2 + last_line.y()**2)
         direction = last_line / sz
         head_size = self._get_hint_arrow_head_size()
