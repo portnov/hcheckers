@@ -91,12 +91,19 @@ class Checkers(QMainWindow):
     def get_board_setup_mode(self):
         return self._board_setup_mode
 
+    def _enable_action(self, action, enable):
+        action.setEnabled(enable)
+        #w = self.toolbar.widgetForAction(action)
+        #if w:
+        #    print("W", w, enable)
+        #    w.setVisible(enable)
+
     def set_board_setup_mode(self,mode):
         self._board_setup_mode = mode
-        self.run_action.setEnabled(mode)
-        self.put_first_action.setEnabled(mode)
-        self.put_second_action.setEnabled(mode)
-        self.erase_action.setEnabled(mode)
+        self._enable_action(self.run_action, mode)
+        self._enable_action(self.put_first_action, mode)
+        self._enable_action(self.put_second_action, mode)
+        self._enable_action(self.erase_action, mode)
 
     board_setup_mode = property(get_board_setup_mode, set_board_setup_mode)
 
