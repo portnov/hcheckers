@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2021-05-09 21:17+0500\n"
+"POT-Creation-Date: 2021-05-09 21:31+0500\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -269,7 +269,7 @@ msgstr ""
 msgid "Open settings dialog"
 msgstr ""
 
-#: newgamedlg.py:191 toplevel.py:296
+#: newgamedlg.py:191 toplevel.py:311
 msgid "E&xit"
 msgstr ""
 
@@ -277,7 +277,7 @@ msgstr ""
 msgid "Close this dialog and exit the program"
 msgstr ""
 
-#: newgamedlg.py:240 toplevel.py:714
+#: newgamedlg.py:240 toplevel.py:732
 msgid "Settings have been updated."
 msgstr ""
 
@@ -409,7 +409,7 @@ msgstr ""
 msgid "Load AI settings from JSON file"
 msgstr ""
 
-#: settingsdlg.py:171 toplevel.py:505 toplevel.py:684
+#: settingsdlg.py:171 toplevel.py:520 toplevel.py:702
 msgid "Save file"
 msgstr ""
 
@@ -501,181 +501,189 @@ msgstr ""
 msgid "Starting HCheckers..."
 msgstr ""
 
-#: toplevel.py:109
+#: toplevel.py:116
 msgid "Your turn."
 msgstr ""
 
-#: toplevel.py:113
+#: toplevel.py:120
 msgid "Awaiting a turn from another side."
 msgstr ""
 
-#: toplevel.py:149
+#: toplevel.py:156
 msgid "Server appears to be already running, do not start a local server"
 msgstr ""
 
-#: toplevel.py:152
+#: toplevel.py:159
 msgid "Starting local server..."
 msgstr ""
 
-#: toplevel.py:155
+#: toplevel.py:162
 msgid "Running local server: {}"
 msgstr ""
 
-#: toplevel.py:163
+#: toplevel.py:170
 msgid ""
 "Could not start local server; exit code: {}; message:\n"
 "{}"
 msgstr ""
 
-#: toplevel.py:165 toplevel.py:741 toplevel.py:746
+#: toplevel.py:172 toplevel.py:759 toplevel.py:764
 msgid "Exception"
 msgstr ""
 
-#: toplevel.py:219
+#: toplevel.py:226
 msgid "History"
 msgstr ""
 
-#: toplevel.py:228
+#: toplevel.py:235
 msgid "Log"
 msgstr ""
 
-#: toplevel.py:272
+#: toplevel.py:279
 msgid "&Game"
 msgstr ""
 
-#: toplevel.py:273
+#: toplevel.py:280
 msgid "&New Game"
 msgstr ""
 
-#: toplevel.py:274
+#: toplevel.py:281
 msgid "&Open Game..."
 msgstr ""
 
-#: toplevel.py:275
+#: toplevel.py:282
 msgid "&Save Position"
 msgstr ""
 
-#: toplevel.py:276
+#: toplevel.py:283
 msgid "&Undo"
 msgstr ""
 
-#: toplevel.py:277
+#: toplevel.py:288
 msgid "Ask AI to stop thinking"
 msgstr ""
 
-#: toplevel.py:279
+#: toplevel.py:290
 msgid "Ask for AI advice"
 msgstr ""
 
-#: toplevel.py:280
+#: toplevel.py:295
 msgid "Offer a &draw"
 msgstr ""
 
-#: toplevel.py:281
+#: toplevel.py:296
 msgid "Capitulate"
 msgstr ""
 
-#: toplevel.py:285
+#: toplevel.py:300
 msgid "&Clear log"
 msgstr ""
 
-#: toplevel.py:286
+#: toplevel.py:301
 msgid "Copy selected log record"
 msgstr ""
 
-#: toplevel.py:287
+#: toplevel.py:302
 msgid "Save &log..."
 msgstr ""
 
-#: toplevel.py:292
+#: toplevel.py:307
 msgid "Start &Game"
 msgstr ""
 
-#: toplevel.py:294
+#: toplevel.py:309
 msgid "Se&ttings"
 msgstr ""
 
-#: toplevel.py:298
+#: toplevel.py:313
 msgid "&Position"
 msgstr ""
 
-#: toplevel.py:301
+#: toplevel.py:316
 msgid "Put &white piece"
 msgstr ""
 
-#: toplevel.py:302
+#: toplevel.py:317
 msgid "Put &black piece"
 msgstr ""
 
-#: toplevel.py:303
+#: toplevel.py:318
 msgid "&Remove piece"
 msgstr ""
 
-#: toplevel.py:308
+#: toplevel.py:323
 msgid "&View"
 msgstr ""
 
-#: toplevel.py:309
+#: toplevel.py:324
 msgid "&Flip board"
 msgstr ""
 
-#: toplevel.py:411
+#: toplevel.py:426
 msgid "Starting new game..."
 msgstr ""
 
-#: toplevel.py:433 toplevel.py:444 toplevel.py:460
+#: toplevel.py:448 toplevel.py:459 toplevel.py:475
 msgid "Rules: {}"
 msgstr ""
 
-#: toplevel.py:434
+#: toplevel.py:449
 msgid "AI: {}"
 msgstr ""
 
-#: toplevel.py:438
+#: toplevel.py:453
 msgid "New game ID: {}"
 msgstr ""
 
-#: toplevel.py:448
+#: toplevel.py:463
 msgid "Waiting for another side to join the game."
 msgstr ""
 
-#: toplevel.py:526
+#: toplevel.py:541
 msgid "Nothing to undo."
 msgstr ""
 
-#: toplevel.py:541
+#: toplevel.py:556
 msgid "Waiting for an advice from AI"
 msgstr ""
 
-#: toplevel.py:578 toplevel.py:580
+#: toplevel.py:582
+msgid "Capitulate?"
+msgstr ""
+
+#: toplevel.py:583
+msgid "Are you sure you want to capitulate? This action can not be undone."
+msgstr ""
+
+#: toplevel.py:596 toplevel.py:598
 msgid "{} win"
 msgstr ""
 
-#: toplevel.py:582
+#: toplevel.py:600
 msgid "Draw"
 msgstr ""
 
-#: toplevel.py:592
+#: toplevel.py:610
 msgid "Game result: {}"
 msgstr ""
 
-#: toplevel.py:595
+#: toplevel.py:613
 msgid "Game over."
 msgstr ""
 
-#: toplevel.py:614
+#: toplevel.py:632
 msgid "Accept the draw?"
 msgstr ""
 
-#: toplevel.py:615
+#: toplevel.py:633
 msgid "Another side have offered you a draw. Do you wish to accept it?"
 msgstr ""
 
-#: toplevel.py:678
+#: toplevel.py:696
 msgid "Log has been cleared."
 msgstr ""
 
-#: toplevel.py:722
+#: toplevel.py:740
 msgid ""
 "Unexpected response received from the server.\n"
 "Request URL: {}\n"
@@ -683,15 +691,15 @@ msgid ""
 "Response message: {}"
 msgstr ""
 
-#: toplevel.py:733
+#: toplevel.py:751
 msgid "No such move: {}"
 msgstr ""
 
-#: toplevel.py:737
+#: toplevel.py:755
 msgid "Status of current game is unsuitable for this operation. Game status is {}; required status is {}"
 msgstr ""
 
-#: toplevel.py:745
+#: toplevel.py:763
 msgid ""
 "An exception occured while connecting to the server.\n"
 "Request URL: {}\n"
