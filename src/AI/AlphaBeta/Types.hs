@@ -32,19 +32,14 @@ import Control.Monad.State as St
 import Control.Monad.Reader
 import qualified Control.Monad.Metrics as Metrics
 import Control.Concurrent.STM
-import qualified Data.HashPSQ as PQ
 import qualified Data.Map as M
 import qualified Data.Vector as V
-import qualified Data.HashMap.Strict as H
-import Data.Word
 import Data.Binary
 import Data.Store
 import Data.Typeable
 import Data.Default
 import GHC.Generics
 import System.Clock
-import System.Posix.Types
-import System.IO.RandomAccessFile
 import System.Log.Heavy
 
 import Core.Types

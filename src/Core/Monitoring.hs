@@ -8,7 +8,6 @@ import qualified Control.Monad.Metrics as Metrics
 import qualified Data.Text as T
 import qualified Data.HashMap.Lazy as H
 import qualified System.Metrics as EKG
-import qualified System.Metrics.Distribution as EKG
 import Lens.Micro ((^.))
 import Text.Printf
 

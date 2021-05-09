@@ -4,19 +4,15 @@ module Main where
 
 import Control.Monad
 import Control.Monad.Reader
-import Control.Concurrent.STM
 import Data.Default
 import Data.Maybe
-import Data.List
 import qualified Data.Map as M
 import qualified Data.Text as T
-import qualified Data.Text.IO as TIO
 import qualified Data.ByteString.Lazy.Char8 as C8
 import qualified Data.Aeson as Aeson
 import System.Log.Heavy
 import Options.Applicative
 import Text.Printf
-import System.Random
 
 import Core.Types hiding (timed)
 import AI
@@ -28,7 +24,6 @@ import Rest.Battle (restServer)
 import Core.Checkers
 import Core.CmdLine
 import Core.Supervisor (withRules)
-import Core.Parallel
 import Core.Monitoring
 
 import Learn

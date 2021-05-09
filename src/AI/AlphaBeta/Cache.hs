@@ -21,7 +21,6 @@ import Control.Monad.Reader
 import Control.Concurrent.STM
 import qualified StmContainers.Map as SM
 import qualified Data.Map as M
-import qualified Data.HashMap.Strict as H
 import Data.Text.Format.Heavy (Single (..))
 import System.Log.Heavy
 import System.Log.Heavy.TH

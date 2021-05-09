@@ -19,21 +19,14 @@ import Control.Monad.Catch (catch, SomeException)
 import Control.Concurrent.STM
 import qualified StmContainers.Map as SM
 import qualified Data.ByteString as B
-import qualified Data.ByteString.Lazy as BL
 import qualified Data.Map as M
 import qualified Data.Vector as V
 import Data.Vector.Instances () -- import instances only
-import qualified Data.HashMap.Strict as H
-import Data.Maybe
-import Data.Word
 import Data.Text.Format.Heavy
 import Data.Store
 import Data.Bits.Coded
 import Data.Bits.Coding
 import Data.Bytes.Put
-import System.Clock
-import Text.Printf
-import GHC.Generics
 import System.Posix.Types
 import System.Log.Heavy
 import System.Log.Heavy.TH
@@ -45,8 +38,6 @@ import System.Directory
 import Core.Types
 import qualified Core.AdaptiveMap as AM
 import Core.Board
-import Core.BoardMap
-import qualified Core.Monitoring as Monitoring
 import AI.AlphaBeta.Types
 
 maxPieces :: Integer

@@ -11,14 +11,12 @@ import Control.Concurrent
 import qualified Data.Text as T
 import Data.Aeson hiding ( json )
 import Web.Scotty.Trans
-import Network.HTTP.Req
-import Text.URI (mkURI)
 
 import Core.Types
 import Core.Json ( ) -- import instances only
 import Core.Supervisor (selectRules')
 
-import Battle (BattleRunner, runBattleLocal)
+import Battle (runBattleLocal)
 import AI (parseAi)
 import Rest.Common
 
