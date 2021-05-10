@@ -749,7 +749,7 @@ class Checkers(QMainWindow):
             elif err_msg == "invalid game status":
                 expected = json.get("expected", "?")
                 actual = json.get("actual", "?")
-                message = _("Status of current game is unsuitable for this operation. Game status is {}; required status is {}").format(expected, actual)
+                message = _("Status of current game is unsuitable for this operation. Game status is {}; required status is {}").format(actual, expected)
             else:
                 message = message_format.format(rs.url, rs.status_code, err_msg)
 
