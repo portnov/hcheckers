@@ -312,7 +312,7 @@ class Checkers(QMainWindow):
         self._create_action(QIcon.fromTheme("application-exit"), _("E&xit"), menu, self._on_exit, toolbar=False, key="Ctrl+Q")
 
         menu = self.menuBar().addMenu(_("&Position"))
-        setup = QActionGroup(self)
+        self.setup_actions = setup = QActionGroup(self)
         setup.setExclusive(True)
         self.put_first_action = self._create_action(self._icon("manwhite.svg"), _("Put &white piece"), menu, group=setup, toggle=True)
         self.put_second_action = self._create_action(self._icon("manblack.svg"), _("Put &black piece"), menu, group=setup, toggle=True)
@@ -346,6 +346,8 @@ class Checkers(QMainWindow):
     @handling_error
     def _on_run_game(self, checked=None):
         self.board_setup_mode = False
+        for action in self.setup_actions.actions():
+            action.setChecked(False)
         board = self.board.json()
         self.game.start_new_game(self.game_settings.user_name, rules=self.game_settings.rules, user_turn_first=self.game_settings.user_turn_first, ai=self.game_settings.ai, board=board)
         self.board.hide_text_message()
