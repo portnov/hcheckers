@@ -142,11 +142,11 @@ class Checkers(QMainWindow):
     ai_session = property(get_ai_session, set_ai_session)
 
     def _ai_session_dependencies(self):
-        stop_ai_enabled = self.game_active and ((self._waiting_ai_hint or not self.my_turn) and self._ai_session is not None)
-        self.stop_ai_action.setEnabled(stop_ai_enabled)
-        self.ai_hint_action.setEnabled(not stop_ai_enabled)
-        self._enable_game_control_actions(self.my_turn)
-        self._enable_file_actions(self.my_turn or not self.game_active)
+        stop_ai_enabled = (self._waiting_ai_hint or not self.my_turn) and self._ai_session is not None
+        self.stop_ai_action.setEnabled(self.game_active and stop_ai_enabled)
+        self.ai_hint_action.setEnabled(self.game_active and not stop_ai_enabled)
+        self._enable_game_control_actions(self.game_active and self.my_turn and not self._waiting_ai_hint)
+        self._enable_file_actions((self.my_turn or not self.game_active) and not self._waiting_ai_hint)
 
     def _start_server(self):
         server_running = Game.check_server(self.server_url)
