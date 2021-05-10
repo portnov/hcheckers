@@ -141,12 +141,16 @@ class Checkers(QMainWindow):
     
     ai_session = property(get_ai_session, set_ai_session)
 
+    def _waiting_draw_response(self):
+        return self.game.draw_state == WE_REQUESTED_DRAW
+
     def _ai_session_dependencies(self):
-        stop_ai_enabled = (self._waiting_ai_hint or not self.my_turn) and self._ai_session is not None
+        is_waiting = self._waiting_ai_hint or self._waiting_draw_response()
+        stop_ai_enabled = (is_waiting or not self.my_turn) and self._ai_session is not None
         self.stop_ai_action.setEnabled(self.game_active and stop_ai_enabled)
         self.ai_hint_action.setEnabled(self.game_active and not stop_ai_enabled)
-        self._enable_game_control_actions(self.game_active and self.my_turn and not self._waiting_ai_hint)
-        self._enable_file_actions((self.my_turn or not self.game_active) and not self._waiting_ai_hint)
+        self._enable_game_control_actions(self.game_active and self.my_turn and not is_waiting)
+        self._enable_file_actions((self.my_turn or not self.game_active) and not is_waiting)
 
     def _start_server(self):
         server_running = Game.check_server(self.server_url)
@@ -430,6 +434,7 @@ class Checkers(QMainWindow):
 
         if self.game.is_active():
             self.game.capitulate()
+        self.message.setText("")
         self.board.hide_text_message()
         self.game_active = True
         self.game.game_id = None
@@ -569,11 +574,17 @@ class Checkers(QMainWindow):
         ok = QMessageBox.question(self, _("Offer a draw?"),
                 _("Are you sure you want to offer a draw to the other side? This action can not be undone."))
         if ok == QMessageBox.Yes:
-            messages = self.game.request_draw()
+            self.ai_session, messages = self.game.request_draw()
             for message in messages:
                 self.board.process_message(message)
             self.request_draw_action.setEnabled(False)
             self.capitulate_action.setEnabled(False)
+            self.ai_hint_action.setEnabled(False)
+            self.board.locked = True
+            self.board.setCursor(Qt.WaitCursor)
+            text = _("Waiting for a response on draw offer from another side")
+            self.statusBar().showMessage(text)
+            self.board.show_text_message(text, delay=WAITING_MOVE_MESSAGE_DELAY)
 
     @handling_error
     def _on_accept_draw(self, checked=None):
@@ -647,14 +658,22 @@ class Checkers(QMainWindow):
             else:
                 self._on_decline_draw()
         elif isinstance(message, DrawResponseMessage):
+            self.board.hide_text_message()
+            self.status_info.setText("")
             text = str(message)
             self.message.setText(text)
-            self.board.show_text_message(text)
-            self.board.repaint()
-            if not message.result:
-                self.request_draw_action.setEnabled(True)
-                self.capitulate_action.setEnabled(True)
+            QMessageBox.information(self,
+                    _("Response on a draw offer"),
+                    text)
+            #self.board.show_text_message(text)
+            #self.board.repaint()
+            self.stop_ai_action.setEnabled(False)
+            self.request_draw_action.setEnabled(True)
+            self.capitulate_action.setEnabled(True)
+            self.ai_hint_action.setEnabled(True)
             self.game.draw_state = None
+            self.board.locked = False
+            self.board.setCursor(Qt.ArrowCursor)
             self.board.invalidate()
             self.board.repaint()
         elif isinstance(message, AiHintMessage):

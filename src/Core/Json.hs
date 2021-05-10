@@ -173,7 +173,7 @@ instance ToJSON RsPayload where
   toJSON (StopAiRs) = object ["stop" .= ("ok" :: T.Text)]
   toJSON (UndoRs board) = toJSON board
   toJSON CapitulateRs = object ["capitulate" .= ("ok" :: T.Text)]
-  toJSON DrawRqRs = object ["draw_request" .= ("pending" :: T.Text)]
+  toJSON (DrawRqRs sessionId) = object ["draw_request" .= ("pending" :: T.Text), "poll" .= sessionId]
   toJSON (DrawAcceptRs accepted) = object ["draw_accepted" .= accepted]
   toJSON (LobbyRs games) = toJSON games
   toJSON (NotationRs size orientation list) =

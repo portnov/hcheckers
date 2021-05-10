@@ -174,9 +174,9 @@ restServer shutdownVar = do
   post "/game/:id/draw/request/:name" $ do
     gameId <- param "id"
     name   <- param "name"
-    liftCheckers gameId $ doDrawRequest gameId name
+    sessionId <- liftCheckers gameId $ doDrawRequest gameId name
     messages <- liftCheckers gameId $ getMessages name
-    json $ Response DrawRqRs messages
+    json $ Response (DrawRqRs sessionId) messages
 
   post "/game/:id/draw/accept/:name" $ do
     gameId <- param "id"

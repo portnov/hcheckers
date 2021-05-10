@@ -458,11 +458,12 @@ class Game(object):
         url = join(self.base_url, "game", self.game_id, "draw", "request", self.user_name)
         rs = Game.post(url)
         result = rs.json()
+        session = result["response"].get("poll", None)
         messages = result["messages"]
         self._process_messages(messages)
         logging.info(_("Offer for a draw posted."))
         self.draw_state = WE_REQUESTED_DRAW
-        return messages
+        return session, messages
     
     def accept_draw(self, accept):
         if accept:

@@ -105,7 +105,7 @@ data RsPayload =
   | StopAiRs
   | UndoRs BoardRep
   | CapitulateRs
-  | DrawRqRs
+  | DrawRqRs (Maybe AiSessionId)
   | DrawAcceptRs Bool
   | ShutdownRs
   deriving (Eq, Show, Generic)
@@ -412,7 +412,7 @@ doCapitulate gameId name = do
         ]
   queueNotifications gameId messages
 
-doDrawRequest :: GameId -> String -> Checkers ()
+doDrawRequest :: GameId -> String -> Checkers (Maybe AiSessionId)
 doDrawRequest gameId name = do
   game <- getGame gameId
   side <- sideByUser game name
@@ -421,10 +421,8 @@ doDrawRequest gameId name = do
           DrawRqNotify (opposite side) side
         ]
   queueNotifications gameId messages
-  mbResult <- aiDrawRequest gameId (opposite side)
-  case mbResult of
-    Nothing -> return ()
-    Just accepted -> doDrawAccept' gameId (opposite side) accepted
+  mbSessionId <- aiDrawRequest gameId (opposite side)
+  return mbSessionId
 
 doDrawAccept' :: GameId -> Side -> Bool -> Checkers ()
 doDrawAccept' gameId side accepted = do
@@ -570,7 +568,7 @@ resetAiStorageG gameId side = do
         resetAiStorage ai storage
     _ -> fail "User is not an AI"
 
-aiDrawRequest :: GameId -> Side -> Checkers (Maybe Bool)
+aiDrawRequest :: GameId -> Side -> Checkers (Maybe AiSessionId)
 aiDrawRequest gameId side = do
   game <- getGame gameId
   board <- do
@@ -581,9 +579,11 @@ aiDrawRequest gameId side = do
       rules <- getRules gameId
       withAiStorage rules ai $ \storage -> do
         (sessionId, aiSession) <- newAiSession
-        result <- decideDrawRequest ai storage gameId side aiSession board 
-        $info "AI response for draw request: {}" (Single result)
-        return $ Just result
+        forkCheckers $ do
+          accepted <- decideDrawRequest ai storage gameId side aiSession board 
+          $info "AI response for draw request: {}" (Single accepted)
+          doDrawAccept' gameId side accepted
+        return (Just sessionId)
     _ -> return Nothing
 
 -- | Get current game state
