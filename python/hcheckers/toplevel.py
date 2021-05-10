@@ -484,6 +484,8 @@ class Checkers(QMainWindow):
             self.opponent_info.setText("")
             self.status_info.setText("")
 
+        self._enable_game_control_actions(True)
+
         size, invert, notation = self.game.get_notation(game.rules)
         self.board.invert_colors = invert
         self.board.topology = self.game.get_topology(game.rules)
@@ -639,6 +641,7 @@ class Checkers(QMainWindow):
             #self.capitulate_action.setEnabled(False)
             self.stop_ai_action.setEnabled(False)
             self.ai_hint_action.setEnabled(False)
+            self._enable_game_control_actions(False)
             self.board.hint_moves = None
             self.board.invalidate()
             self.board.repaint()
