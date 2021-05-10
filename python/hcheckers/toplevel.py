@@ -564,11 +564,14 @@ class Checkers(QMainWindow):
 
     @handling_error
     def _on_draw_rq(self, checked=None):
-        messages = self.game.request_draw()
-        for message in messages:
-            self.board.process_message(message)
-        self.request_draw_action.setEnabled(False)
-        self.capitulate_action.setEnabled(False)
+        ok = QMessageBox.question(self, _("Offer a draw?"),
+                _("Are you sure you want to offer a draw to the other side? This action can not be undone."))
+        if ok == QMessageBox.Yes:
+            messages = self.game.request_draw()
+            for message in messages:
+                self.board.process_message(message)
+            self.request_draw_action.setEnabled(False)
+            self.capitulate_action.setEnabled(False)
 
     @handling_error
     def _on_accept_draw(self, checked=None):
