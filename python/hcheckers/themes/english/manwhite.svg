@@ -25,11 +25,11 @@
          offset="0"
          id="stop890" />
       <stop
-         style="stop-color:#b03733;stop-opacity:1"
+         style="stop-color:#a5494a;stop-opacity:1"
          offset="0.8239913"
          id="stop896" />
       <stop
-         style="stop-color:#9b2f27;stop-opacity:1"
+         style="stop-color:#802a21;stop-opacity:1"
          offset="1"
          id="stop892" />
     </linearGradient>
@@ -37,11 +37,11 @@
        inkscape:collect="always"
        id="linearGradient859">
       <stop
-         style="stop-color:#9b2f27;stop-opacity:1"
+         style="stop-color:#802a21;stop-opacity:1"
          offset="0"
          id="stop855" />
       <stop
-         style="stop-color:#b03733;stop-opacity:1"
+         style="stop-color:#a5494a;stop-opacity:1"
          offset="1"
          id="stop857" />
     </linearGradient>
@@ -53,15 +53,15 @@
          offset="0"
          id="stop845" />
       <stop
-         style="stop-color:#7f2720;stop-opacity:1"
+         style="stop-color:#802a21;stop-opacity:1"
          offset="0.80841893"
          id="stop897" />
       <stop
-         style="stop-color:#cb4747;stop-opacity:1"
+         style="stop-color:#a5494a;stop-opacity:1"
          offset="0.91532415"
          id="stop921" />
       <stop
-         style="stop-color:#a40000;stop-opacity:1"
+         style="stop-color:#802a21;stop-opacity:1"
          offset="1"
          id="stop847" />
     </linearGradient>
@@ -105,17 +105,17 @@
      borderopacity="1.0"
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
-     inkscape:zoom="0.98994949"
-     inkscape:cx="302.3622"
-     inkscape:cy="302.3622"
+     inkscape:zoom="1.4"
+     inkscape:cx="370.02554"
+     inkscape:cy="248.41878"
      inkscape:document-units="mm"
      inkscape:current-layer="layer1"
      inkscape:document-rotation="0"
      showgrid="false"
      inkscape:window-width="1916"
-     inkscape:window-height="1196"
+     inkscape:window-height="1172"
      inkscape:window-x="0"
-     inkscape:window-y="0"
+     inkscape:window-y="24"
      inkscape:window-maximized="1" />
   <metadata
      id="metadata5">
@@ -125,7 +125,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title></dc:title>
+        <dc:title />
       </cc:Work>
     </rdf:RDF>
   </metadata>
