@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: 0.1.0.0\n"
-"POT-Creation-Date: 2021-05-10 10:49+0500\n"
+"POT-Creation-Date: 2021-05-10 10:51+0500\n"
 "PO-Revision-Date: 2018-11-07 22:30+5\n"
 "Last-Translator: Ilya Portnov <portnov84@rambler.ru>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -668,7 +668,9 @@ msgstr "Предложить ничью?"
 msgid ""
 "Are you sure you want to offer a draw to the other side? This action can not "
 "be undone."
-msgstr "Вы уверены, что хотите предложить ничью сопернику? Это действие не может быть отменено."
+msgstr ""
+"Вы уверены, что хотите предложить ничью сопернику? Это действие не может "
+"быть отменено."
 
 #: toplevel.py:590
 msgid "Capitulate?"
@@ -701,6 +703,10 @@ msgstr "Согласиться на ничью?"
 #: toplevel.py:642
 msgid "Another side have offered you a draw. Do you wish to accept it?"
 msgstr "Соперник предложил вам ничью. Вы хотите согласиться на неё?"
+
+#: toplevel.py:658
+msgid "AI suggested the following move(s): {}"
+msgstr "ИИ предложил следующие ходы: {}"
 
 #: toplevel.py:692
 msgid "Log has been cleared."

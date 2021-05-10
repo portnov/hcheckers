@@ -655,7 +655,7 @@ class Checkers(QMainWindow):
             self.board.invalidate()
             self.board.repaint()
         elif isinstance(message, AiHintMessage):
-            logging.info(_("AI suggested the following move(s): {}".format("; ".join([self.board.show_move(m) for m in message.moves]))))
+            logging.info(_("AI suggested the following move(s): {}").format("; ".join([self.board.show_move(m) for m in message.moves])))
             self._waiting_ai_hint = False
             self.board.hint_moves = message.moves
             self.board.setCursor(Qt.ArrowCursor)
