@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2021-05-10 10:51+0500\n"
+"POT-Creation-Date: 2021-05-10 11:56+0500\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -31,145 +31,141 @@ msgstr ""
 msgid "Field {} does not belong to you"
 msgstr ""
 
-#: board.py:754
-msgid "Awaiting a response about draw."
-msgstr ""
-
 #: board.py:757
 msgid "Another side have offered a draw. You have to accept or decline it."
 msgstr ""
 
-#: common.py:152
+#: common.py:156
 msgid "Other side move: {}"
 msgstr ""
 
-#: common.py:157
+#: common.py:161
 msgid "Other side requested undo"
 msgstr ""
 
-#: common.py:168
+#: common.py:172
 msgid "Wating for another side turn"
 msgstr ""
 
-#: common.py:172
+#: common.py:176
 msgid "Another side have offered a draw"
 msgstr ""
 
-#: common.py:180
+#: common.py:184
 msgid "Another side accepted the draw."
 msgstr ""
 
-#: common.py:182
+#: common.py:186
 msgid "Another side declined the draw."
 msgstr ""
 
-#: common.py:189
+#: common.py:193
 msgid "AI suggested {} move(s)"
 msgstr ""
 
-#: common.py:254
+#: common.py:258
 msgid "Russian draughts"
 msgstr ""
 
-#: common.py:255
+#: common.py:259
 msgid "Simple draughts"
 msgstr ""
 
-#: common.py:256
+#: common.py:260
 msgid "English draughts"
 msgstr ""
 
-#: common.py:257
+#: common.py:261
 msgid "International draughts"
 msgstr ""
 
-#: common.py:258
+#: common.py:262
 msgid "Brazilian draughts"
 msgstr ""
 
-#: common.py:259
+#: common.py:263
 msgid "Canadian draughts"
 msgstr ""
 
-#: common.py:260
+#: common.py:264
 msgid "Spancirety draughts"
 msgstr ""
 
-#: common.py:261
+#: common.py:265
 msgid "Diagonal draughts"
 msgstr ""
 
-#: common.py:262
+#: common.py:266
 msgid "Czech draughts"
 msgstr ""
 
-#: common.py:263
+#: common.py:267
 msgid "Turkish draughts"
 msgstr ""
 
-#: common.py:264
+#: common.py:268
 msgid "Armeinan draughts (Tama)"
 msgstr ""
 
-#: game.py:196
+#: game.py:204
 msgid "Beginner"
 msgstr ""
 
-#: game.py:197
+#: game.py:205
 msgid "Novice"
 msgstr ""
 
-#: game.py:198
+#: game.py:206
 msgid "Average"
 msgstr ""
 
-#: game.py:199
+#: game.py:207
 msgid "Good"
 msgstr ""
 
-#: game.py:200
+#: game.py:208
 msgid "Master"
 msgstr ""
 
-#: game.py:299 game.py:340 game.py:342 lobby.py:37 newgamedlg.py:114
+#: game.py:307 game.py:348 game.py:350 lobby.py:37 newgamedlg.py:114
 msgid "White"
 msgstr ""
 
-#: game.py:301 game.py:340 game.py:342 lobby.py:37 newgamedlg.py:115
+#: game.py:309 game.py:348 game.py:350 lobby.py:37 newgamedlg.py:115
 msgid "Black"
 msgstr ""
 
-#: game.py:303
+#: game.py:311
 msgid "Newly created game ID: {}. First side to move: {}."
 msgstr ""
 
-#: game.py:355
+#: game.py:363
 msgid ""
 "AI parameters:\n"
 "{}"
 msgstr ""
 
-#: game.py:455
+#: game.py:463
 msgid "Offer for a draw posted."
 msgstr ""
 
-#: game.py:470
+#: game.py:478
 msgid "You accepted draw."
 msgstr ""
 
-#: game.py:472
+#: game.py:480
 msgid "You declined draw."
 msgstr ""
 
-#: game.py:482
+#: game.py:490
 msgid "Game #{}: you capitulated."
 msgstr ""
 
-#: game.py:488
+#: game.py:496
 msgid "Server shutdown requested."
 msgstr ""
 
-#: game.py:530
+#: game.py:538
 msgid "Requested AI to stop thinking"
 msgstr ""
 
@@ -281,7 +277,7 @@ msgstr ""
 msgid "Close this dialog and exit the program"
 msgstr ""
 
-#: newgamedlg.py:240 toplevel.py:728
+#: newgamedlg.py:240 toplevel.py:729
 msgid "Settings have been updated."
 msgstr ""
 
@@ -345,155 +341,171 @@ msgstr ""
 msgid "From how many best options to select during the opening"
 msgstr ""
 
-#: settingsdlg.py:117 settingsdlg.py:426
-msgid "General"
+#: settingsdlg.py:118
+msgid "Always accept"
+msgstr ""
+
+#: settingsdlg.py:119
+msgid "Always decline"
+msgstr ""
+
+#: settingsdlg.py:120
+msgid "Accept if AI is losing"
 msgstr ""
 
 #: settingsdlg.py:123
-msgid "Mobility"
+msgid "Accept draws"
 msgstr ""
 
-#: settingsdlg.py:124
-msgid "Back row"
-msgstr ""
-
-#: settingsdlg.py:125
-msgid "Center"
-msgstr ""
-
-#: settingsdlg.py:126
-msgid "Opposite side"
-msgstr ""
-
-#: settingsdlg.py:127
-msgid "Backed"
-msgstr ""
-
-#: settingsdlg.py:128
-msgid "Asymetry"
-msgstr ""
-
-#: settingsdlg.py:129
-msgid "Pre-king"
-msgstr ""
-
-#: settingsdlg.py:130
-msgid "King"
+#: settingsdlg.py:125 settingsdlg.py:440
+msgid "General"
 msgstr ""
 
 #: settingsdlg.py:131
-msgid "Attacked man"
+msgid "Mobility"
 msgstr ""
 
 #: settingsdlg.py:132
-msgid "Attacked king"
+msgid "Back row"
+msgstr ""
+
+#: settingsdlg.py:133
+msgid "Center"
 msgstr ""
 
 #: settingsdlg.py:134
+msgid "Opposite side"
+msgstr ""
+
+#: settingsdlg.py:135
+msgid "Backed"
+msgstr ""
+
+#: settingsdlg.py:136
+msgid "Asymetry"
+msgstr ""
+
+#: settingsdlg.py:137
+msgid "Pre-king"
+msgstr ""
+
+#: settingsdlg.py:138
+msgid "King"
+msgstr ""
+
+#: settingsdlg.py:139
+msgid "Attacked man"
+msgstr ""
+
+#: settingsdlg.py:140
+msgid "Attacked king"
+msgstr ""
+
+#: settingsdlg.py:142
 msgid "Board evaluation"
 msgstr ""
 
-#: settingsdlg.py:143
+#: settingsdlg.py:151
 msgid "Extra options"
 msgstr ""
 
-#: settingsdlg.py:150
+#: settingsdlg.py:158
 msgid "Save..."
 msgstr ""
 
-#: settingsdlg.py:152
+#: settingsdlg.py:160
 msgid "Save AI settings to JSON file"
 msgstr ""
 
-#: settingsdlg.py:156
+#: settingsdlg.py:164
 msgid "Load..."
 msgstr ""
 
-#: settingsdlg.py:158
+#: settingsdlg.py:166
 msgid "Load AI settings from JSON file"
 msgstr ""
 
-#: settingsdlg.py:171 toplevel.py:523 toplevel.py:698
+#: settingsdlg.py:179 toplevel.py:523 toplevel.py:699
 msgid "Save file"
 msgstr ""
 
-#: settingsdlg.py:179
+#: settingsdlg.py:187
 msgid "Load file"
 msgstr ""
 
-#: settingsdlg.py:260
+#: settingsdlg.py:274
 msgid "Add AI preset"
 msgstr ""
 
-#: settingsdlg.py:265
+#: settingsdlg.py:279
 msgid "Duplicate AI preset"
 msgstr ""
 
-#: settingsdlg.py:270
+#: settingsdlg.py:284
 msgid "Delete AI preset"
 msgstr ""
 
-#: settingsdlg.py:306
+#: settingsdlg.py:320
 msgid "Copy of {}"
 msgstr ""
 
-#: settingsdlg.py:318
+#: settingsdlg.py:332
 msgid "Show fields notation"
 msgstr ""
 
-#: settingsdlg.py:320
+#: settingsdlg.py:334
 msgid "Show possible moves"
 msgstr ""
 
-#: settingsdlg.py:326
+#: settingsdlg.py:340
 msgid "Theme"
 msgstr ""
 
-#: settingsdlg.py:329
+#: settingsdlg.py:343
 msgid "Enable sounds"
 msgstr ""
 
-#: settingsdlg.py:368
+#: settingsdlg.py:382
 msgid "Server URL"
 msgstr ""
 
-#: settingsdlg.py:372
+#: settingsdlg.py:386
 msgid "Use local server"
 msgstr ""
 
-#: settingsdlg.py:374
+#: settingsdlg.py:388
 msgid "Local server start command"
 msgstr ""
 
-#: settingsdlg.py:380
+#: settingsdlg.py:394
 msgid "Debug"
 msgstr ""
 
-#: settingsdlg.py:381
+#: settingsdlg.py:395
 msgid "Information"
 msgstr ""
 
-#: settingsdlg.py:382
+#: settingsdlg.py:396
 msgid "Warning"
 msgstr ""
 
-#: settingsdlg.py:383
+#: settingsdlg.py:397
 msgid "Error"
 msgstr ""
 
-#: settingsdlg.py:385
+#: settingsdlg.py:399
 msgid "Logging level"
 msgstr ""
 
-#: settingsdlg.py:428
+#: settingsdlg.py:442
 msgid "View Settings"
 msgstr ""
 
-#: settingsdlg.py:430
+#: settingsdlg.py:444
 msgid "AI Presets"
 msgstr ""
 
-#: settingsdlg.py:443
+#: settingsdlg.py:457
 msgid "HCheckers settings"
 msgstr ""
 
@@ -531,7 +543,7 @@ msgid ""
 "{}"
 msgstr ""
 
-#: toplevel.py:173 toplevel.py:755 toplevel.py:760
+#: toplevel.py:173 toplevel.py:756 toplevel.py:761
 msgid "Exception"
 msgstr ""
 
@@ -691,15 +703,15 @@ msgstr ""
 msgid "Another side have offered you a draw. Do you wish to accept it?"
 msgstr ""
 
-#: toplevel.py:658
+#: toplevel.py:659
 msgid "AI suggested the following move(s): {}"
 msgstr ""
 
-#: toplevel.py:692
+#: toplevel.py:693
 msgid "Log has been cleared."
 msgstr ""
 
-#: toplevel.py:736
+#: toplevel.py:737
 msgid ""
 "Unexpected response received from the server.\n"
 "Request URL: {}\n"
@@ -707,15 +719,15 @@ msgid ""
 "Response message: {}"
 msgstr ""
 
-#: toplevel.py:747
+#: toplevel.py:748
 msgid "No such move: {}"
 msgstr ""
 
-#: toplevel.py:751
+#: toplevel.py:752
 msgid "Status of current game is unsuitable for this operation. Game status is {}; required status is {}"
 msgstr ""
 
-#: toplevel.py:759
+#: toplevel.py:760
 msgid ""
 "An exception occured while connecting to the server.\n"
 "Request URL: {}\n"

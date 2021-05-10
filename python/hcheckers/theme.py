@@ -16,6 +16,8 @@ class CachedPixmap(object):
         self.size = None
         self._pixmap = None
         self.defined = exists(path)
+        if not self.defined:
+            logging.debug(f"{self.path} wasn't found")
 
     def invalidate(self):
         self.size = None
