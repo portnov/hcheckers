@@ -8,6 +8,7 @@
 
 module AI.AlphaBeta.Types
   ( AlphaBeta (..),
+    DrawPolicy (..),
     AlphaBetaParams (..),
     DepthParams (..),
     CacheKey,
@@ -54,6 +55,12 @@ data AlphaBeta rules eval = AlphaBeta AlphaBetaParams rules eval
 
 type AlphaBetaR rules = AlphaBeta rules (EvaluatorForRules rules)
 
+data DrawPolicy =
+    AlwaysAccept
+  | AcceptIfLosing
+  | AlwaysDecline
+  deriving (Eq, Ord, Show)
+
 data AlphaBetaParams = AlphaBetaParams {
     abDepth :: Depth
   , abStartDepth :: Maybe Depth
@@ -65,6 +72,7 @@ data AlphaBetaParams = AlphaBetaParams {
   , abBaseTime :: Maybe Int
   , abRandomOpeningDepth :: Int
   , abRandomOpeningOptions :: Int
+  , abDrawPolicy :: DrawPolicy
   }
   deriving (Eq, Ord, Show)
 
@@ -80,6 +88,7 @@ instance Default AlphaBetaParams where
         , abBaseTime = Nothing
         , abRandomOpeningDepth = 1
         , abRandomOpeningOptions = 1
+        , abDrawPolicy = AlwaysAccept
         }
 
 -- Calculation depth parameters

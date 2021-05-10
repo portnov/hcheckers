@@ -652,6 +652,7 @@ class Checkers(QMainWindow):
             if not message.result:
                 self.request_draw_action.setEnabled(True)
                 self.capitulate_action.setEnabled(True)
+            self.game.draw_state = None
             self.board.invalidate()
             self.board.repaint()
         elif isinstance(message, AiHintMessage):

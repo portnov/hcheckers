@@ -114,6 +114,14 @@ class AiEditorWidget(QWidget):
         self.random_opening_options = make_spinbox(_("Random opening options"), 1, 5, general)
         self.random_opening_options.setToolTip(_("From how many best options to select during the opening"))
 
+        self.accept_draw = QComboBox(self)
+        self.accept_draw.addItem(_("Always accept"), ALWAYS_ACCEPT)
+        self.accept_draw.addItem(_("Always decline"), ALWAYS_DECLINE)
+        self.accept_draw.addItem(_("Accept if AI is losing"), ACCEPT_IF_LOSING)
+        self.accept_draw.currentIndexChanged.connect(self.edited)
+
+        layout.addRow(_("Accept draws"), self.accept_draw)
+
         self.tabs.addTab(general, _("General"))
 
         evaluator = QWidget(self.tabs)
@@ -216,6 +224,10 @@ class AiEditorWidget(QWidget):
         self.attacked_man_coef.setValue(- ai.attacked_man_coef)
         self.attacked_king_coef.setValue(- ai.attacked_king_coef)
 
+        policy = ai.accept_draw
+        policy_idx = self.accept_draw.findData(policy)
+        self.accept_draw.setCurrentIndex(policy_idx)
+
         self.extra.setText("" if ai.extra is None else ai.extra)
 
     def get_ai(self):
@@ -244,6 +256,8 @@ class AiEditorWidget(QWidget):
         ai.king_coef = self.king_coef.value()
         ai.attacked_man_coef = - self.attacked_man_coef.value()
         ai.attacked_king_coef = - self.attacked_king_coef.value()
+
+        ai.accept_draw = self.accept_draw.currentData()
 
         ai.extra = self.extra.toPlainText()
         return ai

@@ -580,7 +580,8 @@ aiDrawRequest gameId side = do
     AI ai -> do
       rules <- getRules gameId
       withAiStorage rules ai $ \storage -> do
-        result <- decideDrawRequest ai storage side board 
+        (sessionId, aiSession) <- newAiSession
+        result <- decideDrawRequest ai storage gameId side aiSession board 
         $info "AI response for draw request: {}" (Single result)
         return $ Just result
     _ -> return Nothing

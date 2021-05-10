@@ -59,6 +59,8 @@ class AI(object):
         self.attacked_man_coef = -40
         self.attacked_king_coef = -80
 
+        self.accept_draw = ALWAYS_ACCEPT
+
         self.extra = None
 
         for key in kwargs:
@@ -98,6 +100,8 @@ class AI(object):
         ai.king_coef = settings.value("king_coef", ai.king_coef, type=int)
         ai.attacked_man_coef = settings.value("attacked_man_coef", ai.attacked_man_coef, type=int)
         ai.attacked_king_coef = settings.value("attacked_king_coef", ai.attacked_king_coef, type=int)
+
+        ai.accept_draw = settings.value("accept_draw", ai.accept_draw)
 
         ai.extra = settings.value("extra", type=str)
         return ai
@@ -142,6 +146,8 @@ class AI(object):
         settings.setValue("attacked_man_coef", self.attacked_man_coef)
         settings.setValue("attacked_king_coef", self.attacked_king_coef)
 
+        settings.setValue("accept_draw", self.accept_draw)
+
         if self.extra is not None:
             settings.setValue("extra", self.extra.strip())
 
@@ -167,7 +173,9 @@ class AI(object):
             "asymetry_weight": self.asymetry_weight,
             "pre_king_weight": self.pre_king_weight,
             "attacked_man_coef": self.attacked_man_coef,
-            "attacked_king_coef": self.attacked_king_coef
+            "attacked_king_coef": self.attacked_king_coef,
+
+            "accept_draw": self.accept_draw
         }
         if self.extra:
             try:

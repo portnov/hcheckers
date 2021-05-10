@@ -609,8 +609,8 @@ class (Show ai, Typeable (AiStorage ai), ToJSON ai) => GameAi ai where
 
   -- | Answer for a draw request.
   -- Default implementation always accepts the draw.
-  decideDrawRequest :: ai -> AiStorage ai -> Side -> Board -> Checkers Bool
-  decideDrawRequest _ _ _ _ = return True
+  decideDrawRequest :: ai -> AiStorage ai -> GameId -> Side -> AiSession -> Board -> Checkers Bool
+  decideDrawRequest _ _ _ _ _ _ = return True
 
 class GameAi ai => VectorAi ai where
   type VectorAiSupport ai rules :: Constraint

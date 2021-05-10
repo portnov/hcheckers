@@ -751,7 +751,7 @@ class Board(QWidget):
             return False
 
         if self.game.draw_state == WE_REQUESTED_DRAW:
-            logging.warning(_("Awaiting a response about draw."))
+            #logging.warning(_("Awaiting a response about draw."))
             return False
         elif self.game.draw_state == DRAW_REQUESTED_FROM_US:
             logging.warning(_("Another side have offered a draw. You have to accept or decline it."))

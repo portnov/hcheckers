@@ -11,6 +11,10 @@ SECOND = 2
 WE_REQUESTED_DRAW = 1
 DRAW_REQUESTED_FROM_US = 2
 
+ALWAYS_ACCEPT = 'always'
+ALWAYS_DECLINE = 'never'
+ACCEPT_IF_LOSING = 'if_losing'
+
 DEFAULT_SERVER_URL = "http://localhost:8864"
 
 class Piece(object):

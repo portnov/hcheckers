@@ -21,6 +21,7 @@ import Control.Monad.Reader
 import Control.Monad.Except
 import Control.Concurrent
 import Control.Concurrent.STM
+import qualified Data.Text as T
 import qualified Data.Map as M
 import qualified Data.Vector as V
 import qualified Data.HashMap.Strict as H
@@ -29,6 +30,7 @@ import Data.Default
 import Data.List (sortOn, transpose)
 import Data.Text.Format.Heavy
 import Data.Aeson
+import Data.Aeson.Types (unexpected)
 import System.Log.Heavy
 import System.Log.Heavy.TH
 import System.Clock
@@ -49,6 +51,19 @@ concatE _ [] = []
 concatE (n : ns) (Left e : rest) = replicate n (Left e) ++ concatE ns rest
 concatE (n : ns) (Right xs : rest) = map Right xs ++ concatE ns rest
 
+instance ToJSON DrawPolicy where
+  toJSON AlwaysAccept = toJSON ("always" :: T.Text)
+  toJSON AlwaysDecline = toJSON ("never" :: T.Text)
+  toJSON AcceptIfLosing = toJSON ("if_losing" :: T.Text)
+
+instance FromJSON DrawPolicy where
+  parseJSON = withText "accept_draw" $ \v ->
+    case v of
+      "always" -> return AlwaysAccept
+      "never" -> return AlwaysDecline
+      "if_losing" -> return AcceptIfLosing
+      _ -> unexpected (String v)
+
 instance FromJSON AlphaBetaParams where
   parseJSON = withObject "AlphaBetaParams" $ \v -> AlphaBetaParams
       <$> v .: "depth"
@@ -61,6 +76,7 @@ instance FromJSON AlphaBetaParams where
       <*> v .:? "time"
       <*> v .:? "random_opening_depth" .!= abRandomOpeningDepth def
       <*> v .:? "random_opening_options" .!= abRandomOpeningOptions def
+      <*> v .:? "accept_draw" .!= abDrawPolicy def
 
 instance ToJSON AlphaBetaParams where
   toJSON p = object [
@@ -82,6 +98,19 @@ instance ToJSON eval => ToJSON (AlphaBeta rules eval) where
         Object evalV = toJSON eval
     in  Object $ H.union paramsV evalV
 
+mkDepthParams :: Depth -> AlphaBetaParams -> DepthParams
+mkDepthParams depth params =
+  DepthParams {
+     dpInitialTarget = depth
+   , dpTarget = depth
+   , dpCurrent = -1
+   , dpMax = abCombinationDepth params + depth
+   , dpMin = min depth $ fromMaybe depth (abStartDepth params)
+   , dpStaticMode = False
+   , dpForcedMode = False
+   , dpReductedMode = False
+   }
+
 instance (GameRules rules, VectorEvaluator eval, ToJSON eval) => GameAi (AlphaBeta rules eval) where
 
   type AiStorage (AlphaBeta rules eval) = AICacheHandle rules eval
@@ -101,6 +130,18 @@ instance (GameRules rules, VectorEvaluator eval, ToJSON eval) => GameAi (AlphaBe
     (moves, _) <- runAI ai storage gameId side aiSession board
     -- liftIO $ atomically $ writeTVar (aichCurrentCounts storage) $ calcBoardCounts board
     return moves
+
+  decideDrawRequest ai@(AlphaBeta params rules eval) storage gameId side aiSession board = do
+    case abDrawPolicy params of
+      AlwaysAccept -> return True
+      AlwaysDecline -> return False
+      AcceptIfLosing -> do
+        let depth = mkDepthParams (abDepth params) params
+        score <- doScore rules eval storage params gameId side aiSession depth board loose win
+        let loosing = (side == First && score < 0) || (side == Second && score > 0)
+        if loosing
+            then return True
+            else return False
 
   updateAi ai@(AlphaBeta _ rules eval) json =
     case fromJSON json of
@@ -135,6 +176,7 @@ instance (GameRules rules, VectorEvaluator eval, ToJSON eval) => VectorAi (Alpha
                 , abBaseTime = Nothing
                 , abRandomOpeningDepth = 1
                 , abRandomOpeningOptions = 1
+                , abDrawPolicy = AlwaysAccept
               }
 
       v' = V.drop 3 v
@@ -531,16 +573,7 @@ runAI ai@(AlphaBeta params rules eval) handle gameId side aiSession board = do
         else do
           let var = aichData handle
           $info "Selecting a move. Side = {}, depth = {}, number of possible moves = {}" (show side, depth, length diiMoves)
-          dp <- updateDepth params diiMoves $ DepthParams {
-                     dpInitialTarget = depth
-                   , dpTarget = depth
-                   , dpCurrent = -1
-                   , dpMax = abCombinationDepth diiParams + depth
-                   , dpMin = min depth $ fromMaybe depth (abStartDepth diiParams)
-                   , dpStaticMode = False
-                   , dpForcedMode = False
-                   , dpReductedMode = False
-                   }
+          dp <- updateDepth params diiMoves $ mkDepthParams depth diiParams
           let needDeeper = abDeeperIfBad params && score0 `worseThan` 0
           let dp'
                 | needDeeper = dp {
