@@ -545,6 +545,7 @@ class Checkers(QMainWindow):
         try:
             prev_board = self.game.undo()
             self.board.fields_setup(prev_board)
+            self.board.hint_moves = None
             self.board.repaint()
             self.history.fill()
         except RequestError as e:
