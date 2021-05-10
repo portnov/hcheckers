@@ -686,10 +686,11 @@ class Checkers(QMainWindow):
             self.board.setCursor(Qt.ArrowCursor)
             self.board.locked = False
             self.board.hide_text_message()
-            self.board.repaint()
             self.statusBar().showMessage(str(message))
             self.ai_hint_action.setEnabled(True)
             self.stop_ai_action.setEnabled(False)
+            self.ai_session = None
+            self.board.repaint()
 
     def _on_server_log(self, level, message):
         if level == "DEBUG":
