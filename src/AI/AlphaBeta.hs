@@ -499,7 +499,7 @@ runAI ai@(AlphaBeta params rules eval) handle gameId side aiSession board = do
 --       return result
 
     depthStep :: Depth
-    depthStep = 5
+    depthStep = 2
 
     depthDriver :: [PossibleMove] -> Checkers DepthIterationOutput
     depthDriver moves =
