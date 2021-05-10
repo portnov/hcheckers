@@ -582,7 +582,8 @@ class Board(QWidget):
         if self._theme is not None:
             size = self.get_target_field_size(e.size())
             self._theme.set_target_size(size)
-            self.fields_setup()
+            #self.fields_setup()
+            self.invalidate()
 
     def get_field_center(self, idx):
         sz = self.get_size_data()
