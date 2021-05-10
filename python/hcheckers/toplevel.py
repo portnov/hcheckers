@@ -640,6 +640,8 @@ class Checkers(QMainWindow):
             self.stop_ai_action.setEnabled(False)
             self.ai_hint_action.setEnabled(False)
             self.board.hint_moves = None
+            self.board.invalidate()
+            self.board.repaint()
         elif isinstance(message, OtherSideMove):
             self.message.setText(str(message))
             self.history.fill()
@@ -659,7 +661,6 @@ class Checkers(QMainWindow):
                 self._on_decline_draw()
         elif isinstance(message, DrawResponseMessage):
             self.board.hide_text_message()
-            self.status_info.setText("")
             text = str(message)
             self.message.setText(text)
             QMessageBox.information(self,
@@ -674,6 +675,8 @@ class Checkers(QMainWindow):
             self.game.draw_state = None
             self.board.locked = False
             self.board.setCursor(Qt.ArrowCursor)
+            self.statusBar().showMessage(_("Your turn."))
+            self.ai_session = None
             self.board.invalidate()
             self.board.repaint()
         elif isinstance(message, AiHintMessage):
