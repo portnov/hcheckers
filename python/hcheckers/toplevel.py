@@ -286,7 +286,7 @@ class Checkers(QMainWindow):
         menu.addSeparator()
         self.toolbar.addSeparator()
 
-        self.stop_ai_action = self._create_action(QIcon.fromTheme("process-stop"), _("Ask AI to stop thinking"), menu, self._on_stop_ai)
+        self.stop_ai_action = self._create_action(QIcon.fromTheme("process-stop"), _("Ask AI to stop thinking"), menu, self.stop_ai)
         self.stop_ai_action.setEnabled(False)
         self.ai_hint_action = self._create_action(QIcon.fromTheme("dialog-information"), _("Ask for AI advice"), menu, self._on_ai_hint)
 
@@ -548,7 +548,7 @@ class Checkers(QMainWindow):
                 raise e
 
     @handling_error
-    def _on_stop_ai(self, checked=None):
+    def stop_ai(self, checked=None):
         self.game.stop_ai(self.ai_session)
         self.ai_session = None
         self._waiting_ai_hint = False
@@ -767,6 +767,13 @@ class Checkers(QMainWindow):
     def closeEvent(self, ev):
         
         if self.game.is_active():
+            if self.ai_session is not None:
+                try:
+                    self.stop_ai()
+                except Exception as e:
+                    logging.exception(e)
+                    print(e)
+
             try:
                 self.game.capitulate()
             except Exception as e:
