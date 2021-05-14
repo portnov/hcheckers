@@ -24,6 +24,9 @@ instance Show Turkish where
 instance HasTopology Turkish where
   boardTopology _ = Orthogonal
 
+instance HasSideNotation Turkish where
+  sideNotation r = chessSideNotation (boardSize r)
+
 instance GameRules Turkish where
   type EvaluatorForRules Turkish = SimpleEvaluator
   initBoard rnd r =

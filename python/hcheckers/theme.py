@@ -11,17 +11,47 @@ from PyQt5.QtMultimedia import QSound
 from hcheckers.common import *
 
 class CachedPixmap(object):
-    def __init__(self, path):
+    def __init__(self, path, color=None):
         self.path = path
         self.size = None
         self._pixmap = None
-        self.defined = exists(path)
+        self.is_image = exists(path)
+        self.color = color
+        self.defined = self.is_image or (color is not None)
         if not self.defined:
             logging.debug(f"{self.path} wasn't found")
 
     def invalidate(self):
         self.size = None
         self._pixmap = None
+
+    def _get(self, size):
+        self.size = size
+        if self.is_image:
+            if self.path.endswith(".svg"):
+                renderer = QSvgRenderer(self.path)
+                if size is None:
+                    self.size = size = renderer.defaultSize().width(), renderer.defaultSize().height()
+                #print("Rendering SVG {}: {}".format(self.path, size))
+                pixmap = QPixmap(*size)
+                pixmap.fill(Qt.transparent)
+                painter = QPainter(pixmap)
+                renderer.render(painter)
+                painter.end()
+            else:
+                if size is None:
+                    pixmap = QPixmap(self.path)
+                    self.size = pixmap.width(), pixmap.height()
+                else:
+                    pixmap = QPixmap(self.path).scaled(*size)
+        else:
+            if size is None:
+                pixmap = QPixmap(256, 256)
+                self.size = pixmap.width(), pixmap.height()
+            else:
+                pixmap = QPixmap(*size)
+            pixmap.fill(self.color)
+        return pixmap
 
     def get(self, size):
         if not self.defined:
@@ -33,23 +63,7 @@ class CachedPixmap(object):
             #logging.debug("{}: already rendered".format(self.path))
             return self._pixmap
         else:
-            self.size = size
-            if self.path.endswith(".svg"):
-                renderer = QSvgRenderer(self.path)
-                if size is None:
-                    self.size = size = renderer.defaultSize().width(), renderer.defaultSize().height()
-                #print("Rendering SVG {}: {}".format(self.path, size))
-                self._pixmap = QPixmap(*size)
-                self._pixmap.fill(Qt.transparent)
-                painter = QPainter(self._pixmap)
-                renderer.render(painter)
-                painter.end()
-            else:
-                if size is None:
-                    self._pixmap = QPixmap(self.path)
-                    self.size = self._pixmap.width(), self._pixmap.height()
-                else:
-                    self._pixmap = QPixmap(self.path).scaled(*size)
+            self._pixmap = self._get(size)
             return self._pixmap
 
 class Sound(object):
@@ -91,6 +105,36 @@ class Sound(object):
             return Sound(QSound(path))
         else:
             return Sound(None)
+
+class BorderField(CachedPixmap):
+    def __init__(self, path, color=None):
+        CachedPixmap.__init__(self, path, color)
+        self.text = None
+        self.text_size = None
+        self.text_color = None
+
+    @staticmethod
+    def parse(base_path, s):
+        path = join(base_path, s)
+        if exists(path):
+            field = BorderField(path=path)
+        else:
+            field = BorderField(path=None, color=QColor(s))
+        return field
+
+    def _get(self, size):
+        pixmap = super()._get(size)
+
+        painter = QPainter(pixmap)
+        flags = Qt.AlignHCenter | Qt.AlignVCenter | Qt.TextWordWrap
+        font = painter.font()
+        font.setPointSize(self.text_size / 2)
+        painter.setFont(font)
+        painter.setPen(self.text_color)
+        painter.drawText(self.rect(), flags, self.text)
+        painter.end()
+
+        return pixmap
 
 class Theme(object):
     def __init__(self, path, size):
@@ -137,6 +181,11 @@ class Theme(object):
 
         field_notation_color = settings.value("field_notation_color", "white")
         self.field_notation_color = QColor(field_notation_color)
+
+        border_notation_color = settings.value("border_notation_color", "white")
+        self.border_notation_color = QColor(border_notation_color)
+
+        self.border = BorderField.parse(path, settings.value("border", "gray"))
 
         message_color = settings.value("message_color", "black")
         self.message_color = QColor(message_color)

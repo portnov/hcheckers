@@ -22,6 +22,9 @@ instance HasTopology Brazilian where
 instance Show Brazilian where
   show = rulesName
 
+instance HasSideNotation Brazilian where
+  sideNotation r = numericSideNotation (boardSize r)
+
 instance GameRules Brazilian where
   type EvaluatorForRules Brazilian = SimpleEvaluator
 

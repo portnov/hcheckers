@@ -214,9 +214,9 @@ restServer shutdownVar = do
     json $ Response (LobbyRs games) []
 
   get "/notation/:rules" $ do
-    rules                         <- param "rules"
-    (size, orientation, notation) <- liftCheckers_ $ getNotation rules
-    json $ Response (NotationRs size orientation notation) []
+    rules <- param "rules"
+    rs <- liftCheckers_ $ getNotation rules
+    json $ Response rs []
 
   get "/topology/:rules" $ do
     rules <- param "rules"

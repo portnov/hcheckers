@@ -486,10 +486,10 @@ class Checkers(QMainWindow):
 
         self._enable_game_control_actions(True)
 
-        size, invert, notation = self.game.get_notation(game.rules)
+        size, invert, notation, border_notation = self.game.get_notation(game.rules)
         self.board.invert_colors = invert
         self.board.topology = self.game.get_topology(game.rules)
-        self.board.set_notation(size, notation)
+        self.board.set_notation(size, notation, border_notation)
 
         self.board.theme = self.board.theme
         self.board.hint_moves = None

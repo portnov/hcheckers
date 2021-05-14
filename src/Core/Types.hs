@@ -440,8 +440,19 @@ data BoardTopology =
 class HasTopology a where
   boardTopology :: a -> BoardTopology
 
+data SideNotation = SideNotation {
+    snTopLabels :: [Maybe Notation]
+  , snLeftLabels :: [Maybe Notation]
+  , snBottomLabels :: [Maybe Notation]
+  , snRightLabels :: [Maybe Notation]
+  }
+  deriving (Eq, Show, Typeable, Generic)
+
+class HasSideNotation g where
+  sideNotation :: g -> SideNotation
+
 -- | Interface of game rules
-class (Typeable g, Show g, HasBoardOrientation g, HasTopology g, VectorEvaluator (EvaluatorForRules g), ToJSON (EvaluatorForRules g)) => GameRules g where
+class (Typeable g, Show g, HasBoardOrientation g, HasSideNotation g, HasTopology g, VectorEvaluator (EvaluatorForRules g), ToJSON (EvaluatorForRules g)) => GameRules g where
   type EvaluatorForRules g
   -- | Initial board with initial pieces position
   initBoard :: SupervisorState -> g -> Board

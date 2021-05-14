@@ -22,6 +22,9 @@ instance Show Spancirety where
 instance HasTopology Spancirety where
   boardTopology _ = Diagonal
 
+instance HasSideNotation Spancirety where
+  sideNotation r = chessSideNotation (boardSize r)
+
 instance GameRules Spancirety where
   type EvaluatorForRules Spancirety = SimpleEvaluator
   initBoard rnd r =

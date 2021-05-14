@@ -93,7 +93,7 @@ data RsPayload =
   | RunGameRs
   | PollRs [Notify]
   | LobbyRs [Game]
-  | NotationRs BoardSize BoardOrientation [(Label, Notation)]
+  | NotationRs BoardSize BoardOrientation [(Label, Notation)] SideNotation
   | TopologyRs BoardTopology
   | StateRs BoardRep GameStatus Side
   | PdnInfoRs PdnInfo
@@ -625,7 +625,7 @@ getGames mbRulesId = do
   return [game | game <- games, good (gRules game)]
 
 -- | Get list of fields notation by rules name.
-getNotation :: String -> Checkers (BoardSize, BoardOrientation, [(Label, Notation)])
+getNotation :: String -> Checkers RsPayload
 getNotation rname = do
     var <- askSupervisor
     st <- liftIO $ atomically $ readTVar var
@@ -645,7 +645,7 @@ getNotation rname = do
           notation = [(label, boardNotation rules label) | label <- labels]
           size = boardSize rules
           orientation = boardOrientation rules
-      in  (size, orientation, notation)
+      in NotationRs size orientation notation (sideNotation rules)
     
 getTopology :: String -> Checkers BoardTopology
 getTopology rname = do

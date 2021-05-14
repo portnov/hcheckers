@@ -21,6 +21,9 @@ instance Show DiagonalRussian where
 instance HasTopology DiagonalRussian where
   boardTopology _ = Core.Types.Diagonal
 
+instance HasSideNotation DiagonalRussian where
+  sideNotation r = chessSideNotation (boardSize r)
+
 instance GameRules DiagonalRussian where
   type EvaluatorForRules DiagonalRussian = SimpleEvaluator
   initBoard rnd r =

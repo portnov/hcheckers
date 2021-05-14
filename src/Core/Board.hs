@@ -838,6 +838,33 @@ parseNumericNotation (nrows, ncols) t = parse (T.unpack t)
 
       | otherwise = Left $ "parseNumericNotation: Cant parse: " ++ str
 
+chessSideNotation :: BoardSize -> SideNotation
+chessSideNotation (nrows, ncols) =
+  let row = [Just (T.pack [toUpper letter]) | letter <- take (fromIntegral ncols) letters]
+      column = [Just (T.pack $ show row) | row <- [1..nrows]]
+  in  SideNotation {
+        snTopLabels = row,
+        snLeftLabels = column,
+        snBottomLabels = row,
+        snRightLabels = column
+      }
+
+numericSideNotation :: BoardSize -> SideNotation
+numericSideNotation (nrows, ncols) =
+    SideNotation {
+      snTopLabels = sparse True [1..halfCols]
+    , snLeftLabels = reverse $ sparse False $ take halfRows [halfCols + 1, halfCols + ncols + 1 ..]
+    , snBottomLabels = sparse False [n - halfCols + 1 .. n]
+    , snRightLabels = reverse $ sparse True $ take halfRows [halfCols, halfCols + ncols ..]
+    }
+  where
+    halfCols = fromIntegral $ ncols `div` 2
+    halfRows = fromIntegral $ nrows `div` 2
+    n = (nrows * ncols) `div` 2
+
+    sparse True numbers = concat [[Nothing, Just (T.pack $ show i)] | i <- numbers]
+    sparse False numbers = concat [[Just (T.pack $ show i), Nothing] | i <- numbers]
+
 flipBoardKey :: BoardSize -> BoardKey -> BoardKey
 flipBoardKey (nrows,ncols) bk =
     IM.fromList $ map go $ IM.assocs bk

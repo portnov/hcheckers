@@ -22,6 +22,9 @@ instance Show Simple where
 instance HasTopology Simple where
   boardTopology _ = Diagonal
 
+instance HasSideNotation Simple where
+  sideNotation r = chessSideNotation (boardSize r)
+
 instance GameRules Simple where
   type EvaluatorForRules Simple = SimpleEvaluator
   initBoard rnd _ = initBoard rnd Russian.russian

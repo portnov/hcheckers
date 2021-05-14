@@ -21,6 +21,9 @@ instance Show Czech where
 instance HasTopology Czech where
   boardTopology _ = Core.Types.Diagonal
 
+instance HasSideNotation Czech where
+  sideNotation r = chessSideNotation (boardSize r)
+
 instance GameRules Czech where
   type EvaluatorForRules Czech = SimpleEvaluator
   pdnId _ = "29"

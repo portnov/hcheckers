@@ -23,6 +23,9 @@ instance Show Armenian where
 instance HasTopology Armenian where
   boardTopology _ = DiagonalAndOrthogonal
 
+instance HasSideNotation Armenian where
+  sideNotation r = chessSideNotation (boardSize r)
+
 instance GameRules Armenian where
   type EvaluatorForRules Armenian = SimpleEvaluator
 

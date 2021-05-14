@@ -24,6 +24,9 @@ instance Show International where
 instance HasTopology International where
   boardTopology _ = Diagonal
 
+instance HasSideNotation International where
+  sideNotation r = numericSideNotation (boardSize r)
+
 instance GameRules International where
   type EvaluatorForRules International = SimpleEvaluator
   boardSize _ = (10, 10)

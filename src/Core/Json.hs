@@ -176,11 +176,19 @@ instance ToJSON RsPayload where
   toJSON (DrawRqRs sessionId) = object ["draw_request" .= ("pending" :: T.Text), "poll" .= sessionId]
   toJSON (DrawAcceptRs accepted) = object ["draw_accepted" .= accepted]
   toJSON (LobbyRs games) = toJSON games
-  toJSON (NotationRs size orientation list) =
-      object ["size" .= size, "orientation" .= orientation, "notation" .= list]
+  toJSON (NotationRs size orientation list border) =
+      object ["size" .= size, "orientation" .= orientation, "notation" .= list, "border_notation" .= border]
   toJSON (TopologyRs topology) =
       object ["topology" .= topology]
   toJSON ShutdownRs = object ["shutdown" .= ("ok" :: T.Text)]
+
+instance ToJSON SideNotation where
+  toJSON sn = object [
+                "top" .= snTopLabels sn
+              , "left" .= snLeftLabels sn
+              , "bottom" .= snBottomLabels sn
+              , "right" .= snRightLabels sn
+            ]
 
 instance ToJSON Response where
   toJSON (Response payload messages) = object ["response" .= payload, "messages" .= messages]

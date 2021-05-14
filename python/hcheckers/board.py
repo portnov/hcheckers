@@ -170,6 +170,11 @@ class Board(QWidget):
         self._flip = False
         self.topology = 'Diagonal'
 
+        self.top_border_labels = None
+        self.left_border_labels = None
+        self.bottom_border_labels = None
+        self.right_border_labels = None
+
         self._init_fields(8, 8)
 
         self._pixmap = None
@@ -314,9 +319,15 @@ class Board(QWidget):
 
     flip = property(get_flip, set_flip)
 
-    def set_notation(self, size, pairs):
+    def set_notation(self, size, pairs, border_notation):
         (rows, cols) = size
         self._init_fields(rows, cols)
+
+        self.top_border_labels = border_notation["top"]
+        self.left_border_labels = border_notation["left"]
+        self.bottom_border_labels = border_notation["bottom"]
+        self.right_border_labels = border_notation["right"]
+
         self.setup_patterns()
         for label, notation in pairs:
             idx = self.index_by_label[Label.fromJson(label)]

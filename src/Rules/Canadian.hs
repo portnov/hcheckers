@@ -21,6 +21,9 @@ instance Show Canadian where
 instance HasTopology Canadian where
   boardTopology _ = Diagonal
 
+instance HasSideNotation Canadian where
+  sideNotation r = numericSideNotation (boardSize r)
+
 instance GameRules Canadian where
   type EvaluatorForRules Canadian = SimpleEvaluator
 

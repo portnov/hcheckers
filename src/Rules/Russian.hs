@@ -24,6 +24,9 @@ instance Show Russian where
 instance HasTopology Russian where
   boardTopology _ = Diagonal
 
+instance HasSideNotation Russian where
+  sideNotation r = chessSideNotation (boardSize r)
+
 instance GameRules Russian where
   type EvaluatorForRules Russian = SimpleEvaluator
   initBoard rnd r = board8 rnd r

@@ -23,6 +23,9 @@ instance Show English where
 instance HasTopology English where
   boardTopology _ = Diagonal
 
+instance HasSideNotation English where
+  sideNotation r = numericSideNotation (boardSize r)
+
 instance GameRules English where
   type EvaluatorForRules English = SimpleEvaluator
   boardSize _ = boardSize Russian.russian

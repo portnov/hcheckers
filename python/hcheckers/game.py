@@ -318,7 +318,7 @@ class Game(object):
         rs = Game.get(url)
         result = rs.json()["response"]
         invert = result["orientation"] == 'SecondAtBottom'
-        return result["size"], invert, result["notation"]
+        return result["size"], invert, result["notation"], result["border_notation"]
 
     def get_topology(self, rules):
         url = join(self.base_url, "topology", rules)
