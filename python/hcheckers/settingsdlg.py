@@ -128,7 +128,7 @@ class AiEditorWidget(QWidget):
         layout = QFormLayout()
         evaluator.setLayout(layout)
 
-        self.mobility_weight = make_spinbox(_("Mobility"), -100, 100, evaluator)
+        self.mobility_weight = make_spinbox(_("Mobility"), -500, 500, evaluator)
         self.backyard_weight = make_spinbox(_("Back row"), -100, 100, evaluator)
         self.center_weight = make_spinbox(_("Center"), -100, 100, evaluator)
         self.opposite_side_weight = make_spinbox(_("Opposite side"), -100, 100, evaluator)
