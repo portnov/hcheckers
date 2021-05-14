@@ -129,6 +129,15 @@ class Theme(object):
         self.check_sound = Sound.get(abspath(join(path, settings.value("check_sound", "check.wav"))))
         self.enable_sound = (self.move_sound.is_defined() or self.check_sound.is_defined())
 
+        field_notation_background = settings.value("field_notation_background")
+        if field_notation_background:
+            self.field_notation_background = QColor(field_notation_background)
+        else:
+            self.field_notation_background = None
+
+        field_notation_color = settings.value("field_notation_color", "white")
+        self.field_notation_color = QColor(field_notation_color)
+
         message_color = settings.value("message_color", "black")
         self.message_color = QColor(message_color)
 

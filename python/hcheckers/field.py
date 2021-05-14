@@ -184,15 +184,18 @@ class Field(object):
                 painter.drawPixmap(0, 0, frame)
 
         # notation
-        painter.setPen(Qt.white)
+        painter.setPen(self._theme.field_notation_color)
         notation_rect = painter.boundingRect(2, 2, 0, 0, Qt.AlignLeft, self.notation)
         if self.notation_above:
             self._draw_piece(painter)
             if self.show_label:
-                painter.fillRect(notation_rect, Qt.black)
+                if self._theme.field_notation_background:
+                    painter.fillRect(notation_rect, self._theme.field_notation_background)
                 painter.drawText(notation_rect, Qt.AlignTop | Qt.AlignLeft, self.notation)
         else:
             if self.show_label:
+                if self._theme.field_notation_background:
+                    painter.fillRect(notation_rect, self._theme.field_notation_background)
                 painter.drawText(notation_rect, Qt.AlignTop | Qt.AlignLeft, self.notation)
             self._draw_piece(painter)
 
