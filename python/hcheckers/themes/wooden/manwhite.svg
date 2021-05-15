@@ -19,6 +19,18 @@
      id="defs4">
     <linearGradient
        inkscape:collect="always"
+       id="linearGradient1740">
+      <stop
+         style="stop-color:#4e3136;stop-opacity:1"
+         offset="0"
+         id="stop1736" />
+      <stop
+         style="stop-color:#000000;stop-opacity:0;"
+         offset="1"
+         id="stop1738" />
+    </linearGradient>
+    <linearGradient
+       inkscape:collect="always"
        id="linearGradient893">
       <stop
          style="stop-color:#fffcf1;stop-opacity:0.52999997"
@@ -230,6 +242,54 @@
          stdDeviation="0.00051749808"
          id="feGaussianBlur2963" />
     </filter>
+    <linearGradient
+       inkscape:collect="always"
+       xlink:href="#linearGradient1740"
+       id="linearGradient1742"
+       x1="63.587582"
+       y1="1046.3505"
+       x2="63.587582"
+       y2="931.28503"
+       gradientUnits="userSpaceOnUse" />
+    <linearGradient
+       inkscape:collect="always"
+       xlink:href="#linearGradient1740"
+       id="linearGradient1748"
+       gradientUnits="userSpaceOnUse"
+       x1="63.587582"
+       y1="1033.4957"
+       x2="63.587582"
+       y2="943.23871" />
+    <linearGradient
+       inkscape:collect="always"
+       xlink:href="#linearGradient1740"
+       id="linearGradient1752"
+       gradientUnits="userSpaceOnUse"
+       x1="63.587582"
+       y1="1021.6003"
+       x2="63.587582"
+       y2="955.3855"
+       gradientTransform="translate(-1.40315e-8)" />
+    <linearGradient
+       inkscape:collect="always"
+       xlink:href="#linearGradient1740"
+       id="linearGradient1756"
+       gradientUnits="userSpaceOnUse"
+       gradientTransform="translate(8.228192e-7)"
+       x1="63.587582"
+       y1="1008.8364"
+       x2="63.587582"
+       y2="968.36963" />
+    <linearGradient
+       inkscape:collect="always"
+       xlink:href="#linearGradient1740"
+       id="linearGradient1760"
+       gradientUnits="userSpaceOnUse"
+       gradientTransform="translate(1.715703e-6,-1.1843716e-5)"
+       x1="63.587582"
+       y1="999.27692"
+       x2="63.587582"
+       y2="977.27734" />
   </defs>
   <sodipodi:namedview
      id="base"
@@ -239,8 +299,8 @@
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
      inkscape:zoom="7.9195959"
-     inkscape:cx="71.590742"
-     inkscape:cy="67.03477"
+     inkscape:cx="75.307283"
+     inkscape:cy="61.860033"
      inkscape:document-units="px"
      inkscape:current-layer="layer1"
      showgrid="false"
@@ -260,7 +320,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title></dc:title>
+        <dc:title />
       </cc:Work>
     </rdf:RDF>
   </metadata>
@@ -306,5 +366,35 @@
        cx="64"
        cy="988.36218"
        r="20.573383" />
+    <circle
+       style="fill:none;fill-opacity:1;stroke:url(#linearGradient1742);stroke-width:5;stroke-linecap:square;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;paint-order:markers fill stroke;opacity:0.3"
+       id="circle1734"
+       cx="64"
+       cy="988.36218"
+       r="54.960125" />
+    <circle
+       style="opacity:0.3;fill:none;fill-opacity:1;stroke:url(#linearGradient1748);stroke-width:5;stroke-linecap:square;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;paint-order:markers fill stroke"
+       id="circle1746"
+       cx="64"
+       cy="988.36218"
+       r="42.776619" />
+    <circle
+       style="opacity:0.3;fill:none;fill-opacity:1;stroke:url(#linearGradient1752);stroke-width:5;stroke-linecap:square;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;paint-order:markers fill stroke"
+       id="circle1750"
+       cx="64"
+       cy="988.36218"
+       r="30.365974" />
+    <circle
+       style="opacity:0.3;fill:none;fill-opacity:1;stroke:url(#linearGradient1756);stroke-width:5;stroke-linecap:square;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;paint-order:markers fill stroke"
+       id="circle1754"
+       cx="64"
+       cy="988.36218"
+       r="17.661152" />
+    <circle
+       style="opacity:0.3;fill:none;fill-opacity:1;stroke:url(#linearGradient1760);stroke-width:5.00002;stroke-linecap:square;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;paint-order:markers fill stroke"
+       id="circle1758"
+       cx="64"
+       cy="988.36218"
+       r="8.1692924" />
   </g>
 </svg>
