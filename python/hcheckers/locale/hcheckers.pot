@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2021-05-10 18:39+0500\n"
+"POT-Creation-Date: 2021-05-15 11:18+0500\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -15,23 +15,23 @@ msgstr ""
 "Generated-By: pygettext.py 1.5\n"
 
 
-#: board.py:633
+#: board.py:764
 msgid "Piece at {} does not have moves"
 msgstr ""
 
-#: board.py:640
+#: board.py:771
 msgid "Possible target fields: {}"
 msgstr ""
 
-#: board.py:668
+#: board.py:799
 msgid "Piece at {} cannot be moved to {}"
 msgstr ""
 
-#: board.py:672
+#: board.py:803
 msgid "Field {} does not belong to you"
 msgstr ""
 
-#: board.py:757
+#: board.py:888
 msgid "Another side have offered a draw. You have to accept or decline it."
 msgstr ""
 
@@ -277,7 +277,7 @@ msgstr ""
 msgid "Close this dialog and exit the program"
 msgstr ""
 
-#: newgamedlg.py:240 toplevel.py:750
+#: newgamedlg.py:240 toplevel.py:759
 msgid "Settings have been updated."
 msgstr ""
 
@@ -357,7 +357,7 @@ msgstr ""
 msgid "Accept draws"
 msgstr ""
 
-#: settingsdlg.py:125 settingsdlg.py:440
+#: settingsdlg.py:125 settingsdlg.py:446
 msgid "General"
 msgstr ""
 
@@ -425,7 +425,7 @@ msgstr ""
 msgid "Load AI settings from JSON file"
 msgstr ""
 
-#: settingsdlg.py:179 toplevel.py:530 toplevel.py:720
+#: settingsdlg.py:179 toplevel.py:532 toplevel.py:728
 msgid "Save file"
 msgstr ""
 
@@ -450,62 +450,66 @@ msgid "Copy of {}"
 msgstr ""
 
 #: settingsdlg.py:332
-msgid "Show fields notation"
+msgid "Show fields notation on the board"
 msgstr ""
 
 #: settingsdlg.py:334
+msgid "Show board borders with notation"
+msgstr ""
+
+#: settingsdlg.py:336
 msgid "Show possible moves"
 msgstr ""
 
-#: settingsdlg.py:340
+#: settingsdlg.py:342
 msgid "Theme"
 msgstr ""
 
-#: settingsdlg.py:343
+#: settingsdlg.py:345
 msgid "Enable sounds"
 msgstr ""
 
-#: settingsdlg.py:382
+#: settingsdlg.py:388
 msgid "Server URL"
 msgstr ""
 
-#: settingsdlg.py:386
+#: settingsdlg.py:392
 msgid "Use local server"
 msgstr ""
 
-#: settingsdlg.py:388
+#: settingsdlg.py:394
 msgid "Local server start command"
 msgstr ""
 
-#: settingsdlg.py:394
+#: settingsdlg.py:400
 msgid "Debug"
 msgstr ""
 
-#: settingsdlg.py:395
+#: settingsdlg.py:401
 msgid "Information"
 msgstr ""
 
-#: settingsdlg.py:396
+#: settingsdlg.py:402
 msgid "Warning"
 msgstr ""
 
-#: settingsdlg.py:397
+#: settingsdlg.py:403
 msgid "Error"
 msgstr ""
 
-#: settingsdlg.py:399
+#: settingsdlg.py:405
 msgid "Logging level"
 msgstr ""
 
-#: settingsdlg.py:442
+#: settingsdlg.py:448
 msgid "View Settings"
 msgstr ""
 
-#: settingsdlg.py:444
+#: settingsdlg.py:450
 msgid "AI Presets"
 msgstr ""
 
-#: settingsdlg.py:457
+#: settingsdlg.py:463
 msgid "HCheckers settings"
 msgstr ""
 
@@ -517,7 +521,7 @@ msgstr ""
 msgid "Starting HCheckers..."
 msgstr ""
 
-#: toplevel.py:117
+#: toplevel.py:117 toplevel.py:682
 msgid "Your turn."
 msgstr ""
 
@@ -543,7 +547,7 @@ msgid ""
 "{}"
 msgstr ""
 
-#: toplevel.py:177 toplevel.py:777 toplevel.py:782
+#: toplevel.py:177 toplevel.py:786 toplevel.py:791
 msgid "Exception"
 msgstr ""
 
@@ -655,71 +659,71 @@ msgstr ""
 msgid "Waiting for another side to join the game."
 msgstr ""
 
-#: toplevel.py:551
+#: toplevel.py:554
 msgid "Nothing to undo."
 msgstr ""
 
-#: toplevel.py:568
+#: toplevel.py:571
 msgid "Waiting for an advice from AI"
 msgstr ""
 
-#: toplevel.py:574
+#: toplevel.py:577
 msgid "Offer a draw?"
 msgstr ""
 
-#: toplevel.py:575
+#: toplevel.py:578
 msgid "Are you sure you want to offer a draw to the other side? This action can not be undone."
 msgstr ""
 
-#: toplevel.py:585
+#: toplevel.py:588
 msgid "Waiting for a response on draw offer from another side"
 msgstr ""
 
-#: toplevel.py:603
+#: toplevel.py:606
 msgid "Capitulate?"
 msgstr ""
 
-#: toplevel.py:604
+#: toplevel.py:607
 msgid "Are you sure you want to capitulate? This action can not be undone."
 msgstr ""
 
-#: toplevel.py:617 toplevel.py:619
+#: toplevel.py:620 toplevel.py:622
 msgid "{} win"
 msgstr ""
 
-#: toplevel.py:621
+#: toplevel.py:624
 msgid "Draw"
 msgstr ""
 
-#: toplevel.py:631
+#: toplevel.py:634
 msgid "Game result: {}"
 msgstr ""
 
-#: toplevel.py:634
+#: toplevel.py:637
 msgid "Game over."
 msgstr ""
 
-#: toplevel.py:654
+#: toplevel.py:660
 msgid "Accept the draw?"
 msgstr ""
 
-#: toplevel.py:655
+#: toplevel.py:661
 msgid "Another side have offered you a draw. Do you wish to accept it?"
 msgstr ""
 
-#: toplevel.py:666
+#: toplevel.py:671
 msgid "Response on a draw offer"
 msgstr ""
 
-#: toplevel.py:680
+#: toplevel.py:687
 msgid "AI suggested the following move(s): {}"
 msgstr ""
 
-#: toplevel.py:714
+#: toplevel.py:722
 msgid "Log has been cleared."
 msgstr ""
 
-#: toplevel.py:758
+#: toplevel.py:767
 msgid ""
 "Unexpected response received from the server.\n"
 "Request URL: {}\n"
@@ -727,15 +731,15 @@ msgid ""
 "Response message: {}"
 msgstr ""
 
-#: toplevel.py:769
+#: toplevel.py:778
 msgid "No such move: {}"
 msgstr ""
 
-#: toplevel.py:773
+#: toplevel.py:782
 msgid "Status of current game is unsuitable for this operation. Game status is {}; required status is {}"
 msgstr ""
 
-#: toplevel.py:781
+#: toplevel.py:790
 msgid ""
 "An exception occured while connecting to the server.\n"
 "Request URL: {}\n"
