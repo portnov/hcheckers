@@ -15,7 +15,11 @@ class CachedPixmap(object):
         self.path = path
         self.size = None
         self._pixmap = None
-        self.is_image = exists(path)
+        self.is_image = path is not None and exists(path)
+        if self.is_image:
+            self.name = basename(path)
+        else:
+            self.name = None
         self.color = color
         self.defined = self.is_image or (color is not None)
         if not self.defined:
@@ -66,6 +70,16 @@ class CachedPixmap(object):
             self._pixmap = self._get(size)
             return self._pixmap
 
+    @staticmethod
+    def parse(base_path, s):
+        path = join(base_path, s)
+        if exists(path):
+            field = CachedPixmap(path=path)
+        else:
+            field = CachedPixmap(path=None, color=QColor(s))
+            field.name = s
+        return field
+
 class Sound(object):
     def __init__(self, sound):
         self.sound = sound
@@ -106,35 +120,11 @@ class Sound(object):
         else:
             return Sound(None)
 
-class BorderField(CachedPixmap):
-    def __init__(self, path, color=None):
-        CachedPixmap.__init__(self, path, color)
-        self.text = None
-        self.text_size = None
-        self.text_color = None
-
-    @staticmethod
-    def parse(base_path, s):
-        path = join(base_path, s)
-        if exists(path):
-            field = BorderField(path=path)
-        else:
-            field = BorderField(path=None, color=QColor(s))
-        return field
-
-    def _get(self, size):
-        pixmap = super()._get(size)
-
-        painter = QPainter(pixmap)
-        flags = Qt.AlignHCenter | Qt.AlignVCenter | Qt.TextWordWrap
-        font = painter.font()
-        font.setPointSize(self.text_size / 2)
-        painter.setFont(font)
-        painter.setPen(self.text_color)
-        painter.drawText(self.rect(), flags, self.text)
-        painter.end()
-
-        return pixmap
+def parse_color(value):
+    if value is None:
+        return None
+    else:
+        return QColor(value)
 
 class Theme(object):
     def __init__(self, path, size):
@@ -179,19 +169,25 @@ class Theme(object):
         else:
             self.field_notation_background = None
 
-        field_notation_color = settings.value("field_notation_color", "white")
-        self.field_notation_color = QColor(field_notation_color)
+        self.field_notation_color = parse_color(settings.value("field_notation_color", "white"))
+        self.border_notation_color = parse_color(settings.value("border_notation_color", "white"))
 
-        border_notation_color = settings.value("border_notation_color", "white")
-        self.border_notation_color = QColor(border_notation_color)
+        self.border = CachedPixmap.parse(path, settings.value("border", "gray"))
+        self.border_line_color = parse_color(settings.value("border_line_color"))
 
-        self.border = BorderField.parse(path, settings.value("border", "gray"))
+        self.border_top = CachedPixmap.parse(path, settings.value("border_top", self.border.name))
+        self.border_bottom = CachedPixmap.parse(path, settings.value("border_bottom", self.border.name))
+        self.border_left = CachedPixmap.parse(path, settings.value("border_left", self.border.name))
+        self.border_right = CachedPixmap.parse(path, settings.value("border_right", self.border.name))
 
-        message_color = settings.value("message_color", "black")
-        self.message_color = QColor(message_color)
+        self.border_tl = CachedPixmap.parse(path, settings.value("border_top_left", self.border.name))
+        self.border_tr = CachedPixmap.parse(path, settings.value("border_top_right", self.border.name))
+        self.border_bl = CachedPixmap.parse(path, settings.value("border_bottom_left", self.border.name))
+        self.border_br = CachedPixmap.parse(path, settings.value("border_bottom_right", self.border.name))
 
-        hint_color = settings.value("hint_color", "#8800ff00")
-        self.hint_color = QColor(hint_color)
+        self.message_color = parse_color(settings.value("message_color", "black"))
+        self.hint_color = parse_color(settings.value("hint_color", "#8800ff00"))
+        self.hint_border_color = parse_color(settings.value("hint_border_color"))
 
     def reset(self):
         self.background_image.invalidate()

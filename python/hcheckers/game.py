@@ -327,7 +327,7 @@ class Game(object):
         return result["topology"]
     
     def get_invert_colors(self, rules):
-        _size, invert, _notation = self.get_notation(rules)
+        _size, invert, _notation, _border = self.get_notation(rules)
         return invert
 
     def get_color_mapping(self, rules):
@@ -336,7 +336,7 @@ class Game(object):
         side1 is one who uses white pieces, and
         side2 is one who uses black pieces.
         """
-        _size, invert, _notation = self.get_notation(rules)
+        _size, invert, _notation, _border = self.get_notation(rules)
         if invert:
             return SECOND, FIRST
         else:

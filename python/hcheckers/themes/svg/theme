@@ -8,3 +8,6 @@ king_white = kingwhite.svg
 king_black = kingblack.svg
 message_color = #f0FFFFFF
 background = #CCC8B8
+border = border.svg
+border_notation_color = white
+border_line_color = black

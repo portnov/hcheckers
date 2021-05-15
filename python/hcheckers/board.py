@@ -3,8 +3,8 @@ import math
 import logging
 from collections import defaultdict
 
-from PyQt5.QtGui import QPainter, QPainterPath, QPixmap,QPen
-from PyQt5.QtCore import QPointF, QRect, QSize, Qt, QObject, QTimer, pyqtSignal
+from PyQt5.QtGui import QPainter, QPainterPath, QPainterPathStroker, QPixmap,QPen, QBrush
+from PyQt5.QtCore import QPointF, QRect, QRectF, QSize, Qt, QObject, QTimer, pyqtSignal
 from PyQt5.QtWidgets import QApplication, QWidget
 
 from hcheckers.common import *
@@ -13,6 +13,8 @@ from hcheckers.game import Game, RequestError
 
 ANIMATION_STEP_DURATION = 50
 ANIMATION_STEPS_PER_STEP = 10
+
+BORDER_WIDTH_COEF = 0.75
 
 class MoveAnimation(QObject):
     def __init__(self, parent):
@@ -153,8 +155,9 @@ class TextMessage(QObject):
 class SizeData():
     def __init__(self, init_x, init_y, cell_size):
         self.cell_size = cell_size
-        self.init_x = init_x
-        self.init_y = init_y
+        self.border_init_x = self.init_x = init_x
+        self.border_init_y = self.init_y = init_y
+        self.border_width = None
 
 class Board(QWidget):
     def __init__(self, theme, settings, game, toplevel):
@@ -165,6 +168,7 @@ class Board(QWidget):
         self._theme = theme
         self.settings = settings
         self._show_notation = settings.value("show_notation", type=bool)
+        self._show_border = settings.value("show_border", True, type=bool)
         self.show_possible_moves = settings.value("show_possible_moves", type=bool)
         self.invert_colors = False
         self._flip = False
@@ -309,6 +313,16 @@ class Board(QWidget):
 
     show_notation = property(get_show_notation, set_show_notation)
 
+    def get_show_border(self):
+        return self._show_border
+
+    def set_show_border(self, value):
+        self._show_border = value
+        self.invalidate()
+        self.repaint()
+
+    show_border = property(get_show_border, set_show_border)
+
     def get_flip(self):
         return self._flip
 
@@ -410,17 +424,38 @@ class Board(QWidget):
         width = self.size().width()
         height = self.size().height()
 
-        row_height = height // self.n_rows
-        col_width = width // self.n_cols
+        if self.show_border:
+            row_height = height // (self.n_rows + 2*BORDER_WIDTH_COEF)
+            col_width = width // (self.n_cols + 2*BORDER_WIDTH_COEF)
+        else:
+            row_height = height // self.n_rows
+            col_width = width // self.n_cols
         cell_size = min(row_height, col_width)
 
         board_height = cell_size * self.n_rows
         board_width = cell_size * self.n_cols
 
-        init_x = (width - board_width) / 2.0
-        init_y = (height - board_height) / 2.0
+        border_width = math.floor(BORDER_WIDTH_COEF * cell_size)
+        if self.show_border:
+            total_height = board_height + 2*border_width
+            total_width = board_width + 2*border_width
+        else:
+            total_height = board_height
+            total_width = board_width
 
-        return SizeData(init_x, init_y, cell_size)
+        init_x = (width - total_width) / 2.0
+        init_y = (height - total_height) / 2.0
+
+        sz = SizeData(init_x, init_y, cell_size)
+        sz.board_width = board_width
+        sz.board_height = board_height
+        sz.border_width = border_width
+        if self.show_border:
+            sz.init_x += border_width
+            sz.init_y += border_width
+
+        #print(f"{width}x{height} => {col_width}x{row_height} => {cell_size}, {board_width}x{board_height}, ({sz.init_x}; {sz.init_y}), ({sz.border_init_x}; {sz.border_init_y})")
+        return sz
 
     def draw_field(self, painter, field, row, col, hide=False):
         sz = self.get_size_data()
@@ -464,6 +499,9 @@ class Board(QWidget):
 
         self.draw_background(painter)
 
+        if self.show_border:
+            self.draw_border(painter)
+
         for (row, col) in self.fields:
             field = self.fields[(row, col)]
             hide = False
@@ -485,18 +523,90 @@ class Board(QWidget):
                 painter.drawPixmap(x, y, piece)
 
         if self.hint_moves is not None:
-            painter.setPen(QPen(self.theme.hint_color, self._get_hint_arrow_width(), cap=Qt.RoundCap, join=Qt.MiterJoin))
             for move in self.hint_moves:
                 path = self._draw_hint_move_path(move)
-                painter.drawPath(path)
+                if self.theme.hint_border_color:
+                    painter.strokePath(path, QPen(self.theme.hint_border_color))
+                painter.setPen(QPen())
+                painter.fillPath(path, QBrush(self.theme.hint_color))
 
         if self._text_message and self._text_message.show:
-            self.drawText(painter, self._text_message.message)
+            self.draw_message(painter, self._text_message.message)
 
         painter.end()
 
         self._pixmap = pixmap
         self.update()
+
+    def draw_border(self, painter):
+        sz = self.get_size_data()
+
+        def draw_label(rect, label):
+            text_flags = Qt.AlignHCenter | Qt.AlignVCenter
+            font = painter.font()
+            font.setPointSize(sz.cell_size * 0.3)
+            font.setBold(True)
+            painter.setFont(font)
+            painter.setPen(self.theme.border_notation_color)
+            painter.drawText(rect, text_flags, label)
+
+        # top
+        cell_width = sz.cell_size
+        cell_height = sz.border_width
+        rect = QRectF(sz.init_x, sz.border_init_y, sz.board_width, sz.border_width)
+        painter.drawTiledPixmap(rect, self.theme.border_top.get((cell_width, cell_height)))
+        for col in range(self.n_cols):
+            rect = QRect(sz.init_x + col*cell_width, sz.border_init_y, cell_width, cell_height)
+            label = self.top_border_labels[col]
+            draw_label(rect, label)
+
+        # bottom
+        rect = QRectF(sz.init_x, sz.init_y + sz.board_height, sz.board_width, sz.border_width)
+        painter.drawTiledPixmap(rect, self.theme.border_bottom.get((cell_width, cell_height)))
+        for col in range(self.n_cols):
+            rect = QRect(sz.init_x + col*cell_width, sz.init_y + sz.board_height, cell_width, cell_height)
+            label = self.bottom_border_labels[col]
+            draw_label(rect, label)
+        
+        # left
+        cell_width = sz.border_width
+        cell_height = sz.cell_size
+        rect = QRectF(sz.border_init_x, sz.init_y, sz.border_width, sz.board_height)
+        painter.drawTiledPixmap(rect, self.theme.border_left.get((cell_width, cell_height)))
+        for row in range(self.n_rows):
+            rect = QRect(sz.border_init_x, sz.init_y + row*cell_height, cell_width, cell_height)
+            label = self.left_border_labels[self.n_rows - row - 1]
+            draw_label(rect, label)
+
+        # right
+        rect = QRectF(sz.init_x + sz.board_width, sz.init_y, sz.border_width, sz.board_height)
+        painter.drawTiledPixmap(rect, self.theme.border_right.get((cell_width, cell_height)))
+        for row in range(self.n_rows):
+            rect = QRect(sz.init_x + sz.board_width, sz.init_y + row*cell_height, cell_width, cell_height)
+            label = self.right_border_labels[self.n_rows - row - 1]
+            draw_label(rect, label)
+
+        # top-left
+        cell_width = cell_height = sz.border_width
+        rect = QRect(sz.border_init_x, sz.border_init_y, cell_width, cell_height)
+        painter.drawPixmap(rect.topLeft(), self.theme.border_tl.get((cell_width, cell_height)))
+
+        # top-right
+        rect = QRect(sz.init_x + sz.board_width, sz.border_init_y, cell_width, cell_height)
+        painter.drawPixmap(rect.topLeft(), self.theme.border_tr.get((cell_width, cell_height)))
+
+        # bottom-left
+        rect = QRect(sz.border_init_x, sz.init_y + sz.board_height, cell_width, cell_height)
+        painter.drawPixmap(rect.topLeft(), self.theme.border_bl.get((cell_width, cell_height)))
+
+        # bottom-right
+        rect = QRect(sz.init_x + sz.board_width, sz.init_y + sz.board_height, cell_width, cell_height)
+        painter.drawPixmap(rect.topLeft(), self.theme.border_br.get((cell_width, cell_height)))
+
+        if self.theme.border_line_color:
+            rect = QRect(sz.init_x, sz.init_y, sz.board_width, sz.board_height)
+            painter.setPen(self.theme.border_line_color)
+            painter.drawRect(rect)
 
     def draw_background(self, painter):
         if self.theme.background_color is not None:
@@ -514,7 +624,7 @@ class Board(QWidget):
                 background = self.theme.background_image.get(None)
                 painter.drawTiledPixmap(self.rect(), background)
 
-    def drawText(self, painter, text):
+    def draw_message(self, painter, text):
         flags = Qt.AlignHCenter | Qt.AlignVCenter | Qt.TextWordWrap
 #         box = painter.boundingRect(self.rect(), flags, text)
 #         height_r = self.height() / box.height()
@@ -548,6 +658,10 @@ class Board(QWidget):
         path.moveTo(p1)
         path.lineTo(p2)
         path.lineTo(p3)
+
+        pen = QPen(self.theme.hint_color, self._get_hint_arrow_width(), cap=Qt.RoundCap, join=Qt.MiterJoin)
+        stroker = QPainterPathStroker(pen)
+        path = stroker.createStroke(path).simplified()
         return path
 
     def get_size(self):
@@ -570,8 +684,13 @@ class Board(QWidget):
     def get_target_field_size(self, size):
         w_max = size.width()
         h_max = size.height()
-        r_w = w_max // self.n_cols
-        r_h = h_max // self.n_rows
+
+        if self.show_border:
+            r_w = w_max // (self.n_cols + 2*BORDER_WIDTH_COEF)
+            r_h = h_max // (self.n_rows + 2*BORDER_WIDTH_COEF)
+        else:
+            r_w = w_max // self.n_cols
+            r_h = h_max // self.n_rows
 
         return min(r_w, r_h)
     
