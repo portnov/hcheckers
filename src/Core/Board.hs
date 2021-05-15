@@ -853,9 +853,9 @@ numericSideNotation :: BoardSize -> SideNotation
 numericSideNotation (nrows, ncols) =
     SideNotation {
       snTopLabels = sparse True [1..halfCols]
-    , snLeftLabels = reverse $ sparse False $ take halfRows [halfCols + 1, halfCols + ncols + 1 ..]
+    , snLeftLabels = reverse $ sparse True $ take halfRows [halfCols + 1, halfCols + ncols + 1 ..]
     , snBottomLabels = sparse False [n - halfCols + 1 .. n]
-    , snRightLabels = reverse $ sparse True $ take halfRows [halfCols, halfCols + ncols ..]
+    , snRightLabels = reverse $ sparse False $ take halfRows [halfCols, halfCols + ncols ..]
     }
   where
     halfCols = fromIntegral $ ncols `div` 2
