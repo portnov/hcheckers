@@ -329,7 +329,9 @@ class ViewSettingsPage(QWidget):
         QWidget.__init__(self, parent)
         layout = QFormLayout()
         self.show_notation = QCheckBox(self)
-        layout.addRow(_("Show fields notation"), self.show_notation)
+        layout.addRow(_("Show fields notation on the board"), self.show_notation)
+        self.show_border = QCheckBox(self)
+        layout.addRow(_("Show board borders with notation"), self.show_border)
         self.show_possible_moves = QCheckBox(self)
         layout.addRow(_("Show possible moves"), self.show_possible_moves)
         self.theme = QComboBox(self)
@@ -355,6 +357,9 @@ class ViewSettingsPage(QWidget):
         show_notation = settings.value("show_notation", type=bool)
         self.show_notation.setCheckState(Qt.Checked if show_notation else Qt.Unchecked)
 
+        show_border = settings.value("show_border", False, type=bool)
+        self.show_border.setCheckState(Qt.Checked if show_border else Qt.Unchecked)
+
         show_possible_moves = settings.value("show_possible_moves", type=bool)
         self.show_possible_moves.setCheckState(Qt.Checked if show_possible_moves else Qt.Unchecked)
 
@@ -370,6 +375,7 @@ class ViewSettingsPage(QWidget):
 
     def save(self, settings):
         settings.setValue("show_notation", self.show_notation.checkState() == Qt.Checked)
+        settings.setValue("show_border", self.show_border.checkState() == Qt.Checked)
         settings.setValue("show_possible_moves", self.show_possible_moves.checkState() == Qt.Checked)
         settings.setValue("theme", self.theme.currentData())
         settings.setValue("enable_sound", self.get_enable_sound())
@@ -463,6 +469,9 @@ class SettingsDialog(DialogBase):
 
     def get_show_notation(self):
         return self.view.show_notation.checkState() == Qt.Checked
+
+    def get_show_border(self):
+        return self.view.show_border.checkState() == Qt.Checked
 
     def get_show_possible_moves(self):
         return self.view.show_possible_moves.checkState() == Qt.Checked

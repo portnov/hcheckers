@@ -750,6 +750,7 @@ class Checkers(QMainWindow):
         if result == QDialog.Accepted:
             self.board.show_possible_moves = dialog.get_show_possible_moves()
             self.board.show_notation = dialog.get_show_notation()
+            self.board.show_border = dialog.get_show_border()
             self.board.theme = dialog.get_theme()
             self.board.theme.enable_sound = dialog.get_enable_sound()
             level = self.settings.value("log_level", logging.INFO, type=int)
