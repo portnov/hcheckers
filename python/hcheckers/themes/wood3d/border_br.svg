@@ -25,6 +25,22 @@
          offset="0"
          id="stop4144" />
       <stop
+         style="stop-color:#7b5a47;stop-opacity:1;"
+         offset="0.07777701"
+         id="stop3214" />
+      <stop
+         style="stop-color:#7f6150;stop-opacity:1;"
+         offset="0.09081004"
+         id="stop3212" />
+      <stop
+         style="stop-color:#826757;stop-opacity:1;"
+         offset="0.91083497"
+         id="stop3208" />
+      <stop
+         style="stop-color:#8a7569;stop-opacity:1;"
+         offset="0.92535776"
+         id="stop3210" />
+      <stop
          style="stop-color:#8c796e;stop-opacity:1"
          offset="1"
          id="stop4146" />
@@ -42,13 +58,13 @@
     <linearGradient
        inkscape:collect="always"
        xlink:href="#linearGradient4148"
-       id="linearGradient900"
+       id="linearGradient3257"
        gradientUnits="userSpaceOnUse"
-       x1="67.939766"
-       y1="25.393637"
-       x2="-0.015500425"
-       y2="25.393637"
-       gradientTransform="rotate(90,33.866665,33.866665)" />
+       gradientTransform="rotate(-90,33.866665,33.866665)"
+       x1="-0.28719965"
+       y1="31.191912"
+       x2="67.737305"
+       y2="31.191912" />
   </defs>
   <sodipodi:namedview
      id="base"
@@ -58,8 +74,8 @@
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
      inkscape:zoom="2.8"
-     inkscape:cx="99.958084"
-     inkscape:cy="102.20337"
+     inkscape:cx="124.96275"
+     inkscape:cy="115.88609"
      inkscape:document-units="mm"
      inkscape:current-layer="layer1"
      inkscape:document-rotation="0"
@@ -89,12 +105,12 @@
     <path
        id="rect4142"
        style="fill:url(#linearGradient4150);fill-opacity:1;stroke:none;stroke-width:0.529167;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;paint-order:markers fill stroke"
-       d="M 67.73333,67.73333 0,0 h 67.73333 z"
+       d="M 67.73333,0 V 67.73333 L 0,0 Z"
        sodipodi:nodetypes="cccc" />
     <path
-       id="path898"
-       style="fill:url(#linearGradient900);fill-opacity:1;stroke:none;stroke-width:0.529167;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;paint-order:markers fill stroke"
-       d="M 0,0 67.73333,67.73333 H 0 Z"
+       id="path3255"
+       style="fill:url(#linearGradient3257);fill-opacity:1;stroke:none;stroke-width:0.529167;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;paint-order:markers fill stroke"
+       d="M 0,67.73333 V 0 l 67.73333,67.73333 z"
        sodipodi:nodetypes="cccc" />
   </g>
 </svg>

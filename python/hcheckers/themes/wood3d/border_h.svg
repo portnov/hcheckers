@@ -25,6 +25,22 @@
          offset="0"
          id="stop4144" />
       <stop
+         style="stop-color:#7b5a47;stop-opacity:1;"
+         offset="0.07777701"
+         id="stop3214" />
+      <stop
+         style="stop-color:#7f6150;stop-opacity:1;"
+         offset="0.09081004"
+         id="stop3212" />
+      <stop
+         style="stop-color:#826757;stop-opacity:1;"
+         offset="0.91083497"
+         id="stop3208" />
+      <stop
+         style="stop-color:#8a7569;stop-opacity:1;"
+         offset="0.92535776"
+         id="stop3210" />
+      <stop
          style="stop-color:#8c796e;stop-opacity:1"
          offset="1"
          id="stop4146" />
@@ -46,9 +62,9 @@
      borderopacity="1.0"
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
-     inkscape:zoom="1.979899"
-     inkscape:cx="93.877074"
-     inkscape:cy="122.67342"
+     inkscape:zoom="2.8"
+     inkscape:cx="124.96275"
+     inkscape:cy="115.88609"
      inkscape:document-units="mm"
      inkscape:current-layer="layer1"
      inkscape:document-rotation="0"
@@ -67,7 +83,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title></dc:title>
+        <dc:title />
       </cc:Work>
     </rdf:RDF>
   </metadata>
