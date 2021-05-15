@@ -15,3 +15,4 @@ border_top_left = border_tl.svg
 border_top_right = border_tr.svg
 border_bottom_left = border_bl.svg
 border_bottom_right = border_br.svg
+border_notation_color = #D4CBC1
