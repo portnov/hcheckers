@@ -6,3 +6,4 @@ man_white = manwhite.svg
 man_black = manblack.svg
 king_white = kingwhite.svg
 king_black = kingblack.svg
+border = #7C916F
