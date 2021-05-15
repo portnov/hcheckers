@@ -13,7 +13,7 @@
    id="svg2"
    version="1.1"
    inkscape:version="1.0.1 (3bc2e813f5, 2020-09-07)"
-   sodipodi:docname="border.svg">
+   sodipodi:docname="frame.svg">
   <defs
      id="defs4" />
   <sodipodi:namedview
@@ -23,9 +23,9 @@
      borderopacity="1.0"
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
-     inkscape:zoom="1.979899"
-     inkscape:cx="104.88838"
-     inkscape:cy="57.183416"
+     inkscape:zoom="3.959798"
+     inkscape:cx="29.358506"
+     inkscape:cy="49.094233"
      inkscape:document-units="px"
      inkscape:current-layer="layer1"
      showgrid="false"
@@ -55,11 +55,11 @@
      id="layer1"
      transform="translate(0,-924.36216)">
     <rect
-       style="fill:#966d69;fill-rule:evenodd;stroke:none;stroke-width:0.999762px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       style="fill:none;fill-rule:evenodd;stroke:#4d3426;stroke-width:6;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
        id="rect3336"
-       width="128"
-       height="128"
-       x="0"
-       y="924.36218" />
+       width="120.99406"
+       height="120.99405"
+       x="3.5029781"
+       y="927.86511" />
   </g>
 </svg>
