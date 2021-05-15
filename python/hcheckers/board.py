@@ -557,7 +557,8 @@ class Board(QWidget):
         painter.drawTiledPixmap(rect, self.theme.border_top.get((cell_width, cell_height)))
         for col in range(self.n_cols):
             rect = QRect(sz.init_x + col*cell_width, sz.border_init_y, cell_width, cell_height)
-            label = self.top_border_labels[col]
+            i = self.n_cols - col - 1 if self.flip else col
+            label = self.top_border_labels[i]
             draw_label(rect, label)
 
         # bottom
@@ -565,7 +566,8 @@ class Board(QWidget):
         painter.drawTiledPixmap(rect, self.theme.border_bottom.get((cell_width, cell_height)))
         for col in range(self.n_cols):
             rect = QRect(sz.init_x + col*cell_width, sz.init_y + sz.board_height, cell_width, cell_height)
-            label = self.bottom_border_labels[col]
+            i = self.n_cols - col - 1 if self.flip else col
+            label = self.bottom_border_labels[i]
             draw_label(rect, label)
         
         # left
@@ -575,7 +577,8 @@ class Board(QWidget):
         painter.drawTiledPixmap(rect, self.theme.border_left.get((cell_width, cell_height)))
         for row in range(self.n_rows):
             rect = QRect(sz.border_init_x, sz.init_y + row*cell_height, cell_width, cell_height)
-            label = self.left_border_labels[self.n_rows - row - 1]
+            i = row if self.flip else self.n_rows - row - 1
+            label = self.left_border_labels[i]
             draw_label(rect, label)
 
         # right
@@ -583,7 +586,8 @@ class Board(QWidget):
         painter.drawTiledPixmap(rect, self.theme.border_right.get((cell_width, cell_height)))
         for row in range(self.n_rows):
             rect = QRect(sz.init_x + sz.board_width, sz.init_y + row*cell_height, cell_width, cell_height)
-            label = self.right_border_labels[self.n_rows - row - 1]
+            i = row if self.flip else self.n_rows - row - 1
+            label = self.right_border_labels[i]
             draw_label(rect, label)
 
         # top-left
