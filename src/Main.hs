@@ -97,10 +97,11 @@ special cmd args =
         ai2 <- loadAi "default" rules path2
         putStrLn $ "AI1: " ++ show ai1
         putStrLn $ "AI2: " ++ show ai2
-        withCheckers cmd $
+        withCheckers cmd $ do
             withLogContext (LogContextFrame [] (include defaultLogFilter)) $ do
               runMatch runBattleLocal (SomeRules rules) (1, SomeAi ai1) (2, SomeAi ai2) n
               return ()
+            printCurrentMetrics Nothing
 
     ("tournament": matches : games : paths) -> do 
       let rules = russian
