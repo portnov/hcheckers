@@ -25,10 +25,12 @@ instance HasTopology Simple where
 instance HasSideNotation Simple where
   sideNotation r = chessSideNotation (boardSize r)
 
+instance HasBoardSize Simple where
+  boardSize (Simple r) = boardSize r
+
 instance GameRules Simple where
   type EvaluatorForRules Simple = SimpleEvaluator
   initBoard rnd _ = initBoard rnd Russian.russian
-  boardSize _ = boardSize Russian.russian
   initPiecesCount _ = 24
 
   boardNotation _ = boardNotation Russian.russian
@@ -47,7 +49,6 @@ instance GameRules Simple where
   mobilityScore (Simple rules) side board = gMobilityScore rules side board
 
   pdnId _ = "43"
-  getAllAddresses r = addresses8 r
 
 simple :: Simple
 simple = Simple $
@@ -58,7 +59,7 @@ simple = Simple $
               }
   in  rules
 
-manSimpleMoves :: GenericRules -> Side -> Board -> Address -> [PossibleMove]
+manSimpleMoves :: GenericRules -> Side -> Board -> Label -> [PossibleMove]
 manSimpleMoves rules side board src =
     concatMap check (gManSimpleMoveDirections rules)
   where
@@ -101,14 +102,14 @@ manCaptures1 rules ct@(CaptureState {..}) =
         Just prevDir -> oppositeDirection prevDir /= dir
 
     check a dir =
-      case neighbour (myDirection rules side dir) a of
-        Just victimAddr | not (aLabel victimAddr `labelSetMember` ctCaptured) ->
+      case neighbour rules (myDirection rules side dir) a of
+        Just victimAddr | not (victimAddr `labelSetMember` ctCaptured) ->
           case getPiece victimAddr ctBoard of
             Nothing -> []
             Just victim ->
               if isMyPiece side victim
                 then []
-                else case neighbour (myDirection rules side dir) victimAddr of
+                else case neighbour rules (myDirection rules side dir) victimAddr of
                        Nothing -> []
                        Just freeAddr ->
                         if isFree freeAddr ctBoard

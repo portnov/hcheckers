@@ -51,7 +51,7 @@ data SimpleEvaluator = SimpleEvaluator {
     seThreatWeight :: ScoreBase,
     seAttackedManCoef :: ScoreBase,
     seAttackedKingCoef :: ScoreBase,
-    seCache :: M.Map Address SimpleEvaluatorData
+    seCache :: M.Map Label SimpleEvaluatorData
   }
   deriving (Show)
 
@@ -161,10 +161,10 @@ instance Default PreScore where
           , psThreats = 0
         }
 
-waveRho :: SomeRules -> Side -> (Address -> Bool) -> Address -> ScoreBase -> ScoreBase
+waveRho :: SomeRules -> Side -> (Label -> Bool) -> Label -> ScoreBase -> ScoreBase
 waveRho (SomeRules rules) side isGood addr best = go addr
   where
-    go :: Address -> ScoreBase
+    go :: Label -> ScoreBase
     go addr
       | isGood addr = best
       | otherwise =
@@ -175,12 +175,12 @@ waveRho (SomeRules rules) side isGood addr best = go addr
                 Just dst -> max 0 $ go dst - 1
         in  maximum $ map check $ getForwardDirections rules
 
-buildCache :: SomeRules -> M.Map Address SimpleEvaluatorData
+buildCache :: SomeRules -> M.Map Label SimpleEvaluatorData
 buildCache iface@(SomeRules rules) = M.fromList [(addr, labelData addr) | addr <- getAllAddresses rules]
   where
     labelData addr = SimpleEvaluatorData $ SimpleEvaluatorWeights {
-        sewFirst = waveRho iface First (isCenter . aLabel) addr best,
-        sewSecond = waveRho iface Second (isCenter . aLabel) addr best
+        sewFirst = waveRho iface First isCenter addr best,
+        sewSecond = waveRho iface Second isCenter addr best
       }
 
     (nrows, ncols) = boardSize rules
@@ -280,7 +280,7 @@ preEval (SimpleEvaluator { seRules = iface@(SomeRules rules), ..}) side board =
         check dir =
           case myNeighbour rules side dir src of
             Nothing -> False
-            Just dst -> isLastHorizontal side dst && isFree dst board
+            Just dst -> isLastHorizontal rules side dst && isFree dst board
 
     preKings =
       length $ filter (isPreKing board) $ myMenA side board

@@ -27,11 +27,12 @@ instance HasTopology Russian where
 instance HasSideNotation Russian where
   sideNotation r = chessSideNotation (boardSize r)
 
+instance HasBoardSize Russian where
+  boardSize (Russian r) = boardSize r
+
 instance GameRules Russian where
   type EvaluatorForRules Russian = SimpleEvaluator
   initBoard rnd r = board8 rnd r
-
-  boardSize _ = (8, 8)
 
   initPiecesCount _ = 24
 
@@ -51,7 +52,6 @@ instance GameRules Russian where
   getGameResult = genericGameResult
 
   pdnId _ = "25"
-  getAllAddresses r = addresses8 r
 
 russianBase :: GenericRules -> GenericRules
 russianBase =

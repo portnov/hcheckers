@@ -13,15 +13,15 @@ import Core.BoardMap
 -- | Describes one jump during capture move;
 -- capture can conssit of several jumps.
 data Capture = Capture {
-      cSrc :: Address                -- ^ Source piece position
+      cSrc :: Label                -- ^ Source piece position
     , cDirection :: PlayerDirection  -- ^ Direction of jump
     , cInitSteps :: Int              -- ^ Number of steps by free fields that we have to do before the actual capture.
                                      --   If a piece is a man, this is obviously always 0.
-    , cVictim :: Address             -- ^ Position of piece being captured
+    , cVictim :: Label             -- ^ Position of piece being captured
     , cRemoveVictimImmediately :: Bool
     , cFreeSteps :: Int              -- ^ Number of steps by free fields that we are doing after actual capture.
                                      --   For man, this is always 1.
-    , cDst :: Address                -- ^ End position of capture.
+    , cDst :: Label                -- ^ End position of capture.
     , cPromote :: Bool               -- ^ Whether the piece should be promoted at the end of this jump.
   }
 
@@ -31,8 +31,8 @@ data CaptureState = CaptureState {
   , ctCaptured :: LabelSet                   -- ^ Fields that were already captured; we have to track this to prevent one piece being captured twice
   , ctPiece :: Piece                         -- ^ Piece that is performing the capture
   , ctBoard :: Board                         -- ^ Current board state
-  , ctCurrent :: Address                     -- ^ Current position of the piece
-  , ctSource :: Address                      -- ^ Starting position of capture
+  , ctCurrent :: Label                     -- ^ Current position of the piece
+  , ctSource :: Label                      -- ^ Starting position of capture
   }
 
 data MoveDecisionInput = MoveDecisionInput {
@@ -46,17 +46,17 @@ data MoveDecisionInput = MoveDecisionInput {
   deriving (Eq, Show)
 
 -- | Initial capture state
-initState :: Piece -> Board -> Address -> CaptureState
+initState :: Piece -> Board -> Label -> CaptureState
 initState piece board src = CaptureState Nothing emptyLabelSet piece board src src
 
 -- | An `Abstract class` for game rules
 data GenericRules = GenericRules {
     gPossibleMoves :: Side -> Board -> [PossibleMove]
   , gMobilityScore :: Side -> Board -> Int
-  , gPossibleSimpleMoves1 :: Board -> Address -> [PossibleMove]
-  , gPossibleCaptures1 :: Board -> Address -> [PossibleMove]
-  , gManSimpleMoves :: Side -> Board -> Address -> [PossibleMove]
-  , gKingSimpleMoves :: Side -> Board -> Address -> [PossibleMove]
+  , gPossibleSimpleMoves1 :: Board -> Label -> [PossibleMove]
+  , gPossibleCaptures1 :: Board -> Label -> [PossibleMove]
+  , gManSimpleMoves :: Side -> Board -> Label -> [PossibleMove]
+  , gKingSimpleMoves :: Side -> Board -> Label -> [PossibleMove]
   , gSelectMoves :: Side -> Board -> MoveDecisionInput -> [PossibleMove]
   , gManCaptures :: CaptureState -> [PossibleMove]
   , gKingCaptures ::  CaptureState -> [PossibleMove]
@@ -70,12 +70,16 @@ data GenericRules = GenericRules {
   , gManCaptureDirections :: [PlayerDirection]
   , gKingCaptureDirections :: [PlayerDirection]
   , gBoardOrientation :: BoardOrientation
+  , gBoardSize :: BoardSize
   , gCaptureMax :: Bool
   , gRemoveCapturedImmediately :: Bool
   }
 
 instance HasBoardOrientation GenericRules where
   boardOrientation = gBoardOrientation
+
+instance HasBoardSize GenericRules where
+  boardSize = gBoardSize
 
 translateCapture :: Piece -> Capture -> [PossibleMove]
 translateCapture piece@(Piece _ side) capture =
@@ -103,19 +107,19 @@ translateCapture piece@(Piece _ side) capture =
                then RemoveCaptured
                else MarkCaptured
 
-freeFields :: HasBoardOrientation rules
+freeFields :: (HasBoardOrientation rules, HasBoardSize rules)
            => rules
            -> Side
            -> PlayerDirection
            -> LabelSet
            -> Bool
-           -> Address
+           -> Label
            -> Board
-           -> (Int, [Address])
+           -> (Int, [Label])
 freeFields rules side dir captured allowStepCaptured addr board =
   case myNeighbour rules side dir addr of
     Nothing -> (0, [])
-    Just a' -> if isFree a' board || (allowStepCaptured && aLabel a' `labelSetMember` captured)
+    Just a' -> if isFree a' board || (allowStepCaptured && a' `labelSetMember` captured)
                  then let (n, prev) = freeFields rules side dir captured allowStepCaptured a' board
                       in  (n+1, a' : prev)
                  else (0, [])
@@ -138,7 +142,7 @@ genericNextMoves rules ct@(CaptureState {..}) continuePromoted pm =
                then promoted
                else ctPiece
     b = setPiece (pmEnd pm) piece' $ removePiece ctCurrent ctBoard
-    captured' = foldr insertLabelSet ctCaptured (map aLabel $ pmVictims pm)
+    captured' = foldr insertLabelSet ctCaptured (pmVictims pm)
 
 abstractRules :: GenericRules -> GenericRules
 abstractRules =
@@ -238,7 +242,7 @@ abstractRules =
             Nothing -> Nothing
             Just dst -> if isFree dst board
                           then let move = Move src [Step dir False promote]
-                                   promote = isLastHorizontal side dst
+                                   promote = isLastHorizontal rules side dst
                                    piece' = if promote then Piece King side else Piece Man side
                                in  Just $ PossibleMove {
                                      pmBegin = src,
@@ -270,11 +274,11 @@ abstractRules =
                 else False
     
     allowStepOccupied rules addr captured
-      | gRemoveCapturedImmediately rules = aLabel addr `labelSetMember` captured
+      | gRemoveCapturedImmediately rules = addr `labelSetMember` captured
       | otherwise = False
 
     canCaptureA rules addr captured =
-      not (aLabel addr `labelSetMember` captured)
+      not (addr `labelSetMember` captured)
 
     manCaptures1 rules (CaptureState {..}) =
         mapMaybe (check ctCurrent) $ filter allowedDir (gManCaptureDirections rules)
@@ -288,7 +292,7 @@ abstractRules =
 
         check a dir =
           case myNeighbour rules side dir a of
-            Just victimAddr | not (aLabel victimAddr `labelSetMember` ctCaptured) ->
+            Just victimAddr | not (victimAddr `labelSetMember` ctCaptured) ->
               if isPieceAt victimAddr ctBoard (opposite side)
                 then case myNeighbour rules side dir victimAddr of
                            Nothing -> Nothing
@@ -301,7 +305,7 @@ abstractRules =
                                                       cRemoveVictimImmediately = gRemoveCapturedImmediately rules,
                                                       cFreeSteps = 1,
                                                       cDst = freeAddr,
-                                                      cPromote = isLastHorizontal side freeAddr
+                                                      cPromote = isLastHorizontal rules side freeAddr
                                                     }
                                               else Nothing
                 else Nothing
@@ -341,7 +345,7 @@ abstractRules =
           }
 
         -- Skip as many empty fields before piece to be captured, as we need
-        search :: PlayerDirection -> Address -> Maybe (Address, Int)
+        search :: PlayerDirection -> Label -> Maybe (Label, Int)
         search dir a =
           -- make one step in given direction
           case myNeighbour rules side dir a of
@@ -358,7 +362,7 @@ abstractRules =
                          Just p ->
                           -- the field is not empty
                           if isOpponentPiece side p
-                             then let capturedPiece = aLabel a' `labelSetMember` ctCaptured
+                             then let capturedPiece = a' `labelSetMember` ctCaptured
                                       skipCapturedPiece = gRemoveCapturedImmediately rules
                                   in if skipCapturedPiece
                                         -- In some (turkish) rules, pieces are removed from the field
@@ -446,29 +450,9 @@ abstractRules =
     , gManCaptureDirections = [ForwardLeft, ForwardRight, BackwardLeft, BackwardRight]
     , gKingCaptureDirections =  [ForwardLeft, ForwardRight, BackwardLeft, BackwardRight]
     , gBoardOrientation = orientation this
+    , gBoardSize = (8, 8)
     , gCaptureMax = False
     , gRemoveCapturedImmediately = False
     }
   in rules
-
-labels8 :: [Label]
-labels8 = [Label col row | col <- [0..7], row <- [0..7], ((row+col) `mod` 2) == 0]
-
-addresses8 :: HasTopology rules => rules -> [Address]
-addresses8 r = IM.elems $ bAddresses $ buildBoard DummyRandomTableProvider r FirstAtBottom (8, 8)
-
-addresses8' :: HasTopology rules => rules -> [Address]
-addresses8' r = IM.elems $ bAddresses $ buildBoard DummyRandomTableProvider r SecondAtBottom (8, 8)
-
-labels8full :: [Label]
-labels8full = [Label col row | col <- [0..7], row <- [0..7]]
-
-labels10 :: [Label]
-labels10 = [Label col row | col <- [0..9], row <- [0..9], ((row+col) `mod` 2) == 0]
-
-addresses10 :: HasTopology rules => rules -> [Address]
-addresses10 r = IM.elems $ bAddresses $ buildBoard DummyRandomTableProvider r FirstAtBottom (10, 10)
-
-addresses12 :: HasTopology rules => rules -> [Address]
-addresses12 r = IM.elems $ bAddresses $ buildBoard DummyRandomTableProvider r FirstAtBottom (12, 12)
 

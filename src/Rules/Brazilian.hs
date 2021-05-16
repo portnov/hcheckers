@@ -25,10 +25,11 @@ instance Show Brazilian where
 instance HasSideNotation Brazilian where
   sideNotation r = numericSideNotation (boardSize r)
 
+instance HasBoardSize Brazilian where
+  boardSize (Brazilian r) = boardSize r
+
 instance GameRules Brazilian where
   type EvaluatorForRules Brazilian = SimpleEvaluator
-
-  boardSize _ = (8, 8)
 
   initBoard rnd _ = initBoard rnd russian
 
@@ -49,7 +50,6 @@ instance GameRules Brazilian where
   mobilityScore (Brazilian rules) side board = gMobilityScore rules side board
 
   getGameResult = genericGameResult
-  getAllAddresses r = addresses8 r
 
 brazilian :: Brazilian
 brazilian = Brazilian $

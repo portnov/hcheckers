@@ -142,29 +142,6 @@ instance Hashable Piece where
 
 type UnboxedPiece = Word8
 
-data Address = Address {
-    aLabel :: ! Label,
-    aPromotionSide :: Maybe Side,
-    aUpLeft :: Maybe Address,
-    aUpRight :: Maybe Address,
-    aDownLeft :: Maybe Address,
-    aDownRight :: Maybe Address,
-    aUp :: Maybe Address,
-    aRight :: Maybe Address,
-    aDown :: Maybe Address,
-    aLeft :: Maybe Address
-  }
-  deriving (Typeable)
-
-instance Eq Address where
-  f1 == f2 = aLabel f1 == aLabel f2
-
-instance Show Address where
-  show f = show (aLabel f)
-
-instance Ord Address where  
-  compare a1 a2 = compare (aLabel a1) (aLabel a2)
-
 -- | Number of row / column of the board
 type Line = Word8
 
@@ -172,16 +149,16 @@ type BoardSize = (Line, Line)
 
 type FieldIndex = Int
 
-type AddressMap a = IM.IntMap a
-
 type LabelMap a = IM.IntMap a
 
 type LabelSet = IS.IntSet
 
+class HasBoardSize b where
+  boardSize :: b -> BoardSize
+
 -- | Board describes current position on the board.
 data Board = Board {
-    bAddresses :: LabelMap Address
-  , bCaptured :: LabelSet
+    bCaptured :: LabelSet
   , bOccupied :: LabelSet
   , bFirstMen :: LabelSet
   , bSecondMen :: LabelSet
@@ -189,12 +166,18 @@ data Board = Board {
   , bSecondKings :: LabelSet
   , bFirstAttacked :: LabelSet
   , bSecondAttacked :: LabelSet
---   , boardCounts :: BoardCounts
-  , bSize :: {-# UNPACK #-} ! BoardSize
+  , bSize :: BoardSize
+  , bOrientation :: BoardOrientation
   , boardHash :: {-# UNPACK #-} ! BoardHash
   , randomTable :: ! RandomTable
   }
   deriving (Typeable)
+
+instance HasBoardSize Board where
+  boardSize = bSize
+
+instance HasBoardOrientation Board where
+  boardOrientation = bOrientation
 
 instance Eq Board where
   b1 == b2 = 
@@ -259,7 +242,10 @@ data BoardDirection =
     UpLeft | UpRight 
   | DownLeft | DownRight
   | Up | ToRight | Down | ToLeft
-  deriving (Eq, Generic, Typeable)
+  deriving (Eq, Enum, Bounded, Generic, Typeable)
+
+allBoardDirections :: [BoardDirection]
+allBoardDirections = [minBound .. maxBound]
 
 instance Show BoardDirection where
   show UpLeft = "UL"
@@ -315,7 +301,7 @@ instance Show Step where
 -- | Move (or should we say half-move? because it's about one player's move) is
 -- a series of steps from one field to neighbour, and to neighbour...
 data Move = Move {
-    moveBegin :: ! Address,
+    moveBegin :: ! Label,
     moveSteps :: ! [Step]
   }
   deriving (Eq, Ord, Typeable)
@@ -368,7 +354,7 @@ data MoveParseResult =
   deriving (Eq, Show)
 
 data StepCheckResult =
-    ValidStep Address
+    ValidStep Label
   | NoSuchNeighbour
   | NoPieceToCapture
   | CapturingOwnPiece
@@ -393,9 +379,9 @@ boardRepLen (BoardRep lst) = length lst
 -- | More convinient format for game rules to specify
 -- which moves are possible
 data PossibleMove = PossibleMove {
-    pmBegin :: ! Address
-  , pmEnd :: Address
-  , pmVictims :: [Address] -- ^ list of captured fields
+    pmBegin :: ! Label
+  , pmEnd :: Label
+  , pmVictims :: [Label] -- ^ list of captured fields
   , pmVictimsCount :: Int
   , pmMove :: Move
   , pmPromote :: ! Bool      -- ^ is there any promotion in the move
@@ -421,10 +407,10 @@ instance Show PossibleMove where
 
 -- | The primitive action that can take place during the move
 data MoveAction =
-    Take ! Address            -- ^ Lift the piece from the board (at the beginning of the move)
-  | MarkCaptured ! Address  -- ^ Remove the piece that was captured (should be performed at the end of the move)
-  | RemoveCaptured ! Address  -- ^ Remove the piece that was captured - immediately
-  | Put ! Address ! Piece       -- ^ Put the piece to the board (at the end of the move)
+    Take ! Label            -- ^ Lift the piece from the board (at the beginning of the move)
+  | MarkCaptured ! Label  -- ^ Remove the piece that was captured (should be performed at the end of the move)
+  | RemoveCaptured ! Label  -- ^ Remove the piece that was captured - immediately
+  | Put ! Label ! Piece       -- ^ Put the piece to the board (at the end of the move)
   deriving (Eq, Ord, Show, Typeable)
 
 class HasBoardOrientation a where
@@ -451,13 +437,24 @@ data SideNotation = SideNotation {
 class HasSideNotation g where
   sideNotation :: g -> SideNotation
 
+getValidLabels :: (HasTopology g, HasBoardSize g) => g -> [Label]
+getValidLabels g =
+  let (nrows, ncols) = boardSize g
+      odds n = [0, 2 .. n-1]
+      evens n = [1, 3 .. n-1]
+
+  in case boardTopology g of
+      Diagonal ->
+        [Label c r | r <- odds nrows, c <- odds ncols] ++ [Label c r | r <- evens nrows, c <- evens ncols]
+      _ ->
+        [Label c r | r <- [1..nrows], c <- [1..ncols]]
+
 -- | Interface of game rules
-class (Typeable g, Show g, HasBoardOrientation g, HasSideNotation g, HasTopology g, VectorEvaluator (EvaluatorForRules g), ToJSON (EvaluatorForRules g)) => GameRules g where
+class (Typeable g, Show g, HasBoardOrientation g, HasSideNotation g, HasBoardSize g, HasTopology g, VectorEvaluator (EvaluatorForRules g), ToJSON (EvaluatorForRules g)) => GameRules g where
   type EvaluatorForRules g
   -- | Initial board with initial pieces position
   initBoard :: SupervisorState -> g -> Board
   -- | Size of board used
-  boardSize :: g -> BoardSize
 
   initPiecesCount :: g -> Int
 
@@ -482,7 +479,8 @@ class (Typeable g, Show g, HasBoardOrientation g, HasSideNotation g, HasTopology
   getForwardDirections :: g -> [PlayerDirection]
   getForwardDirections _ = [ForwardLeft, ForwardRight]
 
-  getAllAddresses :: g -> [Address]
+  getAllAddresses :: g -> [Label]
+  getAllAddresses = getValidLabels
 
 fieldsCount :: GameRules rules => rules -> Line
 fieldsCount rules =

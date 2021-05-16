@@ -79,8 +79,8 @@ parseCompactFile path = do
 
 findMove :: Side -> SemiMove -> Board -> Either String PossibleMove
 findMove side (Short colFrom colTo rowTo) board = 
-  let suits pm = aLabel (pmEnd pm) == Label colTo rowTo &&
-                 labelColumn (aLabel (pmBegin pm)) == colFrom
+  let suits pm = (pmEnd pm) == Label colTo rowTo &&
+                 labelColumn (pmBegin pm) == colFrom
   in case filter suits (possibleMoves russian side board) of
         [] -> Left $ printf "findMove: no pieces of %s at column %d" (show side) colFrom
         [pm] -> Right pm
@@ -90,9 +90,7 @@ applySemiMove :: Side -> SemiMove -> Board -> Board
 applySemiMove _ Skip b = b
 applySemiMove _ (Full from to) board =
   let piece = fromJust $ getPiece' from board
-      fromA = resolve from board
-      toA   = resolve to board
-      actions = [Take fromA, Put toA piece]
+      actions = [Take from, Put to piece]
   in  applyMoveActions actions board
 applySemiMove side sm@(Short colFrom colTo rowTo) board =
   case findMove side sm board of
@@ -107,8 +105,8 @@ convertSemiMove side board sm =
   case findMove side sm board of
     Left err -> error $ printf "convertSemiMove: %s: %s" (show sm) err
     Right pm -> Just $ ShortSemiMoveRec {
-                         smrFrom = aLabel (pmBegin pm),
-                         smrTo   = aLabel (pmEnd pm),
+                         smrFrom = (pmBegin pm),
+                         smrTo   = (pmEnd pm),
                          smrCapture = False
                        }
 

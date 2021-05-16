@@ -11,7 +11,6 @@ import Core.Types
 import Core.Board
 import Core.BoardMap
 import Core.Evaluator
-import qualified Rules.Russian as Russian
 import Rules.Generic
 
 newtype English = English GenericRules
@@ -26,9 +25,11 @@ instance HasTopology English where
 instance HasSideNotation English where
   sideNotation r = numericSideNotation (boardSize r)
 
+instance HasBoardSize English where
+  boardSize (English r) = boardSize r
+
 instance GameRules English where
   type EvaluatorForRules English = SimpleEvaluator
-  boardSize _ = boardSize Russian.russian
 
   initBoard rnd r = 
     let board = buildBoard rnd r (boardOrientation r) (boardSize r)
@@ -51,7 +52,6 @@ instance GameRules English where
   mobilityScore (English rules) side board = gMobilityScore rules side board
 
   pdnId _ = "21"
-  getAllAddresses r = addresses8' r
 
 english :: English
 english = English $
@@ -65,7 +65,7 @@ english = English $
               }
   in  rules
 
-kingSimpleMoves :: GenericRules -> Side -> Board -> Address -> [PossibleMove]
+kingSimpleMoves :: GenericRules -> Side -> Board -> Label -> [PossibleMove]
 kingSimpleMoves rules side board src =
     concatMap check (gKingSimpleMoveDirections rules)
   where
@@ -98,14 +98,14 @@ captures1 rules ct@(CaptureState {..}) dirs =
         Just prevDir -> oppositeDirection prevDir /= dir
 
     check a dir =
-      case neighbour (myDirection rules side dir) a of
-        Just victimAddr | not (aLabel victimAddr `labelSetMember` ctCaptured) ->
+      case neighbour rules (myDirection rules side dir) a of
+        Just victimAddr | not (victimAddr `labelSetMember` ctCaptured) ->
           case getPiece victimAddr ctBoard of
             Nothing -> []
             Just victim ->
               if isMyPiece side victim
                 then []
-                else case neighbour (myDirection rules side dir) victimAddr of
+                else case neighbour rules (myDirection rules side dir) victimAddr of
                        Nothing -> []
                        Just freeAddr -> if isFree freeAddr ctBoard
                                           then [Capture {
@@ -116,7 +116,7 @@ captures1 rules ct@(CaptureState {..}) dirs =
                                                   cVictim = victimAddr,
                                                   cRemoveVictimImmediately = gRemoveCapturedImmediately rules,
                                                   cDst = freeAddr,
-                                                  cPromote = isLastHorizontal side freeAddr
+                                                  cPromote = isLastHorizontal rules side freeAddr
                                                 }]
                                           else []
         _ -> []

@@ -214,8 +214,8 @@ parseMoveRec rules side board rec =
       suits m =
         case rec of
           ShortSemiMoveRec {..} ->
-                aLabel (pmBegin m) == smrFrom &&
-                aLabel (pmEnd m) == smrTo &&
+                (pmBegin m) == smrFrom &&
+                (pmEnd m) == smrTo &&
                 (not $ null $ pmVictims m) == smrCapture 
           FullSemiMoveRec {..} ->
                 (not $ null $ pmVictims m) &&
@@ -383,8 +383,8 @@ gameToPdn rnd game =
     translateMove :: SomeRules -> Side -> Board -> Move -> SemiMoveRec
     translateMove (SomeRules rules) side board move = 
       ShortSemiMoveRec {
-          smrFrom = aLabel (moveBegin move)
-        , smrTo = aLabel (moveEnd rules side board move)
+          smrFrom = (moveBegin move)
+        , smrTo = (moveEnd rules side board move)
         , smrCapture = isCaptureM move
         }
 

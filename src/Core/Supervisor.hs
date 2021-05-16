@@ -641,7 +641,7 @@ getNotation rname = do
 
     process st (SomeRules rules) =
       let board = initBoard st rules
-          labels = labelMapKeys (bAddresses board)
+          labels = getAllAddresses rules
           notation = [(label, boardNotation rules label) | label <- labels]
           size = boardSize rules
           orientation = boardOrientation rules

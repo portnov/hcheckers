@@ -24,6 +24,9 @@ instance HasTopology DiagonalRussian where
 instance HasSideNotation DiagonalRussian where
   sideNotation r = chessSideNotation (boardSize r)
 
+instance HasBoardSize DiagonalRussian where
+  boardSize (DiagonalRussian r) = boardSize r
+
 instance GameRules DiagonalRussian where
   type EvaluatorForRules DiagonalRussian = SimpleEvaluator
   initBoard rnd r =
@@ -41,8 +44,6 @@ instance GameRules DiagonalRussian where
                    "b4",
                    "a3"]
     in  setManyPieces' labels1 (Piece Man First) $ setManyPieces' labels2 (Piece Man Second) board
-
-  boardSize _ = (8, 8)
 
   initPiecesCount _ = 24
 
@@ -62,7 +63,6 @@ instance GameRules DiagonalRussian where
   getGameResult = genericGameResult
 
   pdnId _ = "42"
-  getAllAddresses r = addresses8 r
 
 diagonal :: DiagonalRussian
 diagonal = DiagonalRussian $

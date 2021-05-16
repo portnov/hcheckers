@@ -24,6 +24,9 @@ instance Show Turkish where
 instance HasTopology Turkish where
   boardTopology _ = Orthogonal
 
+instance HasBoardSize Turkish where
+  boardSize (Turkish r) = boardSize r
+
 instance HasSideNotation Turkish where
   sideNotation r = chessSideNotation (boardSize r)
 
@@ -38,8 +41,6 @@ instance GameRules Turkish where
     in  setManyPieces' labels1 (Piece Man First) $ setManyPieces' labels2 (Piece Man Second) board
 
   initPiecesCount _ = 32
-
-  boardSize _ = (8, 8)
 
   dfltEvaluator r = (defaultEvaluator r) {seKingCoef = 5, seHelpedKingCoef = 6, seBorderManWeight = 0}
 
@@ -58,7 +59,6 @@ instance GameRules Turkish where
   pdnId _ = "43"
 
   getBackDirections _ = [Backward]
-  getAllAddresses r = addresses8 r
 
 turkishBase :: GenericRules -> GenericRules
 turkishBase =
@@ -106,7 +106,7 @@ manCaptures1 rules ct@(CaptureState {..}) =
 
     check a dir =
       case myNeighbour rules side dir a of
-        Just victimAddr | not (aLabel victimAddr `labelSetMember` ctCaptured) ->
+        Just victimAddr | not (victimAddr `labelSetMember` ctCaptured) ->
           case getPiece victimAddr ctBoard of
             Nothing -> []
             Just victim ->
@@ -115,8 +115,8 @@ manCaptures1 rules ct@(CaptureState {..}) =
                 else case myNeighbour rules side dir victimAddr of
                        Nothing -> []
                        Just freeAddr ->
-                        if isFree freeAddr ctBoard || aLabel freeAddr `labelSetMember` ctCaptured
-                          then let captured' = insertLabelSet (aLabel victimAddr) ctCaptured
+                        if isFree freeAddr ctBoard || freeAddr `labelSetMember` ctCaptured
+                          then let captured' = insertLabelSet victimAddr ctCaptured
                                    next = ct {
                                             ctPrevDirection = Just dir,
                                             ctCaptured = captured',
@@ -130,7 +130,7 @@ manCaptures1 rules ct@(CaptureState {..}) =
                                   cVictim = victimAddr,
                                   cRemoveVictimImmediately = gRemoveCapturedImmediately rules,
                                   cDst = freeAddr,
-                                  cPromote = isLastHorizontal side freeAddr &&
+                                  cPromote = isLastHorizontal rules side freeAddr &&
                                              not (gCanCaptureFrom rules next)
                                 }]
                           else []

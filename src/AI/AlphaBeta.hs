@@ -322,7 +322,7 @@ evalMove var cacheKey side dp board mbPrevMove attacked move = do
                    Just (Piece King _) -> True
                    _ -> False
 
-      attackedPiece = let begin = aLabel $ pmBegin move
+      attackedPiece = let begin = pmBegin move
                       in  if begin `labelSetMember` attacked
                             then getPiece' begin board
                             else Nothing
@@ -1116,8 +1116,8 @@ scoreAB var eval params input
 
     distance :: PossibleMove -> PossibleMove -> Line
     distance prev pm =
-      let Label col row = aLabel (pmEnd prev)
-          Label col' row' = aLabel (pmBegin pm)
+      let Label col row = (pmEnd prev)
+          Label col' row' = (pmBegin pm)
       in  abs (col' - col) `max` abs (row' - row)
 
     maximize = side == First

@@ -24,10 +24,11 @@ instance HasTopology Canadian where
 instance HasSideNotation Canadian where
   sideNotation r = numericSideNotation (boardSize r)
 
+instance HasBoardSize Canadian where
+  boardSize (Canadian r) = boardSize r
+
 instance GameRules Canadian where
   type EvaluatorForRules Canadian = SimpleEvaluator
-
-  boardSize _ = (12, 12)
 
   initBoard rnd r =
     let board = buildBoard rnd r (boardOrientation r) (12, 12)
@@ -63,10 +64,11 @@ instance GameRules Canadian where
 
   possibleMoves (Canadian rules) side board = gPossibleMoves rules side board
   mobilityScore (Canadian rules) side board = gMobilityScore rules side board
-  getAllAddresses r = addresses12 r
 
 canadian :: Canadian
 canadian = Canadian $
-  let rules = internationalBase rules
+  let rules = (internationalBase rules) {
+                gBoardSize = (12, 12)
+              }
   in  rules
 

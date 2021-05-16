@@ -25,6 +25,9 @@ instance HasTopology Spancirety where
 instance HasSideNotation Spancirety where
   sideNotation r = chessSideNotation (boardSize r)
 
+instance HasBoardSize Spancirety where
+  boardSize (Spancirety r) = boardSize r
+
 instance GameRules Spancirety where
   type EvaluatorForRules Spancirety = SimpleEvaluator
   initBoard rnd r =
@@ -38,8 +41,6 @@ instance GameRules Spancirety where
     in  setManyPieces' labels1 (Piece Man First) $ setManyPieces' labels2 (Piece Man Second) board
 
   initPiecesCount _ = 30
-
-  boardSize _ = (8, 10)
 
   boardNotation _ = boardNotation russian
 
@@ -57,10 +58,11 @@ instance GameRules Spancirety where
   getGameResult = genericGameResult
 
   pdnId _ = "41"
-  getAllAddresses r = IM.elems $ bAddresses $ buildBoard DummyRandomTableProvider r FirstAtBottom (8, 10)
 
 spancirety :: Spancirety
 spancirety = Spancirety $
-  let rules = russianBase rules
+  let rules = (russianBase rules) {
+                gBoardSize = (8, 10)
+              }
   in  rules
 

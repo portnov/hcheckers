@@ -26,6 +26,9 @@ instance HasTopology Armenian where
 instance HasSideNotation Armenian where
   sideNotation r = chessSideNotation (boardSize r)
 
+instance HasBoardSize Armenian where
+  boardSize (Armenian r) = boardSize r
+
 instance GameRules Armenian where
   type EvaluatorForRules Armenian = SimpleEvaluator
 
@@ -38,8 +41,6 @@ instance GameRules Armenian where
     in  setManyPieces' labels1 (Piece Man First) $ setManyPieces' labels2 (Piece Man Second) board
 
   initPiecesCount _ = 32
-
-  boardSize _ = (8, 8)
 
   dfltEvaluator r = (defaultEvaluator r) {
                                  seKingCoef = 4,
@@ -66,7 +67,6 @@ instance GameRules Armenian where
 
   getBackDirections _ = [Backward]
   getForwardDirections _ = [ForwardLeft, Forward, ForwardRight]
-  getAllAddresses r = addresses8 r
 
 armenianBase :: GenericRules -> GenericRules
 armenianBase =

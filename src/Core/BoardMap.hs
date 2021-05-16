@@ -48,53 +48,53 @@ removeBoardCounts p bc =
     Piece King First -> bc {bcFirstKings = bcFirstKings bc - 1}
     Piece King Second -> bc {bcSecondKings = bcSecondKings bc - 1}
 
-insertBoardKey :: Address -> Piece -> BoardKey -> BoardKey
-insertBoardKey a p bk = IM.insert (aIndex a) p bk
+insertBoardKey :: Label -> Piece -> BoardKey -> BoardKey
+insertBoardKey a p bk = IM.insert (labelIndex a) p bk
 
-removeBoardKey :: Address -> Piece -> BoardKey -> BoardKey
-removeBoardKey a p bk = IM.delete (aIndex a) bk
+removeBoardKey :: Label -> Piece -> BoardKey -> BoardKey
+removeBoardKey a p bk = IM.delete (labelIndex a) bk
 
-insertBoard :: Address -> Piece -> Board -> Board
+insertBoard :: Label -> Piece -> Board -> Board
 insertBoard a p@(Piece Man First) b = b {
-    bFirstMen = insertLabelSet (aLabel a) (bFirstMen b),
-    bOccupied = insertLabelSet (aLabel a) (bOccupied b)
+    bFirstMen = insertLabelSet a (bFirstMen b),
+    bOccupied = insertLabelSet a (bOccupied b)
     -- boardCounts = insertBoardCounts p (boardCounts b)
   }
 insertBoard a p@(Piece Man Second) b = b {
-    bSecondMen = insertLabelSet (aLabel a) (bSecondMen b),
-    bOccupied = insertLabelSet (aLabel a) (bOccupied b)
+    bSecondMen = insertLabelSet a (bSecondMen b),
+    bOccupied = insertLabelSet a (bOccupied b)
 --     boardCounts = insertBoardCounts p (boardCounts b)
   }
 insertBoard a p@(Piece King First) b = b {
-    bFirstKings = insertLabelSet (aLabel a) (bFirstKings b),
-    bOccupied = insertLabelSet (aLabel a) (bOccupied b)
+    bFirstKings = insertLabelSet a (bFirstKings b),
+    bOccupied = insertLabelSet a (bOccupied b)
 --     boardCounts = insertBoardCounts p (boardCounts b)
   }
 insertBoard a p@(Piece King Second) b = b {
-    bSecondKings = insertLabelSet (aLabel a) (bSecondKings b),
-    bOccupied = insertLabelSet (aLabel a) (bOccupied b)
+    bSecondKings = insertLabelSet a (bSecondKings b),
+    bOccupied = insertLabelSet a (bOccupied b)
 --     boardCounts = insertBoardCounts p (boardCounts b)
   }
 
-removeBoard :: Address -> Piece -> Board -> Board
+removeBoard :: Label -> Piece -> Board -> Board
 removeBoard a p@(Piece Man First) b = b {
-    bFirstMen = deleteLabelSet (aLabel a) (bFirstMen b),
-    bOccupied = deleteLabelSet (aLabel a) (bOccupied b)
+    bFirstMen = deleteLabelSet a (bFirstMen b),
+    bOccupied = deleteLabelSet a (bOccupied b)
 --     boardCounts = removeBoardCounts p (boardCounts b)
   }
 removeBoard a p@(Piece Man Second) b = b {
-    bSecondMen = deleteLabelSet (aLabel a) (bSecondMen b),
-    bOccupied = deleteLabelSet (aLabel a) (bOccupied b)
+    bSecondMen = deleteLabelSet a (bSecondMen b),
+    bOccupied = deleteLabelSet a (bOccupied b)
 --     boardCounts = removeBoardCounts p (boardCounts b)
   }
 removeBoard a p@(Piece King First) b = b {
-    bFirstKings = deleteLabelSet (aLabel a) (bFirstKings b),
-    bOccupied = deleteLabelSet (aLabel a) (bOccupied b)
+    bFirstKings = deleteLabelSet a (bFirstKings b),
+    bOccupied = deleteLabelSet a (bOccupied b)
 --     boardCounts = removeBoardCounts p (boardCounts b)
   }
 removeBoard a p@(Piece King Second) b = b {
-    bSecondKings = deleteLabelSet (aLabel a) (bSecondKings b),
-    bOccupied = deleteLabelSet (aLabel a) (bOccupied b)
+    bSecondKings = deleteLabelSet a (bSecondKings b),
+    bOccupied = deleteLabelSet a (bOccupied b)
 --     boardCounts = removeBoardCounts p (boardCounts b)
   }
 
@@ -135,10 +135,6 @@ unpackIndex n =
       row = n `mod` 16
   in  Label (fromIntegral col) (fromIntegral row)
 
-aIndex :: Address -> FieldIndex
-aIndex a = fromIntegral (labelColumn l) * 16 + fromIntegral (labelRow l)
-  where l = aLabel a
-
 mkIndex :: Line -> Line -> FieldIndex
 mkIndex col row =  fromIntegral col * 16 + fromIntegral row
 
@@ -151,30 +147,6 @@ buildLabelMap nrows ncols pairs =
 
 lookupLabel :: Label -> LabelMap a -> Maybe a
 lookupLabel (Label col row) lmap = IM.lookup (mkIndex col row) lmap
-
-emptyAddressMap :: BoardSize -> AddressMap a
-emptyAddressMap (nrows,ncols) = IM.empty
-
-lookupAddress :: Address -> AddressMap a -> Maybe a
-lookupAddress a amap = IM.lookup (aIndex a) amap
-
-setAddress :: Address -> a -> AddressMap a -> AddressMap a
-setAddress a x amap = IM.insert (aIndex a) x amap
-
-removeAddress :: Address -> AddressMap a -> AddressMap a
-removeAddress a amap = IM.delete (aIndex a) amap
-
-addressMapContains :: Label -> AddressMap a -> Bool
-addressMapContains (Label col row) amap = IM.member (mkIndex col row) amap
-
-findLabels :: (a -> Bool) -> AddressMap a -> [Label]
-findLabels fn amap = [unpackIndex idx | idx <- IM.keys $ IM.filter fn amap]
-
-countAddresses :: (a -> Bool) -> AddressMap a -> Int
-countAddresses fn amap = length $ findLabels fn amap
-
-occupiedLabels :: AddressMap a -> [(Label, a)]
-occupiedLabels amap = [(unpackIndex idx, value) | (idx, value) <- IM.assocs amap]
 
 labelMapKeys :: LabelMap a -> [Label]
 labelMapKeys lmap = map unpackIndex $ IM.keys lmap

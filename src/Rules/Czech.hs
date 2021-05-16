@@ -24,12 +24,13 @@ instance HasTopology Czech where
 instance HasSideNotation Czech where
   sideNotation r = chessSideNotation (boardSize r)
 
+instance HasBoardSize Czech where
+  boardSize (Czech r) = boardSize r
+
 instance GameRules Czech where
   type EvaluatorForRules Czech = SimpleEvaluator
   pdnId _ = "29"
   rulesName _ = "czech"
-
-  boardSize _ = (8, 8)
 
   initBoard rnd _ = initBoard rnd Russian.russian
 
@@ -47,7 +48,6 @@ instance GameRules Czech where
   updateRules r _ = r
 
   getGameResult = genericGameResult
-  getAllAddresses r = addresses8 r
 
 manCaptures :: GenericRules -> CaptureState -> [PossibleMove]
 manCaptures rules ct@(CaptureState {..}) =
