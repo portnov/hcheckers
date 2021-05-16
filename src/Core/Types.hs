@@ -49,8 +49,8 @@ import Debug.Trace (traceEventIO)
 
 -- | Label is a coordinate of field on the board.
 data Label = Label {
-    labelColumn :: ! Line,
-    labelRow :: ! Line
+    labelColumn :: {-# UNPACK #-} ! Line,
+    labelRow :: {-# UNPACK #-} ! Line
   }
   deriving (Eq, Ord, Typeable, Generic)
 
@@ -166,8 +166,8 @@ data Board = Board {
   , bSecondKings :: LabelSet
   , bFirstAttacked :: LabelSet
   , bSecondAttacked :: LabelSet
-  , bSize :: BoardSize
-  , bOrientation :: BoardOrientation
+  , bSize :: {-# UNPACK #-} ! BoardSize
+  , bOrientation :: ! BoardOrientation
   , boardHash :: {-# UNPACK #-} ! BoardHash
   , randomTable :: ! RandomTable
   }
