@@ -6,21 +6,23 @@ import requests
 import logging
 from threading import Thread, Lock
 import json
+import traceback
 
 from hcheckers.common import *
 
 class MoveRequest(Thread):
-    def __init__(self, owner, url, rq):
+    def __init__(self, owner, url, proxies, rq):
         Thread.__init__(self)
         self.owner = owner
         self.url = url
+        self.proxies = proxies
         self.rq = rq
 
     def run(self):
         try:
             self.owner.move_lock.acquire()
             self.owner.move_exception = None
-            rs = Game.post(self.url, json=self.rq)
+            rs = Game.post_static(self.url, json=self.rq, **self.proxies)
             result = rs.json()
             #logging.debug(result)
             messages = result["messages"]
@@ -224,10 +226,12 @@ class GameSettings(object):
         self.previous_board_game = None
 
 class Game(object):
-    def __init__(self, url=None):
+    def __init__(self, url=None, proxy_usage=PROXY_SYSTEM, proxy_address=None):
         if url is None:
             url = DEFAULT_SERVER_URL
         self.base_url = url
+        self.proxy_usage = proxy_usage
+        self.proxy_address = proxy_address
         self.game_id = None
         self.user_name = None
         self.user_side = None
@@ -250,28 +254,55 @@ class Game(object):
             return
         if rs.status_code != requests.codes.ok:
             raise RequestError(rs)
+
+    @staticmethod
+    def get_proxies_static(proxy_usage, proxy_address):
+        if proxy_usage == PROXY_SYSTEM:
+            kwargs = {}
+        elif proxy_usage == PROXY_CUSTOM:
+            kwargs = dict(proxies = {
+                        'http': proxy_address,
+                        'https': proxy_address
+                })
+        else:
+            kwargs = dict(proxies={'http': None, 'https': None})
+        return kwargs
+
+    def get_proxies(self):
+        return Game.get_proxies_static(self.proxy_usage, self.proxy_address)
     
     @staticmethod
-    def get(url, *args, **kwargs):
+    def get_static(url, *args, **kwargs):
         rs = requests.get(url, *args, **kwargs)
         Game.process_response(rs)
         return rs
 
+    def get(self, url, *args, **kwargs):
+        proxies = self.get_proxies()
+        kwargs.update(proxies)
+        return Game.get_static(url, *args, **kwargs)
+
     @staticmethod
-    def post(url, *args, **kwargs):
+    def post_static(url, *args, **kwargs):
         rs = requests.post(url, *args, **kwargs)
         Game.process_response(rs)
         return rs
 
+    def post(self, url, *args, **kwargs):
+        proxies = self.get_proxies()
+        kwargs.update(proxies)
+        return Game.post_static(url, *args, **kwargs)
+
     @staticmethod
-    def check_server(server_url):
+    def check_server(server_url, proxies):
         try:
             url = join(server_url, "status")
-            rs = Game.get(url)
+            rs = Game.get_static(url, proxies=proxies)
             status = rs.json()["status"]
             return status == "ready"
         except Exception as e:
             print(e)
+            #traceback.print_exc()
             return False
 
     def get_games(self, rules=None):
@@ -279,7 +310,7 @@ class Game(object):
             url = join(self.base_url, "lobby", rules)
         else:
             url = join(self.base_url, "lobby")
-        rs = Game.get(url)
+        rs = self.get(url)
         result = rs.json()["response"]
         return result
 
@@ -296,7 +327,7 @@ class Game(object):
         elif pdn_path is not None:
             pdn_text = open(pdn_path).read()
             rq["pdn"] = pdn_text
-        rs = Game.post(url, json=rq)
+        rs = self.post(url, json=rq)
         result = rs.json()
         self.game_id = result["response"]["id"]
         self.draw_state = None
@@ -315,14 +346,14 @@ class Game(object):
 
     def get_notation(self, rules):
         url = join(self.base_url, "notation", rules)
-        rs = Game.get(url)
+        rs = self.get(url)
         result = rs.json()["response"]
         invert = result["orientation"] == 'SecondAtBottom'
         return result["size"], invert, result["notation"], result["border_notation"]
 
     def get_topology(self, rules):
         url = join(self.base_url, "topology", rules)
-        rs = Game.get(url)
+        rs = self.get(url)
         result = rs.json()["response"]
         return result["topology"]
     
@@ -353,7 +384,7 @@ class Game(object):
         self.user_name = name
         self.user_side = side
         url = join(self.base_url, "game", self.game_id, "attach", name, str(side))
-        rs = Game.post(url)
+        rs = self.post(url)
         result = rs.json()
 
     def attach_ai(self, side, ai):
@@ -362,12 +393,12 @@ class Game(object):
         ai_params = ai.params()
         logging.info(_("AI parameters:\n{}").format(json.dumps(ai_params, indent=2)))
         rq = {"ai": "default", "params": ai_params}
-        rs = Game.post(url, json=rq)
+        rs = self.post(url, json=rq)
         result = rs.json()
 
     def run_game(self):
         url = join(self.base_url, "game", self.game_id, "run")
-        rs = Game.post(url)
+        rs = self.post(url)
         result = rs.json()
 
     def start_new_game(self, user_name, rules="russian", board=None, fen_path=None, pdn_path=None, previous_board_game = None,  user_turn_first=True, ai=None):
@@ -384,7 +415,7 @@ class Game(object):
 
     def get_state(self):
         url = join(self.base_url, "game", self.game_id, "state")
-        rs = Game.get(url)
+        rs = self.get(url)
         result = rs.json()
         return result["response"]
     
@@ -392,13 +423,13 @@ class Game(object):
         if self.game_id is None:
             return None
         url = join(self.base_url, "game", self.game_id, "history")
-        rs = Game.get(url)
+        rs = self.get(url)
         result = rs.json()
         return result["response"]
     
     def poll(self):
         url = join(self.base_url, "poll", self.user_name)
-        rs = Game.get(url)
+        rs = self.get(url)
         result = rs.json()
         messages = result["response"]
         self._process_messages(messages)
@@ -420,17 +451,17 @@ class Game(object):
     
     def get_fen(self):
         url = join(self.base_url, "game", self.game_id, "fen")
-        rs = Game.get(url)
+        rs = self.get(url)
         return rs.text
     
     def get_pdn(self):
         url = join(self.base_url, "game", self.game_id, "pdn")
-        rs = Game.get(url)
+        rs = self.get(url)
         return rs.text
     
     def get_possible_moves(self, field=None):
         url = join(self.base_url, "game", self.game_id, "moves", self.user_name)
-        rs = Game.get(url)
+        rs = self.get(url)
         result = rs.json()
         moves = [Move.fromJson(item) for item in result["response"]]
         if field is None:
@@ -440,7 +471,7 @@ class Game(object):
     
     def ai_hint(self):
         url = join(self.base_url, "game", self.game_id, "ai", "hint", self.user_name)
-        rs = Game.get(url)
+        rs = self.get(url)
         result = rs.json()
         session = result["response"]["poll"]
         messages = result["messages"]
@@ -449,14 +480,14 @@ class Game(object):
 
     def undo(self):
         url = join(self.base_url, "game", self.game_id, "undo", self.user_name)
-        rs = Game.post(url)
+        rs = self.post(url)
         result = rs.json()
         board = Game.parse_board(result["response"])
         return board
     
     def request_draw(self):
         url = join(self.base_url, "game", self.game_id, "draw", "request", self.user_name)
-        rs = Game.post(url)
+        rs = self.post(url)
         result = rs.json()
         session = result["response"].get("poll", None)
         messages = result["messages"]
@@ -471,7 +502,7 @@ class Game(object):
         else:
             verb = "decline"
         url = join(self.base_url, "game", self.game_id, "draw", verb, self.user_name)
-        rs = Game.post(url)
+        rs = self.post(url)
         result = rs.json()
         messages = result["messages"]
         self._process_messages(messages)
@@ -484,7 +515,7 @@ class Game(object):
 
     def capitulate(self):
         url = join(self.base_url, "game", self.game_id, "capitulate", self.user_name)
-        rs = Game.post(url)
+        rs = self.post(url)
         result = rs.json()
         messages = result["messages"]
         self._process_messages(messages)
@@ -493,7 +524,7 @@ class Game(object):
     
     def shutdown(self):
         url = join(self.base_url, "server", "shutdown")
-        rs = Game.post(url)
+        rs = self.post(url)
         logging.info(_("Server shutdown requested."))
     
     def begin_move(self, src, dst):
@@ -502,7 +533,7 @@ class Game(object):
         url = join(self.base_url, "game", self.game_id, "move", self.user_name)
         rq = {"from": src.json(), "to": dst.json()}
         self.last_move_result = None
-        self.move_thread = MoveRequest(self, url, rq)
+        self.move_thread = MoveRequest(self, url, self.get_proxies(), rq)
         self.move_thread.start()
         logging.debug("Thread was started")
 
@@ -523,7 +554,7 @@ class Game(object):
 
     def poll_move(self, session_id):
         url = join(self.base_url, "poll", "move", self.game_id, session_id)
-        rs = Game.get(url)
+        rs = self.get(url)
         result = rs.json()
         messages = result["messages"]
         response = result["response"]
@@ -532,7 +563,7 @@ class Game(object):
 
     def stop_ai(self, session_id):
         url = join(self.base_url, "game", self.game_id, "move", self.user_name, str(session_id), "stop")
-        rs = Game.post(url)
+        rs = self.post(url)
         result = rs.json()
         messages = result["messages"]
         self._process_messages(messages)

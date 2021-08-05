@@ -153,7 +153,10 @@ class Checkers(QMainWindow):
         self._enable_file_actions((self.my_turn or not self.game_active) and not is_waiting)
 
     def _start_server(self):
-        server_running = Game.check_server(self.server_url)
+        self.proxy_usage = self.settings.value("proxy_usage", type=int)
+        self.proxy_address = self.settings.value("proxy_address", EXAMPLE_PROXY)
+
+        server_running = Game.check_server(self.server_url, Game.get_proxies_static(self.proxy_usage, self.proxy_address))
         use_local_server = self.settings.value("use_local_server", type=bool)
         self.local_server_used = False
         if server_running:
@@ -184,7 +187,7 @@ class Checkers(QMainWindow):
         theme_name = self.settings.value("theme", "default")
         self.theme = Theme(join(self.share_dir, "themes", theme_name), None)
         self.theme.enable_sound = self.settings.value("enable_sound", type=bool)
-        self.game = Game(self.server_url)
+        self.game = Game(url = self.server_url, proxy_usage=self.proxy_usage, proxy_address=self.proxy_address)
         self.poll_timer = self.startTimer(500)
         self.setup_fields_on_poll = False
 

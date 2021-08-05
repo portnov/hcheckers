@@ -396,6 +396,17 @@ class GeneralPage(QWidget):
 
         self.use_local_server.stateChanged.connect(self._on_use_local_server)
 
+        self.proxy_usage = QComboBox(self)
+        self.proxy_usage.addItem(_("Use system settings"), PROXY_SYSTEM)
+        self.proxy_usage.addItem(_("Do not use proxy"), PROXY_NONE)
+        self.proxy_usage.addItem(_("Manual configuration"), PROXY_CUSTOM)
+        layout.addRow(_("Proxy usage"), self.proxy_usage)
+        self.proxy_usage.currentIndexChanged.connect(self._on_use_proxy)
+
+        self.proxy_address = QLineEdit(self)
+        layout.addRow(_("Proxy"), self.proxy_address)
+        self.proxy_address.setEnabled(False)
+
         self.log_level= QComboBox(self)
         self.log_level.addItem(_("Debug"), logging.DEBUG)
         self.log_level.addItem(_("Information"), logging.INFO)
@@ -410,6 +421,10 @@ class GeneralPage(QWidget):
         use = self.use_local_server.checkState() == Qt.Checked
         self.local_server_path.widget.setEnabled(use)
         self.local_server_path.is_mandatory = use
+    
+    def _on_use_proxy(self):
+        usage = self.proxy_usage.currentData()
+        self.proxy_address.setEnabled(usage == PROXY_CUSTOM)
 
     def load(self, settings):
         url = settings.value("server_url", DEFAULT_SERVER_URL)
@@ -427,6 +442,12 @@ class GeneralPage(QWidget):
         level_idx = self.log_level.findData(level)
         self.log_level.setCurrentIndex(level_idx)
 
+        proxy_usage = settings.value("proxy_usage", PROXY_SYSTEM, type=int)
+        self.proxy_usage.setCurrentIndex(proxy_usage)
+
+        proxy = settings.value("proxy_address", EXAMPLE_PROXY)
+        self.proxy_address.setText(proxy)
+
     def save(self, settings):
         settings.setValue("server_url", self.server_url.widget.text())
         use_local_server = self.use_local_server.checkState() == Qt.Checked
@@ -434,6 +455,8 @@ class GeneralPage(QWidget):
         settings.setValue("local_server_path", self.local_server_path.widget.text())
         level = self.log_level.currentData()
         settings.setValue("log_level", level)
+        settings.setValue("proxy_usage", self.proxy_usage.currentData())
+        settings.setValue("proxy_address", self.proxy_address.text())
 
 class SettingsDialog(DialogBase):
     def __init__(self, settings, share_dir, parent=None):
