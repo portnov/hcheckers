@@ -17,6 +17,12 @@ ACCEPT_IF_LOSING = 'if_losing'
 
 DEFAULT_SERVER_URL = "http://localhost:8864"
 
+PROXY_SYSTEM = 0
+PROXY_NONE = 1
+PROXY_CUSTOM = 2
+
+EXAMPLE_PROXY="http://user:password@proxy.example.com:3128"
+
 class Piece(object):
     def __init__(self, kind, side):
         self.kind = kind

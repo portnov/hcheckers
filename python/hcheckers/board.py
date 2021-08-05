@@ -897,7 +897,7 @@ class Board(QWidget):
     def _get_field_at_pos(self, pos):
         for (row, col) in self.fields:
             field = self.fields[(row, col)]
-            if field.rect().contains(pos):
+            if field is not None and field.rect().contains(pos):
                 return (row, col)
         return None
 
