@@ -1,5 +1,7 @@
 # hcheckers README
 
+![Screenshot](https://user-images.githubusercontent.com/284644/158859116-2a5bfb7e-4662-43de-bbf4-9fe37fa6c247.png)
+
 ## What this is
 
 HCheckers is a relatively simple implementation of checkers board game (also known as "draughts").
