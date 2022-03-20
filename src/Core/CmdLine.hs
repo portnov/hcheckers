@@ -52,5 +52,6 @@ parserInfo :: ParserInfo CmdLine
 parserInfo = info (cmdline <**> helper)
   ( fullDesc
     <> progDesc "HCheckers server application"
-    <> header "Run HCheckers server" )
+    <> header "Run HCheckers server"
+    <> footer "Use `+RTS options' after all HCheckers parameters to specify options for GHC Runtime, such as amount of heap to be used; for example, `hcheckersd --local=on +RTS -H1G'. Use `hcheckersd +RTS -?' to display help about Runtime options.")
 
