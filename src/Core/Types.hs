@@ -665,6 +665,7 @@ data Game = Game {
   , gPlayer2 :: Maybe Player
   , gMsgbox1 :: TChan Notify
   , gMsgbox2 :: TChan Notify
+  , gSpectatorsMsgBox :: M.Map String (TChan Notify)
   }
 
 instance Show Game where

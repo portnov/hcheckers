@@ -161,7 +161,9 @@ instance ToJSON RsPayload where
   toJSON (NewGameRs id side) = object ["id" .= id, "turn" .= side]
   toJSON RegisterUserRs = object ["register_user" .= ("ok" :: T.Text)]
   toJSON AttachAiRs = object ["attach_ai" .= ("ok" :: T.Text)]
+  toJSON AttachSpectatorRs = object ["attach_spectator" .= ("ok" :: T.Text)]
   toJSON RunGameRs = object ["run_game" .= ("ok" :: T.Text)]
+  toJSON RunGameLoopRs = object ["run_game_loop" .= ("ok" :: T.Text)]
   toJSON (PollRs messages) = toJSON messages
   toJSON (StateRs board status side) = object ["board" .= board, "side" .= side, "status" .= status]
   toJSON (HistoryRs records) = toJSON records

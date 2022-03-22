@@ -90,7 +90,9 @@ data RsPayload =
     NewGameRs GameId Side
   | RegisterUserRs
   | AttachAiRs
+  | AttachSpectatorRs
   | RunGameRs
+  | RunGameLoopRs
   | PollRs [Notify]
   | LobbyRs [Game]
   | NotationRs BoardSize BoardOrientation [(Label, Notation)] SideNotation
@@ -289,6 +291,31 @@ attachAi gameId side (SomeAi ai) = do
       | side == First = game {gPlayer1 = Just $ AI ai}
       | otherwise     = game {gPlayer2 = Just $ AI ai}
 
+attachSpectator :: GameId -> String -> Checkers ()
+attachSpectator gameId name = do
+    var <- askSupervisor
+    res <- liftIO $ atomically $ do
+      st <- readTVar var
+      case M.lookup gameId (ssGames st) of
+        Nothing -> return $ Left $ NoSuchGame gameId
+        Just game -> do
+          if spectatorExists game
+            then return $ Left UserNameAlreadyUsed
+            else do
+              box <- newTChan
+              modifyTVar var $ \st ->
+                    st {ssGames = M.update (Just . update box) gameId (ssGames st)}
+              return $ Right ()
+    case res of
+      Right _ -> return ()
+      Left err -> throwError err
+  where
+    spectatorExists game =
+      name `M.member` (gSpectatorsMsgBox game)
+
+    update box game =
+      game {gSpectatorsMsgBox = M.insert name box (gSpectatorsMsgBox game)}
+
 -- | Switch game to the running state.
 -- If the first player is AI, let it make a turn.
 runGame :: GameId -> Checkers ()
@@ -301,6 +328,17 @@ runGame gameId = do
     return ()
   where
     update game = game {gStatus = Running}
+
+runGameLoop :: GameId -> Checkers ()
+runGameLoop gameId = void $ forkCheckers $ go
+  where
+    go = do
+      (side, status, board) <- withGame gameId $ \_ -> gameState
+      case status of
+        Running -> do
+          letAiMove False gameId side Nothing
+          go
+        _ -> return ()
 
 -- | Execute actions within GameM monad
 withGame :: GameId -> (SomeRules -> GameM a) -> Checkers a
@@ -364,7 +402,7 @@ getMessages name = do
 
     getM game = do
       case sideByUser' game name of
-        Nothing -> Nothing
+        Nothing -> M.lookup name (gSpectatorsMsgBox game)
         Just First -> Just $ gMsgbox1 game
         Just Second -> Just $ gMsgbox2 game
     
@@ -697,7 +735,9 @@ queueNotifications :: GameId -> [Notify] -> Checkers ()
 queueNotifications gameId messages = do
     game <- getGame gameId
     liftIO $ atomically $
-      forM_ messages $ \message ->
+      forM_ messages $ \message -> do
+        forM_ (M.elems $ gSpectatorsMsgBox game) $ \box ->
+          writeTChan box message
         case nDestination message of
           First  -> writeTChan (gMsgbox1 game) message
           Second -> writeTChan (gMsgbox2 game) message

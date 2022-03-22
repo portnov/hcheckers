@@ -41,7 +41,8 @@ mkGame supervisor rules id firstSide mbBoardRep = do
           gPlayer1 = Nothing,
           gPlayer2 = Nothing,
           gMsgbox1 = msgbox1,
-          gMsgbox2 = msgbox2
+          gMsgbox2 = msgbox2,
+          gSpectatorsMsgBox = M.empty
         }
 
 -- | Get game by Id

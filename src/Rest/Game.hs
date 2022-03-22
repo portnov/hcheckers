@@ -91,6 +91,14 @@ restServer shutdownVar = do
           attachAi gameId side ai
         json $ Response AttachAiRs []
 
+  post "/game/:id/attach/:name/spectate" $ do
+    gameId <- param "id"
+    name   <- param "name"
+    liftCheckers gameId $ do
+      attachSpectator gameId name
+      $info "Attached spectator `{}' to game #{}" (name, gameId)
+    json $ Response AttachSpectatorRs []
+
   post "/game/:id/attach/:name/:side" $ do
     gameId <- param "id"
     name   <- param "name"
@@ -104,6 +112,11 @@ restServer shutdownVar = do
     gameId <- param "id"
     liftCheckers gameId $ runGame gameId
     json $ Response RunGameRs []
+
+  post "/game/:id/run/loop" $ do
+    gameId <- param "id"
+    liftCheckers gameId $ runGameLoop gameId
+    json $ Response RunGameLoopRs []
 
   get "/game/:id/state" $ do
     gameId <- param "id"
