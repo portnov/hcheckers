@@ -362,7 +362,7 @@ gameToPdn rnd game =
                Ended result -> Just result
                _ -> Nothing
 
-    tags = [Event "HCheckers game", GameType (gRules game)]
+    tags = [Event "HCheckers game", GameType (gRules game), FEN (boardToFen First $ gInitialBoard game)]
 
     moves = movesToInstructions $ translate (gRules game) board0 (reverse $ gsHistory $ gState game)
 
