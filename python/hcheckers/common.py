@@ -35,6 +35,16 @@ class Piece(object):
         piece = Piece(self.kind, (FIRST+SECOND) - self.side)
         return piece
 
+    def print_notation(self):
+        if self.side == 1 and self.kind == MAN:
+            return     "⛀"
+        elif self.side == 2 and self.kind == MAN:
+            return "⛂"
+        elif self.side == 1 and self.kind == KING:
+            return "⛁"
+        else:
+            return     "⛃"
+
     def __hash__(self):
         return hash((self.kind, self.side))
 

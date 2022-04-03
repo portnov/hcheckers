@@ -1,7 +1,7 @@
 
 # REST client
 
-from os.path import join
+from os.path import join, basename
 import requests
 import logging
 from threading import Thread, Lock
@@ -74,6 +74,16 @@ class AI(object):
         ai.load_json(json_data)
         ai.title = self.title
         return ai
+
+    @classmethod
+    def from_json_file(cls, path):
+        with open(path) as f:
+            text = f.read()
+            json_data = json.loads(text)
+            ai = AI()
+            ai.title = basename(path)
+            ai.load_json(json_data)
+            return ai
 
     @classmethod
     def from_settings(cls, settings):
@@ -400,6 +410,12 @@ class Game(object):
         url = join(self.base_url, "game", self.game_id, "run")
         rs = self.post(url)
         result = rs.json()
+
+    def run_game_loop(self):
+        url = join(self.base_url, "game", self.game_id, "run", "loop")
+        rs = self.post(url)
+        result = rs.json()
+        return result
 
     def start_new_game(self, user_name, rules="russian", board=None, fen_path=None, pdn_path=None, previous_board_game = None,  user_turn_first=True, ai=None):
         if ai is None:
