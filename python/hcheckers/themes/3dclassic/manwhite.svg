@@ -2,21 +2,21 @@
 <!-- Created with Inkscape (http://www.inkscape.org/) -->
 
 <svg
-   xmlns:dc="http://purl.org/dc/elements/1.1/"
-   xmlns:cc="http://creativecommons.org/ns#"
-   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
-   xmlns:svg="http://www.w3.org/2000/svg"
-   xmlns="http://www.w3.org/2000/svg"
-   xmlns:xlink="http://www.w3.org/1999/xlink"
-   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
-   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
    width="128"
    height="128"
    viewBox="0 0 128 128"
    id="svg2"
    version="1.1"
-   inkscape:version="0.92.2 (5c3e80d, 2017-08-06)"
-   sodipodi:docname="manwhite.svg">
+   inkscape:version="1.1.2 (0a00cf5339, 2022-02-04)"
+   sodipodi:docname="manwhite.svg"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:xlink="http://www.w3.org/1999/xlink"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:dc="http://purl.org/dc/elements/1.1/">
   <defs
      id="defs4">
     <linearGradient
@@ -25,11 +25,11 @@
       <stop
          id="stop5345"
          offset="0"
-         style="stop-color:#555753;stop-opacity:1" />
+         style="stop-color:#aba688;stop-opacity:1" />
       <stop
          id="stop5347"
          offset="1"
-         style="stop-color:#eeeeec;stop-opacity:1" />
+         style="stop-color:#e0e1c5;stop-opacity:1" />
     </linearGradient>
     <linearGradient
        id="linearGradient5343"
@@ -37,11 +37,11 @@
       <stop
          id="stop5339"
          offset="0"
-         style="stop-color:#555753;stop-opacity:1" />
+         style="stop-color:#aba688;stop-opacity:1" />
       <stop
          id="stop5341"
          offset="1"
-         style="stop-color:#eeeeec;stop-opacity:1" />
+         style="stop-color:#e0e1c5;stop-opacity:1" />
     </linearGradient>
     <linearGradient
        id="linearGradient5337"
@@ -49,11 +49,11 @@
       <stop
          id="stop5333"
          offset="0"
-         style="stop-color:#555753;stop-opacity:1" />
+         style="stop-color:#aba688;stop-opacity:1" />
       <stop
          id="stop5335"
          offset="1"
-         style="stop-color:#eeeeec;stop-opacity:1" />
+         style="stop-color:#e0e1c5;stop-opacity:1" />
     </linearGradient>
     <linearGradient
        id="linearGradient5331"
@@ -61,11 +61,11 @@
       <stop
          id="stop5327"
          offset="0"
-         style="stop-color:#555753;stop-opacity:1" />
+         style="stop-color:#aba688;stop-opacity:1" />
       <stop
          id="stop5329"
          offset="1"
-         style="stop-color:#eeeeec;stop-opacity:1" />
+         style="stop-color:#e0e1c5;stop-opacity:1" />
     </linearGradient>
     <linearGradient
        id="linearGradient5325"
@@ -73,11 +73,11 @@
       <stop
          id="stop5321"
          offset="0"
-         style="stop-color:#555753;stop-opacity:1" />
+         style="stop-color:#aba688;stop-opacity:1" />
       <stop
          id="stop5323"
          offset="1"
-         style="stop-color:#eeeeec;stop-opacity:1" />
+         style="stop-color:#e0e1c5;stop-opacity:1" />
     </linearGradient>
     <linearGradient
        inkscape:collect="always"
@@ -93,11 +93,11 @@
        inkscape:collect="always"
        id="linearGradient4599">
       <stop
-         style="stop-color:#555753;stop-opacity:1"
+         style="stop-color:#aba688;stop-opacity:1"
          offset="0"
          id="stop4595" />
       <stop
-         style="stop-color:#eeeeec;stop-opacity:1"
+         style="stop-color:#e0e1c5;stop-opacity:1"
          offset="1"
          id="stop4597" />
     </linearGradient>
@@ -160,18 +160,19 @@
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
      inkscape:zoom="5.3740115"
-     inkscape:cx="71.386158"
-     inkscape:cy="64.337285"
+     inkscape:cx="62.616167"
+     inkscape:cy="65.035216"
      inkscape:document-units="px"
-     inkscape:current-layer="layer1"
+     inkscape:current-layer="g5357"
      showgrid="false"
      units="px"
      inkscape:snap-page="true"
      inkscape:window-width="1916"
-     inkscape:window-height="1196"
+     inkscape:window-height="1172"
      inkscape:window-x="0"
-     inkscape:window-y="0"
-     inkscape:window-maximized="0" />
+     inkscape:window-y="24"
+     inkscape:window-maximized="1"
+     inkscape:pagecheckerboard="0" />
   <metadata
      id="metadata7">
     <rdf:RDF>
@@ -180,7 +181,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title></dc:title>
+        <dc:title />
       </cc:Work>
     </rdf:RDF>
   </metadata>
