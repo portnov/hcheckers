@@ -245,6 +245,14 @@ class Board(QWidget):
 
     my_turn = property(get_my_turn, set_my_turn)
 
+    def reset_moveable(self):
+        self._moveable_fields = None
+        for (row, col) in self.fields:
+            field = self.fields[(row, col)]
+            field.moveable = False
+        self.invalidate()
+        self.repaint()
+
     def get_last_moved(self):
         return self._last_moved_field
 
@@ -474,7 +482,8 @@ class Board(QWidget):
             if self._selected_field is not None and self._valid_target_fields is not None and label in self._valid_target_fields:
                 field.possible_piece = self.fields[self._selected_field].piece
             if self._moveable_fields is not None:
-                field.moveable = label in self._moveable_fields
+                if not self.locked:
+                    field.moveable = label in self._moveable_fields
 
         prev_captured = field.captured
         if self.move_animation.is_active() and label in self.move_animation.captured_fields:

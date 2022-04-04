@@ -774,6 +774,9 @@ class Checkers(QMainWindow):
     def _on_history_view_toggle(self, view_mode):
         self._enable_game_control_actions(not view_mode)
         self._enable_file_actions(not view_mode)
+        self.board.locked = view_mode
+        if view_mode:
+            self.board.reset_moveable()
         if not view_mode:
             self.board.show_board(None)
 
