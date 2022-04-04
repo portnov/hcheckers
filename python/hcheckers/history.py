@@ -1,5 +1,5 @@
 
-from PyQt5.QtGui import QPainter, QPixmap
+from PyQt5.QtGui import QPainter, QPixmap, QIcon
 from PyQt5.QtCore import QRect, QSize, Qt, QObject, QTimer, pyqtSignal
 from PyQt5.QtWidgets import (QWidget, QDialog, QVBoxLayout, QHBoxLayout, QFormLayout,
             QLineEdit, QComboBox, QGroupBox, QCheckBox, QDialogButtonBox, QTableWidget,
@@ -62,11 +62,29 @@ class HistoryDockerWidget(QWidget):
 
         self.setLayout(layout)
 
-        self.toggle_action = self.toolbar.addAction("Toggle")
+        self.toggle_action = self._action(QIcon.fromTheme("go-jump"), _("Toggle history viewing mode"), self._on_toggle)
         self.toggle_action.setCheckable(True)
-        self.toggle_action.triggered.connect(self._on_toggle)
 
+        self.first_action = self._action(QIcon.fromTheme("go-home"), _("Display initial position"), self._on_go_first)
+        self.next_action = self._action(QIcon.fromTheme("go-next"), _("Display next move"), self._on_go_next)
+        self.last_action = self._action(QIcon.fromTheme("go-last"), _("Display last move"), self._on_go_last)
+
+        self._enable_history_actions()
+
+        self._cell_callback_active = True
         self.table.cellActivated.connect(self._on_cell_changed)
+
+    def _action(self, icon, text, callback):
+        action = self.toolbar.addAction(icon, text)
+        action.triggered.connect(callback)
+        return action
+    
+    def _history_actions(self):
+        return [self.first_action, self.next_action, self.last_action]
+    
+    def _enable_history_actions(self):
+        for action in self._history_actions():
+            action.setEnabled(self.view_mode)
 
     view_mode_toggled = pyqtSignal(bool)
     view_board = pyqtSignal(int, int)
@@ -76,11 +94,51 @@ class HistoryDockerWidget(QWidget):
 
     def _on_toggle(self, checked):
         self.view_mode = checked
+        self._enable_history_actions()
         self.view_mode_toggled.emit(checked)
 
+    def _view_cell(self, row, column, select=False):
+        item = self.table.item(row, column)
+        if item:
+            if select:
+                self._cell_callback_active = False
+                self.table.setCurrentCell(row, column)
+                self._cell_callback_active = True
+            self.view_board.emit(row-1, column+1)
+
     def _on_cell_changed(self, row, column):
-        if self.view_mode:
-            item = self.table.item(row, column)
-            if item:
-                self.view_board.emit(row-1, column+1)
+        if self._cell_callback_active:
+            if self.view_mode:
+                self._view_cell(row, column)
+
+    def _on_go_first(self, checked=None):
+        self._view_cell(0, 0, select=True)
+
+    def _on_go_last(self, checked=None):
+        n_rows = self.table.rowCount()
+        row = n_rows - 1
+        col = 1
+        item = None
+        while item is None:
+            if col == 0:
+                col = 1
+                row -= 1
+            else:
+                col = 0
+            item = self.table.item(row, col)
+        self._view_cell(row, col, select=True)
+
+    def _on_go_next(self, checked=None):
+        row = self.table.currentRow()
+        col = self.table.currentColumn()
+        n_rows = self.table.rowCount()
+
+        if col == 0:
+            col = 1
+        else:
+            col = 0
+            row += 1
+
+        if row < n_rows:
+            self._view_cell(row, col, select=True)
 

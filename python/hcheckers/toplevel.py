@@ -780,13 +780,10 @@ class Checkers(QMainWindow):
     @handling_error
     def _on_history_view_board(self, turn_idx, side):
         if turn_idx < 0:
-            print("Show initial board")
             next_board = self.game.get_initial_board()
         else:
-            print(f"Show: turn {turn_idx}, side {side}")
             move, prev_board, next_board = self.game.get_move_with_result(turn_idx, side)
             self.board.show_board(prev_board)
-            print(self.board.show_move(move))
             self.board.start_move_animation(move)
 
         self.board.show_board(next_board)
