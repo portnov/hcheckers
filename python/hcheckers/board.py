@@ -245,14 +245,6 @@ class Board(QWidget):
 
     my_turn = property(get_my_turn, set_my_turn)
 
-    def reset_moveable(self):
-        self._moveable_fields = None
-        for (row, col) in self.fields:
-            field = self.fields[(row, col)]
-            field.moveable = False
-        self.invalidate()
-        self.repaint()
-
     def get_last_moved(self):
         return self._last_moved_field
 
@@ -266,6 +258,18 @@ class Board(QWidget):
         #self.repaint()
 
     last_moved = property(get_last_moved, set_last_moved)
+
+    def reset_moveable(self):
+        self._moveable_fields = None
+        for (row, col) in self.fields:
+            field = self.fields[(row, col)]
+            field.moveable = False
+        self.invalidate()
+        self.repaint()
+
+    def reset_last_moved(self):
+        self.last_moved = None
+        self.repaint()
 
     def get_theme(self):
         return self._theme

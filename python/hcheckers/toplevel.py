@@ -805,6 +805,8 @@ class Checkers(QMainWindow):
             self.board.start_move_animation(move)
 
         self.board.show_board(next_board)
+        if turn_idx < 0:
+            self.board.reset_last_moved()
 
     def _on_help(self, checked=None):
         webbrowser.open(WIKI_URL)
