@@ -100,6 +100,7 @@ data RsPayload =
   | StateRs BoardRep GameStatus Side
   | PdnInfoRs PdnInfo
   | HistoryRs [HistoryRecordRep]
+  | HistoryBoardRs BoardRep
   | PossibleMovesRs [MoveRep]
   | MoveRs BoardRep (Maybe AiSessionId)
   | PollMoveRs AiSessionStatus
@@ -634,6 +635,14 @@ getState gameId = do
 getHistory :: GameId -> Checkers [HistoryRecordRep]
 getHistory gameId = do
   withGame gameId $ \_ -> gameHistory
+
+getBoardAfterMove :: GameId -> Int -> Side -> Checkers BoardRep
+getBoardAfterMove gameId turnIdx side = do
+  withGame gameId $ \_ -> boardAfterMove turnIdx side
+
+getInitBoard :: GameId -> Checkers BoardRep
+getInitBoard gameId = do
+  withGame gameId $ \_ -> gameInitBoard
 
 -- | Get current position in specified game in FEN notation
 getFen :: GameId -> Checkers T.Text

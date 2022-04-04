@@ -442,6 +442,18 @@ class Game(object):
         rs = self.get(url)
         result = rs.json()
         return result["response"]
+
+    def get_board_after_move(self, turn_idx, side):
+        url = join(self.base_url, "game", self.game_id, "history", str(turn_idx), str(side), "board")
+        rs = self.get(url)
+        result = rs.json()
+        return Game.parse_board(result["response"])
+
+    def get_initial_board(self):
+        url = join(self.base_url, "game", self.game_id, "history", "init", "board")
+        rs = self.get(url)
+        result = rs.json()
+        return Game.parse_board(result["response"])
     
     def poll(self):
         url = join(self.base_url, "poll", self.user_name)

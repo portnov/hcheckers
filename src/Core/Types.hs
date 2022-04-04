@@ -108,7 +108,7 @@ data BoardSide = Top | Bottom
 -- but why should we care? it is only important that black
 -- (well, red) move first.
 data Side = First | Second
-  deriving (Eq, Ord, Generic, Typeable)
+  deriving (Eq, Ord, Generic, Typeable, Enum)
 
 instance Show Side where
   show First = "1"

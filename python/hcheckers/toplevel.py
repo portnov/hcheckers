@@ -18,7 +18,7 @@ from hcheckers.common import *
 from hcheckers.game import Game, AI, RequestError
 from hcheckers.board import Board
 from hcheckers.theme import Theme
-from hcheckers.history import HistoryWidget
+from hcheckers.history import HistoryDockerWidget
 from hcheckers.newgamedlg import *
 from hcheckers.settingsdlg import SettingsDialog
 from hcheckers.logutils import *
@@ -230,7 +230,9 @@ class Checkers(QMainWindow):
         #self.opponent_info.setLineWidth(3)
         self.statusBar().addPermanentWidget(self.opponent_info)
 
-        self.history = HistoryWidget(self.game, self.board, self)
+        self.history = HistoryDockerWidget(self.game, self.board, self)
+        self.history.view_mode_toggled.connect(self._on_history_view_toggle)
+        self.history.view_board.connect(self._on_history_view_board)
         self.history_dock = QDockWidget(_("History"), self)
         self.history_dock.setAllowedAreas(Qt.AllDockWidgetAreas)
         self.history_dock.setWidget(self.history)
@@ -767,6 +769,23 @@ class Checkers(QMainWindow):
             logging.getLogger().setLevel(level)
             self.settings.sync()
             logging.info(_("Settings have been updated."))
+
+    @handling_error
+    def _on_history_view_toggle(self, view_mode):
+        self._enable_game_control_actions(not view_mode)
+        self._enable_file_actions(not view_mode)
+
+    @handling_error
+    def _on_history_view_board(self, turn_idx, side):
+        if turn_idx < 0:
+            print("Show initial board")
+            board = self.game.get_initial_board()
+        else:
+            print(f"Show: turn {turn_idx}, side {side}")
+            board = self.game.get_board_after_move(turn_idx, side)
+        self.board.fields_setup(board)
+        self.board.invalidate()
+        self.board.repaint()
 
     def _handle_game_error(self, rs):
         try:

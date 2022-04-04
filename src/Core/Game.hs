@@ -96,6 +96,31 @@ gameHistory = do
       let side = hrSide r
       in  HistoryRecordRep side (moveRep rules side $ hrMove r)
 
+boardAfterMove :: Int -> Side -> GameM BoardRep
+boardAfterMove i side = do
+  history <- gets (gsHistory . gState)
+  let nMoves = length history
+  let idxDelta = fromEnum $ hrSide (last history)
+  let moveIdx = i*2 + fromEnum side -- - idxDelta
+  when (moveIdx < 0) $
+    throwError $ Unhandled "Turn number can not be negative"
+  when (moveIdx >= nMoves) $
+    throwError $ Unhandled "Turn number is too big"
+  let moveIdx' = nMoves - moveIdx
+  if moveIdx == nMoves-1
+      then do
+        board <- gets (gsCurrentBoard . gState)
+        return $ boardRep board
+      else do
+        let nextMoveIdx = moveIdx' - 2
+        let record = history !! nextMoveIdx
+        return $ boardRep $ hrPrevBoard record
+
+gameInitBoard :: GameM BoardRep
+gameInitBoard = do
+  history <- gets (gsHistory . gState)
+  return $ boardRep $ hrPrevBoard $ last history
+
 setGameHistory :: [HistoryRecord] -> GameM ()
 setGameHistory history = do
   checkStatus New

@@ -138,6 +138,18 @@ restServer shutdownVar = do
     rs     <- liftCheckers gameId $ getHistory gameId
     json $ Response (HistoryRs rs) []
 
+  get "/game/:id/history/:turn/:side/board" $ do
+    gameId <- param "id"
+    turnIdx <- param "turn"
+    side <- param "side"
+    rs <- liftCheckers gameId $ getBoardAfterMove gameId turnIdx side
+    json $ Response (HistoryBoardRs rs) []
+
+  get "/game/:id/history/init/board" $ do
+    gameId <- param "id"
+    rs <- liftCheckers gameId $ getInitBoard gameId
+    json $ Response (HistoryBoardRs rs) []
+
   post "/game/:id/move/:name" $ do
     gameId   <- param "id"
     name     <- param "name"
