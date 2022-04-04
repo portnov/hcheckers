@@ -297,15 +297,15 @@ class Checkers(QMainWindow):
         menu.addSeparator()
         self.toolbar.addSeparator()
 
-        self.stop_ai_action = self._create_action(QIcon.fromTheme("process-stop"), _("Ask AI to stop thinking"), menu, self.stop_ai)
+        self.stop_ai_action = self._create_action(QIcon.fromTheme("process-stop"), _("Ask AI to stop thinking"), menu, self.stop_ai, key="Ctrl+.")
         self.stop_ai_action.setEnabled(False)
-        self.ai_hint_action = self._create_action(QIcon.fromTheme("dialog-information"), _("Ask for AI advice"), menu, self._on_ai_hint)
+        self.ai_hint_action = self._create_action(QIcon.fromTheme("dialog-information"), _("Ask for AI advice"), menu, self._on_ai_hint, key="Ctrl+A")
 
         menu.addSeparator()
         self.toolbar.addSeparator()
 
-        self.request_draw_action = self._create_action(self._icon("draw_offer.svg"), _("Offer a &draw"), menu, self._on_draw_rq)
-        self.capitulate_action = self._create_action(self._icon("handsup.svg"), _("Capitulate"), menu, self._on_capitulate)
+        self.request_draw_action = self._create_action(self._icon("draw_offer.svg"), _("Offer a &draw"), menu, self._on_draw_rq, key="Ctrl+D")
+        self.capitulate_action = self._create_action(self._icon("handsup.svg"), _("Capitulate"), menu, self._on_capitulate, key="Ctrl+C")
 
         menu.addSeparator()
 
