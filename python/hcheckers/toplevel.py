@@ -288,6 +288,7 @@ class Checkers(QMainWindow):
         self.new_game_action = self._create_action(QIcon.fromTheme("document-new"), _("&New Game"), menu, self._on_new_game, key="Ctrl+N")
         self.open_game_action = self._create_action(QIcon.fromTheme("document-open"), _("&Open Game..."), menu, self._on_open_game, key="Ctrl+O")
         self.save_game_action = self._create_action(QIcon.fromTheme("document-save"), _("&Save Position"), menu, self._on_save_game, key="Ctrl+S")
+        self.save_image_action = self._create_action(QIcon.fromTheme("document-save"), _("Save &Chart as image..."), menu, self._on_save_image, toolbar=False)
         self.undo_action = self._create_action(QIcon.fromTheme("edit-undo"), _("&Undo"), menu, self._on_undo, key="Ctrl+Z")
 
         menu.addSeparator()
@@ -542,6 +543,12 @@ class Checkers(QMainWindow):
                 pdn = self.game.get_pdn()
                 with open(path, 'w') as f:
                     f.write(pdn)
+
+    @handling_error
+    def _on_save_image(self, checked=None):
+        (path,mask) = QFileDialog.getSaveFileName(self.board, _("Save file"), ".", "PNG images (*.png)")
+        if path:
+            self.board.save_image(path)
 
     @handling_error
     def _on_undo(self, checked=None):

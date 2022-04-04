@@ -3,7 +3,7 @@ import math
 import logging
 from collections import defaultdict
 
-from PyQt5.QtGui import QPainter, QPainterPath, QPainterPathStroker, QPixmap,QPen, QBrush
+from PyQt5.QtGui import QPainter, QPainterPath, QPainterPathStroker, QPixmap,QPen, QBrush, QImage
 from PyQt5.QtCore import QPointF, QRect, QRectF, QSize, Qt, QObject, QTimer, pyqtSignal
 from PyQt5.QtWidgets import QApplication, QWidget
 
@@ -943,4 +943,13 @@ class Board(QWidget):
 
     def _handle_game_error(self, rs):
         self.toplevel._handle_game_error(rs)
+
+    def save_image(self, path):
+        self.draw()
+
+        img = QImage(self.width(), self.height(), QImage.Format_RGB32)
+        painter = QPainter(img)
+        painter.drawPixmap(0, 0, self._pixmap)
+        painter.end()
+        img.save(path)
 
