@@ -340,7 +340,7 @@ class Checkers(QMainWindow):
         menu.addAction(self.log_dock.toggleViewAction())
 
     def _game_control_actions(self):
-        return  [self.undo_action, self.request_draw_action, self.capitulate_action]
+        return  [self.undo_action, self.request_draw_action, self.capitulate_action, self.ai_hint_action]
 
     def _file_actions(self):
         return [self.new_game_action, self.open_game_action, self.save_game_action]
