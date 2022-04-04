@@ -80,5 +80,7 @@ class HistoryDockerWidget(QWidget):
 
     def _on_cell_changed(self, row, column):
         if self.view_mode:
-            self.view_board.emit(row-1, column+1)
+            item = self.table.item(row, column)
+            if item:
+                self.view_board.emit(row-1, column+1)
 

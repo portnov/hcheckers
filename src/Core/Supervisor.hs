@@ -101,6 +101,7 @@ data RsPayload =
   | PdnInfoRs PdnInfo
   | HistoryRs [HistoryRecordRep]
   | HistoryBoardRs BoardRep
+  | HistoryMoveRs MoveRep BoardRep BoardRep
   | PossibleMovesRs [MoveRep]
   | MoveRs BoardRep (Maybe AiSessionId)
   | PollMoveRs AiSessionStatus
@@ -636,9 +637,9 @@ getHistory :: GameId -> Checkers [HistoryRecordRep]
 getHistory gameId = do
   withGame gameId $ \_ -> gameHistory
 
-getBoardAfterMove :: GameId -> Int -> Side -> Checkers BoardRep
-getBoardAfterMove gameId turnIdx side = do
-  withGame gameId $ \_ -> boardAfterMove turnIdx side
+getMoveWithResult :: GameId -> Int -> Side -> Checkers (MoveRep, BoardRep, BoardRep)
+getMoveWithResult gameId turnIdx side = do
+  withGame gameId $ \_ -> moveWithResult turnIdx side
 
 getInitBoard :: GameId -> Checkers BoardRep
 getInitBoard gameId = do

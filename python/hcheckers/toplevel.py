@@ -774,18 +774,22 @@ class Checkers(QMainWindow):
     def _on_history_view_toggle(self, view_mode):
         self._enable_game_control_actions(not view_mode)
         self._enable_file_actions(not view_mode)
+        if not view_mode:
+            self.board.show_board(None)
 
     @handling_error
     def _on_history_view_board(self, turn_idx, side):
         if turn_idx < 0:
             print("Show initial board")
-            board = self.game.get_initial_board()
+            next_board = self.game.get_initial_board()
         else:
             print(f"Show: turn {turn_idx}, side {side}")
-            board = self.game.get_board_after_move(turn_idx, side)
-        self.board.fields_setup(board)
-        self.board.invalidate()
-        self.board.repaint()
+            move, prev_board, next_board = self.game.get_move_with_result(turn_idx, side)
+            self.board.show_board(prev_board)
+            print(self.board.show_move(move))
+            self.board.start_move_animation(move)
+
+        self.board.show_board(next_board)
 
     def _handle_game_error(self, rs):
         try:

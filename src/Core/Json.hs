@@ -168,6 +168,7 @@ instance ToJSON RsPayload where
   toJSON (StateRs board status side) = object ["board" .= board, "side" .= side, "status" .= status]
   toJSON (HistoryRs records) = toJSON records
   toJSON (HistoryBoardRs board) = toJSON board
+  toJSON (HistoryMoveRs move prevBoard nextBoard) = object ["move" .= move, "prev_board" .= prevBoard, "next_board" .= nextBoard]
   toJSON (PdnInfoRs info) = toJSON info
   toJSON (PossibleMovesRs moves) = toJSON moves
   toJSON (MoveRs board sessionId) = object ["board" .= board, "poll" .= sessionId]

@@ -420,6 +420,10 @@ class Board(QWidget):
         self.on_fields_setup.emit()
         self.invalidate()
 
+    def show_board(self, board):
+        self.fields_setup(board)
+        self.repaint()
+
     def get_size_data(self):
         width = self.size().width()
         height = self.size().height()
@@ -819,21 +823,24 @@ class Board(QWidget):
             return "{}x{}".format(first, last)
         else:
             return "{}-{}".format(first, last)
+    
+    def start_move_animation(self, move):
+        src_field = self.index_by_label[move.from_field]
+        dst_field = self.get_move_end_field(move)
+        start_position = self.get_field_center(src_field)
+        piece = self.fields[src_field].piece
+        if piece is None:
+            raise Exception("No piece at {}!".format(src_field))
+        if self.invert_colors:
+            piece = piece.inverted()
+        self.move_animation.start(src_field, dst_field, move, start_position, piece, process_result = False)
 
     def process_message(self, message):
         if "move" in message:
             move = Move.fromJson(message["move"])
             self.message.emit(OtherSideMove(self, move))
             self._new_board = Game.parse_board(message["board"])
-            src_field = self.index_by_label[move.from_field]
-            dst_field = self.get_move_end_field(move)
-            start_position = self.get_field_center(src_field)
-            piece = self.fields[src_field].piece
-            if piece is None:
-                raise Exception("No piece at {}!".format(src_field))
-            if self.invert_colors:
-                piece = piece.inverted()
-            self.move_animation.start(src_field, dst_field, move, start_position, piece, process_result = False)
+            self.start_move_animation(move)
             my_side = 'First' if self.game.user_side == FIRST else 'Second'
             self.my_turn = True
             #self.my_turn = message["to_side"] == my_side

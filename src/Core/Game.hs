@@ -96,8 +96,8 @@ gameHistory = do
       let side = hrSide r
       in  HistoryRecordRep side (moveRep rules side $ hrMove r)
 
-boardAfterMove :: Int -> Side -> GameM BoardRep
-boardAfterMove i side = do
+moveWithResult :: Int -> Side -> GameM (MoveRep, BoardRep, BoardRep)
+moveWithResult i side = do
   history <- gets (gsHistory . gState)
   let nMoves = length history
   let idxDelta = fromEnum $ hrSide (last history)
@@ -107,14 +107,20 @@ boardAfterMove i side = do
   when (moveIdx >= nMoves) $
     throwError $ Unhandled "Turn number is too big"
   let moveIdx' = nMoves - moveIdx
+
+  SomeRules rules <- gets gRules
+  let moveRep' hr = moveRep rules (hrSide hr) (hrMove hr)
+
   if moveIdx == nMoves-1
       then do
-        board <- gets (gsCurrentBoard . gState)
-        return $ boardRep board
+        resultBoard <- gets (gsCurrentBoard . gState)
+        let record = head history
+        return (moveRep' record, boardRep (hrPrevBoard record), boardRep resultBoard)
       else do
-        let nextMoveIdx = moveIdx' - 2
-        let record = history !! nextMoveIdx
-        return $ boardRep $ hrPrevBoard record
+        let nextMoveIdx = moveIdx' - 1
+        let record = history  !! nextMoveIdx
+        let nextRecord = history !! (nextMoveIdx - 1)
+        return (moveRep' record, boardRep $ hrPrevBoard record, boardRep $ hrPrevBoard nextRecord)
 
 gameInitBoard :: GameM BoardRep
 gameInitBoard = do

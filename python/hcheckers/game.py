@@ -443,11 +443,11 @@ class Game(object):
         result = rs.json()
         return result["response"]
 
-    def get_board_after_move(self, turn_idx, side):
-        url = join(self.base_url, "game", self.game_id, "history", str(turn_idx), str(side), "board")
+    def get_move_with_result(self, turn_idx, side):
+        url = join(self.base_url, "game", self.game_id, "history", str(turn_idx), str(side))
         rs = self.get(url)
-        result = rs.json()
-        return Game.parse_board(result["response"])
+        result = rs.json()["response"]
+        return Move.fromJson(result["move"]), Game.parse_board(result["prev_board"]), Game.parse_board(result["next_board"])
 
     def get_initial_board(self):
         url = join(self.base_url, "game", self.game_id, "history", "init", "board")
