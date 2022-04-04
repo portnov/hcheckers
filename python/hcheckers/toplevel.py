@@ -7,6 +7,7 @@ import logging
 import subprocess
 import shlex
 import time
+import webbrowser
 
 from PyQt5.QtGui import QPainter, QPixmap, QIcon
 from PyQt5.Qt import QStyle
@@ -345,8 +346,13 @@ class Checkers(QMainWindow):
         action.setShortcut("Ctrl+L")
         menu.addAction(action)
 
-        menu = self.menuBar().addMenu(_("&History"))
+        menu = self.menuBar().addMenu(_("H&istory"))
         self.history.add_actions_to_menu(menu)
+
+        self.toolbar.addSeparator()
+        menu = self.menuBar().addMenu(_("&Help"))
+        self._create_action(QIcon.fromTheme("help-contents"), _("&Wiki documentation"), menu, self._on_help, key="F1")
+        self._create_action(None, _("&About HCheckers"), menu, self._on_about, toolbar=False)
 
     def _game_control_actions(self):
         return  [self.undo_action, self.request_draw_action, self.capitulate_action, self.ai_hint_action]
@@ -799,6 +805,14 @@ class Checkers(QMainWindow):
             self.board.start_move_animation(move)
 
         self.board.show_board(next_board)
+
+    def _on_help(self, checked=None):
+        webbrowser.open(WIKI_URL)
+
+    def _on_about(self, checked=None):
+        title = _("About HCheckers")
+        text = _(f"This is HCheckers Client application, version {HCHECKERS_VERSION}. Please report issues at {BUGTRACKER_URL}.")
+        QMessageBox.about(self, title, text)
 
     def _handle_game_error(self, rs):
         try:

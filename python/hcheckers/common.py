@@ -2,6 +2,8 @@
 from requests.exceptions import ConnectionError
 from PyQt5.QtWidgets import QDialog, QLineEdit
 
+HCHECKERS_VERSION = "2022.04"
+
 MAN = 1
 KING = 2
 
@@ -22,6 +24,9 @@ PROXY_NONE = 1
 PROXY_CUSTOM = 2
 
 EXAMPLE_PROXY="http://user:password@proxy.example.com:3128"
+
+WIKI_URL = "https://github.com/portnov/hcheckers/wiki"
+BUGTRACKER_URL = "https://github.com/portnov/hcheckers/issues"
 
 class Piece(object):
     def __init__(self, kind, side):
