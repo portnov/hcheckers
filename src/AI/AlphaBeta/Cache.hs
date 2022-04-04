@@ -21,9 +21,6 @@ import Control.Monad.Reader
 import Control.Concurrent.STM
 import qualified StmContainers.Map as SM
 import qualified Data.Map as M
-import Data.Text.Format.Heavy (Single (..))
-import System.Log.Heavy
-import System.Log.Heavy.TH
 
 import Core.Types
 import qualified Core.AdaptiveMap as AM

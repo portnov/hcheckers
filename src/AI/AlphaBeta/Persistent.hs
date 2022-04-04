@@ -15,14 +15,12 @@ import Control.Monad
 import Control.Monad.State
 import Control.Monad.Reader
 import qualified ListT
-import Control.Monad.Catch (catch, SomeException)
 import Control.Concurrent.STM
 import qualified StmContainers.Map as SM
 import qualified Data.ByteString as B
 import qualified Data.Map as M
 import qualified Data.Vector as V
 import Data.Vector.Instances () -- import instances only
-import Data.Text.Format.Heavy
 import Data.Store
 import Data.Bits.Coded
 import Data.Bits.Coding
