@@ -48,8 +48,9 @@ class HistoryTableWidget(QTableWidget):
                 row = row + 1
 
 class HistoryDockerWidget(QWidget):
-    def __init__(self, client, board, parent=None):
-        QWidget.__init__(self, parent)
+    def __init__(self, client, board, toplevel):
+        QWidget.__init__(self, toplevel)
+        self.toplevel = toplevel
         
         self.view_mode = False
 
@@ -62,21 +63,25 @@ class HistoryDockerWidget(QWidget):
 
         self.setLayout(layout)
 
-        self.toggle_action = self._action(QIcon.fromTheme("go-jump"), _("Toggle history viewing mode"), self._on_toggle)
+        self._all_actions = []
+        self.toggle_action = self._action(QIcon.fromTheme("go-jump"), _("Toggle history viewing mode"), self._on_toggle, key="Ctrl+Alt+H")
         self.toggle_action.setCheckable(True)
 
-        self.first_action = self._action(QIcon.fromTheme("go-home"), _("Display initial position"), self._on_go_first)
-        self.next_action = self._action(QIcon.fromTheme("go-next"), _("Display next move"), self._on_go_next)
-        self.last_action = self._action(QIcon.fromTheme("go-last"), _("Display last move"), self._on_go_last)
+        self.first_action = self._action(QIcon.fromTheme("go-home"), _("Display initial position"), self._on_go_first, key="Ctrl+Home")
+        self.next_action = self._action(QIcon.fromTheme("go-next"), _("Display next move"), self._on_go_next, key="Right")
+        self.last_action = self._action(QIcon.fromTheme("go-last"), _("Display last move"), self._on_go_last, key="Ctrl+End")
 
         self._enable_history_actions()
 
         self._cell_callback_active = True
         self.table.cellActivated.connect(self._on_cell_changed)
 
-    def _action(self, icon, text, callback):
+    def _action(self, icon, text, callback, key=None):
         action = self.toolbar.addAction(icon, text)
         action.triggered.connect(callback)
+        if key is not None:
+            action.setShortcut(key)
+        self._all_actions.append(action)
         return action
     
     def _history_actions(self):
@@ -85,6 +90,10 @@ class HistoryDockerWidget(QWidget):
     def _enable_history_actions(self):
         for action in self._history_actions():
             action.setEnabled(self.view_mode)
+
+    def add_actions_to_menu(self, menu):
+        for action in self._all_actions:
+            menu.addAction(action)
 
     view_mode_toggled = pyqtSignal(bool)
     view_board = pyqtSignal(int, int)

@@ -336,8 +336,17 @@ class Checkers(QMainWindow):
         flip = self.settings.value("flip_board", False, type=bool)
         self.flip_action.setChecked(flip)
         self._set_flip_board(flip)
-        menu.addAction(self.history_dock.toggleViewAction())
-        menu.addAction(self.log_dock.toggleViewAction())
+
+        action = self.history_dock.toggleViewAction()
+        action.setShortcut("Ctrl+H")
+        menu.addAction(action)
+
+        action = self.log_dock.toggleViewAction()
+        action.setShortcut("Ctrl+L")
+        menu.addAction(action)
+
+        menu = self.menuBar().addMenu(_("&History"))
+        self.history.add_actions_to_menu(menu)
 
     def _game_control_actions(self):
         return  [self.undo_action, self.request_draw_action, self.capitulate_action, self.ai_hint_action]
