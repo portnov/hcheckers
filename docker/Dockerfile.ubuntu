@@ -1,6 +1,8 @@
 FROM ubuntu
 MAINTAINER Ilya V. Portnov <portnov84@rambler.ru>
 
+ARG DEBIAN_FRONTEND=noninteractive
+
 RUN apt-get update -y && apt-get install -y ca-certificates curl
 RUN apt-get install -y unzip zlib1g-dev c2hs pkg-config libreadline-dev debhelper devscripts
 # Version of stack in ubuntu repos is too old.

@@ -14,5 +14,5 @@ tar-ignore = *.prof
 tar-ignore = *.tar.xz
 tar-ignore = *.log*
 
-extend-diff-ignore = "(^|/)(\.git|\.gitignore|\.stack-work|debian|docker|csv|games|python|test|work|ai|.*tar.xz|.*.hp|.*.eventlog|.*.prof|.*.log.*)"
+extend-diff-ignore = "(^|/)(\.git|\.gitignore|\.stack-work|debian|docker|csv|games|python|test|work|ai|hcheckers.cabal|.*tar.xz|.*.log.*)"
 
