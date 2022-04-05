@@ -813,7 +813,7 @@ class Checkers(QMainWindow):
 
     def _on_about(self, checked=None):
         title = _("About HCheckers")
-        text = _(f"This is HCheckers Client application, version {HCHECKERS_VERSION}. Please report issues at {BUGTRACKER_URL}.")
+        text = _("This is HCheckers Client application, version {}. Please report issues at {}.").format(HCHECKERS_VERSION, BUGTRACKER_URL)
         QMessageBox.about(self, title, text)
 
     def _handle_game_error(self, rs):

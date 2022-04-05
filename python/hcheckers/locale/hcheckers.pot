@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2022-04-04 23:16+0500\n"
+"POT-Creation-Date: 2022-04-05 09:38+0500\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -15,23 +15,23 @@ msgstr ""
 "Generated-By: pygettext.py 1.5\n"
 
 
-#: board.py:781
+#: board.py:785
 msgid "Piece at {} does not have moves"
 msgstr ""
 
-#: board.py:788
+#: board.py:792
 msgid "Possible target fields: {}"
 msgstr ""
 
-#: board.py:816
+#: board.py:820
 msgid "Piece at {} cannot be moved to {}"
 msgstr ""
 
-#: board.py:820
+#: board.py:824
 msgid "Field {} does not belong to you"
 msgstr ""
 
-#: board.py:908
+#: board.py:912
 msgid "Another side have offered a draw. You have to accept or decline it."
 msgstr ""
 
@@ -587,7 +587,7 @@ msgid ""
 "{}"
 msgstr ""
 
-#: toplevel.py:181 toplevel.py:842 toplevel.py:847
+#: toplevel.py:181 toplevel.py:844 toplevel.py:849
 msgid "Exception"
 msgstr ""
 
@@ -783,11 +783,15 @@ msgstr ""
 msgid "Log has been cleared."
 msgstr ""
 
-#: toplevel.py:813
+#: toplevel.py:815
 msgid "About HCheckers"
 msgstr ""
 
-#: toplevel.py:823
+#: toplevel.py:816
+msgid "This is HCheckers Client application, version {}. Please report issues at {}."
+msgstr ""
+
+#: toplevel.py:825
 msgid ""
 "Unexpected response received from the server.\n"
 "Request URL: {}\n"
@@ -795,15 +799,15 @@ msgid ""
 "Response message: {}"
 msgstr ""
 
-#: toplevel.py:834
+#: toplevel.py:836
 msgid "No such move: {}"
 msgstr ""
 
-#: toplevel.py:838
+#: toplevel.py:840
 msgid "Status of current game is unsuitable for this operation. Game status is {}; required status is {}"
 msgstr ""
 
-#: toplevel.py:846
+#: toplevel.py:848
 msgid ""
 "An exception occured while connecting to the server.\n"
 "Request URL: {}\n"

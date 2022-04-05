@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: 0.1.0.0\n"
-"POT-Creation-Date: 2022-04-04 23:16+0500\n"
+"POT-Creation-Date: 2022-04-05 09:38+0500\n"
 "PO-Revision-Date: 2018-11-07 22:30+5\n"
 "Last-Translator: Ilya Portnov <portnov84@rambler.ru>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -15,23 +15,23 @@ msgstr ""
 "Content-Transfer-Encoding: utf-8\n"
 "Generated-By: pygettext.py 1.5\n"
 
-#: board.py:781
+#: board.py:785
 msgid "Piece at {} does not have moves"
 msgstr "Фишка на {} не имеет ходов"
 
-#: board.py:788
+#: board.py:792
 msgid "Possible target fields: {}"
 msgstr "Возможные целевые поля: {}"
 
-#: board.py:816
+#: board.py:820
 msgid "Piece at {} cannot be moved to {}"
 msgstr "Фишка на {} не может быть передвинута на {}"
 
-#: board.py:820
+#: board.py:824
 msgid "Field {} does not belong to you"
 msgstr "Поле {} не принадлежит вам"
 
-#: board.py:908
+#: board.py:912
 msgid "Another side have offered a draw. You have to accept or decline it."
 msgstr "Соперник предложил ничью. Вам нужно согласиться или отказаться."
 
@@ -596,7 +596,7 @@ msgstr ""
 "Не могу запустить локальный сервер; код выхода: {}\n"
 "{}"
 
-#: toplevel.py:181 toplevel.py:842 toplevel.py:847
+#: toplevel.py:181 toplevel.py:844 toplevel.py:849
 msgid "Exception"
 msgstr "Исключение"
 
@@ -796,11 +796,16 @@ msgstr "ИИ предложил следующие ходы: {}"
 msgid "Log has been cleared."
 msgstr "Журнал был очищен."
 
-#: toplevel.py:813
+#: toplevel.py:815
 msgid "About HCheckers"
 msgstr "О HCheckers"
 
-#: toplevel.py:823
+#: toplevel.py:816
+msgid ""
+"This is HCheckers Client application, version {}. Please report issues at {}."
+msgstr "Это клиентское приложение HCheckers, версия {}. Пожалуйста сообщайте о проблемах на странице {}."
+
+#: toplevel.py:825
 msgid ""
 "Unexpected response received from the server.\n"
 "Request URL: {}\n"
@@ -812,11 +817,11 @@ msgstr ""
 "Код ответа: {}\n"
 "Сообщение в ответе: {}"
 
-#: toplevel.py:834
+#: toplevel.py:836
 msgid "No such move: {}"
 msgstr "Нет такого хода: {}"
 
-#: toplevel.py:838
+#: toplevel.py:840
 msgid ""
 "Status of current game is unsuitable for this operation. Game status is {}; "
 "required status is {}"
@@ -824,7 +829,7 @@ msgstr ""
 "Статус текущей игры не подходит для данной операции. Статус игры {}; нужный "
 "статус {}"
 
-#: toplevel.py:846
+#: toplevel.py:848
 msgid ""
 "An exception occured while connecting to the server.\n"
 "Request URL: {}\n"
