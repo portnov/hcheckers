@@ -24,7 +24,7 @@ class HistoryTableWidget(QTableWidget):
             item.setFlags(Qt.ItemIsEnabled | Qt.ItemIsSelectable)
             return item
 
-        first, second = self.client.get_colors(self.client.rules)
+        first, second = self.client.get_colors()
         self.setHorizontalHeaderLabels([first, second])
 
         history = self.client.get_history()

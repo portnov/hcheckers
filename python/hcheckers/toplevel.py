@@ -67,6 +67,8 @@ class CountsWidget(QWidget):
         self.first_kings.setText(str(first_kings))
         self.second_men.setText(str(second_men))
         self.second_kings.setText(str(second_kings))
+        first, second = self.toplevel.game.get_colors()
+        self.setToolTip(_("{}: {} men, {} kings\n{}: {} men, {} kings").format(first, first_men, first_kings, second, second_men, second_kings))
 
 class Checkers(QMainWindow):
     def __init__(self, share_dir):
@@ -642,7 +644,7 @@ class Checkers(QMainWindow):
 
     @handling_error
     def get_result_str(self, result):
-        first, second = self.game.get_colors(self.game.rules)
+        first, second = self.game.get_colors()
         if result == 'FirstWin':
             return _("{} win").format(first)
         elif result == 'SecondWin':

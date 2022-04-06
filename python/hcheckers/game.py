@@ -253,6 +253,7 @@ class Game(object):
         self.move_exception = None
         self.finished = False
         self.draw_state = None
+        self._colors = None
 
     def is_active(self):
         defined = not (self.base_url is None or self.user_name is None or self.game_id is None)
@@ -352,6 +353,7 @@ class Game(object):
         logging.info(_("Newly created game ID: {}. First side to move: {}.").format(self.game_id, first_color))
         self.rules = rules
         self.finished = False
+        self._colors = None
         return self.game_id, first_side
 
     def get_notation(self, rules):
@@ -383,12 +385,14 @@ class Game(object):
         else:
             return FIRST, SECOND
 
-    def get_colors(self, rules):
-        invert = self.get_invert_colors(rules)
-        if invert:
-            return _("Black"), _("White")
-        else:
-            return _("White"), _("Black")
+    def get_colors(self):
+        if self._colors is None:
+            invert = self.get_invert_colors(self.rules)
+            if invert:
+                self._colors = _("Black"), _("White")
+            else:
+                self._colors = _("White"), _("Black")
+        return self._colors
 
     def register_user(self, name, side):
         self.user_name = name
