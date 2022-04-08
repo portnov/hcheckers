@@ -15,6 +15,7 @@ class HistoryTableWidget(QTableWidget):
         self.board = board
 
         self.setColumnCount(2)
+        self.setSelectionMode(QAbstractItemView.SingleSelection)
 
     def fill(self):
         self.clearContents()
