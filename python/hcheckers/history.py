@@ -34,6 +34,7 @@ class HistoryTableWidget(QTableWidget):
         row = 0
         self.setItem(row, 0, make_item(_("Initial position")))
         self.setItem(row, 1, make_item(_("Initial position")))
+        self.setVerticalHeaderItem(0, QTableWidgetItem("-"))
         row = 1
         for record in reversed(history):
             side = record["side"]
@@ -45,7 +46,9 @@ class HistoryTableWidget(QTableWidget):
 
             self.setItem(row, column, make_item(self.board.show_move(move)))
             if side == 'Second':
+                self.setVerticalHeaderItem(row, QTableWidgetItem(str(row)))
                 row = row + 1
+        self.setVerticalHeaderItem(row, QTableWidgetItem("…"))
 
 class HistoryDockerWidget(QWidget):
     def __init__(self, client, board, toplevel):
