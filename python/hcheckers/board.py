@@ -129,6 +129,56 @@ class MoveAnimation(QObject):
         self.update(self.progress())
         return True
 
+class PossibleCaptureAnimation(QObject):
+    def __init__(self, parent):
+        QObject.__init__(self, parent)
+        self.board = parent
+        self.timer = parent.startTimer(ANIMATION_STEP_DURATION)
+        self.steps = 10
+        self.step = 0
+        self.captured_fields = []
+        self.started = False
+        self.opacity = 0.0
+
+    def start(self, moves):
+        self.captured_fields = sum([[step.field for step in move.steps if step.capture == True] for move in moves], [])
+        self.step = 0
+        self.steps = 2*ANIMATION_STEPS_PER_STEP
+        self.started = True
+
+    def is_active(self):
+        return len(self.captured_fields) > 0
+
+    def progress(self):
+        return 2 * float(self.step) / float(self.steps)
+
+    def stop(self):
+        self.captured_fields = []
+        self.started = False
+        self.opacity = 0.0
+        self.step = 0
+
+    def update(self, time):
+        if time >= 2.0:
+            time = 2.0
+        if time <= 1.0:
+            self.opacity = time
+        else:
+            self.opacity = 1.0 - (time - 1.0)
+
+    def tick(self, e):
+        if e.timerId() != self.timer:
+            return False
+        if not self.is_active():
+            return False
+        if self.step > self.steps:
+            self.stop()
+        self.step = self.step + 1
+        self.update(self.progress())
+        return True
+
+
+
 class TextMessage(QObject):
     sequence = 0
 
@@ -199,6 +249,9 @@ class Board(QWidget):
 
         self.move_animation = MoveAnimation(self)
         self.move_animation.finished.connect(self.on_animation_finished)
+
+        self.possible_captures_animation = PossibleCaptureAnimation(self)
+
         self.hint_moves = None
 
         self.setMouseTracking(True)
@@ -505,6 +558,13 @@ class Board(QWidget):
         field.possible_piece = prev_possible_piece
         field.captured = prev_captured
 
+        if self.possible_captures_animation.is_active():
+            if field.label in self.possible_captures_animation.captured_fields:
+                cross = self.theme.get_captured()
+                painter.setOpacity(self.possible_captures_animation.opacity)
+                painter.drawPixmap(sz.init_x + x, sz.init_y + y, cross)
+                painter.setOpacity(1.0)
+
     def draw(self):
         if self._pixmap is not None:
             return
@@ -757,7 +817,7 @@ class Board(QWidget):
         if e.timerId() == self._text_message_timer:
             pass
         else:
-            if self.move_animation.tick(e):
+            if self.move_animation.tick(e) or self.possible_captures_animation.tick(e):
                 self._pixmap = None
                 self.repaint()
     
@@ -782,6 +842,8 @@ class Board(QWidget):
             moves = self.game.get_possible_moves(field.label)
             #logging.debug(moves)
             if not moves:
+                all_moves = self.game.get_possible_moves()
+                self.possible_captures_animation.start(all_moves)
                 logging.warning(_("Piece at {} does not have moves").format(field.notation))
                 self._show_forbidden_cursor()
             else:
