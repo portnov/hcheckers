@@ -70,6 +70,16 @@ special cmd args =
           withLogContext (LogContextFrame [] (include defaultLogFilter)) $
             learnPdn ai path
 
+    ["bench", rulesName, path, ns] -> do
+      withRules rulesName $ \rules -> do
+        ai <- loadAi "default" rules path
+        withCheckers cmd $ do
+            withLogContext (LogContextFrame [] (include defaultLogFilter)) $ do
+              replicateM_ (read ns) $
+                  runBattleLocal (SomeRules rules) (1,SomeAi ai) (2,SomeAi ai) "battle.pdn"
+              return ()
+            printCurrentMetrics (Just "ai.")
+
     ["battle", rulesName, path1, path2] -> do
       withRules rulesName $ \rules -> do
         ai1 <- loadAi "default" rules path1
