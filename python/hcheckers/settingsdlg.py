@@ -334,6 +334,13 @@ class ViewSettingsPage(QWidget):
         layout.addRow(_("Show board borders with notation"), self.show_border)
         self.show_possible_moves = QCheckBox(self)
         layout.addRow(_("Show possible moves"), self.show_possible_moves)
+
+        self.highlight_captures = QComboBox(self)
+        self.highlight_captures.addItem(_("Higlight when another piece is clicked"), SHOW_ON_CLICK)
+        self.highlight_captures.addItem(_("Always highlight"), SHOW_ALWAYS)
+        self.highlight_captures.addItem(_("Never highlight"), NEVER_SHOW)
+        layout.addRow(_("Highlight possible captures"), self.highlight_captures)
+
         self.theme = QComboBox(self)
         self.themes = dict()
         for theme in Theme.list_themes(share_dir):
@@ -363,6 +370,10 @@ class ViewSettingsPage(QWidget):
         show_possible_moves = settings.value("show_possible_moves", type=bool)
         self.show_possible_moves.setCheckState(Qt.Checked if show_possible_moves else Qt.Unchecked)
 
+        highlight_captures = settings.value("highlight_captures", SHOW_ON_CLICK)
+        idx = self.highlight_captures.findData(highlight_captures)
+        self.highlight_captures.setCurrentIndex(idx)
+
         theme = settings.value("theme")
         theme_idx = self.theme.findData(theme)
         if theme_idx < 0:
@@ -377,6 +388,7 @@ class ViewSettingsPage(QWidget):
         settings.setValue("show_notation", self.show_notation.checkState() == Qt.Checked)
         settings.setValue("show_border", self.show_border.checkState() == Qt.Checked)
         settings.setValue("show_possible_moves", self.show_possible_moves.checkState() == Qt.Checked)
+        settings.setValue("highlight_captures", self.highlight_captures.currentData())
         settings.setValue("theme", self.theme.currentData())
         settings.setValue("enable_sound", self.get_enable_sound())
 

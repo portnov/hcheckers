@@ -137,14 +137,18 @@ class PossibleCaptureAnimation(QObject):
         self.steps = 10
         self.step = 0
         self.captured_fields = []
+        self.attacking_fields = []
         self.started = False
         self.opacity = 0.0
+        self.looping = False
 
-    def start(self, moves):
+    def start(self, moves, loop = False):
         self.captured_fields = sum([[step.field for step in move.steps if step.capture == True] for move in moves], [])
+        self.attacking_fields = [move.from_field for move in moves if any(step.capture == True for step in move.steps)]
         self.step = 0
         self.steps = 2*ANIMATION_STEPS_PER_STEP
         self.started = True
+        self.looping = loop
 
     def is_active(self):
         return len(self.captured_fields) > 0
@@ -172,12 +176,28 @@ class PossibleCaptureAnimation(QObject):
         if not self.is_active():
             return False
         if self.step > self.steps:
-            self.stop()
+            if self.looping:
+                self.step = 0
+            else:
+                self.stop()
         self.step = self.step + 1
         self.update(self.progress())
         return True
 
-
+    def draw_field(self, painter, field, sz, x, y):
+        if not self.is_active():
+            return
+        is_captured = field.label in self.captured_fields
+        is_attacking = field.label in self.attacking_fields
+        if is_captured or is_attacking:
+            painter.setOpacity(self.opacity)
+            if is_captured:
+                cross = self.board.theme.get_captured()
+                painter.drawPixmap(sz.init_x + x, sz.init_y + y, cross)
+            if is_attacking:
+                attacking = self.board.theme.get_attacking()
+                painter.drawPixmap(sz.init_x + x, sz.init_y + y, attacking)
+            painter.setOpacity(1.0)
 
 class TextMessage(QObject):
     sequence = 0
@@ -292,9 +312,12 @@ class Board(QWidget):
             self.setCursor(Qt.ArrowCursor)
             moves = self.game.get_possible_moves()
             self._moveable_fields = set(move.from_field for move in moves)
+            if self._highlight_captures() == SHOW_ALWAYS:
+                self.possible_captures_animation.start(moves, loop=True)
         else:
             self.setCursor(Qt.WaitCursor)
             self._moveable_fields = None
+            self.possible_captures_animation.stop()
 
     my_turn = property(get_my_turn, set_my_turn)
 
@@ -558,12 +581,7 @@ class Board(QWidget):
         field.possible_piece = prev_possible_piece
         field.captured = prev_captured
 
-        if self.possible_captures_animation.is_active():
-            if field.label in self.possible_captures_animation.captured_fields:
-                cross = self.theme.get_captured()
-                painter.setOpacity(self.possible_captures_animation.opacity)
-                painter.drawPixmap(sz.init_x + x, sz.init_y + y, cross)
-                painter.setOpacity(1.0)
+        self.possible_captures_animation.draw_field(painter, field, sz, x, y)
 
     def draw(self):
         if self._pixmap is not None:
@@ -828,6 +846,9 @@ class Board(QWidget):
         self.setCursor(Qt.ForbiddenCursor)
         QTimer.singleShot(300, lambda: self.setCursor(Qt.ArrowCursor))
 
+    def _highlight_captures(self):
+        return self.settings.value("highlight_captures", SHOW_ON_CLICK)
+
     @handling_error
     def process_click(self, row, col):
         self.field_clicked.emit(row, col)
@@ -840,10 +861,10 @@ class Board(QWidget):
         piece = self._board.get(field.label)
         if self._is_mine(piece):
             moves = self.game.get_possible_moves(field.label)
-            #logging.debug(moves)
             if not moves:
-                all_moves = self.game.get_possible_moves()
-                self.possible_captures_animation.start(all_moves)
+                if self._highlight_captures() == SHOW_ON_CLICK:
+                    all_moves = self.game.get_possible_moves()
+                    self.possible_captures_animation.start(all_moves)
                 logging.warning(_("Piece at {} does not have moves").format(field.notation))
                 self._show_forbidden_cursor()
             else:

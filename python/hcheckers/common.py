@@ -28,6 +28,10 @@ EXAMPLE_PROXY="http://user:password@proxy.example.com:3128"
 WIKI_URL = "https://github.com/portnov/hcheckers/wiki"
 BUGTRACKER_URL = "https://github.com/portnov/hcheckers/issues"
 
+SHOW_ON_CLICK = 'on_click'
+SHOW_ALWAYS = 'always'
+NEVER_SHOW = 'never'
+
 class Piece(object):
     def __init__(self, kind, side):
         self.kind = kind

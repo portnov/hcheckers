@@ -153,6 +153,7 @@ class Theme(object):
         self.moveable = CachedPixmap(join(path, settings.value("moveable", "moveable.svg")))
         self.last_moved = CachedPixmap(join(path, settings.value("lastmoved", "lastmoved.svg")))
         self.captured = CachedPixmap(join(path, settings.value("captured", "captured.svg")))
+        self.attacking = CachedPixmap(join(path, settings.value("attacking", "attacking.svg")))
 
         self.man_black = CachedPixmap(join(path, settings.value("man_black", "manblack.svg")))
         self.man_white = CachedPixmap(join(path, settings.value("man_white", "manwhite.svg")))
@@ -197,6 +198,7 @@ class Theme(object):
         self.moveable.invalidate()
         self.last_moved.invalidate()
         self.captured.invalidate()
+        self.attacking.invalidate()
         self.man_black.invalidate()
         self.man_white.invalidate()
         self.king_black.invalidate()
@@ -218,6 +220,9 @@ class Theme(object):
     
     def get_captured(self):
         return self.captured.get(self.size)
+
+    def get_attacking(self):
+        return self.attacking.get(self.size)
     
     def get_pattern1(self):
         return self.pattern1.get(self.size)
