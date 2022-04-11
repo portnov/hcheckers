@@ -9,6 +9,7 @@ hcheckers.cabal
 *.pyc
 *.mo
 *.log
+*.log.*
 docker/work
 docker/target
 docker/stack
