@@ -548,7 +548,7 @@ runAI ai@(AlphaBeta params rules eval) handle gameId side aiSession board = do
       (output, mbNextInput) <- go input
       case mbNextInput of
         Nothing -> do
-          let bad (MoveAndScore _ score) = (maximize && score <= score0 - 1) || (minimize && score >= score0 + 1)
+          let bad (MoveAndScore _ score) = (maximize && score <= score0 - 1 && score > loose) || (minimize && score >= score0 + 1 && score < win)
           if abDeeperIfBad params && all bad output
             then do
                  let nextInput = deeper (abDepth $ diiParams input) 1 output input
