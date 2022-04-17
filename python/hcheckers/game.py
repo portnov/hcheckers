@@ -119,11 +119,11 @@ class AI(object):
         return ai
     
     @classmethod
-    def list_from_settings(cls, settings):
+    def list_from_settings(cls, share_dir, settings):
         result = []
         size = settings.beginReadArray("AI")
         if size is None or size == 0:
-            result = default_ais
+            result = AI.load_default_ais(share_dir)
         else:
             for idx in range(size):
                 settings.setArrayIndex(idx)
@@ -131,6 +131,23 @@ class AI(object):
                 result.append(ai)
         settings.endArray()
         return result
+
+    @classmethod
+    def load_default_ais(cls, share_dir):
+        ai_names = [
+                (_("Beginner"), "beginner.json"),
+                (_("Novice"), "novice.json"),
+                (_("Average"), "average.json"),
+                (_("Good"), "good.json"),
+                (_("Master"), "master.json")
+            ]
+
+        ais = []
+        for title, json_name in ai_names:
+            ai = AI.from_json_file(join(share_dir, "ai_presets", json_name))
+            ai.title = title
+            ais.append(ai)
+        return ais
 
     def to_settings(self, settings):
         settings.setValue("title", self.title)
@@ -211,14 +228,6 @@ class AI(object):
             self.extra = json.dumps(extra)
         else:
             self.extra = ""
-
-default_ais = [
-        AI(title=_("Beginner"), depth=2, start_depth=2, max_combination_depth=6),
-        AI(title=_("Novice"), depth=4, start_depth=4, max_combination_depth=4),
-        AI(title=_("Average"), depth=6, start_depth=6, max_combination_depth=4),
-        AI(title=_("Good"), depth=6, start_depth=6, max_combination_depth=9),
-        AI(title=_("Master"), depth=7, start_depth=7, max_combination_depth=9, deeper_if_bad=True)
-    ]
 
 class GameSettings(object):
     def __init__(self):

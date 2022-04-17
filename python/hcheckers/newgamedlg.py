@@ -213,7 +213,7 @@ class NewGameDialog(DialogBase):
 
     def _fill_ais(self, settings):
         self.ai.clear()
-        self.ais = AI.list_from_settings(settings)
+        self.ais = AI.list_from_settings(self.share_dir, settings)
         for idx, ai in enumerate(self.ais):
             self.ai.addItem(ai.title, idx)
         ai = settings.value("ai")

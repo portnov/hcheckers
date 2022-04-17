@@ -11,13 +11,42 @@
    sodipodi:docname="attacking.svg"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:xlink="http://www.w3.org/1999/xlink"
    xmlns="http://www.w3.org/2000/svg"
    xmlns:svg="http://www.w3.org/2000/svg"
    xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
    xmlns:cc="http://creativecommons.org/ns#"
    xmlns:dc="http://purl.org/dc/elements/1.1/">
   <defs
-     id="defs4" />
+     id="defs4">
+    <linearGradient
+       inkscape:collect="always"
+       id="linearGradient1082">
+      <stop
+         style="stop-color:#cc0000;stop-opacity:0"
+         offset="0"
+         id="stop1078" />
+      <stop
+         style="stop-color:#d20808;stop-opacity:0.19607843;"
+         offset="0.70821619"
+         id="stop2111" />
+      <stop
+         style="stop-color:#ef2929;stop-opacity:1"
+         offset="1"
+         id="stop1080" />
+    </linearGradient>
+    <radialGradient
+       inkscape:collect="always"
+       xlink:href="#linearGradient1082"
+       id="radialGradient1084"
+       cx="64"
+       cy="986.75854"
+       fx="64"
+       fy="986.75854"
+       r="64"
+       gradientUnits="userSpaceOnUse"
+       gradientTransform="matrix(5.7638884e-4,1.0250561,-0.99999984,5.6449659e-4,1049.3765,921.97752)" />
+  </defs>
   <sodipodi:namedview
      id="base"
      pagecolor="#ffffff"
@@ -25,18 +54,18 @@
      borderopacity="1.0"
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
-     inkscape:zoom="5.3740115"
-     inkscape:cx="26.888666"
-     inkscape:cy="56.475503"
+     inkscape:zoom="7.5999999"
+     inkscape:cx="64.013158"
+     inkscape:cy="69.144737"
      inkscape:document-units="px"
      inkscape:current-layer="g5357"
      showgrid="false"
      units="px"
      inkscape:snap-page="true"
      inkscape:window-width="1916"
-     inkscape:window-height="1172"
+     inkscape:window-height="1196"
      inkscape:window-x="0"
-     inkscape:window-y="24"
+     inkscape:window-y="0"
      inkscape:window-maximized="1"
      inkscape:pagecheckerboard="0" />
   <metadata
@@ -57,11 +86,13 @@
      transform="translate(0,-924.36216)">
     <g
        id="g5357">
-      <path
-         id="rect886"
-         style="fill:#ef2929;stroke:none;stroke-width:8.848;stroke-linecap:round;paint-order:markers fill stroke"
-         d="M 0 0 L 0 128 L 128 128 L 128 0 L 0 0 z M 64 2.8164062 A 61.182991 61.182991 0 0 1 125.18359 64 A 61.182991 61.182991 0 0 1 64 125.18359 A 61.182991 61.182991 0 0 1 2.8164062 64 A 61.182991 61.182991 0 0 1 64 2.8164062 z "
-         transform="translate(0,924.36216)" />
+      <rect
+         style="fill:url(#radialGradient1084);stroke:none;stroke-width:8.848;stroke-linecap:round;paint-order:markers fill stroke;fill-opacity:1"
+         id="rect930"
+         width="128"
+         height="128"
+         x="0"
+         y="924.36218" />
     </g>
   </g>
 </svg>

@@ -237,9 +237,9 @@ class Board(QWidget):
         self.game = game
         self._theme = theme
         self.settings = settings
-        self._show_notation = settings.value("show_notation", type=bool)
+        self._show_notation = settings.value("show_notation", True, type=bool)
         self._show_border = settings.value("show_border", False, type=bool)
-        self.show_possible_moves = settings.value("show_possible_moves", type=bool)
+        self.show_possible_moves = settings.value("show_possible_moves", True, type=bool)
         self.invert_colors = False
         self._flip = False
         self.topology = 'Diagonal'

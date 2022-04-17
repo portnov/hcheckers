@@ -107,6 +107,7 @@ class Checkers(QMainWindow):
         self.share_dir = share_dir
         self.setWindowTitle(_("HCheckers client"))
         self.setWindowIcon(self._icon("hcheckers.svg"))
+        self.resize(1024, 1024)
         self.settings = QSettings("hcheckers", "hcheckers")
         self._board_setup_mode = False
         self._game_active = False
@@ -220,7 +221,7 @@ class Checkers(QMainWindow):
             raise Exception("Cant locate share directory")
         theme_name = self.settings.value("theme", "default")
         self.theme = Theme(join(self.share_dir, "themes", theme_name), None)
-        self.theme.enable_sound = self.settings.value("enable_sound", type=bool)
+        self.theme.enable_sound = self.settings.value("enable_sound", True, type=bool)
         self.game = Game(url = self.server_url, proxy_usage=self.proxy_usage, proxy_address=self.proxy_address)
         self.poll_timer = self.startTimer(500)
         self.setup_fields_on_poll = False
@@ -275,6 +276,7 @@ class Checkers(QMainWindow):
         self.history_dock.setWidget(self.history)
         self.history_dock.setObjectName("history")
         self.addDockWidget(Qt.RightDockWidgetArea, self.history_dock)
+        self.history_dock.hide()
 
         self.log = QListWidget(self)
         self.log.setContextMenuPolicy(Qt.CustomContextMenu)
@@ -284,6 +286,7 @@ class Checkers(QMainWindow):
         self.log_dock.setWidget(self.log)
         self.log_dock.setObjectName("log")
         self.addDockWidget(Qt.BottomDockWidgetArea, self.log_dock)
+        self.log_dock.hide()
 
         console_handler = logging.getLogger().handlers[0]
         logging.getLogger().removeHandler(console_handler)
@@ -905,7 +908,7 @@ class Checkers(QMainWindow):
                 logging.exception(e)
                 print(e)
 
-        use_local_server = self.settings.value("use_local_server", type=bool)
+        use_local_server = self.settings.value("use_local_server", True, type=bool)
         if use_local_server and self.local_server_used:
             try:
                 self.game.shutdown()

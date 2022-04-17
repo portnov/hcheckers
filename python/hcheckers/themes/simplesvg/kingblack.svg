@@ -7,7 +7,6 @@
    xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
    xmlns:svg="http://www.w3.org/2000/svg"
    xmlns="http://www.w3.org/2000/svg"
-   xmlns:xlink="http://www.w3.org/1999/xlink"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
    width="128"
@@ -15,32 +14,10 @@
    viewBox="0 0 128 128"
    id="svg2"
    version="1.1"
-   inkscape:version="0.92.2 (5c3e80d, 2017-08-06)"
-   sodipodi:docname="moveable.svg">
+   inkscape:version="0.91 r13725"
+   sodipodi:docname="kingblack.svg">
   <defs
-     id="defs4">
-    <linearGradient
-       inkscape:collect="always"
-       id="linearGradient3329">
-      <stop
-         style="stop-color:#2e3436;stop-opacity:0.13768116"
-         offset="0"
-         id="stop3325" />
-      <stop
-         style="stop-color:#d3d7cf;stop-opacity:0;"
-         offset="1"
-         id="stop3327" />
-    </linearGradient>
-    <linearGradient
-       inkscape:collect="always"
-       xlink:href="#linearGradient3329"
-       id="linearGradient3331"
-       x1="3.5029781"
-       y1="927.86511"
-       x2="124.49703"
-       y2="1048.8591"
-       gradientUnits="userSpaceOnUse" />
-  </defs>
+     id="defs4" />
   <sodipodi:namedview
      id="base"
      pagecolor="#ffffff"
@@ -48,17 +25,17 @@
      borderopacity="1.0"
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
-     inkscape:zoom="3.959798"
-     inkscape:cx="14.679007"
-     inkscape:cy="52.326466"
+     inkscape:zoom="2.8"
+     inkscape:cx="46.895666"
+     inkscape:cy="57.649866"
      inkscape:document-units="px"
      inkscape:current-layer="layer1"
      showgrid="false"
      units="px"
      inkscape:snap-page="true"
-     inkscape:window-width="1916"
-     inkscape:window-height="1196"
-     inkscape:window-x="0"
+     inkscape:window-width="664"
+     inkscape:window-height="764"
+     inkscape:window-x="667"
      inkscape:window-y="0"
      inkscape:window-maximized="0" />
   <metadata
@@ -69,7 +46,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title></dc:title>
+        <dc:title />
       </cc:Work>
     </rdf:RDF>
   </metadata>
@@ -78,12 +55,17 @@
      inkscape:groupmode="layer"
      id="layer1"
      transform="translate(0,-924.36216)">
-    <rect
-       style="fill:url(#linearGradient3331);fill-opacity:1;fill-rule:evenodd;stroke:#960000;stroke-width:2.97826767;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
-       id="rect3336"
-       width="125.02173"
-       height="125.02174"
-       x="1.4891338"
-       y="925.85132" />
+    <circle
+       style="fill:#1a1a1a;stroke:#666666;stroke-width:6;stroke-miterlimit:4;stroke-dasharray:none"
+       id="path3382"
+       cx="64"
+       cy="988.36218"
+       r="57.599998" />
+    <circle
+       r="31.547112"
+       cy="988.36218"
+       cx="64"
+       id="circle4222"
+       style="fill:#1a1a1a;stroke:#666666;stroke-width:6;stroke-miterlimit:4;stroke-dasharray:none" />
   </g>
 </svg>

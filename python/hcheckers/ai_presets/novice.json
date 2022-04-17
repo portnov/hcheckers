@@ -1,0 +1,2 @@
+{"depth": 4, "start_depth": 4, "max_combination_depth": 4, "dynamic_depth": 6, "deeper_if_bad": false, "moves_bound_low": 4, "moves_bound_high": 8, "use_positional_score": true, "time": null, "random_opening_depth": 2, "random_opening_options": 4, "mobility_weight": 32, "backyard_weight": 80, "center_weight": 10, "opposite_side_weight": 100, "backed_weight": 100, "asymetry_weight": -25, "pre_king_weight": 15, "attacked_man_coef": -72, "attacked_king_coef": -200, "accept_draw": "always", "border_man_weight": -16, "helped_king_coef": 3, "threat_weight": 10}
+

@@ -13,8 +13,9 @@ from hcheckers.theme import *
 JSON_MASK = "JSON files (*.json)"
 
 class AiListWidget(QListWidget):
-    def __init__(self, parent=None):
+    def __init__(self, share_dir, parent=None):
         QListWidget.__init__(self, parent)
+        self.share_dir = share_dir
         self.ais = []
 
     def add_ai(self, ai=None):
@@ -30,7 +31,7 @@ class AiListWidget(QListWidget):
         self.update()
 
     def load_ais(self, settings):
-        for ai in AI.list_from_settings(settings):
+        for ai in AI.list_from_settings(self.share_dir, settings):
             self.add_ai(ai)
 
     def save_ais(self, settings):
@@ -263,9 +264,9 @@ class AiEditorWidget(QWidget):
         return ai
 
 class AiPresetsPage(QWidget):
-    def __init__(self, parent=None):
+    def __init__(self, share_dir, parent=None):
         QWidget.__init__(self, parent)
-        self.selector = AiListWidget(self)
+        self.selector = AiListWidget(share_dir, self)
         self.editor = AiEditorWidget(self)
         layout = QHBoxLayout()
         vbox = QVBoxLayout()
@@ -361,27 +362,27 @@ class ViewSettingsPage(QWidget):
         return self.enable_sound.checkState() == Qt.Checked
 
     def load(self, settings):
-        show_notation = settings.value("show_notation", type=bool)
+        show_notation = settings.value("show_notation", True, type=bool)
         self.show_notation.setCheckState(Qt.Checked if show_notation else Qt.Unchecked)
 
         show_border = settings.value("show_border", False, type=bool)
         self.show_border.setCheckState(Qt.Checked if show_border else Qt.Unchecked)
 
-        show_possible_moves = settings.value("show_possible_moves", type=bool)
+        show_possible_moves = settings.value("show_possible_moves", True, type=bool)
         self.show_possible_moves.setCheckState(Qt.Checked if show_possible_moves else Qt.Unchecked)
 
         highlight_captures = settings.value("highlight_captures", SHOW_ON_CLICK)
         idx = self.highlight_captures.findData(highlight_captures)
         self.highlight_captures.setCurrentIndex(idx)
 
-        theme = settings.value("theme")
+        theme = settings.value("theme", "default")
         theme_idx = self.theme.findData(theme)
         if theme_idx < 0:
             theme_idx = self.theme.findText("default")
         if theme_idx >= 0:
             self.theme.setCurrentIndex(theme_idx)
 
-        enable_sound = settings.value("enable_sound", type=bool)
+        enable_sound = settings.value("enable_sound", True, type=bool)
         self.enable_sound.setCheckState(Qt.Checked if enable_sound else Qt.Unchecked)
 
     def save(self, settings):
@@ -442,10 +443,10 @@ class GeneralPage(QWidget):
         url = settings.value("server_url", DEFAULT_SERVER_URL)
         self.server_url.widget.setText(url)
 
-        use_local_server = settings.value("use_local_server", type=bool)
+        use_local_server = settings.value("use_local_server", True, type=bool)
         self.use_local_server.setCheckState(Qt.Checked if use_local_server else Qt.Unchecked)
 
-        path = settings.value("local_server_path", "hcheckersd --local")
+        path = settings.value("local_server_path", "hcheckersd --local=on")
         self.local_server_path.widget.setText(path)
         self.local_server_path.widget.setEnabled(use_local_server)
         self.local_server_path.widget.is_mandatory = use_local_server
@@ -481,7 +482,7 @@ class SettingsDialog(DialogBase):
         self.tabs.addTab(self.general, _("General"))
         self.view = ViewSettingsPage(share_dir, self)
         self.tabs.addTab(self.view, _("View Settings"))
-        self.ais = AiPresetsPage(self)
+        self.ais = AiPresetsPage(share_dir, self)
         self.tabs.addTab(self.ais, _("AI Presets"))
         layout.addWidget(self.tabs)
         buttons = QDialogButtonBox(
