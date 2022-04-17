@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2022-04-11 23:47+0500\n"
+"POT-Creation-Date: 2022-04-17 16:22+0500\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -35,76 +35,112 @@ msgstr ""
 msgid "Another side have offered a draw. You have to accept or decline it."
 msgstr ""
 
-#: common.py:181
+#: common.py:182
 msgid "Other side move: {}"
 msgstr ""
 
-#: common.py:186
+#: common.py:187
 msgid "Other side requested undo"
 msgstr ""
 
-#: common.py:197
+#: common.py:198
 msgid "Wating for another side turn"
 msgstr ""
 
-#: common.py:201
+#: common.py:202
 msgid "Another side have offered a draw"
 msgstr ""
 
-#: common.py:209
+#: common.py:210
 msgid "Another side accepted the draw."
 msgstr ""
 
-#: common.py:211
+#: common.py:212
 msgid "Another side declined the draw."
 msgstr ""
 
-#: common.py:218
+#: common.py:219
 msgid "AI suggested {} move(s)"
 msgstr ""
 
-#: common.py:283
+#: common.py:284
 msgid "Russian draughts"
 msgstr ""
 
 #: common.py:284
-msgid "Simple draughts"
+msgid "https://en.wikipedia.org/wiki/Russian_draughts"
 msgstr ""
 
 #: common.py:285
+msgid "Simple draughts"
+msgstr ""
+
+#: common.py:285 common.py:290 common.py:291
+msgid "https://github.com/portnov/hcheckers/wiki/Rules"
+msgstr ""
+
+#: common.py:286
 msgid "English draughts"
 msgstr ""
 
 #: common.py:286
+msgid "https://en.wikipedia.org/wiki/English_draughts"
+msgstr ""
+
+#: common.py:287
 msgid "International draughts"
 msgstr ""
 
 #: common.py:287
+msgid "https://en.wikipedia.org/wiki/International_draughts"
+msgstr ""
+
+#: common.py:288
 msgid "Brazilian draughts"
 msgstr ""
 
 #: common.py:288
+msgid "https://en.wikipedia.org/wiki/Brazilian_draughts"
+msgstr ""
+
+#: common.py:289
 msgid "Canadian draughts"
 msgstr ""
 
 #: common.py:289
-msgid "Spancirety draughts"
+msgid "https://en.wikipedia.org/wiki/Canadian_checkers"
 msgstr ""
 
 #: common.py:290
-msgid "Diagonal draughts"
+msgid "Spancirety draughts"
 msgstr ""
 
 #: common.py:291
+msgid "Diagonal draughts"
+msgstr ""
+
+#: common.py:292
 msgid "Czech draughts"
 msgstr ""
 
 #: common.py:292
+msgid "https://en.wikipedia.org/wiki/Czech_draughts"
+msgstr ""
+
+#: common.py:293
 msgid "Turkish draughts"
 msgstr ""
 
 #: common.py:293
+msgid "https://en.wikipedia.org/wiki/Turkish_draughts"
+msgstr ""
+
+#: common.py:294
 msgid "Armeinan draughts (Tama)"
+msgstr ""
+
+#: common.py:294
+msgid "https://en.wikipedia.org/wiki/Armenian_draughts"
 msgstr ""
 
 #: game.py:216
@@ -127,11 +163,11 @@ msgstr ""
 msgid "Master"
 msgstr ""
 
-#: game.py:349 game.py:392 game.py:394 lobby.py:37 newgamedlg.py:114
+#: game.py:349 game.py:392 game.py:394 lobby.py:37 newgamedlg.py:121
 msgid "White"
 msgstr ""
 
-#: game.py:351 game.py:392 game.py:394 lobby.py:37 newgamedlg.py:115
+#: game.py:351 game.py:392 game.py:394 lobby.py:37 newgamedlg.py:122
 msgid "Black"
 msgstr ""
 
@@ -197,7 +233,7 @@ msgstr ""
 msgid "Status"
 msgstr ""
 
-#: lobby.py:37 newgamedlg.py:105
+#: lobby.py:37 newgamedlg.py:112
 msgid "Rules"
 msgstr ""
 
@@ -233,71 +269,75 @@ msgstr ""
 msgid "Action"
 msgstr ""
 
-#: newgamedlg.py:107
+#: newgamedlg.py:108 toplevel.py:260
+msgid "Click to open the description of selected rules"
+msgstr ""
+
+#: newgamedlg.py:114
 msgid "User name"
 msgstr ""
 
-#: newgamedlg.py:116
+#: newgamedlg.py:123
 msgid "User plays"
 msgstr ""
 
-#: newgamedlg.py:122
+#: newgamedlg.py:129
 msgid "Use default initial position"
 msgstr ""
 
-#: newgamedlg.py:123
+#: newgamedlg.py:130
 msgid "Manual initial position setup"
 msgstr ""
 
-#: newgamedlg.py:124
+#: newgamedlg.py:131
 msgid "Use initial board of previous game"
 msgstr ""
 
-#: newgamedlg.py:125
+#: newgamedlg.py:132
 msgid "Load initial board from FEN file"
 msgstr ""
 
-#: newgamedlg.py:126
+#: newgamedlg.py:133
 msgid "Load initial board from PDN file"
 msgstr ""
 
-#: newgamedlg.py:127
+#: newgamedlg.py:134
 msgid "Initial board type"
 msgstr ""
 
-#: newgamedlg.py:132
+#: newgamedlg.py:139
 msgid "Select file"
 msgstr ""
 
-#: newgamedlg.py:149
+#: newgamedlg.py:156
 msgid "Start a new game"
 msgstr ""
 
-#: newgamedlg.py:151
+#: newgamedlg.py:158
 msgid "Close this dialog without starting a new game"
 msgstr ""
 
-#: newgamedlg.py:155
+#: newgamedlg.py:162
 msgid "AI"
 msgstr ""
 
-#: newgamedlg.py:164
+#: newgamedlg.py:171
 msgid "Refresh"
 msgstr ""
 
-#: newgamedlg.py:182
+#: newgamedlg.py:189
 msgid "Open settings dialog"
 msgstr ""
 
-#: newgamedlg.py:191 toplevel.py:325
+#: newgamedlg.py:198 toplevel.py:359
 msgid "E&xit"
 msgstr ""
 
-#: newgamedlg.py:193
+#: newgamedlg.py:200
 msgid "Close this dialog and exit the program"
 msgstr ""
 
-#: newgamedlg.py:240 toplevel.py:788
+#: newgamedlg.py:247 toplevel.py:822
 msgid "Settings have been updated."
 msgstr ""
 
@@ -445,7 +485,7 @@ msgstr ""
 msgid "Load AI settings from JSON file"
 msgstr ""
 
-#: settingsdlg.py:179 toplevel.py:555 toplevel.py:568 toplevel.py:757
+#: settingsdlg.py:179 toplevel.py:589 toplevel.py:602 toplevel.py:791
 msgid "Save file"
 msgstr ""
 
@@ -569,251 +609,251 @@ msgstr ""
 msgid "HCheckers settings"
 msgstr ""
 
-#: toplevel.py:71
+#: toplevel.py:76
 msgid ""
 "{}: {} men, {} kings\n"
 "{}: {} men, {} kings"
 msgstr ""
 
-#: toplevel.py:77
+#: toplevel.py:108
 msgid "HCheckers client"
 msgstr ""
 
-#: toplevel.py:87
+#: toplevel.py:118
 msgid "Starting HCheckers..."
 msgstr ""
 
-#: toplevel.py:120 toplevel.py:711
+#: toplevel.py:151 toplevel.py:745
 msgid "Your turn."
 msgstr ""
 
-#: toplevel.py:124
+#: toplevel.py:155
 msgid "Awaiting a turn from another side."
 msgstr ""
 
-#: toplevel.py:167
+#: toplevel.py:198
 msgid "Server appears to be already running, do not start a local server"
 msgstr ""
 
-#: toplevel.py:170
+#: toplevel.py:201
 msgid "Starting local server..."
 msgstr ""
 
-#: toplevel.py:173
+#: toplevel.py:204
 msgid "Running local server: {}"
 msgstr ""
 
-#: toplevel.py:181
+#: toplevel.py:212
 msgid ""
 "Could not start local server; exit code: {}; message:\n"
 "{}"
 msgstr ""
 
-#: toplevel.py:183 toplevel.py:846 toplevel.py:851
+#: toplevel.py:214 toplevel.py:883 toplevel.py:888
 msgid "Exception"
 msgstr ""
 
-#: toplevel.py:239
+#: toplevel.py:273
 msgid "History"
 msgstr ""
 
-#: toplevel.py:248
+#: toplevel.py:282
 msgid "Log"
 msgstr ""
 
-#: toplevel.py:292
+#: toplevel.py:326
 msgid "&Game"
 msgstr ""
 
-#: toplevel.py:293
+#: toplevel.py:327
 msgid "&New Game"
 msgstr ""
 
-#: toplevel.py:294
+#: toplevel.py:328
 msgid "&Open Game..."
 msgstr ""
 
-#: toplevel.py:295
+#: toplevel.py:329
 msgid "&Save Position"
 msgstr ""
 
-#: toplevel.py:296
+#: toplevel.py:330
 msgid "Save &Chart as image..."
 msgstr ""
 
-#: toplevel.py:297
+#: toplevel.py:331
 msgid "&Undo"
 msgstr ""
 
-#: toplevel.py:302
+#: toplevel.py:336
 msgid "Ask AI to stop thinking"
 msgstr ""
 
-#: toplevel.py:304
+#: toplevel.py:338
 msgid "Ask for AI advice"
 msgstr ""
 
-#: toplevel.py:309
+#: toplevel.py:343
 msgid "Offer a &draw"
 msgstr ""
 
-#: toplevel.py:310
+#: toplevel.py:344
 msgid "Capitulate"
 msgstr ""
 
-#: toplevel.py:314
+#: toplevel.py:348
 msgid "&Clear log"
 msgstr ""
 
-#: toplevel.py:315
+#: toplevel.py:349
 msgid "Copy selected log record"
 msgstr ""
 
-#: toplevel.py:316
+#: toplevel.py:350
 msgid "Save &log..."
 msgstr ""
 
-#: toplevel.py:321
+#: toplevel.py:355
 msgid "Start &Game"
 msgstr ""
 
-#: toplevel.py:323
+#: toplevel.py:357
 msgid "Se&ttings"
 msgstr ""
 
-#: toplevel.py:327
+#: toplevel.py:361
 msgid "&Position"
 msgstr ""
 
-#: toplevel.py:330
+#: toplevel.py:364
 msgid "Put &white piece"
 msgstr ""
 
-#: toplevel.py:331
+#: toplevel.py:365
 msgid "Put &black piece"
 msgstr ""
 
-#: toplevel.py:332
+#: toplevel.py:366
 msgid "&Remove piece"
 msgstr ""
 
-#: toplevel.py:337
+#: toplevel.py:371
 msgid "&View"
 msgstr ""
 
-#: toplevel.py:338
+#: toplevel.py:372
 msgid "&Flip board"
 msgstr ""
 
-#: toplevel.py:351
+#: toplevel.py:385
 msgid "H&istory"
 msgstr ""
 
-#: toplevel.py:355
+#: toplevel.py:389
 msgid "&Help"
 msgstr ""
 
-#: toplevel.py:356
+#: toplevel.py:390
 msgid "&Wiki documentation"
 msgstr ""
 
-#: toplevel.py:357
+#: toplevel.py:391
 msgid "&About HCheckers"
 msgstr ""
 
-#: toplevel.py:456
+#: toplevel.py:490
 msgid "Starting new game..."
 msgstr ""
 
-#: toplevel.py:479 toplevel.py:490 toplevel.py:506
+#: toplevel.py:513 toplevel.py:524 toplevel.py:540
 msgid "Rules: {}"
 msgstr ""
 
-#: toplevel.py:480
+#: toplevel.py:514
 msgid "AI: {}"
 msgstr ""
 
-#: toplevel.py:484
+#: toplevel.py:518
 msgid "New game ID: {}"
 msgstr ""
 
-#: toplevel.py:494
+#: toplevel.py:528
 msgid "Waiting for another side to join the game."
 msgstr ""
 
-#: toplevel.py:583
+#: toplevel.py:617
 msgid "Nothing to undo."
 msgstr ""
 
-#: toplevel.py:600
+#: toplevel.py:634
 msgid "Waiting for an advice from AI"
 msgstr ""
 
-#: toplevel.py:606
+#: toplevel.py:640
 msgid "Offer a draw?"
 msgstr ""
 
-#: toplevel.py:607
+#: toplevel.py:641
 msgid "Are you sure you want to offer a draw to the other side? This action can not be undone."
 msgstr ""
 
-#: toplevel.py:617
+#: toplevel.py:651
 msgid "Waiting for a response on draw offer from another side"
 msgstr ""
 
-#: toplevel.py:635
+#: toplevel.py:669
 msgid "Capitulate?"
 msgstr ""
 
-#: toplevel.py:636
+#: toplevel.py:670
 msgid "Are you sure you want to capitulate? This action can not be undone."
 msgstr ""
 
-#: toplevel.py:649 toplevel.py:651
+#: toplevel.py:683 toplevel.py:685
 msgid "{} win"
 msgstr ""
 
-#: toplevel.py:653
+#: toplevel.py:687
 msgid "Draw"
 msgstr ""
 
-#: toplevel.py:663
+#: toplevel.py:697
 msgid "Game result: {}"
 msgstr ""
 
-#: toplevel.py:666
+#: toplevel.py:700
 msgid "Game over."
 msgstr ""
 
-#: toplevel.py:689
+#: toplevel.py:723
 msgid "Accept the draw?"
 msgstr ""
 
-#: toplevel.py:690
+#: toplevel.py:724
 msgid "Another side have offered you a draw. Do you wish to accept it?"
 msgstr ""
 
-#: toplevel.py:700
+#: toplevel.py:734
 msgid "Response on a draw offer"
 msgstr ""
 
-#: toplevel.py:716
+#: toplevel.py:750
 msgid "AI suggested the following move(s): {}"
 msgstr ""
 
-#: toplevel.py:751
+#: toplevel.py:785
 msgid "Log has been cleared."
 msgstr ""
 
-#: toplevel.py:817
+#: toplevel.py:851
 msgid "About HCheckers"
 msgstr ""
 
-#: toplevel.py:818
+#: toplevel.py:852
 msgid "This is HCheckers Client application, version {}. Please report issues at {}."
 msgstr ""
 
-#: toplevel.py:827
+#: toplevel.py:864
 msgid ""
 "Unexpected response received from the server.\n"
 "Request URL: {}\n"
@@ -821,15 +861,15 @@ msgid ""
 "Response message: {}"
 msgstr ""
 
-#: toplevel.py:838
+#: toplevel.py:875
 msgid "No such move: {}"
 msgstr ""
 
-#: toplevel.py:842
+#: toplevel.py:879
 msgid "Status of current game is unsuitable for this operation. Game status is {}; required status is {}"
 msgstr ""
 
-#: toplevel.py:850
+#: toplevel.py:887
 msgid ""
 "An exception occured while connecting to the server.\n"
 "Request URL: {}\n"
