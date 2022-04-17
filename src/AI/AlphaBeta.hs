@@ -200,29 +200,33 @@ scoreMove (ScoreMoveInput {..}) = do
      return $ MoveAndScore smiMove score
 
 scoreMoveGroup :: (GameRules rules, VectorEvaluator eval) => [ScoreMoveInput rules eval] -> Checkers [MoveAndScore]
-scoreMoveGroup inputs = go worst [] inputs
+scoreMoveGroup inputs = go [] inputs
   where
     input0 = head inputs
     side = smiSide input0
     alpha = smiAlpha input0
     beta  = smiBeta input0
+    bestVar = smiBest input0
     maximize = side == First
     minimize = not maximize
-    worst = if maximize then alpha else beta
 
-    go _ acc [] = return acc
-    go best acc (input : rest) = do
+    go acc [] = return acc
+    go acc (input : rest) = do
+      best <- liftIO $ atomically $ readTVar bestVar
       let input'
             | maximize = input {smiAlpha = prevScore best}
             | otherwise = input {smiBeta = nextScore best}
 
       result@(MoveAndScore move score) <- scoreMove input'
-      let best'
-            | maximize && score > best = score
-            | minimize && score < best = score
-            | otherwise = best
+      liftIO $ atomically $ do
+        updatedBest <- readTVar bestVar
+        let best'
+              | maximize && score > updatedBest = score
+              | minimize && score < updatedBest = score
+              | otherwise = updatedBest
+        writeTVar bestVar best'
 
-      go best' (acc ++ [result]) rest
+      go (acc ++ [result]) rest
 
 rememberScoreShift :: AICacheHandle rules eval -> GameId -> ScoreBase -> Checkers ()
 rememberScoreShift handle gameId shift = liftIO $ atomically $ do
@@ -736,6 +740,8 @@ runAI ai@(AlphaBeta params rules eval) handle gameId side aiSession board = do
       let processor = aichProcessor handle
           n = length moves
       indicies <- getJobIndicies n
+      let worst = if maximize then alpha else beta
+      bestVar <- liftIO $ atomically $ newTVar worst
       let inputs = [
             ScoreMoveInput {
               smiAi = ai,
@@ -748,12 +754,12 @@ runAI ai@(AlphaBeta params rules eval) handle gameId side aiSession board = do
               smiBoard = board,
               smiMove = move,
               smiAlpha = alpha,
-              smiBeta = beta
+              smiBeta = beta,
+              smiBest = bestVar
             } | (move, index) <- zip moves indicies ]
 
-          groups
-            | byOne = [[input] | input <- inputs]
-            | otherwise = transpose $ chunksOf nThreads inputs
+          groups = [[input] | input <- inputs]
+            -- | otherwise = transpose $ chunksOf nThreads inputs
 
       results <- process' processor groups
       return $ concatE (map length groups) results

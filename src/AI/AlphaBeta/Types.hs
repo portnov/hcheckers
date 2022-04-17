@@ -174,6 +174,7 @@ data ScoreMoveInput rules eval = ScoreMoveInput {
   , smiMove :: {-# UNPACK #-} ! PossibleMove
   , smiAlpha :: {-# UNPACK #-} ! Score
   , smiBeta :: {-# UNPACK #-} ! Score
+  , smiBest :: TVar Score
   }
 
 type MovesMemo = TBoardMap (Maybe [PossibleMove], Maybe [PossibleMove])
