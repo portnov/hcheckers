@@ -12,7 +12,12 @@ import webbrowser
 from PyQt5.QtGui import QPainter, QPixmap, QIcon
 from PyQt5.Qt import QStyle
 from PyQt5.QtCore import QRect, QSize, Qt, QObject, QTimer, pyqtSignal, QSettings
-from PyQt5.QtWidgets import QApplication, QWidget, QToolBar, QMainWindow, QDialog, QVBoxLayout, QAction, QActionGroup, QLabel, QFileDialog, QFrame, QDockWidget, QMessageBox, QListWidget, QListWidgetItem, QMenu, QSplashScreen
+from PyQt5.QtWidgets import (
+        QApplication, QWidget, QToolBar, QMainWindow, QDialog,
+        QVBoxLayout, QAction, QActionGroup, QLabel, QFileDialog,
+        QFrame, QDockWidget, QMessageBox, QListWidget, QListWidgetItem,
+        QMenu, QSplashScreen, QPushButton
+    )
 
 from hcheckers.field import Field
 from hcheckers.common import *
@@ -69,6 +74,32 @@ class CountsWidget(QWidget):
         self.second_kings.setText(str(second_kings))
         first, second = self.toplevel.game.get_colors()
         self.setToolTip(_("{}: {} men, {} kings\n{}: {} men, {} kings").format(first, first_men, first_kings, second, second_men, second_kings))
+
+class LabelWithIcon(QWidget):
+    clicked = pyqtSignal()
+
+    def __init__(self, parent):
+        QWidget.__init__(self, parent)
+        layout = QHBoxLayout()
+        self.text_label = QLabel(self)
+        self.icon_label = QLabel(self)
+        layout.addWidget(self.text_label, 1)
+        layout.addWidget(self.icon_label)
+        self.setLayout(layout)
+
+    def mousePressEvent(self, ev):
+        self.clicked.emit()
+
+    def setIcon(self, icon):
+        icon_size = self.style().pixelMetric(QStyle.PM_TabBarIconSize)
+        self.icon_label.setPixmap(icon.pixmap(icon_size))
+
+    def setText(self, text):
+        self.text_label.setText(text)
+
+    def setToolTip(self, text):
+        self.text_label.setToolTip(text)
+        self.icon_label.setToolTip(text)
 
 class Checkers(QMainWindow):
     def __init__(self, share_dir):
@@ -224,8 +255,11 @@ class Checkers(QMainWindow):
 
         self.status_info = QLabel(self)
         self.statusBar().addPermanentWidget(self.status_info)
-        self.rules_info = QLabel(self)
-        self.rules_info.setFrameStyle(QFrame.Sunken | QFrame.Panel)
+        self.rules_info = QPushButton(self)
+        #self.rules_info.setFrameStyle(QFrame.Sunken | QFrame.Panel)
+        self.rules_info.setToolTip(_("Click to open the description of selected rules"))
+        self.rules_info.setIcon(QIcon.fromTheme("help-contents"))
+        self.rules_info.clicked.connect(self._on_rules_help)
         #self.rules_info.setLineWidth(3)
         self.statusBar().addPermanentWidget(self.rules_info)
         self.opponent_info = QLabel(self)
@@ -817,6 +851,9 @@ class Checkers(QMainWindow):
         title = _("About HCheckers")
         text = _("This is HCheckers Client application, version {}. Please report issues at {}.").format(HCHECKERS_VERSION, BUGTRACKER_URL)
         QMessageBox.about(self, title, text)
+
+    def _on_rules_help(self):
+        open_rules_help(self.game.rules)
 
     def _handle_game_error(self, rs):
         try:

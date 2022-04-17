@@ -96,13 +96,20 @@ class NewGameDialog(DialogBase):
         layout.addRow(_("Action"), self.game_type)
 
         self.rules = QComboBox()
-        for name, title in supported_rules:
+        for name, title, link in supported_rules:
             self.rules.addItem(title, name)
         rules = settings.value("rules")
         if rules is not None:
             idx = self.rules.findData(rules)
             self.rules.setCurrentIndex(idx)
-        layout.addRow(_("Rules"), self.rules)
+        rules_box = QHBoxLayout()
+        rules_box.addWidget(self.rules, 1)
+        rules_help = QPushButton(self)
+        rules_help.setToolTip(_("Click to open the description of selected rules"))
+        rules_help.setIcon(QIcon.fromTheme("help-contents"))
+        rules_help.clicked.connect(self._on_rules_help)
+        rules_box.addWidget(rules_help)
+        layout.addRow(_("Rules"), rules_box)
 
         self.user_name = MandatoryField(_("User name"), QLineEdit(self))
         self.user_name.widget.setText(getpass.getuser())
@@ -286,6 +293,10 @@ class NewGameDialog(DialogBase):
             self.user_name_validator.used_name = used_name
             name = self.user_name.widget.text()
             self.user_name.widget.setText(self.user_name_validator.fixup(name))
+
+    def _on_rules_help(self):
+        rules = self.rules.currentData()
+        open_rules_help(rules)
 
     def _on_accept(self):
         self.settings.setValue("ai", self.ai.currentText())

@@ -1,5 +1,6 @@
 
 from requests.exceptions import ConnectionError
+import webbrowser
 from PyQt5.QtWidgets import QDialog, QLineEdit
 
 HCHECKERS_VERSION = "2022.04"
@@ -280,18 +281,24 @@ class DialogBase(QDialog):
         raise Exception("the method is to be implemented")
 
 supported_rules = [
-        ("russian", _("Russian draughts")),
-        ("simple", _("Simple draughts")),
-        ("english", _("English draughts")), 
-        ("international", _("International draughts")),
-        ("brazilian", _("Brazilian draughts")),
-        ("canadian", _("Canadian draughts")),
-        ("spancirety", _("Spancirety draughts")), 
-        ("diagonal", _("Diagonal draughts")),
-        ("czech", _("Czech draughts")),
-        ("turkish", _("Turkish draughts")),
-        ("armenian", _("Armeinan draughts (Tama)"))
+        ("russian", _("Russian draughts"), _("https://en.wikipedia.org/wiki/Russian_draughts")),
+        ("simple", _("Simple draughts"), _("https://github.com/portnov/hcheckers/wiki/Rules")),
+        ("english", _("English draughts"), _("https://en.wikipedia.org/wiki/English_draughts")), 
+        ("international", _("International draughts"), _("https://en.wikipedia.org/wiki/International_draughts")),
+        ("brazilian", _("Brazilian draughts"), _("https://en.wikipedia.org/wiki/Brazilian_draughts")),
+        ("canadian", _("Canadian draughts"), _("https://en.wikipedia.org/wiki/Canadian_checkers")),
+        ("spancirety", _("Spancirety draughts"), _("https://github.com/portnov/hcheckers/wiki/Rules")), 
+        ("diagonal", _("Diagonal draughts"), _("https://github.com/portnov/hcheckers/wiki/Rules")),
+        ("czech", _("Czech draughts"), _("https://en.wikipedia.org/wiki/Czech_draughts")),
+        ("turkish", _("Turkish draughts"), _("https://en.wikipedia.org/wiki/Turkish_draughts")),
+        ("armenian", _("Armeinan draughts (Tama)"), _("https://en.wikipedia.org/wiki/Armenian_draughts"))
     ]
 
-rules_dict = dict(supported_rules)
+rules_dict = dict([(name, title) for (name, title, link) in supported_rules])
+
+def open_rules_help(rules):
+    rules_links = dict([(name, link) for (name, title, link) in supported_rules])
+    link = rules_links.get(rules, None)
+    if link:
+        webbrowser.open(link)
 
