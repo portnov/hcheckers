@@ -41,6 +41,7 @@ import Core.BoardMap
 import Core.Game
 import Core.Parallel
 import Core.Logging
+import Core.AiSession
 import qualified Core.Monitoring as Monitoring
 import AI.AlphaBeta.Types
 import AI.AlphaBeta.Cache
@@ -127,9 +128,16 @@ instance (GameRules rules, VectorEvaluator eval, ToJSON eval) => GameAi (AlphaBe
       resetAiCache cache
 
   chooseMove ai storage gameId side aiSession board = Monitoring.timed "ai.choose.move" $ do
+    signalStopBackgroundSession storage
+    $info "Start move selection for side {}" (Single (show side))
     (moves, _) <- runAI ai storage gameId side aiSession board
     -- liftIO $ atomically $ writeTVar (aichCurrentCounts storage) $ calcBoardCounts board
     return moves
+
+  afterChooseMove ai storage gameId side session move board = do
+    forkCheckers $ withLogVariable "thread" ("X" :: String) $
+        runAiContra ai storage gameId side board
+    return ()
 
   decideDrawRequest ai@(AlphaBeta params rules eval) storage gameId side aiSession board = do
     case abDrawPolicy params of
@@ -194,7 +202,7 @@ scoreMove (ScoreMoveInput {..}) = do
                                         $info "doScore: move {}, depth {}: {}" (show smiMove, dpTarget smiDepth, show e)
                                         throwError e
                                   )
-                $info "Check: {} ([{} - {}], depth {}) => {}" (show smiMove, show smiAlpha, show smiBeta, dpTarget smiDepth, show score)
+                $info "Check for {}: {} ([{} - {}], depth {}) => {}" (show smiSide, show smiMove, show smiAlpha, show smiBeta, dpTarget smiDepth, show score)
                 return score
      
      return $ MoveAndScore smiMove score
@@ -818,6 +826,60 @@ runAI ai@(AlphaBeta params rules eval) handle gameId side aiSession board = do
               goodMoves = map rMove $ take nOptions $ srt pairs
           return (goodMoves, maxScore)
 
+runAiContra ::  (GameRules rules, Evaluator eval)
+      => AlphaBeta rules eval
+      -> AICacheHandle rules eval
+      -> GameId
+      -> Side
+      -> Board
+      -> Checkers ()
+runAiContra ai@(AlphaBeta params rules eval) handle gameId mySide board = do
+    let otherSide = opposite mySide
+        moves = possibleMoves rules otherSide board 
+    (sessionId, subSession) <- newAiSession
+    liftIO $ atomically $ writeTVar (aichBackgroundSession handle) $ Just sessionId
+    needThink <- delay subSession
+    if needThink
+      then do
+        $info "Start checking possible moves of another side, in AI session #{}" (Single sessionId)
+        go subSession moves
+      else do
+        markSessionDone
+  where
+    go _ [] = markSessionDone
+    go subSession (move : moves) = do
+      stop <- isStopSignalledC subSession
+      if stop
+        then markSessionDone
+        else do
+          let board' = applyMoveActions (pmResult move) board
+          result <- runAI ai handle gameId mySide subSession board'
+          $info "Check Contra: if {} goes {} => our responses would be {}" (show (opposite mySide), show move, show result)
+          go subSession moves
+
+    delaySeconds = 3
+    delayDuration = TimeSpec delaySeconds 0
+    delayStepMs = 100
+
+    delay subSession = do
+      now <- liftIO $ getTime RealtimeCoarse
+      let delayEnd = now + delayDuration
+      delayLoop subSession delayEnd
+
+    delayLoop subSession delayEnd = do
+      liftIO $ threadDelay $ delayStepMs*1000
+      stop <- isStopSignalledC subSession
+      if stop
+        then return False
+        else do
+            now <- liftIO $ getTime RealtimeCoarse
+            if now >= delayEnd
+              then return True
+              else delayLoop subSession delayEnd
+
+    markSessionDone =
+      liftIO $ atomically $ writeTVar (aichBackgroundSession handle) Nothing
+
 -- | Calculate score of the board
 doScore :: (GameRules rules, VectorEvaluator eval)
         => rules
@@ -978,6 +1040,21 @@ isStopSignalled = do
   case check of
     Nothing -> return False
     Just () -> return True
+
+isStopSignalledC :: AiSession -> Checkers Bool
+isStopSignalledC session = do
+  let stopSignal = aiStopSignal session
+  check <- liftIO $ tryReadMVar stopSignal
+  case check of
+    Nothing -> return False
+    Just () -> return True
+
+signalStopBackgroundSession :: AICacheHandle rules eval -> Checkers ()
+signalStopBackgroundSession handle = do
+    mbBackgroundSession <- liftIO $ atomically $ readTVar (aichBackgroundSession handle)
+    case mbBackgroundSession of
+      Nothing -> return ()
+      Just backgroundSessionId -> signalStopAiSession backgroundSessionId
 
 -- | Calculate score for the board.
 -- This implements the alpha-beta section algorithm itself.

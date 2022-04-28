@@ -14,7 +14,7 @@ import System.Log.Heavy.TH
 
 import Core.Types
 import Core.Board
-import Core.Supervisor (newAiSession)
+import Core.AiSession (newAiSession)
 import AI.AlphaBeta
 import AI.AlphaBeta.Types
 import AI.AlphaBeta.Cache

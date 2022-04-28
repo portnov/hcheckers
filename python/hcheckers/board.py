@@ -212,9 +212,9 @@ class TextMessage(QObject):
         self.actual = True
         self.show = delay is None
         if delay is not None:
-            self.timer = QTimer.singleShot(delay*1000, self._show)
+            QTimer.singleShot(delay*1000, self._show)
         else:
-            self.timer = None
+            self._show()
 
     def _show(self):
         if self.actual:
@@ -261,7 +261,6 @@ class Board(QWidget):
         self._new_board = None
         self._drawing_my_move = False
         self._text_message = None
-        self._text_message_timer = None
         self._prev_hovered_field = None
 
         self._my_turn = True
@@ -832,12 +831,9 @@ class Board(QWidget):
         return self.index_by_label[label]
     
     def timerEvent(self, e):
-        if e.timerId() == self._text_message_timer:
-            pass
-        else:
-            if self.move_animation.tick(e) or self.possible_captures_animation.tick(e):
-                self._pixmap = None
-                self.repaint()
+        if self.move_animation.tick(e) or self.possible_captures_animation.tick(e):
+            self._pixmap = None
+            self.repaint()
     
     def _is_mine(self, piece):
         return piece is not None and piece.side == self.game.user_side

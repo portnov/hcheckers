@@ -17,6 +17,7 @@ import           System.Log.Heavy.TH
 
 import           Core.Types
 import           Core.Board
+import           Core.AiSession
 import           Core.Supervisor
 import           Core.Json                      ( ) -- import instances only
 import           Formats.Types

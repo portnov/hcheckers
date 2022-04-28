@@ -195,6 +195,7 @@ data AICacheHandle rules eval = AICacheHandle {
   , aichPossibleMoves :: MovesMemo
   , aichLastMoveScoreShift :: TVar (M.Map GameId ScoreBase)
   , aichCurrentCounts :: TVar BoardCounts
+  , aichBackgroundSession :: TVar (Maybe AiSessionId)
   }
 
 -- | State for the Storage monad

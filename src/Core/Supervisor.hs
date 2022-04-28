@@ -42,6 +42,7 @@ import Core.Types
 import Core.Board
 import Core.BoardMap
 import Core.Game
+import Core.AiSession
 import AI.AlphaBeta () -- import instances only
 import AI.AlphaBeta.Types
 import Formats.Types
@@ -504,38 +505,6 @@ withAiStorage (SomeRules rules) ai fn = do
               result <- fn storage
               return result
 
-newAiSession :: Checkers (AiSessionId, AiSession)
-newAiSession = do
-  var <- askSupervisor
-  signal <- liftIO newEmptyMVar
-  resultVar <- liftIO newEmptyMVar
-  sessionId <- liftIO randomIO
-  let newSession = AiSession signal resultVar
-  liftIO $ atomically $ modifyTVar var $ \st -> st {
-                          ssAiSessions = M.insert sessionId newSession (ssAiSessions st)
-                        }
-  return (sessionId, newSession)
-
-signalStopAiSession :: AiSessionId -> Checkers ()
-signalStopAiSession sessionId = do
-  var <- askSupervisor
-  st <- liftIO $ atomically $ readTVar var
-  case M.lookup sessionId (ssAiSessions st) of
-    Nothing -> throwError NoSuchAiSession
-    Just session -> liftIO $ void $ tryPutMVar (aiStopSignal session) ()
-
-getAiSessionStatus :: AiSessionId -> Checkers AiSessionStatus
-getAiSessionStatus sessionId = do
-  var <- askSupervisor
-  st <- liftIO $ atomically $ readTVar var
-  case M.lookup sessionId (ssAiSessions st) of
-    Nothing -> return NoAiHere
-    Just state -> do
-      check <- liftIO $ tryTakeMVar (aiResult state)
-      case check of
-        Nothing -> return AiRunning
-        Just board -> return $ AiDone (boardRep board)
-
 -- | Let AI make it's turn.
 letAiMove :: Bool -> GameId -> Side -> Maybe Board -> Checkers (Maybe AiSessionId)
 letAiMove separateThread gameId side mbBoard = do
@@ -571,6 +540,7 @@ letAiMove separateThread gameId side mbBoard = do
                   $debug "Messages: {}" (Single $ show messages)
                   queueNotifications (getGameId game) messages
                   liftIO $ putMVar (aiResult aiSession) board'
+                  afterChooseMove ai storage gameId side aiSession aiMove board'
             return (Just sessionId)
 
     _ -> return Nothing

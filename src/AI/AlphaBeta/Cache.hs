@@ -85,6 +85,7 @@ loadAiCache scoreMove (AlphaBeta params rules eval) = do
   moves <- liftIO newTBoardMap
   scoreShift <- liftIO $ atomically $ newTVar M.empty
   index <- liftIO $ atomically $ newTVar 0
+  bgSession <- liftIO $ atomically $ newTVar Nothing
   let handle = AICacheHandle {
       aichRules = rules,
       aichData = cache,
@@ -92,7 +93,8 @@ loadAiCache scoreMove (AlphaBeta params rules eval) = do
       aichProcessor = processor,
       aichPossibleMoves = moves,
       aichLastMoveScoreShift = scoreShift,
-      aichCurrentCounts = counts
+      aichCurrentCounts = counts,
+      aichBackgroundSession = bgSession
     }
 
   save <- asks (aiStoreCache . gcAiConfig . csConfig)
