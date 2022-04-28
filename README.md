@@ -55,9 +55,6 @@ It is possible to implement different AI algorithms; currently there is only
 one, based on standard alpha-beta pruning. The algorithm has some number of
 parameters, which can be tuned to choose between better play and performance.
 
-HCheckers can use persistent cache; it can help in calculating more turns, but
-it can grow very large and eat a lot of RAM.
-
 ## Current state
 
 At the moment, HCheckers has most of core functionality implemented, but there
