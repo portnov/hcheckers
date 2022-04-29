@@ -263,8 +263,8 @@ runBattleLocal rules (i,ai1) (j,ai2) path = do
   registerUser gameId Second "AI2"
   attachAi gameId First ai1
   attachAi gameId Second ai2
-  resetAiStorageG gameId First
-  resetAiStorageG gameId Second
+  -- resetAiStorageG gameId First
+  -- resetAiStorageG gameId Second
   runGame gameId
   result <- loopGame path gameId (opposite firstSide) 0
   liftIO $ printf "Battle AI#%d vs AI#%d: %s\n" i j (show result)

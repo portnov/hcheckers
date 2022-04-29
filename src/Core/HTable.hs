@@ -51,10 +51,10 @@ htable_size :: Int
 htable_size = 2^20
 
 locks_count :: Int
-locks_count = 2^16
+locks_count = 2^8
 
 getLockIdx :: Key -> Int
-getLockIdx k = k `div` locks_count
+getLockIdx k = k `mod` locks_count
 
 new :: IO (HTable a)
 new = do
