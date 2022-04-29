@@ -893,7 +893,7 @@ cachedScoreAB var eval params input = do -- scoreAB var eval params input
                 Nothing -> return $ CacheRangeHit alpha beta
   case mbCached of
     CacheExactHit s -> do
-        out <- Monitoring.timed "ai.score.board" $ scoreAB var eval params input
+        -- out <- Monitoring.timed "ai.score.board" $ scoreAB var eval params input
         -- when (soScore out /= s && s > alpha && s < beta) $
         --     $info "@{} Side {}, AB [{} - {}]: Cached value {} != actual value {}" (depth, show side, alpha, beta, s, soScore out)
         return $ ScoreOutput s False
@@ -912,7 +912,7 @@ cachedScoreAB var eval params input = do -- scoreAB var eval params input
           item' = PerBoardData (dpLast dp) (negate score') bound
       when (bound == Exact && soQuiescene out && not (dpStaticMode dp)) $ do
           lift $ putAiCache cacheKey item var
-          -- lift $ putAiCache cacheKey' item' var
+          lift $ putAiCache cacheKey' item' var
       return $ out {soScore = score'}
 
 -- | Check if target depth is reached
