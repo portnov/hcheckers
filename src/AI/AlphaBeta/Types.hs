@@ -31,6 +31,7 @@ module AI.AlphaBeta.Types
 
 import Control.Monad.State as St
 import Control.Monad.Reader
+import Control.DeepSeq
 import qualified Control.Monad.Metrics as Metrics
 import Control.Concurrent.STM
 import qualified Data.Map as M
@@ -42,6 +43,8 @@ import Data.Default
 import GHC.Generics
 import System.Clock
 import System.Log.Heavy
+import Foreign.Storable as Storable
+import Foreign.Ptr (castPtr)
 
 import Core.Types
 import qualified Core.AdaptiveMap as AM
@@ -132,8 +135,9 @@ instance Monoid Stats where
   mempty = Stats 0 0 0 0
 
 data Bound = Alpha | Beta | Exact
-  deriving (Generic, Typeable, Eq, Show)
+  deriving (Generic, Typeable, Eq, Show, Enum)
 
+instance NFData Bound
 instance Binary Bound
 instance Store Bound
 
@@ -143,6 +147,49 @@ data PerBoardData = PerBoardData {
   , itemBound :: ! Bound
   }
   deriving (Generic, Typeable, Show)
+
+instance NFData Score
+instance NFData PerBoardData
+
+instance Storable Score where
+  sizeOf _ = 4
+  alignment _ = 4
+
+  peek ptr = do
+    num <- Storable.peek (castPtr ptr)
+    pos <- Storable.peekByteOff (castPtr ptr) 2
+    return $ Score num pos
+
+  poke ptr score = do
+    Storable.poke (castPtr ptr) (sNumeric score)
+    Storable.pokeByteOff (castPtr ptr) 2 (sPositional score)
+
+instance Storable Bound where
+  sizeOf _ = 1
+  alignment _ = 4
+
+  peek ptr = do
+    b <- Storable.peek (castPtr ptr) :: IO Word8
+    return $ toEnum (fromIntegral b)
+
+  poke ptr bound = do
+    let b = fromIntegral (fromEnum b) :: Word8
+    Storable.poke (castPtr ptr) b
+
+instance Storable PerBoardData where
+  sizeOf _ = sizeOf (undefined :: Depth) + sizeOf (undefined :: Score) + sizeOf (undefined :: Bound)
+  alignment _ = 8
+
+  peek ptr = do
+    depth <- Storable.peek (castPtr ptr)
+    bound <- Storable.peekByteOff (castPtr ptr) 1
+    score <- Storable.peekByteOff (castPtr ptr) 2
+    return $ PerBoardData depth score bound
+
+  poke ptr d = do
+    Storable.poke (castPtr ptr) (itemDepth d)
+    Storable.pokeByteOff (castPtr ptr) 1 (itemBound d)
+    Storable.pokeByteOff (castPtr ptr) 2 (itemScore d)
 
 instance Semigroup PerBoardData where
   d1 <> d2
@@ -192,7 +239,7 @@ data AICacheHandle rules eval = AICacheHandle {
   , aichData :: AIData
   , aichJobIndex :: TVar Int
   , aichProcessor ::  Processor [Int] [ScoreMoveInput rules eval] [MoveAndScore]
-  , aichPossibleMoves :: MovesMemo
+  -- , aichPossibleMoves :: MovesMemo
   , aichLastMoveScoreShift :: TVar (M.Map GameId ScoreBase)
   , aichCurrentCounts :: TVar BoardCounts
   }

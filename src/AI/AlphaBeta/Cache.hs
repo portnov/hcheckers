@@ -10,6 +10,7 @@ module AI.AlphaBeta.Cache
   ( loadAiCache,
     allocateCache,
     lookupAiCache, lookupAiCacheS,
+    lookupAiCacheS',
     putAiCache, putAiCacheS,
     resetAiCache,
     mkCacheKey
@@ -30,43 +31,40 @@ import Core.Parallel
 import qualified Core.Monitoring as Monitoring
 import AI.AlphaBeta.Types
 import AI.AlphaBeta.Persistent
+import qualified Core.HTable as HT
 
 mkCacheKey :: VectorEvaluator eval => eval -> Board -> CacheKey
 mkCacheKey eval board = (evalToVector eval, board)
 
 putAiData :: AIData -> CacheKey -> PerBoardData -> Checkers ()
-putAiData aiData (evalVec, board) item =
-  liftIO $ atomically $ do
-    perEval <- readTVar aiData
-    forEval <- case AM.lookup evalVec perEval of
-                 Just map -> return map
-                 Nothing -> do
-                    map <- SM.new
-                    writeTVar aiData $ AM.insert evalVec map perEval
-                    return map
-    putBoardMapWith' forEval (<>) board item
+putAiData aiData (evalVec, board) item = do
+  perEval <- liftIO $ atomically $ readTVar aiData
+  case AM.lookup evalVec perEval of
+    Just forEval -> liftIO $ putBoardMapWith forEval (<>) board item
+    Nothing -> liftIO $ do
+      map <- newTBoardMap
+      putBoardMap map board item
+      atomically $ writeTVar aiData $ AM.insert evalVec map perEval
 
 lookupAiData :: AIData -> CacheKey -> Checkers (Maybe PerBoardData)
-lookupAiData aiData (evalVec, board) =
-  liftIO $ atomically $ do
-    perEval <- readTVar aiData
-    case AM.lookup evalVec perEval of
-      Nothing -> return Nothing
-      Just forEval -> lookupBoardMap' forEval board
+lookupAiData aiData (evalVec, board) = do
+  perEval <- liftIO $ atomically $ readTVar aiData
+  case AM.lookup evalVec perEval of
+    Nothing -> return Nothing
+    Just forEval -> liftIO $ lookupBoardMap forEval board
 
 allocateCache :: VectorEvaluator eval => AICacheHandle rules eval -> eval -> Checkers BoardDataCache
 allocateCache handle eval = do
   let aiData = aichData handle
   let evalVec = evalToVector eval
-  liftIO $ atomically $ do
-    perEval <- readTVar aiData
-    case AM.lookup evalVec perEval of
-      Nothing -> do
-        newCache <- SM.new
-        let perEval' = AM.insert evalVec newCache perEval
-        writeTVar aiData perEval'
-        return newCache
-      Just cache -> return cache
+  perEval <- liftIO $ atomically $ readTVar aiData
+  case AM.lookup evalVec perEval of
+    Nothing -> liftIO $ do
+      newCache <- newTBoardMap
+      let perEval' = AM.insert evalVec newCache perEval
+      atomically $ writeTVar aiData perEval'
+      return newCache
+    Just cache -> return cache
 
 -- | Prepare AI storage instance.
 -- This also contains Processor instance with several threads.
@@ -82,7 +80,6 @@ loadAiCache scoreMove (AlphaBeta params rules eval) = do
 
   st <- ask
   counts <- liftIO $ atomically $ newTVar $ BoardCounts 50 50 50 50
-  moves <- liftIO newTBoardMap
   scoreShift <- liftIO $ atomically $ newTVar M.empty
   index <- liftIO $ atomically $ newTVar 0
   let handle = AICacheHandle {
@@ -90,7 +87,7 @@ loadAiCache scoreMove (AlphaBeta params rules eval) = do
       aichData = cache,
       aichJobIndex = index,
       aichProcessor = processor,
-      aichPossibleMoves = moves,
+      -- aichPossibleMoves = moves,
       aichLastMoveScoreShift = scoreShift,
       aichCurrentCounts = counts
     }
@@ -141,6 +138,9 @@ lookupAiCache key depth handle = do
             then return $ Just item
             else return Nothing
 
+lookupAiCacheS' :: CacheKey -> DepthParams -> BoardDataCache -> ScoreM rules eval (Maybe PerBoardData)
+lookupAiCacheS' key@(_,board) depth cache = liftIO $ lookupBoardMap cache board
+
 -- | Look up for item in the cache.
 lookupAiCacheS :: CacheKey -> DepthParams -> BoardDataCache -> ScoreM rules eval (Maybe PerBoardData)
 lookupAiCacheS key@(_,board) depth cache = lift $ do
@@ -155,7 +155,7 @@ lookupAiCacheS key@(_,board) depth cache = lift $ do
   where
     lookupMemory :: Checkers (Maybe PerBoardData)
     lookupMemory = Monitoring.timed "cache.lookup.memory" $ do
-      mbItem <- liftIO $ atomically $ lookupBoardMap' cache board
+      mbItem <- liftIO $ lookupBoardMap cache board
       case mbItem of
         Nothing -> return Nothing
         Just item@(PerBoardData {..}) ->
@@ -176,7 +176,7 @@ putAiCacheS :: CacheKey -> CacheValue -> BoardDataCache -> ScoreM rules eval ()
 putAiCacheS key@(_,board) newItem cache = lift $ do
   Monitoring.timed "cache.put.memory" $ do
     Monitoring.increment "cache.records.put"
-    liftIO $ atomically $ putBoardMapWith' cache (<>) board newItem
+    liftIO $ putBoardMapWith cache (<>) board newItem
 
 resetAiCache :: AICacheHandle rules eval -> Checkers ()
 resetAiCache handle = do

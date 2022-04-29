@@ -7,8 +7,10 @@ import qualified Data.IntSet as IS
 import Data.Hashable
 import qualified StmContainers.Map as SM
 import Text.Printf
+import Foreign.Storable
 
 import Core.Types
+import qualified Core.HTable as HT
 
 boxPiece :: UnboxedPiece -> Maybe Piece
 boxPiece 0 = Nothing
@@ -98,34 +100,20 @@ removeBoard a p@(Piece King Second) b = b {
 --     boardCounts = removeBoardCounts p (boardCounts b)
   }
 
-newTBoardMap :: IO (TBoardMap a)
-newTBoardMap = atomically SM.new
+newTBoardMap :: Storable a => IO (TBoardMap a)
+newTBoardMap = HT.new
 
-putBoardMap' :: TBoardMap a -> Board -> a -> STM ()
-putBoardMap' bmap board value = 
-  SM.insert value (boardHash board) bmap
+putBoardMap :: Storable a => TBoardMap a -> Board -> a -> IO ()
+putBoardMap bmap board value = HT.write bmap (boardHash board) value
 
-putBoardMap :: TBoardMap a -> Board -> a -> IO ()
-putBoardMap bmap board value = atomically $ putBoardMap' bmap board value
+putBoardMapWith :: Storable a => TBoardMap a -> (a -> a -> a) -> Board -> a -> IO ()
+putBoardMapWith bmap plus board value = HT.writeWith bmap plus (boardHash board) value
 
-putBoardMapWith' :: TBoardMap a -> (a -> a -> a) -> Board -> a -> STM ()
-putBoardMapWith' bmap plus board value = do
-    mbOld <- SM.lookup (boardHash board) bmap
-    case mbOld of
-      Nothing -> SM.insert value (boardHash board) bmap
-      Just old -> SM.insert (plus old value) (boardHash board) bmap
+lookupBoardMap :: Storable a => TBoardMap a -> Board -> IO (Maybe a)
+lookupBoardMap bmap board = HT.read bmap (boardHash board)
 
-putBoardMapWith :: TBoardMap a -> (a -> a -> a) -> Board -> a -> IO ()
-putBoardMapWith bmap plus board value = atomically $ putBoardMapWith' bmap plus board value
-
-lookupBoardMap' :: TBoardMap a -> Board -> STM (Maybe a)
-lookupBoardMap' bmap board = SM.lookup (boardHash board) bmap
-
-lookupBoardMap :: TBoardMap a -> Board -> IO (Maybe a)
-lookupBoardMap bmap board = atomically $ lookupBoardMap' bmap board
-
-resetBoardMap :: TBoardMap a -> IO ()
-resetBoardMap bmap = atomically $ SM.reset bmap
+resetBoardMap :: Storable a => TBoardMap a -> IO ()
+resetBoardMap bmap = HT.reset bmap
 
 ------------------
 

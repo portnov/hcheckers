@@ -283,7 +283,7 @@ instance EvalMoveMonad Checkers where
 instance EvalMoveMonad (StateT (ScoreState rules eval) Checkers) where
   checkPrimeVariation var key@(eval,board) dp = do
       cache <- gets ssCache
-      lookupAiCacheS key dp cache
+      lookupAiCacheS' key dp cache
 
   getKillerMove = getGoodMove
   
@@ -852,6 +852,10 @@ clamp alpha beta score
   | score > beta  = beta
   | otherwise = score
 
+data CachedResult =
+    CacheExactHit Score
+  | CacheRangeHit Score Score
+
 -- | Calculate score of the board. 
 -- This uses the cache. It is called in the recursive call also.
 cachedScoreAB :: forall rules eval. (GameRules rules, VectorEvaluator eval)
@@ -879,32 +883,37 @@ cachedScoreAB var eval params input = do -- scoreAB var eval params input
                   -- AB-section: alpha <= result <= beta. So here we clamp the value
                   -- that we got from cache.
                   case itemBound item of
-                    Exact -> return $ Just $ ScoreOutput (clamp alpha beta cachedScore) False
+                    Exact -> return $ CacheExactHit (clamp alpha beta cachedScore)
                     Alpha -> if cachedScore <= alpha
-                               then return $ Just $ ScoreOutput alpha False
-                               else return Nothing
+                               then return $ CacheExactHit alpha
+                               else return $ CacheRangeHit alpha beta
                     Beta  -> if cachedScore >= beta
-                               then return $ Just $ ScoreOutput beta False
-                               else return Nothing
-                Nothing -> return Nothing
+                               then return $ CacheExactHit beta
+                               else return $ CacheRangeHit alpha beta
+                Nothing -> return $ CacheRangeHit alpha beta
   case mbCached of
-    Just out -> return out
-    Nothing -> do
-      out <- Monitoring.timed "ai.score.board" $ scoreAB var eval params input
+    CacheExactHit s -> do
+        out <- Monitoring.timed "ai.score.board" $ scoreAB var eval params input
+        -- when (soScore out /= s && s > alpha && s < beta) $
+        --     $info "@{} Side {}, AB [{} - {}]: Cached value {} != actual value {}" (depth, show side, alpha, beta, s, soScore out)
+        return $ ScoreOutput s False
+    CacheRangeHit alpha' beta' -> do
+      out <- Monitoring.timed "ai.score.board" $ scoreAB var eval params $ input -- {siAlpha = alpha', siBeta = beta'}
       let score = soScore out
+          score' = clamp alpha' beta' score
           bound
-            | score <= alpha = Alpha
-            | score >= beta = Beta
+            | score <= alpha' = Alpha
+            | score >= beta' = Beta
             | otherwise = Exact
           -- we can only put the result to the cache if we know
           -- that this score was not clamped by alpha or beta
           -- (so this is a real score, not alpha/beta bound)
-          item = PerBoardData (dpLast dp) score bound
-          item' = PerBoardData (dpLast dp) (negate score) bound
+          item = PerBoardData (dpLast dp) score' bound
+          item' = PerBoardData (dpLast dp) (negate score') bound
       when (bound == Exact && soQuiescene out && not (dpStaticMode dp)) $ do
           lift $ putAiCache cacheKey item var
-          lift $ putAiCache cacheKey' item' var
-      return out
+          -- lift $ putAiCache cacheKey' item' var
+      return $ out {soScore = score'}
 
 -- | Check if target depth is reached
 isTargetDepth :: DepthParams -> Bool
@@ -1191,6 +1200,7 @@ scoreAB var eval params input
       best <- getBest
       $verbose "{}`—All moves considered at this level, return best = {}" (indent, show best)
       quiescene <- checkQuiescene
+      -- $info "@{} All checked: {}: [{} - {}] => {}" (dpCurrent dp, show side, alpha, beta, show best)
       return $ ScoreOutput best quiescene
     iterateMoves ((i,move, dp) : moves) = do
       timeout <- isTimeExhaused
@@ -1238,6 +1248,7 @@ scoreAB var eval params input
                         Monitoring.distribution "ai.section.at" $ fromIntegral i
                         $verbose "{}`—Return {} for depth {} = {}" (indent, bestStr, dpCurrent dp, show score)
                         quiescene <- checkQuiescene
+                        -- $info "@{} Section: {}: [{} - {}] => {}" (dpCurrent dp, show side, alpha, beta, show score)
                         return $ ScoreOutput score quiescene
                         
                    else iterateMoves moves

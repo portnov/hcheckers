@@ -53,6 +53,7 @@ dependencies:
 - random-shuffle
 - binary
 - store
+- deepseq
 - filepath
 - directory
 - Glob

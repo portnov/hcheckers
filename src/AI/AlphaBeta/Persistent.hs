@@ -14,6 +14,7 @@ module AI.AlphaBeta.Persistent
 import Control.Monad
 import Control.Monad.State
 import Control.Monad.Reader
+import Control.DeepSeq (force)
 import qualified ListT
 import Control.Concurrent.STM
 import qualified StmContainers.Map as SM
@@ -37,6 +38,7 @@ import Core.Types
 import qualified Core.AdaptiveMap as AM
 import Core.Board
 import AI.AlphaBeta.Types
+import qualified Core.HTable as HT
 
 maxPieces :: Integer
 maxPieces = 30
@@ -107,14 +109,14 @@ loadAiData rules = do
         bytes <- liftIO $ B.readFile path
         (vec, pairs) <- liftIO $ decodeIO bytes :: Checkers (V.Vector Double, [(BoardHash, PerBoardData)])
         $info "Load AI cache: {} - {} boards" (path, length pairs)
-        return (vec, pairs)
+        return (force vec, force pairs)
 
       let vecs = map fst perEvalPairs
           cachesForEval = map snd perEvalPairs
-      maps <- forM cachesForEval $ \pairs -> liftIO $ atomically $ do
-                bmap <- SM.new
+      maps <- liftIO $ forM cachesForEval $ \pairs -> do
+                bmap <- HT.new
                 forM pairs $ \(bHash, item) -> do
-                  SM.insert item bHash bmap
+                  HT.write bmap bHash item
                 return bmap
       liftIO $ atomically $ do
         aiData <- newTVar $ AM.fromList 2 $ zip vecs maps
@@ -128,8 +130,7 @@ saveAiData rules var = do
   perEvalMap <- liftIO $ atomically $ readTVar var
   forM_ (zip [1..] $ AM.toList perEvalMap) $ \(i, (vec, mapForEval)) -> do
     let path = cachePath </> show i ++ ".data"
-        getPairs = ListT.toList $ SM.listT mapForEval
-    boardsData <- liftIO $ atomically getPairs
+    boardsData <- liftIO $ HT.toList mapForEval
     let fileData = (vec, boardsData) :: (V.Vector Double, [(BoardHash, PerBoardData)])
     liftIO $ B.writeFile path $ Data.Store.encode fileData
     $info "Save AI cache: {} - {} boards" (path, length boardsData)
