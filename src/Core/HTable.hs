@@ -50,16 +50,23 @@ data HTable a = HTable {
 htable_size :: Int
 htable_size = 2^20
 
+locks_count :: Int
+locks_count = 2^16
+
+getLockIdx :: Key -> Int
+getLockIdx k = k `div` locks_count
+
 new :: IO (HTable a)
 new = do
-  locks <- replicateM htable_size RWL.new
+  locks <- replicateM locks_count RWL.new
   items <- MV.replicate htable_size (HTableValue 0 Nothing)
   return $ HTable (V.fromList locks) items
 
 read :: HTable a -> Key -> IO (Maybe a)
 read ht key = do
   let key' = key `mod` htable_size
-  RWL.withRead (htLocks ht V.! key') $ do
+      lockIdx = getLockIdx key'
+  RWL.withRead (htLocks ht V.! lockIdx) $ do
     HTableValue actualKey item <- MV.read (htData ht) key'
     if actualKey == key
       then return item
@@ -68,13 +75,15 @@ read ht key = do
 write :: HTable a -> Key -> a -> IO ()
 write ht key value = do
   let key' = key `mod` htable_size
-  RWL.withWrite (htLocks ht V.! key') $ do
+      lockIdx = getLockIdx key'
+  RWL.withWrite (htLocks ht V.! lockIdx) $ do
     MV.write (htData ht) key' (HTableValue key (Just value))
 
 writeWith :: HTable a -> (a -> a -> a) -> Key -> a -> IO ()
 writeWith ht op key value = do
   let key' = key `mod` htable_size
-  RWL.withWrite (htLocks ht V.! key') $ do
+      lockIdx = getLockIdx key'
+  RWL.withWrite (htLocks ht V.! lockIdx) $ do
     HTableValue oldKey mbItem <- MV.read (htData ht) key'
     case mbItem of
       Just item -> MV.write (htData ht) key' $ HTableValue key (Just (op item value))
