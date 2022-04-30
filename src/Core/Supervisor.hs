@@ -555,23 +555,22 @@ letAiMove separateThread gameId side mbBoard = do
 
       rules <- getRules gameId
       withAiStorage rules ai $ \storage -> do
-        timed "Selecting AI move" $ do
-            (sessionId, aiSession) <- newAiSession
-            inThread $ do
-              aiMoves <- chooseMove ai storage gameId side aiSession board
-              if null aiMoves
-                then do
-                  $info "AI failed to move." ()
-                  return ()
-                else do
-                  i <- liftIO $ randomRIO (0, length aiMoves - 1)
-                  let aiMove = aiMoves !! i
-                  $info "AI returned {} move(s), selected: {}" (length aiMoves, show aiMove)
-                  GMoveRs board' messages <- withGame gameId $ \_ -> doMoveRq side (pmMove aiMove)
-                  $debug "Messages: {}" (Single $ show messages)
-                  queueNotifications (getGameId game) messages
-                  liftIO $ putMVar (aiResult aiSession) board'
-            return (Just sessionId)
+          (sessionId, aiSession) <- newAiSession
+          inThread $ do
+            (dt, aiMoves) <- timing $ chooseMove ai storage gameId side aiSession board
+            if null aiMoves
+              then do
+                $info "AI failed to move." ()
+                return ()
+              else do
+                i <- liftIO $ randomRIO (0, length aiMoves - 1)
+                let aiMove = aiMoves !! i
+                $info "AI returned {} move(s) in {}s, selected: {}" (length aiMoves, showTimeDiff dt, show aiMove)
+                GMoveRs board' messages <- withGame gameId $ \_ -> doMoveRq side (pmMove aiMove)
+                $debug "Messages: {}" (Single $ show messages)
+                queueNotifications (getGameId game) messages
+                liftIO $ putMVar (aiResult aiSession) board'
+          return (Just sessionId)
 
     _ -> return Nothing
 
@@ -587,12 +586,11 @@ askAiMove gameId side = do
     AI ai -> do
       someRules@(SomeRules rules) <- getRules gameId
       withAiStorage someRules ai $ \storage -> do
-        timed "Asking AI hint" $ do
           (sessionId, aiSession) <- newAiSession
           forkCheckers $ do
-            aiMoves <- chooseMove ai storage gameId side aiSession board
+            (dt, aiMoves) <- timing $ chooseMove ai storage gameId side aiSession board
             let moves = map (moveRep rules side . pmMove) aiMoves
-            $info "AI returned {} move(s)" (Single $ length aiMoves)
+            $info "AI returned {} move(s) in {}s" (length aiMoves, showTimeDiff dt)
             let message = AiHintNotify side side moves
             queueNotifications (getGameId game) [message]
           return sessionId

@@ -953,6 +953,17 @@ timed message actions = do
     $debug "{}: {}s + {}ns" (message, sec delta, nsec delta)
     return result
 
+timing :: Checkers a -> Checkers (TimeSpec, a)
+timing actions = do
+    time1 <- liftIO $ getTime Realtime
+    result <- actions
+    time2 <- liftIO $ getTime Realtime
+    let delta = time2 - time1
+    return (delta, result)
+
+showTimeDiff :: TimeSpec -> String
+showTimeDiff t = printf "%d.%03d" (sec t) (nsec t `div` (1000*1000))
+
 event :: (MonadIO m, MonadMask m) => String -> m a -> m a
 event label actions =
   bracket_ (liftIO $ traceEventIO ("START " ++ label))
