@@ -22,6 +22,7 @@ import qualified Data.ByteString as B
 import qualified Data.Map as M
 import qualified Data.Vector as V
 import Data.Vector.Instances () -- import instances only
+import Data.Hashable
 import Data.Store
 import Data.Bits.Coded
 import Data.Bits.Coding
@@ -33,6 +34,7 @@ import System.Environment
 import System.FilePath
 import System.FilePath.Glob
 import System.Directory
+import Text.Printf
 
 import Core.Types
 import qualified Core.AdaptiveMap as AM
@@ -42,6 +44,9 @@ import qualified Core.HTable as HT
 
 maxPieces :: Integer
 maxPieces = 30
+
+evalHashName :: V.Vector Double -> String
+evalHashName v = printf "%016x" (hash v) 
 
 encodeBoard :: Board -> B.ByteString
 encodeBoard board = runPutS $ runEncode $ encodeB board
@@ -132,7 +137,7 @@ saveAiData rules var = do
   forM_ (zip [1..] $ AM.toList perEvalMap) $ \(i, (vec, ht)) -> do
     dirty <- liftIO $ HT.isDirty ht
     when dirty $ do
-      let path = cachePath </> show i ++ ".data"
+      let path = cachePath </> evalHashName vec ++ ".data"
       boardsData <- liftIO $ HT.toList ht
       let fileData = (vec, boardsData) :: (V.Vector Double, [(BoardHash, PerBoardData)])
       liftIO $ B.writeFile path $ Data.Store.encode fileData
