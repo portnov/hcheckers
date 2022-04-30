@@ -643,6 +643,11 @@ runAI ai@(AlphaBeta params rules eval) handle gameId side aiSession board = do
                 in  if maximize
                       then (d+1, d)
                       else (d, d+1)
+            | isLastPiece = 
+                let d = Score (initWidth+1) 500
+                in  if maximize
+                      then (d+3, d)
+                      else (d, d+3)
             | otherwise =
                 let d = Score initWidth 600
                 in  (d, d)
@@ -673,8 +678,8 @@ runAI ai@(AlphaBeta params rules eval) handle gameId side aiSession board = do
       | sNumeric s < 1 = Score 1 (sPositional s)
       | otherwise = k `scaleScore` s
 
-    nextInterval :: (Score, Score) -> (Score, Score)
-    nextInterval (alpha, beta) =
+    nextInterval :: Bool -> (Score, Score) -> (Score, Score)
+    nextInterval False (alpha, beta) =
       let width = (beta - alpha)
           width' = selectScale width `scale` width
           alpha' = prevScore alpha
@@ -682,9 +687,12 @@ runAI ai@(AlphaBeta params rules eval) handle gameId side aiSession board = do
       in  if maximize
             then (alpha, max beta' (beta' + width'))
             else (min alpha' (alpha' - width'), beta)
+    nextInterval True (alpha, beta)
+      | maximize = (alpha, win)
+      | otherwise = (loose, beta)
 
-    prevInterval :: (Score, Score) -> (Score, Score)
-    prevInterval (alpha, beta) =
+    prevInterval :: Bool -> (Score, Score) -> (Score, Score)
+    prevInterval False (alpha, beta) =
       let width = (beta - alpha)
           width' = selectScale width `scale` width
           alpha' = prevScore alpha
@@ -692,6 +700,17 @@ runAI ai@(AlphaBeta params rules eval) handle gameId side aiSession board = do
       in  if minimize
             then (alpha, max beta' (beta' + width'))
             else (min alpha' (alpha' - width'), beta)
+    prevInterval True (alpha, beta)
+      | maximize = (loose, beta)
+      | otherwise = (alpha, win)
+
+    isAlmostLoose :: Side -> Bool
+    isAlmostLoose side =
+      let (men, kings) = myCounts side board
+      in  (men + kings) == 1
+
+    isLastPiece :: Bool
+    isLastPiece = isAlmostLoose First || isAlmostLoose Second
 
     widthController :: Bool -- ^ Allow to shift (alpha,beta) segment to bigger values?
                     -> Bool -- ^ Allow to shift (alpha,beta) segment to lesser values?
@@ -718,7 +737,7 @@ runAI ai@(AlphaBeta params rules eval) handle gameId side aiSession board = do
                         $info "All moves are `too bad'; but there is no worse interval, return all what we have" ()
                         return [MoveAndScore move badScore | move <- moves]
                       else do
-                        let interval' = prevInterval interval
+                        let interval' = prevInterval (isAlmostLoose side) interval
                         $info "All moves are `too bad'; consider worse scores interval: [{} - {}]" interval'
                         widthController False True prevResult badMoves dp interval'
                   else do
@@ -738,7 +757,7 @@ runAI ai@(AlphaBeta params rules eval) handle gameId side aiSession board = do
                             $info "Some moves ({} of them) are `too good'; but there is no better interval, return all of them." (Single $ length bestMoves)
                             return bestResults
                           else do
-                            let interval'@(alpha',beta') = nextInterval interval
+                            let interval'@(alpha',beta') = nextInterval (isAlmostLoose (opposite side)) interval
                             $info "Some moves ({} of them) are `too good'; consider better scores interval: [{} - {}]" (length bestMoves, alpha', beta')
                             widthController True False prevResult bestMoves dp interval'
                           else do
