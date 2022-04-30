@@ -182,6 +182,9 @@ rulesFromTags [] = Nothing
 rulesFromTags (GameType r:_) = Just r
 rulesFromTags (_:rest) = rulesFromTags rest
 
+rulesFromPdn :: GameRecord -> Maybe SomeRules
+rulesFromPdn gr = rulesFromTags (grTags gr)
+
 pGame :: Maybe SomeRules -> Parser GameRecord
 pGame dfltRules = do
   tags <- some (try pTag)

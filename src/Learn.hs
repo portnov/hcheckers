@@ -6,15 +6,20 @@ module Learn where
 
 import Control.Monad
 import Control.Monad.State
+import Control.Monad.Except
 import Control.Concurrent.STM
 import qualified Control.Monad.Metrics as Metrics
+import Data.Aeson
 import Data.Text.Format.Heavy
 import System.Log.Heavy
 import System.Log.Heavy.TH
+import System.Directory
+import System.FilePath ((</>))
+import System.FilePath.Glob (glob)
 
 import Core.Types
 import Core.Board
-import Core.Supervisor (newAiSession)
+import Core.Supervisor (newAiSession, newGame)
 import AI.AlphaBeta
 import AI.AlphaBeta.Types
 import AI.AlphaBeta.Cache
@@ -56,6 +61,12 @@ doLearn' rules eval var params gameRec = do
     resultToScore SecondWin = loose
     resultToScore Draw = 0
 
+parseMoveRecM :: GameRules rules => rules -> Side -> Board -> SemiMoveRec -> Checkers Move
+parseMoveRecM rules side board rec =
+  case parseMoveRec rules side board rec of
+    Right move -> return move
+    Left err -> throwError err
+
 doLearn :: (GameRules rules, Evaluator eval)
         => rules
         -> eval
@@ -80,7 +91,7 @@ doLearn rules eval var params gameId gameRec = do
         case mrFirst moveRec of
           Nothing -> return (board0, [], score0)
           Just rec -> do
-            let Right move1 = parseMoveRec rules First board0 rec
+            move1 <- parseMoveRecM rules First board0 rec
             if move1 `elem` map pmMove predicted
               then Metrics.increment "learn.hit"
               else Metrics.increment "learn.miss"
@@ -90,7 +101,7 @@ doLearn rules eval var params gameId gameRec = do
       case mrSecond moveRec of
         Nothing -> return (score2, board0 : board1 : boards)
         Just rec -> do
-          let Right move2 = parseMoveRec rules Second board1 rec
+          move2 <- parseMoveRecM rules Second board1 rec
           if move2 `elem` map pmMove predict2
             then Metrics.increment "learn.hit"
             else Metrics.increment "learn.miss"
@@ -115,15 +126,42 @@ processMove rules eval var params gameId side move board = do
   $info "Processed: side {}, move: {}, depth: {} => score {}; we think next best moves are: {}" (show side, show move, abDepth params, show score, show moves)
   return (moves, score)
 
-learnPdn :: (GameRules rules, VectorEvaluator eval) => AlphaBeta rules eval -> FilePath -> Checkers ()
+doRulesMatch :: Maybe SomeRules -> SomeRules -> Bool
+doRulesMatch Nothing _ = True
+doRulesMatch (Just (SomeRules pdnRules)) (SomeRules myRules) = rulesName pdnRules == rulesName myRules
+
+learnPdn :: (GameRules rules, VectorEvaluator eval, ToJSON eval) => AlphaBeta rules eval -> FilePath -> Checkers ()
 learnPdn ai@(AlphaBeta params rules eval) path = do
   cache <- loadAiCache scoreMoveGroup ai
   pdn <- liftIO $ parsePdnFile (Just $ SomeRules rules) path
   let n = length pdn
   forM_ (zip [1.. ] pdn) $ \(i, gameRec) -> do
-    -- liftIO $ print pdn
-    $info "Processing game {}/{}..." (i :: Int, n)
-    doLearn rules eval cache params (show i) gameRec
-    -- saveAiCache rules params cache
-    return ()
+    let mbPdnRules = rulesFromPdn gameRec
+    if doRulesMatch mbPdnRules (SomeRules rules)
+      then do
+        -- liftIO $ print pdn
+        $info "Processing game {}/{}..." (i :: Int, n)
+        gameId <- newGame (SomeRules rules) First Nothing
+        doLearn rules eval cache params gameId gameRec
+        saveAiStorage ai cache
+        return ()
+      else do
+        $info "Game {}/{} - skip: unmatching rules" (i :: Int, n)
+        return ()
+
+learnPdnOrDir :: (GameRules rules, VectorEvaluator eval, ToJSON eval) => AlphaBeta rules eval -> FilePath -> Checkers ()
+learnPdnOrDir ai path = do
+  pathExists <- liftIO $ doesPathExist path
+  if pathExists
+    then do
+      dirExists <- liftIO $ doesDirectoryExist path
+      if dirExists
+        then do
+          paths <- liftIO $ glob (path </> "*.pdn")
+          forM_ paths $ \path -> do
+            $info "Processing file: {}" (Single path)
+            learnPdn ai path
+        else learnPdn ai path
+    else
+      fail "Specified path not found"
 

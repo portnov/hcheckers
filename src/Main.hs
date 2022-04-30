@@ -58,17 +58,14 @@ main = do
 special :: CmdLine -> [String] -> IO ()
 special cmd args =
   case args of
-    ["learn", path] -> do
-      let rules = russian
-          eval = ai
-          params = def {
-                     abDepth = 4
-                   , abCombinationDepth = 9
-                   }
-          ai = AlphaBeta params rules (dfltEvaluator rules)
-      withCheckers cmd $
-          withLogContext (LogContextFrame [] (include defaultLogFilter)) $
-            learnPdn ai path
+    ["learn", rulesName, aiPath, pdnPath] -> do
+      withRules rulesName $ \rules -> do
+        ai <- loadAi "default" rules aiPath
+        withCheckers cmd $ do
+            withLogContext (LogContextFrame [] (include defaultLogFilter)) $
+              learnPdnOrDir ai pdnPath
+            printCurrentMetrics (Just "ai.")
+            printCurrentMetrics (Just "learn.")
 
     ["bench", rulesName, path, ns] -> do
       withRules rulesName $ \rules -> do

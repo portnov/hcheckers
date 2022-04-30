@@ -249,7 +249,9 @@ getPossibleMoves :: GameRules rules => AICacheHandle rules eval -> Side -> Board
 getPossibleMoves handle side board = Monitoring.timed "ai.possible_moves.duration" $ do
     let rules = aichRules handle
     Monitoring.increment "ai.possible_moves.calls"
-    return $ possibleMoves rules side board
+    let moves = possibleMoves rules side board
+    Monitoring.distribution "ai.possible_moves.count" (fromIntegral $ length moves)
+    return moves
 --     (result, hit) <- liftIO $ do
 --         let memo = aichPossibleMoves handle
 --         let rules = aichRules handle
@@ -452,11 +454,14 @@ runAI :: (GameRules rules, Evaluator eval)
       -> Checkers AiOutput
 runAI ai@(AlphaBeta params rules eval) handle gameId side aiSession board = do
     options <- depthDriver =<< getPossibleMoves handle side board
-    output <- select options
-    let bestScore = sNumeric $ snd output
-    let shift = bestScore - sNumeric score0
-    rememberScoreShift handle gameId shift
-    return output
+    if null options
+      then return ([], if maximize then loose else win)
+      else do
+        output <- select options
+        let bestScore = sNumeric $ snd output
+        let shift = bestScore - sNumeric score0
+        rememberScoreShift handle gameId shift
+        return output
   where
     maximize = side == First
     minimize = not maximize
