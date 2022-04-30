@@ -113,8 +113,9 @@ loadAiData rules = do
 
       let vecs = map fst perEvalPairs
           cachesForEval = map snd perEvalPairs
+      htableSize <- asks (aiHtableSize . gcAiConfig . csConfig)
       maps <- liftIO $ forM cachesForEval $ \pairs -> do
-                bmap <- HT.new
+                bmap <- HT.new (htableSize * 1024)
                 forM pairs $ \(bHash, item) -> do
                   HT.write bmap bHash item
                 return bmap

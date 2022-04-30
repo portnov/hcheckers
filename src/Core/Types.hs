@@ -780,6 +780,7 @@ data AiConfig = AiConfig {
   , aiUseCacheMaxDepthMinus :: Depth
   , aiUpdateCacheMaxDepth :: Depth
   , aiUpdateCacheMaxPieces :: Int
+  , aiHtableSize :: Int
   }
   deriving (Show, Typeable, Generic)
 
@@ -794,6 +795,7 @@ instance Default AiConfig where
         , aiUseCacheMaxDepthMinus = 0
         , aiUpdateCacheMaxDepth = 6
         , aiUpdateCacheMaxPieces = 8
+        , aiHtableSize = 1024
       }
 
 data BattleServerConfig = BattleServerConfig {

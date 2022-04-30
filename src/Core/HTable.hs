@@ -44,12 +44,10 @@ instance Storable a => Storable (HTableValue a) where
         pokeByteOff (castPtr ptr) (sizeOf key + sizeOf (1 :: Word8)) value
 
 data HTable a = HTable {
-    htLocks :: V.Vector Lock.Lock
+    htSize :: Int
+  , htLocks :: V.Vector Lock.Lock
   , htData :: MV.IOVector (HTableValue a)
   }
-
-htable_size :: Int
-htable_size = 2^26
 
 locks_count :: Int
 locks_count = 2^8
@@ -57,15 +55,15 @@ locks_count = 2^8
 getLockIdx :: Key -> Int
 getLockIdx k = k `mod` locks_count
 
-new :: IO (HTable a)
-new = do
+new :: Int -> IO (HTable a)
+new size = do
   locks <- replicateM locks_count Lock.new
-  items <- MV.replicate htable_size (HTableValue 0 Nothing)
-  return $ HTable (V.fromList locks) items
+  items <- MV.replicate size (HTableValue 0 Nothing)
+  return $ HTable size (V.fromList locks) items
 
 read :: HTable a -> Key -> IO (Maybe a)
 read ht key = do
-  let key' = key `mod` htable_size
+  let key' = key `mod` htSize ht
       lockIdx = getLockIdx key'
   Lock.with (htLocks ht V.! lockIdx) $ do
     HTableValue actualKey item <- MV.read (htData ht) key'
@@ -75,14 +73,14 @@ read ht key = do
 
 write :: HTable a -> Key -> a -> IO ()
 write ht key value = do
-  let key' = key `mod` htable_size
+  let key' = key `mod` htSize ht
       lockIdx = getLockIdx key'
   Lock.with (htLocks ht V.! lockIdx) $ do
     MV.write (htData ht) key' (HTableValue key (Just value))
 
 writeWith :: HTable a -> (a -> a -> a) -> Key -> a -> IO ()
 writeWith ht op key value = do
-  let key' = key `mod` htable_size
+  let key' = key `mod` htSize ht
       lockIdx = getLockIdx key'
   Lock.with (htLocks ht V.! lockIdx) $ do
     HTableValue oldKey mbItem <- MV.read (htData ht) key'
@@ -103,7 +101,7 @@ toList ht = bracket_ acquireAll releaseAll readAll
     acquireAll = V.forM_ (htLocks ht) Lock.acquire
     releaseAll = V.forM_ (V.reverse $ htLocks ht) Lock.release
     readAll = do
-      allItems <- forM [0 .. htable_size-1] $ \i -> MV.read (htData ht) i
+      allItems <- forM [0 .. htSize ht-1] $ \i -> MV.read (htData ht) i
       let setItems = [(key, value) | HTableValue key (Just value) <- allItems]
       return setItems
 

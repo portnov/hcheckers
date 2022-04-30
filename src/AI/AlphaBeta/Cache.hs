@@ -41,10 +41,12 @@ putAiData aiData (evalVec, board) item = do
   perEval <- liftIO $ atomically $ readTVar aiData
   case AM.lookup evalVec perEval of
     Just forEval -> liftIO $ putBoardMapWith forEval (<>) board item
-    Nothing -> liftIO $ do
-      map <- newTBoardMap
-      putBoardMap map board item
-      atomically $ writeTVar aiData $ AM.insert evalVec map perEval
+    Nothing -> do
+      htableSize <- asks (aiHtableSize . gcAiConfig . csConfig)
+      liftIO $ do
+        map <- newTBoardMap (htableSize * 1024)
+        putBoardMap map board item
+        atomically $ writeTVar aiData $ AM.insert evalVec map perEval
 
 lookupAiData :: AIData -> CacheKey -> Checkers (Maybe PerBoardData)
 lookupAiData aiData (evalVec, board) = do
@@ -59,11 +61,13 @@ allocateCache handle eval = do
   let evalVec = evalToVector eval
   perEval <- liftIO $ atomically $ readTVar aiData
   case AM.lookup evalVec perEval of
-    Nothing -> liftIO $ do
-      newCache <- newTBoardMap
-      let perEval' = AM.insert evalVec newCache perEval
-      atomically $ writeTVar aiData perEval'
-      return newCache
+    Nothing -> do
+      htableSize <- asks (aiHtableSize . gcAiConfig . csConfig)
+      liftIO $ do
+        newCache <- newTBoardMap (htableSize * 1024)
+        let perEval' = AM.insert evalVec newCache perEval
+        atomically $ writeTVar aiData perEval'
+        return newCache
     Just cache -> return cache
 
 -- | Prepare AI storage instance.

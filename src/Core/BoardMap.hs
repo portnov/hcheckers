@@ -100,19 +100,19 @@ removeBoard a p@(Piece King Second) b = b {
 --     boardCounts = removeBoardCounts p (boardCounts b)
   }
 
-newTBoardMap :: Storable a => IO (TBoardMap a)
+newTBoardMap :: Int -> IO (TBoardMap a)
 newTBoardMap = HT.new
 
-putBoardMap :: Storable a => TBoardMap a -> Board -> a -> IO ()
+putBoardMap :: TBoardMap a -> Board -> a -> IO ()
 putBoardMap bmap board value = HT.write bmap (boardHash board) value
 
-putBoardMapWith :: Storable a => TBoardMap a -> (a -> a -> a) -> Board -> a -> IO ()
+putBoardMapWith :: TBoardMap a -> (a -> a -> a) -> Board -> a -> IO ()
 putBoardMapWith bmap plus board value = HT.writeWith bmap plus (boardHash board) value
 
-lookupBoardMap :: Storable a => TBoardMap a -> Board -> IO (Maybe a)
+lookupBoardMap :: TBoardMap a -> Board -> IO (Maybe a)
 lookupBoardMap bmap board = HT.read bmap (boardHash board)
 
-resetBoardMap :: Storable a => TBoardMap a -> IO ()
+resetBoardMap :: TBoardMap a -> IO ()
 resetBoardMap bmap = HT.reset bmap
 
 ------------------
