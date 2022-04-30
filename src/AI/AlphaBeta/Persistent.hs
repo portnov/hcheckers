@@ -129,10 +129,13 @@ saveAiData :: GameRules rules => rules -> AIData -> Checkers ()
 saveAiData rules var = do
   cachePath <- getCachePath rules
   perEvalMap <- liftIO $ atomically $ readTVar var
-  forM_ (zip [1..] $ AM.toList perEvalMap) $ \(i, (vec, mapForEval)) -> do
-    let path = cachePath </> show i ++ ".data"
-    boardsData <- liftIO $ HT.toList mapForEval
-    let fileData = (vec, boardsData) :: (V.Vector Double, [(BoardHash, PerBoardData)])
-    liftIO $ B.writeFile path $ Data.Store.encode fileData
-    $info "Save AI cache: {} - {} boards" (path, length boardsData)
+  forM_ (zip [1..] $ AM.toList perEvalMap) $ \(i, (vec, ht)) -> do
+    dirty <- liftIO $ HT.isDirty ht
+    when dirty $ do
+      let path = cachePath </> show i ++ ".data"
+      boardsData <- liftIO $ HT.toList ht
+      let fileData = (vec, boardsData) :: (V.Vector Double, [(BoardHash, PerBoardData)])
+      liftIO $ B.writeFile path $ Data.Store.encode fileData
+      liftIO $ HT.markClean ht
+      $info "Save AI cache: {} - {} boards" (path, length boardsData)
 

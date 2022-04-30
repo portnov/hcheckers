@@ -4,7 +4,8 @@ module Core.HTable (
     HTable,
     new, read, toList,
     write, writeWith,
-    reset
+    reset,
+    isDirty, markClean
   ) where
 
 import Control.Monad
@@ -12,6 +13,7 @@ import Prelude hiding (read)
 import Control.Exception (bracket_)
 import qualified Data.Vector.Mutable as MV
 import qualified Data.Vector as V
+import Control.Concurrent.STM
 -- import qualified Control.Concurrent.ReadWriteLock as RWL
 import qualified Control.Concurrent.Lock as Lock
 import Data.Word
@@ -45,6 +47,7 @@ instance Storable a => Storable (HTableValue a) where
 
 data HTable a = HTable {
     htSize :: Int
+  , htDirty :: TVar Bool
   , htLocks :: V.Vector Lock.Lock
   , htData :: MV.IOVector (HTableValue a)
   }
@@ -59,7 +62,8 @@ new :: Int -> IO (HTable a)
 new size = do
   locks <- replicateM locks_count Lock.new
   items <- MV.replicate size (HTableValue 0 Nothing)
-  return $ HTable size (V.fromList locks) items
+  dirty <- atomically $ newTVar False
+  return $ HTable size dirty (V.fromList locks) items
 
 read :: HTable a -> Key -> IO (Maybe a)
 read ht key = do
@@ -77,6 +81,7 @@ write ht key value = do
       lockIdx = getLockIdx key'
   Lock.with (htLocks ht V.! lockIdx) $ do
     MV.write (htData ht) key' (HTableValue key (Just value))
+  atomically $ writeTVar (htDirty ht) True
 
 writeWith :: HTable a -> (a -> a -> a) -> Key -> a -> IO ()
 writeWith ht op key value = do
@@ -87,9 +92,12 @@ writeWith ht op key value = do
     case mbItem of
       Just item -> MV.write (htData ht) key' $ HTableValue key (Just (op item value))
       Nothing -> MV.write (htData ht) key' $ HTableValue key (Just value)
+  atomically $ writeTVar (htDirty ht) True
 
 reset :: HTable a -> IO ()
-reset ht = bracket_ acquireAll releaseAll resetAll
+reset ht = do
+    bracket_ acquireAll releaseAll resetAll
+    atomically $ writeTVar (htDirty ht) True
   where
     acquireAll = V.forM_ (htLocks ht) Lock.acquire
     releaseAll = V.forM_ (V.reverse $ htLocks ht) Lock.release
@@ -104,4 +112,10 @@ toList ht = bracket_ acquireAll releaseAll readAll
       allItems <- forM [0 .. htSize ht-1] $ \i -> MV.read (htData ht) i
       let setItems = [(key, value) | HTableValue key (Just value) <- allItems]
       return setItems
+
+isDirty :: HTable a -> IO Bool
+isDirty ht = atomically $ readTVar (htDirty ht)
+
+markClean :: HTable a -> IO ()
+markClean ht = atomically $ writeTVar (htDirty ht) False
 
