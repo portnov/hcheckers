@@ -202,6 +202,7 @@ instance FromJSON AiConfig where
       <$> v .:? "threads" .!= (aiThreads def)
       <*> v .:? "load" .!= (aiLoadCache def)
       <*> v .:? "store" .!= (aiStoreCache def)
+      <*> v .:? "store_period" .!= (aiStoreCachePeriod def)
       <*> v .:? "use_cache_max_depth" .!= (aiUseCacheMaxDepth def)
       <*> v .:? "use_cache_max_pieces" .!= (aiUseCacheMaxPieces def)
       <*> v .:? "use_cache_max_depth_plus" .!= (aiUseCacheMaxDepthPlus def)

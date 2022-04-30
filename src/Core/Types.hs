@@ -774,6 +774,7 @@ data AiConfig = AiConfig {
     aiThreads :: Int
   , aiLoadCache :: Bool
   , aiStoreCache :: Bool
+  , aiStoreCachePeriod :: Int
   , aiUseCacheMaxDepth :: Depth
   , aiUseCacheMaxPieces :: Depth
   , aiUseCacheMaxDepthPlus :: Depth
@@ -789,6 +790,7 @@ instance Default AiConfig where
           aiThreads = 4
         , aiLoadCache = True
         , aiStoreCache = False
+        , aiStoreCachePeriod = 10
         , aiUseCacheMaxDepth = 8
         , aiUseCacheMaxPieces = 24
         , aiUseCacheMaxDepthPlus = 0

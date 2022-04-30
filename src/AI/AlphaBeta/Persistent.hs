@@ -34,6 +34,7 @@ import System.Environment
 import System.FilePath
 import System.FilePath.Glob
 import System.Directory
+import System.Clock
 import Text.Printf
 
 import Core.Types
@@ -137,10 +138,14 @@ saveAiData rules var = do
   forM_ (zip [1..] $ AM.toList perEvalMap) $ \(i, (vec, ht)) -> do
     dirty <- liftIO $ HT.isDirty ht
     when dirty $ do
+      start <- liftIO $ getTime RealtimeCoarse
       let path = cachePath </> evalHashName vec ++ ".data"
       boardsData <- liftIO $ HT.toList ht
       let fileData = (vec, boardsData) :: (V.Vector Double, [(BoardHash, PerBoardData)])
       liftIO $ B.writeFile path $ Data.Store.encode fileData
       liftIO $ HT.markClean ht
-      $info "Save AI cache: {} - {} boards" (path, length boardsData)
+      end <- liftIO $ getTime RealtimeCoarse
+      let dt = diffTimeSpec end start
+          dtStr = printf "%d.%d" (sec dt) (nsec dt `div` (1000*1000))
+      $info "Save AI cache: {} - {} boards, in {} seconds" (path, length boardsData, dtStr :: String)
 

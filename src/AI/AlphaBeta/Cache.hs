@@ -105,7 +105,8 @@ loadAiCache scoreMove (AlphaBeta params rules eval) = do
 aiStorageSaver :: GameRules rules => rules -> AIData -> Checkers ()
 aiStorageSaver rules aiData = do
       saveAiData rules aiData
-      liftIO $ threadDelay $ 10 * 1000 * 1000
+      delay <- asks (aiStoreCachePeriod . gcAiConfig . csConfig)
+      liftIO $ threadDelay $ delay * 1000 * 1000
       aiStorageSaver rules aiData
 
 normalize :: BoardSize -> (BoardCounts,BoardKey,Side) -> (BoardCounts,BoardKey,Side)
