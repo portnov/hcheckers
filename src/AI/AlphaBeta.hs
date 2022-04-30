@@ -70,9 +70,11 @@ instance FromJSON AlphaBetaParams where
       <*> v .:? "start_depth"
       <*> v .:? "max_combination_depth" .!= 8
       <*> v .:? "dynamic_depth" .!= abDynamicDepth def
+      <*> v .:? "depth_step" .!= abDepthStep def
       <*> v .:? "deeper_if_bad" .!= False
       <*> v .:? "moves_bound_low" .!= 4
       <*> v .:? "moves_bound_high" .!= 8
+      <*> v .:? "init_window_width" .!= abInitWindowWidth def
       <*> v .:? "time"
       <*> v .:? "random_opening_depth" .!= abRandomOpeningDepth def
       <*> v .:? "random_opening_options" .!= abRandomOpeningOptions def
@@ -84,9 +86,11 @@ instance ToJSON AlphaBetaParams where
               "start_depth" .= abStartDepth p,
               "max_combination_depth" .= abCombinationDepth p,
               "dynamic_depth" .= abDynamicDepth p,
+              "depth_step" .= abDepthStep p,
               "deeper_if_bad" .= abDeeperIfBad p,
               "moves_bound_low" .= abMovesLowBound p,
               "moves_bound_high" .= abMovesHighBound p,
+              "init_window_depth" .= abInitWindowWidth p,
               "time" .= abBaseTime p,
               "random_opening_depth" .= abRandomOpeningDepth p,
               "random_opening_options" .= abRandomOpeningOptions p
@@ -170,9 +174,11 @@ instance (GameRules rules, VectorEvaluator eval, ToJSON eval) => VectorAi (Alpha
                 , abStartDepth = Nothing
                 , abCombinationDepth = round (v V.! 1)
                 , abDynamicDepth = round (v V.! 2)
+                , abDepthStep = abDepthStep def
                 , abDeeperIfBad = False
                 , abMovesLowBound = abMovesLowBound def
                 , abMovesHighBound = abMovesHighBound def
+                , abInitWindowWidth = abInitWindowWidth def
                 , abBaseTime = Nothing
                 , abRandomOpeningDepth = 1
                 , abRandomOpeningOptions = 1
@@ -502,14 +508,12 @@ runAI ai@(AlphaBeta params rules eval) handle gameId side aiSession board = do
 --       $debug "Pre-selected options: {}" (Single $ show result)
 --       return result
 
-    depthStep :: Depth
-    depthStep = 2
-
     depthDriver :: [PossibleMove] -> Checkers DepthIterationOutput
     depthDriver moves =
       case abBaseTime params of
           Nothing -> do
             let target = abDepth params
+                depthStep = abDepthStep params
                 preselectDepth =
                   if target <= depthStep
                     then target
@@ -600,7 +604,8 @@ runAI ai@(AlphaBeta params rules eval) handle gameId side aiSession board = do
           -- too big depth does not decide anything in such situations.
           if depth < 50
             then do
-              let input' = deeper depth depthStep result input
+              let depthStep = abDepthStep diiParams
+                  input' = deeper depth depthStep result input
               return (result, Just input')
             else return (result, Nothing)
 
@@ -623,23 +628,32 @@ runAI ai@(AlphaBeta params rules eval) handle gameId side aiSession board = do
     -- | Initial (alpha, beta) interval
     mkInitInterval :: Depth -> Bool -> Checkers (Score, Score)
     mkInitInterval depth quiescene = do
-      let delta
-            | depth < abDepth params = fromIntegral $ max 1 $ abDepth params - depth
-            | not quiescene = Score 1 500
-            | otherwise = Score 0 600
+      let initWidth = fromIntegral (abInitWindowWidth params) :: ScoreBase
+          (deltaPlus, deltaMinus)
+            | depth < abDepth params =
+                let d = fromIntegral $ max 1 $ abDepth params - depth
+                in  (d, d)
+            | not quiescene =
+                let d = Score (initWidth+1) 500
+                in  if maximize
+                      then (d+1, d)
+                      else (d, d+1)
+            | otherwise =
+                let d = Score initWidth 600
+                in  (d, d)
       mbPrevShift <- getLastScoreShift handle gameId
       case mbPrevShift of
         Nothing -> do
-            let alpha = score0 - delta
-                beta  = score0 + delta
-            $debug "Score0 = {}, delta = {} => initial interval ({}, {})" (score0, delta, alpha, beta)
+            let alpha = score0 - deltaMinus
+                beta  = score0 + deltaPlus
+            $debug "Score0 = {}, delta = +{}/-{} => initial interval ({}, {})" (score0, deltaPlus, deltaMinus, alpha, beta)
             return (alpha, beta)
         Just shift -> do
             let (alpha, beta)
-                  | shift >= 0 = (score0 - delta, score0 + (Score shift 0) + delta)
-                  | otherwise  = (score0 + (Score shift 0) - delta, score0 + delta)
-            $debug "Score0 = {}, delta = {}, shift in previous move = {} => initial interval ({}, {})"
-                              (score0, delta, shift, alpha, beta)
+                  | shift >= 0 = (score0 - deltaMinus, score0 + (Score shift 0) + deltaPlus)
+                  | otherwise  = (score0 + (Score shift 0) - deltaMinus, score0 + deltaPlus)
+            $debug "Score0 = {}, delta = +{}/-{}, shift in previous move = {} => initial interval ({}, {})"
+                              (score0, deltaPlus, deltaMinus, shift, alpha, beta)
             return (alpha, beta)
 
     selectScale :: Score -> ScoreBase

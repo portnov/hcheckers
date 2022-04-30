@@ -69,9 +69,11 @@ data AlphaBetaParams = AlphaBetaParams {
   , abStartDepth :: Maybe Depth
   , abCombinationDepth :: Depth
   , abDynamicDepth :: Depth
+  , abDepthStep :: Depth
   , abDeeperIfBad :: Bool
   , abMovesLowBound :: Int
   , abMovesHighBound :: Int
+  , abInitWindowWidth :: Int
   , abBaseTime :: Maybe Int
   , abRandomOpeningDepth :: Int
   , abRandomOpeningOptions :: Int
@@ -85,9 +87,11 @@ instance Default AlphaBetaParams where
         , abStartDepth = Nothing
         , abCombinationDepth = 8
         , abDynamicDepth = 8
+        , abDepthStep = 3
         , abDeeperIfBad = False
         , abMovesLowBound = 4
         , abMovesHighBound = 8
+        , abInitWindowWidth = 0
         , abBaseTime = Nothing
         , abRandomOpeningDepth = 1
         , abRandomOpeningOptions = 1
