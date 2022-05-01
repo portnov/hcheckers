@@ -67,7 +67,7 @@ parseMoveRecM rules side board rec =
     Right move -> return move
     Left err -> throwError err
 
-doLearn :: (GameRules rules, Evaluator eval)
+doLearn :: (GameRules rules, VectorEvaluator eval)
         => rules
         -> eval
         -> AICacheHandle rules eval
@@ -109,7 +109,7 @@ doLearn rules eval var params gameId gameRec = do
           (predict1, score1) <- processMove rules eval var params gameId First move2 board2
           go (score1, board0 : board1 : boards) board2 predict1 rest
 
-processMove :: (GameRules rules, Evaluator eval)
+processMove :: (GameRules rules, VectorEvaluator eval)
             => rules
             -> eval
             -> AICacheHandle rules eval

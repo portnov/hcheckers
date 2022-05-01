@@ -10,7 +10,7 @@ module AI.AlphaBeta.Cache
   ( loadAiCache,
     allocateCache,
     lookupAiCache, lookupAiCacheS,
-    lookupAiCacheS',
+    lookupAiCacheS', lookupAiCacheC,
     putAiCache, putAiCacheS,
     resetAiCache,
     mkCacheKey
@@ -143,8 +143,13 @@ lookupAiCache key depth handle = do
             then return $ Just item
             else return Nothing
 
-lookupAiCacheS' :: CacheKey -> DepthParams -> BoardDataCache -> ScoreM rules eval (Maybe PerBoardData)
-lookupAiCacheS' key@(_,board) depth cache = liftIO $ lookupBoardMap cache board
+lookupAiCacheS' :: CacheKey -> BoardDataCache -> ScoreM rules eval (Maybe PerBoardData)
+lookupAiCacheS' key@(_,board) cache = liftIO $ lookupBoardMap cache board
+
+lookupAiCacheC :: CacheKey -> AICacheHandle rules eval -> Checkers (Maybe PerBoardData)
+lookupAiCacheC key handle = do
+  let cache = aichData handle
+  lookupAiData cache key
 
 -- | Look up for item in the cache.
 lookupAiCacheS :: CacheKey -> DepthParams -> BoardDataCache -> ScoreM rules eval (Maybe PerBoardData)

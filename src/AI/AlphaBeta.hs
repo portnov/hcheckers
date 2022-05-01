@@ -278,35 +278,35 @@ getPossibleMoves handle side board = Monitoring.timed "ai.possible_moves.duratio
 --     return result
 
 class Monad m => EvalMoveMonad m where
-  checkPrimeVariation :: (GameRules rules) => AICacheHandle rules eval -> CacheKey -> DepthParams -> m (Maybe PerBoardData)
+  checkPrimeVariation :: (GameRules rules) => AICacheHandle rules eval -> CacheKey -> m (Maybe PerBoardData)
   getKillerMove :: Int -> m (Maybe MoveAndScore)
 
 instance EvalMoveMonad Checkers where
-  checkPrimeVariation var key dp = do
-      lookupAiCache key dp var
+  checkPrimeVariation var key = do
+    lookupAiCacheC key var
 
   getKillerMove _ = return Nothing
 
 -- ScoreM instance
 instance EvalMoveMonad (StateT (ScoreState rules eval) Checkers) where
-  checkPrimeVariation var key@(eval,board) dp = do
+  checkPrimeVariation var key@(eval,board) = do
       cache <- gets ssCache
-      lookupAiCacheS' key dp cache
+      lookupAiCacheS' key cache
 
   getKillerMove = getGoodMove
   
 evalMove :: (EvalMoveMonad m, GameRules rules, VectorEvaluator eval)
         => AICacheHandle rules eval
-        -> CacheKey
+        -> eval
         -> Side
-        -> DepthParams
         -> Board
         -> Maybe PossibleMove
         -> LabelSet
         -> PossibleMove
         -> m Int
-evalMove var cacheKey side dp board mbPrevMove attacked move = do
-  prime <- checkPrimeVariation var cacheKey dp
+evalMove var eval side board mbPrevMove attacked move = do
+  let cacheKey = mkCacheKey eval $ applyMoveActions (pmResult move) board
+  prime <- checkPrimeVariation var cacheKey
   let victimFields = pmVictims move
       -- nVictims = sum $ map victimWeight victimFields
       promotion = if isPromotion move then 1 else 0
@@ -360,18 +360,16 @@ sortMoves :: (EvalMoveMonad m, GameRules rules, VectorEvaluator eval)
           -> AlphaBetaParams
           -> AICacheHandle rules eval
           -> Side
-          -> DepthParams
           -> Board
           -> Maybe PossibleMove
           -> [PossibleMove]
           -> m [PossibleMove]
-sortMoves eval params var side dp board mbPrevMove moves = do
+sortMoves eval params var side board mbPrevMove moves = do
 --   if length moves >= 4
 --     then do
       let rules = aichRules var
           attacked = boardAttacked side board
-          cacheKey = mkCacheKey eval board
-      interest <- mapM (evalMove var cacheKey side dp board mbPrevMove attacked) moves
+      interest <- mapM (evalMove var eval side board mbPrevMove attacked) moves
       if any (/= 0) interest
         then return $ map fst $ sortOn (negate . snd) $ zip moves interest
         else return moves
@@ -444,7 +442,7 @@ getGoodMove depth = do
 --       already considered the interval on that side, then we know that the real score equals
 --       exactly to the bound.
 --
-runAI :: (GameRules rules, Evaluator eval)
+runAI :: (GameRules rules, VectorEvaluator eval)
       => AlphaBeta rules eval
       -> AICacheHandle rules eval
       -> GameId
@@ -517,13 +515,14 @@ runAI ai@(AlphaBeta params rules eval) handle gameId side aiSession board = do
     depthDriver moves =
       case abBaseTime params of
           Nothing -> do
+            nThreads <- asks (aiThreads . gcAiConfig . csConfig)
             let target = abDepth params
                 depthStep = abDepthStep params
                 preselectDepth =
-                  if target <= depthStep
+                  if target <= depthStep || length moves < nThreads
                     then target
                     else let m = target `mod` depthStep
-                         in  head $ filter (>= 2) [m + depthStep, m + depthStep + depthStep .. target]
+                         in  head $ filter (>= 2) [m, m + depthStep .. target]
                 startDepth = case abStartDepth params of
                                Nothing -> Nothing
                                Just start -> Just $ max 2 $ preselectDepth + start - target
@@ -596,10 +595,13 @@ runAI ai@(AlphaBeta params rules eval) handle gameId side aiSession board = do
 
           sortedMoves <-
               case diiSortKeys of
-                Nothing -> return diiMoves
+                Nothing -> do
+                  moves' <- sortMoves eval params handle side board Nothing diiMoves
+                  $info "Sort moves (init): {} => {}" (show diiMoves, show moves')
+                  return moves'
                 Just keys -> do
                   let moves' = map snd $ sortOn fst $ zip keys diiMoves
-                  $debug "Sort moves: {} => {}" (show $ zip keys diiMoves, show moves')
+                  $info "Sort moves (by prev.iteration): {} => {}" (show $ zip keys diiMoves, show moves')
                   return moves'
 
           result <- widthController True True diiPrevResult sortedMoves dp' =<< mkInitInterval depth (isQuiescene diiMoves)
@@ -1089,7 +1091,7 @@ scoreAB var eval params input
                   rules <- gets ssRules
                   dp' <- updateDepth params moves dp
                   let prevMove = siPrevMove input
-                  moves' <- sortMoves eval params var side dp board prevMove moves
+                  moves' <- sortMoves eval params var side board prevMove moves
 --                   let depths = correspondingDepths (length moves') score0 quiescene dp'
                   let depths = repeat dp'
                   out <- iterateMoves $ zip3 [1..] moves' depths
