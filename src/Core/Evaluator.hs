@@ -4,6 +4,7 @@
 {-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE ConstraintKinds #-}
+{-# LANGUAGE ViewPatterns #-}
 module Core.Evaluator
   ( SimpleEvaluator (..),
     SimpleEvaluatorData (..),
@@ -19,6 +20,7 @@ import qualified Data.Map as M
 
 import           Core.Types
 import           Core.Board
+import Core.LabelSet as LS
 
 data SimpleEvaluatorWeights = SimpleEvaluatorWeights {
     sewFirst :: {-# UNPACK #-} ! ScoreBase
@@ -192,7 +194,7 @@ buildCache iface@(SomeRules rules) = M.fromList [(addr, labelData addr) | addr <
     halfCol        = ccol `div` 2
     halfRow        = crow `div` 2
 
-    isCenter (Label col row) =
+    isCenter (labelTuple -> (col,row)) =
       (col >= ccol - halfCol && col < ccol + halfCol)
         && (row >= crow - 1 && row < crow + 1)
         -- && (row >= crow - halfRow && row < crow + halfRow)
@@ -215,7 +217,7 @@ preEval (SimpleEvaluator { seRules = iface@(SomeRules rules), ..}) side board =
     halfCol        = ccol `div` 2
     halfRow        = crow `div` 2
 
-    isLeftHalf (Label col _) = col >= ccol
+    isLeftHalf (labelColumn -> col) = col >= ccol
 
     asymetry =
       let (leftMen , leftKings ) = myLabelsCount side board isLeftHalf
@@ -233,7 +235,7 @@ preEval (SimpleEvaluator { seRules = iface@(SomeRules rules), ..}) side board =
     backedScore =
       fromIntegral $ sum $ map backedScoreOf $ allMyAddresses side board
 
-    isBackyard (Label _ row) =
+    isBackyard (labelRow -> row) =
         case boardSide (boardOrientation rules) side of
           Top    -> row == nrows-1
           Bottom -> row == 0
@@ -242,12 +244,12 @@ preEval (SimpleEvaluator { seRules = iface@(SomeRules rules), ..}) side board =
       let (backMen, _) = myLabelsCount side board isBackyard
       in  backMen
 
-    tempNumber (Label col row) =
+    tempNumber (labelTuple -> (col,row)) =
       case boardSide (boardOrientation rules) side of
         Top    -> nrows - row
         Bottom -> row + 1
 
-    isBorder (Label col row) =
+    isBorder (labelTuple -> (col,row)) =
         col == 0 || col == ncols - 1
 
     borderNumber =

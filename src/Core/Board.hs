@@ -1,5 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE ViewPatterns #-}
 module Core.Board where
 
 import Control.Monad
@@ -9,7 +10,6 @@ import Data.String
 import Data.Char (isDigit, toLower, toUpper)
 import qualified Data.Map as M
 import qualified Data.IntMap.Strict as IM
-import qualified Data.IntSet as IS
 import qualified Data.Text as T
 import Data.Array.IArray as A
 import Data.Bits (xor)
@@ -18,6 +18,7 @@ import Text.Printf
 -- import Debug.Trace
 
 import Core.Types
+import Core.LabelSet as LS
 import Core.BoardMap
 
 showAddress :: Address -> String
@@ -67,7 +68,7 @@ allLabels b = map unpackIndex $ allFields b
 
 allPieces :: Board -> [Maybe Piece]
 allPieces b =
-    [getPiece' (Label col row) b | col <- [0 .. ncols-1], row <-  [0 .. nrows-1]]
+    [getPiece' (LS.mkLabel col row) b | col <- [0 .. ncols-1], row <-  [0 .. nrows-1]]
   where
     (ncols, nrows) = bSize b
 
@@ -233,7 +234,7 @@ isOpponentAt side addr board =
 
 isFree :: Address -> Board -> Bool
 isFree addr b =
-  not $ aLabel addr `labelSetMember` bOccupied b
+  not $ aLabel addr `LS.member` bOccupied b
 
 isFree' :: Label -> Board -> Bool
 isFree' l b = isFree (resolve l b) b
@@ -253,8 +254,8 @@ allMyLabels side board = myMen side board ++ myKings side board
 --     check _ = False
 
 myMen :: Side -> Board -> [Label]
-myMen First board = labelSetToList $ bFirstMen board
-myMen Second board = labelSetToList $ bSecondMen board
+myMen First board = LS.toList $ bFirstMen board
+myMen Second board = LS.toList $ bSecondMen board
 -- myMen side board = 
 --     [unpackIndex i | (i, p) <- A.assocs (bPieces board), check (boxPiece p)]
 --   where
@@ -266,8 +267,8 @@ myMenA side board =
   map (\l -> resolve l board) $ myMen side board
 
 myKings :: Side -> Board -> [Label]
-myKings First board = labelSetToList $ bFirstKings board
-myKings Second board = labelSetToList $ bSecondKings board
+myKings First board = LS.toList $ bFirstKings board
+myKings Second board = LS.toList $ bSecondKings board
 -- myKings side board =
 --     [unpackIndex i | (i, p) <- A.assocs (bPieces board), check (boxPiece p)]
 --   where
@@ -305,15 +306,11 @@ myAddressesCount' side board w =
 myCounts :: Side -> Board -> (Int, Int)
 myCounts side board =
   case side of
-        First -> (IS.size (bFirstMen board), IS.size (bFirstKings board))
-        Second -> (IS.size (bSecondMen board), IS.size (bSecondKings board))
+        First -> (LS.size (bFirstMen board), LS.size (bFirstKings board))
+        Second -> (LS.size (bSecondMen board), LS.size (bSecondKings board))
 
 totalCount :: Board -> Int
-totalCount b =
-    IS.size (bFirstMen b) +
-    IS.size (bSecondMen b) +
-    IS.size (bFirstKings b) +
-    IS.size (bSecondKings b)
+totalCount b = LS.size $ LS.unions [bFirstMen b, bSecondMen b, bFirstKings b, bSecondKings b]
 
 catMoves :: Move -> Move -> Move
 catMoves m1 m2 =
@@ -420,13 +417,13 @@ applyMoveAction (MarkCaptured a) b =
     then Left $ printf "MarkCaptured: no piece at %s; board: %s" (show a) (show b)
     else if isCaptured a b
            then Left $ printf "MarkCaptured: piece at %s was already captured; board: %s" (show a) (show b)
-           else Right $ b {bCaptured = insertLabelSet (aLabel a) (bCaptured b)}
+           else Right $ b {bCaptured = LS.insert (aLabel a) (bCaptured b)}
 
 applyMoveActions' :: [MoveAction] -> Board -> Either String Board
 applyMoveActions' actions board = do
   board' <- foldM (flip applyMoveAction) board actions
-  let board'' = foldr removePiece' board' (labelSetToList $ bCaptured board')
-  return $ board'' {bCaptured = emptyLabelSet}
+  let board'' = foldr removePiece' board' (LS.toList $ bCaptured board')
+  return $ board'' {bCaptured = LS.empty}
 
 applyMoveActions :: [MoveAction] -> Board -> Board
 applyMoveActions actions board =
@@ -435,7 +432,7 @@ applyMoveActions actions board =
     Right result -> result
 
 isCaptured :: Address -> Board -> Bool
-isCaptured a b = aLabel a `labelSetMember` bCaptured b
+isCaptured a b = aLabel a `LS.member` bCaptured b
 
 getCaptured :: GameRules rules => rules -> Move -> Board -> [(Address, Piece)]
 getCaptured rules move board = go board (moveBegin move) (moveSteps move)
@@ -481,8 +478,8 @@ calcBoardHash board = foldr update 0 (boardAssocs board)
     table = randomTable board
 
 updateBoardHash' :: RandomTable -> BoardHash -> Label -> Piece -> BoardHash
-updateBoardHash' table hash (Label col row) piece =
-  hash `xor` (table A.! (unboxPiece (Just piece), mkIndex col row))
+updateBoardHash' table hash label piece =
+  hash `xor` (table A.! (unboxPiece (Just piece), LS.labelIndex label))
 
 updateBoardHash :: Board -> Label -> Piece -> BoardHash
 updateBoardHash board label piece =
@@ -502,7 +499,7 @@ buildBoard rnd rules orient bsize@(nrows, ncols) =
                       , aDown = down p
                       , aLeft = left p
                     }
-      label (r,c) = Label (c-1) (r-1)
+      label (r,c) = LS.mkLabel (c-1) (r-1)
 
       diagonal = boardTopology rules == Diagonal
 
@@ -560,14 +557,14 @@ buildBoard rnd rules orient bsize@(nrows, ncols) =
       table = getRandomTable rnd
       board = Board {
                 bAddresses = addressByLabel,
-                bCaptured = emptyLabelSet,
-                bOccupied = emptyLabelSet,
-                bFirstMen = emptyLabelSet,
-                bSecondMen = emptyLabelSet,
-                bFirstKings = emptyLabelSet,
-                bSecondKings = emptyLabelSet,
-                bFirstAttacked = emptyLabelSet,
-                bSecondAttacked = emptyLabelSet,
+                bCaptured = LS.empty,
+                bOccupied = LS.empty,
+                bFirstMen = LS.empty,
+                bSecondMen = LS.empty,
+                bFirstKings = LS.empty,
+                bSecondKings = LS.empty,
+                bFirstAttacked = LS.empty,
+                bSecondAttacked = LS.empty,
                 bSize = bsize,
                 boardHash = 0,
                 randomTable = table
@@ -580,18 +577,18 @@ resolve label board = fromMaybe (error $ "resolve: unknown field: " ++ show labe
 
 getPiece :: Address -> Board -> Maybe Piece
 getPiece a b
-  | aLabel a `labelSetMember` bFirstKings b = Just $ Piece King First
-  | aLabel a `labelSetMember` bSecondKings b = Just $ Piece King Second
-  | aLabel a `labelSetMember` bFirstMen b = Just $ Piece Man First
-  | aLabel a `labelSetMember` bSecondMen b = Just $ Piece Man Second
+  | aLabel a `LS.member` bFirstKings b = Just $ Piece King First
+  | aLabel a `LS.member` bSecondKings b = Just $ Piece King Second
+  | aLabel a `LS.member` bFirstMen b = Just $ Piece Man First
+  | aLabel a `LS.member` bSecondMen b = Just $ Piece Man Second
   | otherwise = Nothing
 
 isPieceAt :: Address -> Board -> Side -> Bool
 isPieceAt a b side =
   let label = aLabel a
   in  case side of
-        First -> label `labelSetMember` bFirstMen b || label `labelSetMember` bFirstKings b
-        Second -> label `labelSetMember` bSecondMen b || label `labelSetMember` bSecondKings b
+        First -> label `LS.member` (bFirstMen b `LS.union` bFirstKings b)
+        Second -> label `LS.member` (bSecondMen b `LS.union` bSecondKings b)
 
 getPiece_ :: String -> Address -> Board -> Piece
 getPiece_ name addr board =
@@ -601,17 +598,17 @@ getPiece_ name addr board =
 
 getPiece' :: Label -> Board -> Maybe Piece
 getPiece' l b
-  | l `labelSetMember` bFirstKings b = Just $ Piece King First
-  | l `labelSetMember` bSecondKings b = Just $ Piece King Second
-  | l `labelSetMember` bFirstMen b = Just $ Piece Man First
-  | l `labelSetMember` bSecondMen b = Just $ Piece Man Second
+  | l `LS.member` bFirstKings b = Just $ Piece King First
+  | l `LS.member` bSecondKings b = Just $ Piece King Second
+  | l `LS.member` bFirstMen b = Just $ Piece Man First
+  | l `LS.member` bSecondMen b = Just $ Piece Man Second
   | otherwise = Nothing
 
 getPiecesCount :: Piece -> LabelSet -> Board -> Int
-getPiecesCount (Piece King First) set board = labelSetSize $ intersectLabelSet set (bFirstKings board)
-getPiecesCount (Piece King Second) set board = labelSetSize $ intersectLabelSet set (bSecondKings board)
-getPiecesCount (Piece Man First) set board = labelSetSize $ intersectLabelSet set (bFirstMen board)
-getPiecesCount (Piece Man Second) set board = labelSetSize $ intersectLabelSet set (bSecondMen board)
+getPiecesCount (Piece King First) set board = LS.size $ LS.intersect set (bFirstKings board)
+getPiecesCount (Piece King Second) set board = LS.size $ LS.intersect set (bSecondKings board)
+getPiecesCount (Piece Man First) set board = LS.size $ LS.intersect set (bFirstMen board)
+getPiecesCount (Piece Man Second) set board = LS.size $ LS.intersect set (bSecondMen board)
 
 getCapturablePiece :: Address -> Board -> Maybe Piece
 getCapturablePiece a b =
@@ -734,10 +731,10 @@ parseMoveRep rules side board (FullMoveRep from steps) =
 
 boardAssocs :: Board -> [(Label, Piece)]
 boardAssocs board = 
-    [(label, Piece Man First) | label <- labelSetToList (bFirstMen board)] ++
-    [(label, Piece Man Second) | label <- labelSetToList (bSecondMen board)] ++
-    [(label, Piece King First) | label <- labelSetToList (bFirstKings board)] ++
-    [(label, Piece King Second) | label <- labelSetToList (bSecondKings board)]
+    [(label, Piece Man First) | label <- LS.toList (bFirstMen board)] ++
+    [(label, Piece Man Second) | label <- LS.toList (bSecondMen board)] ++
+    [(label, Piece King First) | label <- LS.toList (bFirstKings board)] ++
+    [(label, Piece King Second) | label <- LS.toList (bSecondKings board)]
 
 boardRep :: Board -> BoardRep
 boardRep board = BoardRep $ boardAssocs board
@@ -809,12 +806,12 @@ parseChessNotationS = parse . map toLower
         case elemIndex l letters of
           Nothing -> Left $ "parseChessNotation: unknown letter: " ++ [l]
           Just col -> let row = read ds - 1
-                      in  Right $ Label (fromIntegral col) row
+                      in  Right $ mkLabel (fromIntegral col) row
     parse e = Left $ "parseChessNotation: cant parse: " ++ e
 
 -- | Numeric (international) fields notation
 numericNotation :: BoardSize -> Label -> Notation
-numericNotation (nrows, ncols) (Label col row) =
+numericNotation (nrows, ncols) (labelTuple -> (col, row)) =
   let half = ncols `div` 2
       row' = nrows - row - 1
       n = row' * half + (col `div` 2) + 1
@@ -834,7 +831,7 @@ parseNumericNotation (nrows, ncols) t = parse (T.unpack t)
             col = if odd row
                     then col'*2 + 1
                     else col'*2
-        in  Right $ Label col row
+        in  Right $ mkLabel col row
 
       | otherwise = Left $ "parseNumericNotation: Cant parse: " ++ str
 
@@ -866,11 +863,10 @@ numericSideNotation (nrows, ncols) =
     sparse False numbers = concat [[Just (T.pack $ show i), Nothing] | i <- numbers]
 
 flipBoardKey :: BoardSize -> BoardKey -> BoardKey
-flipBoardKey (nrows,ncols) bk =
+flipBoardKey bsz bk =
     IM.fromList $ map go $ IM.assocs bk
   where
-    go (k, p) = (labelIndex $ flipLabel $ unpackIndex k, opponentPiece p)
-    flipLabel (Label col row) = Label (ncols - col - 1) (nrows - row - 1)
+    go (k, p) = (labelIndex $ LS.flipLabel bsz $ unpackIndex k, opponentPiece p)
 
 flipBoardCounts :: BoardCounts -> BoardCounts
 flipBoardCounts bc =
@@ -885,19 +881,17 @@ flipBoard :: Board -> Board
 flipBoard b = b' {boardHash = hash}
   where
     b' = b {
-      bFirstMen = labelSetFromList $ map flipLabel (labelSetToList $ bSecondMen b),
-      bSecondMen = labelSetFromList $ map flipLabel (labelSetToList $ bFirstMen b),
-      bFirstKings = labelSetFromList $ map flipLabel (labelSetToList $ bSecondKings b),
-      bSecondKings = labelSetFromList $ map flipLabel (labelSetToList $ bFirstKings b),
-      bOccupied =  labelSetFromList $ map flipLabel (labelSetToList $ bOccupied b)
-      -- boardCounts = flipBoardCounts (boardCounts b)
+      bFirstMen = flipLabelSet (bSecondMen b),
+      bSecondMen = flipLabelSet (bFirstMen b),
+      bFirstKings = flipLabelSet (bSecondKings b),
+      bSecondKings = flipLabelSet (bFirstKings b),
+      bOccupied = flipLabelSet (bOccupied b)
     }
 
+    flipLabelSet set = LS.fromList $ map (LS.flipLabel bsz) (LS.toList set)
+
     hash = calcBoardHash b'
-
-    (nrows, ncols) = bSize b
-
-    flipLabel (Label col row) = Label (ncols - col - 1) (nrows - row - 1)
+    bsz = bSize b
 
 boardAttacked :: Side -> Board -> LabelSet
 boardAttacked First = bFirstAttacked
@@ -905,7 +899,7 @@ boardAttacked Second = bSecondAttacked
 
 markAttacked :: [PossibleMove] -> Board -> Board
 markAttacked moves board =
-  let attackedBy side = labelSetFromList $ map aLabel $ concatMap pmVictims moves
+  let attackedBy side = LS.fromList $ map aLabel $ concatMap pmVictims moves
   in  board {
         bFirstAttacked = attackedBy Second,
         bSecondAttacked = attackedBy First

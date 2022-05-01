@@ -16,6 +16,7 @@ import qualified Data.Text.IO as TIO
 import Text.Printf
 
 import Core.Types
+import Core.LabelSet as LS
 import Core.Board
 import Formats.Types
 import Formats.Fen (boardToFen, showFen)
@@ -61,7 +62,7 @@ pFull = do
   char '-'
   letter2 <- pLetter
   digit2 <- pDigit
-  return $ Full (Label letter1 digit1) (Label letter2 digit2)
+  return $ Full (mkLabel letter1 digit1) (mkLabel letter2 digit2)
 
 pGame :: Parser [SemiMove]
 pGame = try pSemiMove `sepBy` space1
@@ -79,7 +80,7 @@ parseCompactFile path = do
 
 findMove :: Side -> SemiMove -> Board -> Either String PossibleMove
 findMove side (Short colFrom colTo rowTo) board = 
-  let suits pm = aLabel (pmEnd pm) == Label colTo rowTo &&
+  let suits pm = aLabel (pmEnd pm) == mkLabel colTo rowTo &&
                  labelColumn (aLabel (pmBegin pm)) == colFrom
   in case filter suits (possibleMoves russian side board) of
         [] -> Left $ printf "findMove: no pieces of %s at column %d" (show side) colFrom

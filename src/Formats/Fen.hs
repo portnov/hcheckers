@@ -10,6 +10,7 @@ import Text.Megaparsec hiding (Label)
 import Text.Megaparsec.Char
 
 import Core.Types
+import Core.LabelSet as LS
 import Core.Board
 import Formats.Types
 

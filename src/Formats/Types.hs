@@ -14,6 +14,7 @@ import Data.Void
 import GHC.Generics
 
 import Core.Types
+import Core.LabelSet as LS
 
 type Parser a = ParsecT Void T.Text (State (Maybe SomeRules)) a
 

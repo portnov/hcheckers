@@ -10,6 +10,7 @@ import qualified Data.HashMap.Strict as HM
 import System.Log.Heavy
 
 import Core.Types
+import Core.LabelSet as LS
 import Core.Logging
 import Core.Supervisor
 import Formats.Types
@@ -39,12 +40,12 @@ instance ToJSON AiSessionStatus where
   toJSON (AiDone rs) = object ["status" .= ("done" :: T.Text), "response" .= rs]
 
 instance ToJSON Label where
-  toJSON (Label col row) = toJSON (col, row)
+  toJSON label = toJSON (labelTuple label)
 
 instance FromJSON Label where
   parseJSON v = do
     (col,row) <- parseJSON v
-    return $ Label col row
+    return $ mkLabel col row
 
 instance ToJSON Step where
   toJSON (Step direction capture promote) =

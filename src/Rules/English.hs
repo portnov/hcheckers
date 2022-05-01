@@ -8,6 +8,7 @@ import Data.Typeable
 import Data.List
 
 import Core.Types
+import Core.LabelSet as LS
 import Core.Board
 import Core.BoardMap
 import Core.Evaluator
@@ -99,7 +100,7 @@ captures1 rules ct@(CaptureState {..}) dirs =
 
     check a dir =
       case neighbour (myDirection rules side dir) a of
-        Just victimAddr | not (aLabel victimAddr `labelSetMember` ctCaptured) ->
+        Just victimAddr | not (aLabel victimAddr `LS.member` ctCaptured) ->
           case getPiece victimAddr ctBoard of
             Nothing -> []
             Just victim ->

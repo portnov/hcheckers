@@ -39,6 +39,7 @@ import System.FilePath
 import System.Directory
 
 import Core.Types
+import Core.LabelSet as LS
 import Core.Board
 import Core.BoardMap
 import Core.Game

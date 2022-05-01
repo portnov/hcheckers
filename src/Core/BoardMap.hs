@@ -11,6 +11,7 @@ import Foreign.Storable
 
 import Core.Types
 import qualified Core.HTable as HT
+import Core.LabelSet as LS
 
 boxPiece :: UnboxedPiece -> Maybe Piece
 boxPiece 0 = Nothing
@@ -28,10 +29,10 @@ unboxPiece (Just (Piece King Second)) = 4
 
 calcBoardCounts :: Board -> BoardCounts
 calcBoardCounts board = BoardCounts {
-                      bcFirstMen = IS.size $ bFirstMen board
-                    , bcFirstKings = IS.size $ bFirstKings board
-                    , bcSecondMen = IS.size $ bSecondMen board
-                    , bcSecondKings = IS.size $ bSecondKings board
+                      bcFirstMen = LS.size $ bFirstMen board
+                    , bcFirstKings = LS.size $ bFirstKings board
+                    , bcSecondMen = LS.size $ bSecondMen board
+                    , bcSecondKings = LS.size $ bSecondKings board
                   }
 
 insertBoardCounts :: Piece -> BoardCounts -> BoardCounts
@@ -58,45 +59,45 @@ removeBoardKey a p bk = IM.delete (aIndex a) bk
 
 insertBoard :: Address -> Piece -> Board -> Board
 insertBoard a p@(Piece Man First) b = b {
-    bFirstMen = insertLabelSet (aLabel a) (bFirstMen b),
-    bOccupied = insertLabelSet (aLabel a) (bOccupied b)
+    bFirstMen = LS.insert (aLabel a) (bFirstMen b),
+    bOccupied = LS.insert (aLabel a) (bOccupied b)
     -- boardCounts = insertBoardCounts p (boardCounts b)
   }
 insertBoard a p@(Piece Man Second) b = b {
-    bSecondMen = insertLabelSet (aLabel a) (bSecondMen b),
-    bOccupied = insertLabelSet (aLabel a) (bOccupied b)
+    bSecondMen = LS.insert (aLabel a) (bSecondMen b),
+    bOccupied = LS.insert (aLabel a) (bOccupied b)
 --     boardCounts = insertBoardCounts p (boardCounts b)
   }
 insertBoard a p@(Piece King First) b = b {
-    bFirstKings = insertLabelSet (aLabel a) (bFirstKings b),
-    bOccupied = insertLabelSet (aLabel a) (bOccupied b)
+    bFirstKings = LS.insert (aLabel a) (bFirstKings b),
+    bOccupied = LS.insert (aLabel a) (bOccupied b)
 --     boardCounts = insertBoardCounts p (boardCounts b)
   }
 insertBoard a p@(Piece King Second) b = b {
-    bSecondKings = insertLabelSet (aLabel a) (bSecondKings b),
-    bOccupied = insertLabelSet (aLabel a) (bOccupied b)
+    bSecondKings = LS.insert (aLabel a) (bSecondKings b),
+    bOccupied = LS.insert (aLabel a) (bOccupied b)
 --     boardCounts = insertBoardCounts p (boardCounts b)
   }
 
 removeBoard :: Address -> Piece -> Board -> Board
 removeBoard a p@(Piece Man First) b = b {
-    bFirstMen = deleteLabelSet (aLabel a) (bFirstMen b),
-    bOccupied = deleteLabelSet (aLabel a) (bOccupied b)
+    bFirstMen = LS.delete (aLabel a) (bFirstMen b),
+    bOccupied = LS.delete (aLabel a) (bOccupied b)
 --     boardCounts = removeBoardCounts p (boardCounts b)
   }
 removeBoard a p@(Piece Man Second) b = b {
-    bSecondMen = deleteLabelSet (aLabel a) (bSecondMen b),
-    bOccupied = deleteLabelSet (aLabel a) (bOccupied b)
+    bSecondMen = LS.delete (aLabel a) (bSecondMen b),
+    bOccupied = LS.delete (aLabel a) (bOccupied b)
 --     boardCounts = removeBoardCounts p (boardCounts b)
   }
 removeBoard a p@(Piece King First) b = b {
-    bFirstKings = deleteLabelSet (aLabel a) (bFirstKings b),
-    bOccupied = deleteLabelSet (aLabel a) (bOccupied b)
+    bFirstKings = LS.delete (aLabel a) (bFirstKings b),
+    bOccupied = LS.delete (aLabel a) (bOccupied b)
 --     boardCounts = removeBoardCounts p (boardCounts b)
   }
 removeBoard a p@(Piece King Second) b = b {
-    bSecondKings = deleteLabelSet (aLabel a) (bSecondKings b),
-    bOccupied = deleteLabelSet (aLabel a) (bOccupied b)
+    bSecondKings = LS.delete (aLabel a) (bSecondKings b),
+    bOccupied = LS.delete (aLabel a) (bOccupied b)
 --     boardCounts = removeBoardCounts p (boardCounts b)
   }
 
@@ -117,28 +118,16 @@ resetBoardMap bmap = HT.reset bmap
 
 ------------------
 
-unpackIndex :: FieldIndex -> Label
-unpackIndex n =
-  let col = n `div` 16
-      row = n `mod` 16
-  in  Label (fromIntegral col) (fromIntegral row)
-
 aIndex :: Address -> FieldIndex
 aIndex a = fromIntegral (labelColumn l) * 16 + fromIntegral (labelRow l)
   where l = aLabel a
 
-mkIndex :: Line -> Line -> FieldIndex
-mkIndex col row =  fromIntegral col * 16 + fromIntegral row
-
-labelIndex :: Label -> FieldIndex
-labelIndex (Label col row) = mkIndex col row
-
 buildLabelMap :: Line -> Line -> [(Label, a)] -> LabelMap a
 buildLabelMap nrows ncols pairs =
-  IM.fromList [(mkIndex col row, value) |  (Label col row, value) <- pairs]
+  IM.fromList [(labelIndex label, value) |  (label, value) <- pairs]
 
 lookupLabel :: Label -> LabelMap a -> Maybe a
-lookupLabel (Label col row) lmap = IM.lookup (mkIndex col row) lmap
+lookupLabel label lmap = IM.lookup (labelIndex label) lmap
 
 emptyAddressMap :: BoardSize -> AddressMap a
 emptyAddressMap (nrows,ncols) = IM.empty
@@ -153,7 +142,7 @@ removeAddress :: Address -> AddressMap a -> AddressMap a
 removeAddress a amap = IM.delete (aIndex a) amap
 
 addressMapContains :: Label -> AddressMap a -> Bool
-addressMapContains (Label col row) amap = IM.member (mkIndex col row) amap
+addressMapContains label amap = IM.member (labelIndex label) amap
 
 findLabels :: (a -> Bool) -> AddressMap a -> [Label]
 findLabels fn amap = [unpackIndex idx | idx <- IM.keys $ IM.filter fn amap]
@@ -169,37 +158,13 @@ labelMapKeys lmap = map unpackIndex $ IM.keys lmap
 
 --------------------
 
-emptyLabelSet :: LabelSet
-emptyLabelSet = IS.empty
-
-labelSetToList :: LabelSet -> [Label]
-labelSetToList set = map unpackIndex $ IS.toList set
-
-labelSetFromList :: [Label] -> LabelSet
-labelSetFromList list = IS.fromList [mkIndex col row | Label col row <- list]
-
-insertLabelSet :: Label -> LabelSet -> LabelSet
-insertLabelSet (Label col row) set = IS.insert (mkIndex col row) set
-
-deleteLabelSet :: Label -> LabelSet -> LabelSet
-deleteLabelSet (Label col row) set = IS.delete (mkIndex col row) set
-
-intersectLabelSet :: LabelSet -> LabelSet -> LabelSet
-intersectLabelSet = IS.intersection
-
-labelSetSize :: LabelSet -> Int
-labelSetSize = IS.size
-
-labelSetMember :: Label -> LabelSet -> Bool
-labelSetMember (Label col row) set = IS.member (mkIndex col row) set
-
 instance Hashable IS.IntSet where
   hashWithSalt salt set = hashWithSalt salt (IS.toList set)
 
 instance Show Board where
   show b = printf "{First Men: %s; Second Men: %s; First Kings: %s; Second Kings: %s}"
-              (show $ labelSetToList $ bFirstMen b)
-              (show $ labelSetToList $ bSecondMen b)
-              (show $ labelSetToList $ bFirstKings b)
-              (show $ labelSetToList $ bSecondKings b)
+              (show $ LS.toList $ bFirstMen b)
+              (show $ LS.toList $ bSecondMen b)
+              (show $ LS.toList $ bFirstKings b)
+              (show $ LS.toList $ bSecondKings b)
 

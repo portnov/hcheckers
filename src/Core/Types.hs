@@ -48,42 +48,10 @@ import GHC.Exts (Constraint)
 import Debug.Trace (traceEventIO)
 
 import qualified Core.HTable as HT
-
--- | Label is a coordinate of field on the board.
-data Label = Label {
-    labelColumn :: ! Line,
-    labelRow :: ! Line
-  }
-  deriving (Eq, Ord, Typeable, Generic)
-
-instance Binary Label where
-
-instance Store Label where
-  size = ConstSize 1
-
-  poke (Label col row) = do
-    poke $ col * 16 + row
-
-  peek = do
-    n <- peek :: Peek Word8
-    let row = n `mod` 16
-        col = n `div` 16
-    return $ Label col row
-
-instance Hashable Label where
-  hashWithSalt salt (Label col row) =
-    salt `hashWithSalt` col `hashWithSalt` row
+import Core.LabelSet as LS
 
 -- | Field notation.
 type Notation = T.Text
-
-letters :: [Char]
-letters = ['a' .. 'z']
-
-instance Show Label where
-  show l = letter : show (labelRow l + 1)
-    where
-      letter = letters !! fromIntegral (labelColumn l)
 
 data PieceKind = Man | King
   deriving (Eq, Ord, Generic, Typeable)
@@ -167,18 +135,9 @@ instance Show Address where
 instance Ord Address where  
   compare a1 a2 = compare (aLabel a1) (aLabel a2)
 
--- | Number of row / column of the board
-type Line = Word8
-
-type BoardSize = (Line, Line)
-
-type FieldIndex = Int
-
 type AddressMap a = IM.IntMap a
 
 type LabelMap a = IM.IntMap a
-
-type LabelSet = IS.IntSet
 
 -- | Board describes current position on the board.
 data Board = Board {

@@ -10,6 +10,7 @@ module Rules.Turkish (
 import Data.Typeable
 
 import Core.Types
+import Core.LabelSet as LS
 import Core.Board
 import Core.BoardMap
 import Core.Evaluator
@@ -106,7 +107,7 @@ manCaptures1 rules ct@(CaptureState {..}) =
 
     check a dir =
       case myNeighbour rules side dir a of
-        Just victimAddr | not (aLabel victimAddr `labelSetMember` ctCaptured) ->
+        Just victimAddr | not (aLabel victimAddr `LS.member` ctCaptured) ->
           case getPiece victimAddr ctBoard of
             Nothing -> []
             Just victim ->
@@ -115,8 +116,8 @@ manCaptures1 rules ct@(CaptureState {..}) =
                 else case myNeighbour rules side dir victimAddr of
                        Nothing -> []
                        Just freeAddr ->
-                        if isFree freeAddr ctBoard || aLabel freeAddr `labelSetMember` ctCaptured
-                          then let captured' = insertLabelSet (aLabel victimAddr) ctCaptured
+                        if isFree freeAddr ctBoard || aLabel freeAddr `LS.member` ctCaptured
+                          then let captured' = LS.insert (aLabel victimAddr) ctCaptured
                                    next = ct {
                                             ctPrevDirection = Just dir,
                                             ctCaptured = captured',

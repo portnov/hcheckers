@@ -24,14 +24,15 @@ import qualified StmContainers.Map as SM
 import qualified Data.Map as M
 
 import Core.Types
+import Core.LabelSet as LS
 import qualified Core.AdaptiveMap as AM
 import Core.Board
 import Core.BoardMap
+import qualified Core.HTable as HT
 import Core.Parallel
 import qualified Core.Monitoring as Monitoring
 import AI.AlphaBeta.Types
 import AI.AlphaBeta.Persistent
-import qualified Core.HTable as HT
 
 mkCacheKey :: VectorEvaluator eval => eval -> Board -> CacheKey
 mkCacheKey eval board = (evalToVector eval, board)

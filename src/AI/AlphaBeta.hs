@@ -36,6 +36,7 @@ import System.Log.Heavy.TH
 import System.Clock
 
 import Core.Types
+import Core.LabelSet as LS
 import Core.Board
 import Core.BoardMap
 import Core.Game
@@ -335,7 +336,7 @@ evalMove var eval side board mbPrevMove attacked move = do
                    _ -> False
 
       attackedPiece = let begin = aLabel $ pmBegin move
-                      in  if begin `labelSetMember` attacked
+                      in  if begin `LS.member` attacked
                             then getPiece' begin board
                             else Nothing
 
@@ -1171,8 +1172,8 @@ scoreAB var eval params input
 
     distance :: PossibleMove -> PossibleMove -> Line
     distance prev pm =
-      let Label col row = aLabel (pmEnd prev)
-          Label col' row' = aLabel (pmBegin pm)
+      let (col, row) = labelTuple $ aLabel (pmEnd prev)
+          (col', row') = labelTuple $ aLabel (pmBegin pm)
       in  abs (col' - col) `max` abs (row' - row)
 
     maximize = side == First

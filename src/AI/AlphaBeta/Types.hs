@@ -47,6 +47,7 @@ import Foreign.Storable as Storable
 import Foreign.Ptr (castPtr)
 
 import Core.Types
+import Core.LabelSet as LS
 import qualified Core.AdaptiveMap as AM
 import Core.Parallel
 

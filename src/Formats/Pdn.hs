@@ -18,6 +18,7 @@ import qualified Data.Text.IO as TIO
 import Text.Printf
 
 import Core.Types
+import Core.LabelSet as LS
 import Core.Board
 import Rules.Diagonal
 import Rules.English

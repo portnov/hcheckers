@@ -8,6 +8,7 @@ module Rules.International (International, international, internationalBase) whe
 import Data.Typeable
 
 import Core.Types
+import Core.LabelSet as LS
 import Core.Board
 import Core.BoardMap
 import Core.Evaluator
@@ -107,7 +108,7 @@ manCaptures1 rules ct@(CaptureState {..}) =
 
     check a dir =
       case myNeighbour rules side dir a of
-        Just victimAddr | not (aLabel victimAddr `labelSetMember` ctCaptured) ->
+        Just victimAddr | not (aLabel victimAddr `LS.member` ctCaptured) ->
           case getPiece victimAddr ctBoard of
             Nothing -> []
             Just victim ->
@@ -117,7 +118,7 @@ manCaptures1 rules ct@(CaptureState {..}) =
                        Nothing -> []
                        Just freeAddr ->
                         if isFree freeAddr ctBoard
-                          then let captured' = insertLabelSet (aLabel victimAddr) ctCaptured
+                          then let captured' = LS.insert (aLabel victimAddr) ctCaptured
                                    next = ct {
                                             ctPrevDirection = Just dir,
                                             ctCaptured = captured',

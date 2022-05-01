@@ -1,5 +1,6 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE ViewPatterns #-}
 module Rules.Generic where
 
 import Data.List
@@ -9,6 +10,7 @@ import qualified Data.IntMap as IM
 import Core.Types
 import Core.Board
 import Core.BoardMap
+import Core.LabelSet as LS
 
 -- | Describes one jump during capture move;
 -- capture can conssit of several jumps.
@@ -47,7 +49,7 @@ data MoveDecisionInput = MoveDecisionInput {
 
 -- | Initial capture state
 initState :: Piece -> Board -> Address -> CaptureState
-initState piece board src = CaptureState Nothing emptyLabelSet piece board src src
+initState piece board src = CaptureState Nothing LS.empty piece board src src
 
 -- | An `Abstract class` for game rules
 data GenericRules = GenericRules {
@@ -115,7 +117,7 @@ freeFields :: HasBoardOrientation rules
 freeFields rules side dir captured allowStepCaptured addr board =
   case myNeighbour rules side dir addr of
     Nothing -> (0, [])
-    Just a' -> if isFree a' board || (allowStepCaptured && aLabel a' `labelSetMember` captured)
+    Just a' -> if isFree a' board || (allowStepCaptured && aLabel a' `LS.member` captured)
                  then let (n, prev) = freeFields rules side dir captured allowStepCaptured a' board
                       in  (n+1, a' : prev)
                  else (0, [])
@@ -138,7 +140,7 @@ genericNextMoves rules ct@(CaptureState {..}) continuePromoted pm =
                then promoted
                else ctPiece
     b = setPiece (pmEnd pm) piece' $ removePiece ctCurrent ctBoard
-    captured' = foldr insertLabelSet ctCaptured (map aLabel $ pmVictims pm)
+    captured' = foldr LS.insert ctCaptured (map aLabel $ pmVictims pm)
 
 abstractRules :: GenericRules -> GenericRules
 abstractRules =
@@ -180,7 +182,7 @@ abstractRules =
                    then captures 
                    else simpleMoves
 
-    kingPositionScore board (Label col row) =
+    kingPositionScore board (labelTuple -> (col,row)) =
       let (nrows, ncols) = bSize board
           crow = nrows `div` 2
           ccol = ncols `div` 2
@@ -270,11 +272,11 @@ abstractRules =
                 else False
     
     allowStepOccupied rules addr captured
-      | gRemoveCapturedImmediately rules = aLabel addr `labelSetMember` captured
+      | gRemoveCapturedImmediately rules = aLabel addr `LS.member` captured
       | otherwise = False
 
     canCaptureA rules addr captured =
-      not (aLabel addr `labelSetMember` captured)
+      not (aLabel addr `LS.member` captured)
 
     manCaptures1 rules (CaptureState {..}) =
         mapMaybe (check ctCurrent) $ filter allowedDir (gManCaptureDirections rules)
@@ -288,7 +290,7 @@ abstractRules =
 
         check a dir =
           case myNeighbour rules side dir a of
-            Just victimAddr | not (aLabel victimAddr `labelSetMember` ctCaptured) ->
+            Just victimAddr | not (aLabel victimAddr `LS.member` ctCaptured) ->
               if isPieceAt victimAddr ctBoard (opposite side)
                 then case myNeighbour rules side dir victimAddr of
                            Nothing -> Nothing
@@ -358,7 +360,7 @@ abstractRules =
                          Just p ->
                           -- the field is not empty
                           if isOpponentPiece side p
-                             then let capturedPiece = aLabel a' `labelSetMember` ctCaptured
+                             then let capturedPiece = aLabel a' `LS.member` ctCaptured
                                       skipCapturedPiece = gRemoveCapturedImmediately rules
                                   in if skipCapturedPiece
                                         -- In some (turkish) rules, pieces are removed from the field
@@ -405,7 +407,7 @@ abstractRules =
         concatMap check (gKingSimpleMoveDirections rules)
       where
         check dir =
-          let (nFree,free) = freeFields rules side dir emptyLabelSet False src board
+          let (nFree,free) = freeFields rules side dir LS.empty False src board
               piece = Piece King side
           in [PossibleMove {
                 pmBegin = src,
@@ -452,7 +454,7 @@ abstractRules =
   in rules
 
 labels8 :: [Label]
-labels8 = [Label col row | col <- [0..7], row <- [0..7], ((row+col) `mod` 2) == 0]
+labels8 = [mkLabel col row | col <- [0..7], row <- [0..7], ((row+col) `mod` 2) == 0]
 
 addresses8 :: HasTopology rules => rules -> [Address]
 addresses8 r = IM.elems $ bAddresses $ buildBoard DummyRandomTableProvider r FirstAtBottom (8, 8)
@@ -461,10 +463,10 @@ addresses8' :: HasTopology rules => rules -> [Address]
 addresses8' r = IM.elems $ bAddresses $ buildBoard DummyRandomTableProvider r SecondAtBottom (8, 8)
 
 labels8full :: [Label]
-labels8full = [Label col row | col <- [0..7], row <- [0..7]]
+labels8full = [mkLabel col row | col <- [0..7], row <- [0..7]]
 
 labels10 :: [Label]
-labels10 = [Label col row | col <- [0..9], row <- [0..9], ((row+col) `mod` 2) == 0]
+labels10 = [mkLabel col row | col <- [0..9], row <- [0..9], ((row+col) `mod` 2) == 0]
 
 addresses10 :: HasTopology rules => rules -> [Address]
 addresses10 r = IM.elems $ bAddresses $ buildBoard DummyRandomTableProvider r FirstAtBottom (10, 10)
