@@ -94,7 +94,7 @@ toList :: LabelSet -> [Label]
 toList (LabelSet192 x y z) =
     map unpackIndex $ bitsList x ++ map (+64) (bitsList y) ++ map (+128) (bitsList z)
 
-singleton ::Label -> LabelSet
+singleton :: Label -> LabelSet
 singleton  label =
     if idx < 64
       then LabelSet192 (bit idx) 0 0

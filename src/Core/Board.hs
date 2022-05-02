@@ -247,20 +247,10 @@ isFreeInDirection dir src board n =
 
 allMyLabels :: Side -> Board -> [Label]
 allMyLabels side board = myMen side board ++ myKings side board
--- allMyLabels side board =
---     [unpackIndex i | (i, p) <- A.assocs (bPieces board), check (boxPiece p)]
---   where
---     check (Just (Piece _ s)) = s == side
---     check _ = False
 
 myMen :: Side -> Board -> [Label]
 myMen First board = LS.toList $ bFirstMen board
 myMen Second board = LS.toList $ bSecondMen board
--- myMen side board = 
---     [unpackIndex i | (i, p) <- A.assocs (bPieces board), check (boxPiece p)]
---   where
---     check (Just (Piece Man s)) = s == side
---     check _ = False
 
 myMenA :: Side -> Board -> [Address]
 myMenA side board =
@@ -269,11 +259,6 @@ myMenA side board =
 myKings :: Side -> Board -> [Label]
 myKings First board = LS.toList $ bFirstKings board
 myKings Second board = LS.toList $ bSecondKings board
--- myKings side board =
---     [unpackIndex i | (i, p) <- A.assocs (bPieces board), check (boxPiece p)]
---   where
---     check (Just (Piece King s)) = s == side
---     check _ = False
 
 myKingsA :: Side -> Board -> [Address]
 myKingsA side board =
