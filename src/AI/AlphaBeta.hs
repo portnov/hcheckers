@@ -310,10 +310,12 @@ evalMove var eval side board mbPrevMove attacked move = do
   prime <- checkPrimeVariation var cacheKey
   let victimFields = pmVictims move
       -- nVictims = sum $ map victimWeight victimFields
+      begin = aLabel (pmBegin move)
+      end = aLabel (pmEnd move)
       promotion = if isPromotion move then 1 else 0
       attackPrevPiece = case mbPrevMove of
                           Nothing -> 0
-                          Just prevMove -> if aLabel (pmEnd prevMove) `LS.member` victimFields
+                          Just prevMove -> if end `LS.member` victimFields
                                              then 5
                                              else 0
 
@@ -327,14 +329,13 @@ evalMove var eval side board mbPrevMove attacked move = do
       
       isAttackPrevPiece = case mbPrevMove of
                             Nothing -> False
-                            Just prevMove -> aLabel (pmEnd prevMove) `LS.member` victimFields
+                            Just prevMove -> end `LS.member` victimFields
 
       isAttackKing = anyIsKing victimFields board
       
-      attackedPiece = let begin = aLabel $ pmBegin move
-                      in  if begin `LS.member` attacked
-                            then getPiece' begin board
-                            else Nothing
+      attackedPiece = if begin `LS.member` attacked
+                        then getPiece' begin board
+                        else Nothing
 
   case prime of
     Nothing -> if isCapture move
