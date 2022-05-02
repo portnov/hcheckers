@@ -220,9 +220,9 @@ parseMoveRec rules side board rec =
           ShortSemiMoveRec {..} ->
                 aLabel (pmBegin m) == smrFrom &&
                 aLabel (pmEnd m) == smrTo &&
-                (not $ null $ pmVictims m) == smrCapture 
+                (not $ LS.isEmpty $ pmVictims m) == smrCapture 
           FullSemiMoveRec {..} ->
-                (not $ null $ pmVictims m) &&
+                (not $ LS.isEmpty $ pmVictims m) &&
                 smrLabels `isSubsequenceOf` passedFields m
   in case filter suits moves of
     [m] -> return $ pmMove m

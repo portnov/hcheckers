@@ -356,7 +356,7 @@ boardRepLen (BoardRep lst) = length lst
 data PossibleMove = PossibleMove {
     pmBegin :: ! Address
   , pmEnd :: Address
-  , pmVictims :: [Address] -- ^ list of captured fields
+  , pmVictims :: LabelSet -- ^ list of captured fields
   , pmVictimsCount :: Int
   , pmMove :: Move
   , pmPromote :: ! Bool      -- ^ is there any promotion in the move
@@ -373,7 +373,7 @@ instance Show PossibleMove where
   show pm = move ++ promotion
     where
       move
-        | null (pmVictims pm) = show (pmBegin pm) ++ "-" ++ show (pmEnd pm)
+        | LS.isEmpty (pmVictims pm) = show (pmBegin pm) ++ "-" ++ show (pmEnd pm)
         | otherwise =  show (pmBegin pm) ++ "x" ++ show (pmEnd pm)
 
       promotion

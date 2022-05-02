@@ -84,7 +84,7 @@ translateCapture piece@(Piece _ side) capture =
     [PossibleMove {
       pmBegin = src,
       pmEnd = dst,
-      pmVictims = [victim],
+      pmVictims = LS.singleton (aLabel victim),
       pmVictimsCount = 1,
       pmMove = Move src (steps $ cFreeSteps capture),
       pmPromote = promote,
@@ -140,7 +140,7 @@ genericNextMoves rules ct@(CaptureState {..}) continuePromoted pm =
                then promoted
                else ctPiece
     b = setPiece (pmEnd pm) piece' $ removePiece ctCurrent ctBoard
-    captured' = foldr LS.insert ctCaptured (map aLabel $ pmVictims pm)
+    captured' = LS.union ctCaptured (pmVictims pm)
 
 abstractRules :: GenericRules -> GenericRules
 abstractRules =
@@ -245,7 +245,7 @@ abstractRules =
                                in  Just $ PossibleMove {
                                      pmBegin = src,
                                      pmEnd = dst,
-                                     pmVictims = [],
+                                     pmVictims = LS.empty,
                                      pmVictimsCount = 0,
                                      pmMove = move,
                                      pmPromote = promote,
@@ -412,7 +412,7 @@ abstractRules =
           in [PossibleMove {
                 pmBegin = src,
                 pmEnd = free !! (n-1),
-                pmVictims = [],
+                pmVictims = LS.empty,
                 pmVictimsCount = 0,
                 pmMove = Move src (replicate n (Step dir False False)),
                 pmPromote = False,

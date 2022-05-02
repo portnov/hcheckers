@@ -313,7 +313,7 @@ evalMove var eval side board mbPrevMove attacked move = do
       promotion = if isPromotion move then 1 else 0
       attackPrevPiece = case mbPrevMove of
                           Nothing -> 0
-                          Just prevMove -> if pmEnd prevMove `elem` victimFields
+                          Just prevMove -> if aLabel (pmEnd prevMove) `LS.member` victimFields
                                              then 5
                                              else 0
 
@@ -327,14 +327,10 @@ evalMove var eval side board mbPrevMove attacked move = do
       
       isAttackPrevPiece = case mbPrevMove of
                             Nothing -> False
-                            Just prevMove -> pmEnd prevMove `elem` victimFields
+                            Just prevMove -> aLabel (pmEnd prevMove) `LS.member` victimFields
 
-      isAttackKing = any isKing victimFields
+      isAttackKing = anyIsKing victimFields board
       
-      isKing a = case getPiece a board of
-                   Just (Piece King _) -> True
-                   _ -> False
-
       attackedPiece = let begin = aLabel $ pmBegin move
                       in  if begin `LS.member` attacked
                             then getPiece' begin board
@@ -1054,7 +1050,7 @@ scoreAB var eval params input
   | otherwise = do
       evaluator <- gets ssEvaluator
       let score0 = evalBoard' evaluator board
-      futilePrunned <- checkFutility
+      futilePrunned <- checkFutility score0
       case futilePrunned of
         Just out@(ScoreOutput score0 quiescene) -> do
             $verbose "Further search is futile, return current score0 = {}" (Single $ show score0)
@@ -1128,12 +1124,11 @@ scoreAB var eval params input
                                 }
              in  replicate (abMovesHighBound params) depth ++ repeat reducedDepth
 
-    checkFutility :: ScoreM rules eval (Maybe ScoreOutput)
-    checkFutility = do
+    checkFutility :: Score -> ScoreM rules eval (Maybe ScoreOutput)
+    checkFutility score0 = do
       evaluator <- gets ssEvaluator
       quiescene <- checkQuiescene
-      let score0 = evalBoard' evaluator board
-          best = if maximize then alpha else beta
+      let best = if maximize then alpha else beta
           isBad = if maximize
                     then score0 <= alpha + 1
                     else score0 >= beta - 1
@@ -1199,11 +1194,6 @@ scoreAB var eval params input
     opponentMoves = do
       rules <- gets ssRules
       lift $ getPossibleMoves var (opposite side) board
-
-    isInteresting move = do
-      opMoves <- opponentMoves
-      let victims = concatMap pmVictims opMoves
-      return $ {- pmBegin move `elem` victims || -} length (pmVictims move) >= 2 || isPromotion move
 
     mkIntervals zero (alpha, beta)
       | maximize =

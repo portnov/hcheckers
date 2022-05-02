@@ -79,7 +79,7 @@ kingSimpleMoves rules side board src =
                       then [PossibleMove {
                              pmBegin = src,
                              pmEnd = dst,
-                             pmVictims = [],
+                             pmVictims = LS.empty,
                              pmVictimsCount = 0,
                              pmMove = Move src [Step dir False False],
                              pmPromote = False,

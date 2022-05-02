@@ -310,7 +310,7 @@ myCounts side board =
         Second -> (LS.size (bSecondMen board), LS.size (bSecondKings board))
 
 totalCount :: Board -> Int
-totalCount b = LS.size $ LS.unions [bFirstMen b, bSecondMen b, bFirstKings b, bSecondKings b]
+totalCount b = LS.size $ bOccupied b
 
 catMoves :: Move -> Move -> Move
 catMoves m1 m2 =
@@ -321,7 +321,7 @@ catPMoves pm1 pm2 =
       PossibleMove {
         pmBegin = pmBegin pm1,
         pmEnd = pmEnd pm2,
-        pmVictims = pmVictims pm1 ++ pmVictims pm2,
+        pmVictims = pmVictims pm1 `LS.union` pmVictims pm2,
         pmVictimsCount = pmVictimsCount pm1 + pmVictimsCount pm2,
         pmMove = catMoves (pmMove pm1) (pmMove pm2),
         pmPromote = pmPromote pm1 || pmPromote pm2,
@@ -337,7 +337,7 @@ isCaptureM :: Move -> Bool
 isCaptureM move = any sCapture (moveSteps move)
 
 isCapture :: PossibleMove -> Bool
-isCapture pm = not $ null $ pmVictims pm
+isCapture pm = not $ LS.isEmpty $ pmVictims pm
 
 isPromotionM :: Move -> Bool
 isPromotionM move = any sPromote (moveSteps move)
@@ -659,6 +659,11 @@ setPiece' l p b = setPiece a p b
   where
     a = fromMaybe (error $ "setPiece': unknown field: " ++ show l) $ lookupLabel l (bAddresses b)
 
+anyIsKing :: LabelSet -> Board -> Bool
+anyIsKing labels b =
+  let kings = bFirstKings b `LS.union` bSecondKings b
+  in  not $ LS.isEmpty $ labels `LS.intersect` kings
+
 setManyPieces :: [Address] -> Piece -> Board -> Board
 setManyPieces addresses piece board = foldr (\a b -> setPiece a piece b) board addresses
 
@@ -899,7 +904,7 @@ boardAttacked Second = bSecondAttacked
 
 markAttacked :: [PossibleMove] -> Board -> Board
 markAttacked moves board =
-  let attackedBy side = LS.fromList $ map aLabel $ concatMap pmVictims moves
+  let attackedBy side = LS.unions $ map pmVictims moves
   in  board {
         bFirstAttacked = attackedBy Second,
         bSecondAttacked = attackedBy First
