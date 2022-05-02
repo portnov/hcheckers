@@ -575,6 +575,12 @@ isPieceAt a b side =
         First -> label `LS.member` (bFirstMen b `LS.union` bFirstKings b)
         Second -> label `LS.member` (bSecondMen b `LS.union` bSecondKings b)
 
+isPieceAt' :: Label -> Piece -> Board -> Bool
+isPieceAt' l (Piece Man First) b = l `LS.member` bFirstMen b
+isPieceAt' l (Piece Man Second) b = l `LS.member` bSecondMen b
+isPieceAt' l (Piece King First) b = l `LS.member` bFirstKings b
+isPieceAt' l (Piece King Second) b = l `LS.member` bSecondKings b
+
 getPiece_ :: String -> Address -> Board -> Piece
 getPiece_ name addr board =
   case getPiece addr board of
@@ -648,6 +654,12 @@ anyIsKing :: LabelSet -> Board -> Bool
 anyIsKing labels b =
   let kings = bFirstKings b `LS.union` bSecondKings b
   in  not $ LS.isEmpty $ labels `LS.intersect` kings
+
+anyPieceIs :: Piece -> LabelSet -> Board -> Bool
+anyPieceIs (Piece Man First) set b = not $ LS.isEmpty $ set `LS.intersect` bFirstMen b
+anyPieceIs (Piece Man Second) set b = not $ LS.isEmpty $ set `LS.intersect` bSecondMen b
+anyPieceIs (Piece King First) set b = not $ LS.isEmpty $ set `LS.intersect` bFirstKings b
+anyPieceIs (Piece King Second) set b = not $ LS.isEmpty $ set `LS.intersect` bSecondKings b
 
 setManyPieces :: [Address] -> Piece -> Board -> Board
 setManyPieces addresses piece board = foldr (\a b -> setPiece a piece b) board addresses

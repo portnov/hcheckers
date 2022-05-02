@@ -310,14 +310,8 @@ evalMove var eval side board mbPrevMove attacked move = do
   prime <- checkPrimeVariation var cacheKey
   let victimFields = pmVictims move
       -- nVictims = sum $ map victimWeight victimFields
-      begin = aLabel (pmBegin move)
-      end = aLabel (pmEnd move)
       promotion = if isPromotion move then 1 else 0
-      attackPrevPiece = case mbPrevMove of
-                          Nothing -> 0
-                          Just prevMove -> if end `LS.member` victimFields
-                                             then 5
-                                             else 0
+      begin = aLabel (pmBegin move)
 
       maximize = side == First
       minimize = not maximize
@@ -327,15 +321,19 @@ evalMove var eval side board mbPrevMove attacked move = do
                         Just (Piece Man _) -> 1
                         Just (Piece King _) -> 3
       
-      isAttackPrevPiece = case mbPrevMove of
-                            Nothing -> False
-                            Just prevMove -> end `LS.member` victimFields
+      isAttackPrevPiece = False
+                            -- Nothing -> False
+                            -- Just prevMove -> aLabel (pmEnd prevMove) `LS.member` victimFields
 
-      isAttackKing = anyIsKing victimFields board
+      isAttackKing = anyPieceIs (Piece King (opposite side)) victimFields board
+
+      isMovingKing = isPieceAt' begin (Piece King side) board
       
-      attackedPiece = if begin `LS.member` attacked
-                        then getPiece' begin board
-                        else Nothing
+      movedAttackedPiece = if begin `LS.member` attacked
+                              then getPiece' begin board
+                              else Nothing
+
+      nSteps = length (pmResult move)
 
   case prime of
     Nothing -> if isCapture move
@@ -344,9 +342,11 @@ evalMove var eval side board mbPrevMove attacked move = do
                          else if isAttackKing
                                 then return $ 10 + 3*promotion
                                 else return $ 5*promotion + 3*pmVictimsCount move
-                  else case attackedPiece of
+                  else case movedAttackedPiece of
                          Nothing -> return promotion
-                         Just (Piece King _) -> return 20
+                                      -- then return 3 -- + nSteps
+                                      -- else return promotion
+                         Just (Piece King _) -> return 20 -- + nSteps
                          Just (Piece Man _) -> return 10
     Just primeData -> do
       let score = scoreValue $ itemScore primeData
