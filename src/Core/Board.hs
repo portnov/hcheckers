@@ -548,8 +548,8 @@ buildBoard rnd rules orient bsize@(nrows, ncols) =
                 bSecondMen = LS.empty,
                 bFirstKings = LS.empty,
                 bSecondKings = LS.empty,
-                bFirstAttacked = LS.empty,
-                bSecondAttacked = LS.empty,
+                bAttackedByFirst = LS.empty,
+                bAttackedBySecond = LS.empty,
                 bSize = bsize,
                 boardHash = 0,
                 randomTable = table
@@ -883,15 +883,14 @@ flipBoard b = b' {boardHash = hash}
     hash = calcBoardHash b'
     bsz = bSize b
 
-boardAttacked :: Side -> Board -> LabelSet
-boardAttacked First = bFirstAttacked
-boardAttacked Second = bSecondAttacked
+boardAttackedBy :: Side -> Board -> LabelSet
+boardAttackedBy First = bAttackedByFirst
+boardAttackedBy Second = bAttackedBySecond
 
-markAttacked :: [PossibleMove] -> Board -> Board
-markAttacked moves board =
-  let attackedBy side = LS.unions $ map pmVictims moves
-  in  board {
-        bFirstAttacked = attackedBy Second,
-        bSecondAttacked = attackedBy First
-      }
+markAttacked :: [PossibleMove] -> [PossibleMove] -> Board -> Board
+markAttacked firstMoves secondMoves board =
+  board {
+      bAttackedByFirst = LS.unions $ map pmVictims firstMoves,
+      bAttackedBySecond = LS.unions $ map pmVictims secondMoves
+    }
 

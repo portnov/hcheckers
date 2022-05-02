@@ -289,7 +289,7 @@ preEval (SimpleEvaluator { seRules = iface@(SomeRules rules), ..}) side board =
 
     mobility = mobilityScore rules side board
 
-    attackedFields = boardAttacked side board
+    attackedFields = boardAttackedBy (opposite side) board
     attackedMen = getPiecesCount (Piece Man side) attackedFields board
     attackedKings = getPiecesCount (Piece King side) attackedFields board
 
@@ -308,7 +308,7 @@ preEval (SimpleEvaluator { seRules = iface@(SomeRules rules), ..}) side board =
       , psPreKing  = fromIntegral preKings
       , psAttackedMen = fromIntegral attackedMen
       , psAttackedKings = fromIntegral attackedKings
-      , psThreats = fromIntegral threatsCount
+      , psThreats = 0
       }
 
 preEvalBoth :: SimpleEvaluator -> Board -> PreScore

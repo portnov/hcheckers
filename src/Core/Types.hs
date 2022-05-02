@@ -148,8 +148,8 @@ data Board = Board {
   , bSecondMen :: LabelSet
   , bFirstKings :: LabelSet
   , bSecondKings :: LabelSet
-  , bFirstAttacked :: LabelSet
-  , bSecondAttacked :: LabelSet
+  , bAttackedByFirst :: LabelSet
+  , bAttackedBySecond :: LabelSet
 --   , boardCounts :: BoardCounts
   , bSize :: {-# UNPACK #-} ! BoardSize
   , boardHash :: {-# UNPACK #-} ! BoardHash

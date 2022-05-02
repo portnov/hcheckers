@@ -365,7 +365,7 @@ sortMoves eval params var side board mbPrevMove moves = do
 --   if length moves >= 4
 --     then do
       let rules = aichRules var
-          attacked = boardAttacked side board
+          attacked = boardAttackedBy (opposite side) board
       interest <- mapM (evalMove var eval side board mbPrevMove attacked) moves
       if any (/= 0) interest
         then return $ map fst $ sortOn (negate . snd) $ zip moves interest
@@ -1088,10 +1088,10 @@ scoreAB var eval params input
                   rules <- gets ssRules
                   dp' <- updateDepth params moves dp
                   let prevMove = siPrevMove input
-                  moves' <- sortMoves eval params var side board prevMove moves
+                  sortedMoves <- sortMoves eval params var side board prevMove moves
 --                   let depths = correspondingDepths (length moves') score0 quiescene dp'
                   let depths = repeat dp'
-                  out <- iterateMoves $ zip3 [1..] moves' depths
+                  out <- iterateMoves $ zip3 [1..] sortedMoves depths
                   pop
                   return out
 
@@ -1225,7 +1225,6 @@ scoreAB var eval params input
             then go inputs
             else return out
 
-
     iterateMoves :: [(Int,PossibleMove, DepthParams)] -> ScoreM rules eval ScoreOutput
     iterateMoves [] = do
       best <- getBest
@@ -1252,7 +1251,12 @@ scoreAB var eval params input
           best <- getBest
           let board' = applyMoveActions (pmResult move) board
               side' = opposite side
-              nextMoves = possibleMoves rules side' board'
+              myMoves = []
+              opponentMoves = possibleMoves rules side' board'
+              (firstMoves, secondMoves) = 
+                case side of
+                  First -> (myMoves, opponentMoves)
+                  Second -> (opponentMoves, myMoves)
               input' = input {
                           siSide = side'
                         , siAlpha = if maximize
@@ -1262,8 +1266,8 @@ scoreAB var eval params input
                                      then beta
                                      else min beta best
                         , siPrevMove = Just move
-                        , siBoard = markAttacked nextMoves board'
-                        , siPossibleMoves = Just nextMoves
+                        , siBoard = markAttacked firstMoves secondMoves board'
+                        , siPossibleMoves = Just opponentMoves
                         , siDepth = dp
                       }
           out <- cachedScoreAB var eval params input'
