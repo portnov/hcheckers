@@ -134,6 +134,7 @@ instance (GameRules rules, VectorEvaluator eval, ToJSON eval) => GameAi (AlphaBe
   chooseMove ai storage gameId side aiSession board = Monitoring.timed "ai.choose.move" $ do
     (moves, _) <- runAI ai storage gameId side aiSession board
     -- liftIO $ atomically $ writeTVar (aichCurrentCounts storage) $ calcBoardCounts board
+    Monitoring.distribution "ai.chosen.moves.count" $ fromIntegral (length moves)
     return moves
 
   decideDrawRequest ai@(AlphaBeta params rules eval) storage gameId side aiSession board = do
