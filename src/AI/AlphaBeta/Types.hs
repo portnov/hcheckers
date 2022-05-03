@@ -72,7 +72,8 @@ data AlphaBetaParams = AlphaBetaParams {
   , abMovesLowBound :: Int
   , abMovesHighBound :: Int
   , abInitWindowWidth :: Int
-  , abBaseTime :: Maybe Int
+  , abTimeout :: Int -- in milliseconds
+  , abDeepeningWithinTimeout :: Bool -- whether to use depth iteration while we have time
   , abRandomOpeningDepth :: Int
   , abRandomOpeningOptions :: Int
   , abDrawPolicy :: DrawPolicy
@@ -90,7 +91,8 @@ instance Default AlphaBetaParams where
         , abMovesLowBound = 4
         , abMovesHighBound = 8
         , abInitWindowWidth = 0
-        , abBaseTime = Nothing
+        , abTimeout = 10*1000
+        , abDeepeningWithinTimeout = False
         , abRandomOpeningDepth = 1
         , abRandomOpeningOptions = 1
         , abDrawPolicy = AlwaysAccept

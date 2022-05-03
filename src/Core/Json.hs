@@ -211,6 +211,7 @@ instance FromJSON AiConfig where
       <*> v .:? "update_cache_max_depth" .!= (aiUpdateCacheMaxDepth def)
       <*> v .:? "update_cache_max_pieces" .!= (aiUpdateCacheMaxPieces def)
       <*> v .:? "ttable_size" .!= (aiHtableSize def)
+      <*> v .:? "timeout" .!= (aiTimeout def)
 
 instance FromJSON BattleServerConfig where
   parseJSON = withObject "BattleServerConfig" $ \v -> BattleServerConfig

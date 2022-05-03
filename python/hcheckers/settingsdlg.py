@@ -102,13 +102,11 @@ class AiEditorWidget(QWidget):
         layout.addRow(_("Use positional score"), self.use_positional_score)
         self.use_positional_score.stateChanged.connect(self.edited)
 
-        self.use_timeout = QCheckBox(general)
-        layout.addRow(_("Continue thinking while there is time"), self.use_timeout)
-        self.use_timeout.stateChanged.connect(self.edited)
-        self.use_timeout.stateChanged.connect(self._on_use_timeout)
+        self.deepening_within_timeout = QCheckBox(general)
+        layout.addRow(_("Continue thinking while there is time"), self.deepening_within_timeout)
+        self.deepening_within_timeout.stateChanged.connect(self.edited)
 
-        self.timeout = make_spinbox(_("Timeout (seconds)"), 1, 120, general)
-        self.timeout.setEnabled(False)
+        self.timeout = make_spinbox(_("Timeout (milliseconds)"), 50, 120*1000, general)
 
         self.random_opening_depth = make_spinbox(_("Random opening depth"), 1, 5, general)
         self.random_opening_depth.setToolTip(_("Number of first moves to be considered as opening; during these moves, AI will select it's move randomly from several best options"))
@@ -172,10 +170,6 @@ class AiEditorWidget(QWidget):
 
         self.setLayout(layout)
 
-    def _on_use_timeout(self):
-        use = self.use_timeout.checkState() == Qt.Checked
-        self.timeout.setEnabled(use)
-
     def _on_save(self):
         path, mask = QFileDialog.getSaveFileName(self, _("Save file"), ".", JSON_MASK)
         if path:
@@ -209,8 +203,8 @@ class AiEditorWidget(QWidget):
         self.moves_bound_low.setValue(ai.moves_bound_low)
         self.moves_bound_high.setValue(ai.moves_bound_high)
         self.use_positional_score.setCheckState(Qt.Checked if ai.use_positional_score else Qt.Unchecked)
-        self.use_timeout.setCheckState(Qt.Checked if ai.use_timeout else Qt.Unchecked)
-        self.timeout.setValue(1 if ai.timeout is None else ai.timeout)
+        self.deepening_within_timeout.setCheckState(Qt.Checked if ai.deepening_within_timeout else Qt.Unchecked)
+        self.timeout.setValue(AI.DEFAULT_TIMEOUT if ai.timeout is None else ai.timeout)
         self.random_opening_depth.setValue(ai.random_opening_depth)
         self.random_opening_options.setValue(ai.random_opening_options)
 
@@ -242,7 +236,7 @@ class AiEditorWidget(QWidget):
         ai.moves_bound_low = self.moves_bound_low.value()
         ai.moves_bound_high = self.moves_bound_high.value()
         ai.use_positional_score = self.use_positional_score.checkState() == Qt.Checked
-        ai.use_timeout = self.use_timeout.checkState() == Qt.Checked
+        ai.deepening_within_timeout = self.deepening_within_timeout.checkState() == Qt.Checked
         ai.timeout = self.timeout.value()
         ai.random_opening_depth = self.random_opening_depth.value()
         ai.random_opening_options = self.random_opening_options.value()

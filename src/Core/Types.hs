@@ -741,6 +741,7 @@ data AiConfig = AiConfig {
   , aiUpdateCacheMaxDepth :: Depth
   , aiUpdateCacheMaxPieces :: Int
   , aiHtableSize :: Int
+  , aiTimeout :: Int -- in milliseconds
   }
   deriving (Show, Typeable, Generic)
 
@@ -757,6 +758,7 @@ instance Default AiConfig where
         , aiUpdateCacheMaxDepth = 6
         , aiUpdateCacheMaxPieces = 8
         , aiHtableSize = 1024
+        , aiTimeout = 30*1000
       }
 
 data BattleServerConfig = BattleServerConfig {
@@ -944,7 +946,7 @@ event label actions =
            actions
 
 repeatTimed :: forall m. (MonadIO m, HasLogging m) => String -> Int -> m Bool -> m ()
-repeatTimed label seconds action = repeatTimed' label seconds action' ()
+repeatTimed label timeout action = repeatTimed' label timeout action' ()
   where
 
     action' _ = do
@@ -954,7 +956,7 @@ repeatTimed label seconds action = repeatTimed' label seconds action' ()
         else return ((), Nothing)
   
 repeatTimed' :: forall m a b. (MonadIO m, HasLogging m) => String -> Int -> (a -> m (b, Maybe a)) -> a -> m b
-repeatTimed' label seconds action x = do
+repeatTimed' label timeout action x = do
     start <- liftIO $ getTime RealtimeCoarse
     run 0 x start
   where
@@ -965,7 +967,7 @@ repeatTimed' label seconds action x = do
         Just x' -> do
             time2 <- liftIO $ getTime RealtimeCoarse
             let delta = time2 - start
-            if sec delta >= fromIntegral seconds
+            if toNanoSecs delta >= fromIntegral (timeout * 1000 * 1000)
               then do
                   $info "{}: timeout exhaused, done {} iterations" (label, i+1)
                   return result

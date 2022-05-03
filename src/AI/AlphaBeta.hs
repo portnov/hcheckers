@@ -76,7 +76,8 @@ instance FromJSON AlphaBetaParams where
       <*> v .:? "moves_bound_low" .!= 4
       <*> v .:? "moves_bound_high" .!= 8
       <*> v .:? "init_window_width" .!= abInitWindowWidth def
-      <*> v .:? "time"
+      <*> v .:? "time" .!= abTimeout def
+      <*> v .:? "deepening_within_timeout" .!= abDeepeningWithinTimeout def
       <*> v .:? "random_opening_depth" .!= abRandomOpeningDepth def
       <*> v .:? "random_opening_options" .!= abRandomOpeningOptions def
       <*> v .:? "accept_draw" .!= abDrawPolicy def
@@ -92,7 +93,8 @@ instance ToJSON AlphaBetaParams where
               "moves_bound_low" .= abMovesLowBound p,
               "moves_bound_high" .= abMovesHighBound p,
               "init_window_depth" .= abInitWindowWidth p,
-              "time" .= abBaseTime p,
+              "time" .= abTimeout p,
+              "deepening_within_timeout" .= abDeepeningWithinTimeout p,
               "random_opening_depth" .= abRandomOpeningDepth p,
               "random_opening_options" .= abRandomOpeningOptions p
             ]
@@ -181,7 +183,8 @@ instance (GameRules rules, VectorEvaluator eval, ToJSON eval) => VectorAi (Alpha
                 , abMovesLowBound = abMovesLowBound def
                 , abMovesHighBound = abMovesHighBound def
                 , abInitWindowWidth = abInitWindowWidth def
-                , abBaseTime = Nothing
+                , abTimeout = abTimeout def
+                , abDeepeningWithinTimeout = abDeepeningWithinTimeout def
                 , abRandomOpeningDepth = 1
                 , abRandomOpeningOptions = 1
                 , abDrawPolicy = AlwaysAccept
@@ -450,6 +453,10 @@ runAI :: (GameRules rules, VectorEvaluator eval)
       -> Board
       -> Checkers AiOutput
 runAI ai@(AlphaBeta params rules eval) handle gameId side aiSession board = do
+    when (not $ abDeepeningWithinTimeout params) $ do
+      timeout <- getTimeout params
+      void $ forkCheckers $ timeoutSignaller (aiStopSignal aiSession) timeout
+
     options <- depthDriver =<< getPossibleMoves handle side board
     if null options
       then return ([], if maximize then loose else win)
@@ -512,8 +519,17 @@ runAI ai@(AlphaBeta params rules eval) handle gameId side aiSession board = do
 
     depthDriver :: [PossibleMove] -> Checkers DepthIterationOutput
     depthDriver moves =
-      case abBaseTime params of
-          Nothing -> do
+      if abDeepeningWithinTimeout params
+        then do
+            time <- getTimeout params
+            let input =  DepthIterationInput {
+                           diiParams = params,
+                           diiMoves = moves,
+                           diiPrevResult = Nothing,
+                           diiSortKeys = Nothing
+                        }
+            repeatTimed' "runAI" time goTimed input
+        else do
             nThreads <- asks (aiThreads . gcAiConfig . csConfig)
             let target = abDepth params
                 depthStep = abDepthStep params
@@ -532,14 +548,6 @@ runAI ai@(AlphaBeta params rules eval) handle gameId side aiSession board = do
                           diiSortKeys = Nothing
                         }
             goIterative target input
-          Just time -> do
-            let input =  DepthIterationInput {
-                           diiParams = params,
-                           diiMoves = moves,
-                           diiPrevResult = Nothing,
-                           diiSortKeys = Nothing
-                        }
-            repeatTimed' "runAI" time goTimed input
 
   
     goTimed :: DepthIterationInput
@@ -880,10 +888,33 @@ doScore rules eval var params gameId side aiSession dp board alpha beta = do
     mkInitState = do
       cache <- allocateCache var eval
       now <- liftIO $ getTime RealtimeCoarse
-      let timeout = case abBaseTime params of
-                      Nothing -> Nothing
-                      Just sec -> Just $ TimeSpec (fromIntegral sec) 0
-      return $ ScoreState rules eval cache gameId aiSession [loose] M.empty now timeout
+      let deepenTimeout = if abDeepeningWithinTimeout params
+                            -- TimeSpec expects nanoseconds
+                            then Just $ TimeSpec 0 (fromIntegral $ abTimeout params * 1000 * 1000)
+                            else Nothing
+      return $ ScoreState rules eval cache gameId aiSession [loose] M.empty now deepenTimeout
+
+getTimeout :: AlphaBetaParams -> Checkers Int
+getTimeout params = do
+  let localTimeout = abTimeout params
+  globalTimeout <- asks (aiTimeout . gcAiConfig . csConfig)
+  return $ min localTimeout globalTimeout
+
+timeoutSignaller :: MVar () -> Int -> Checkers ()
+timeoutSignaller signal timeout = liftIO $ do
+    start <- getTime RealtimeCoarse
+    -- TimeSpec expects nanoseconds
+    let end = start + TimeSpec 0 (fromIntegral $ timeout * 1000 * 1000)
+    loop end
+  where
+    loop end = do
+      now <- getTime RealtimeCoarse
+      if now >= end
+        then void $ tryPutMVar signal ()
+        else do
+          -- threadDelay expects microseconds
+          threadDelay $ 100 * 1000
+          loop end
 
 clamp :: Ord a => a -> a -> a -> a
 clamp alpha beta score
@@ -1204,28 +1235,6 @@ scoreAB var eval params input
       | otherwise =
         let mid = max (beta - zero) alpha
         in  [(mid, beta), (alpha, beta)]
-
-    checkMove :: AICacheHandle rules eval -> AlphaBetaParams -> ScoreInput -> Int -> ScoreM rules eval ScoreOutput
-    checkMove var params input i = do
-        let alpha = siAlpha input
-            beta  = siBeta input
-            width = beta - alpha
-            zeroWidth = Score 0 300
-        intervals <- do
-              let interesting = i <= 1
-              if interesting || width <= zeroWidth
-                then return [(alpha, beta)]
-                else return $ mkIntervals zeroWidth (alpha, beta)
-        let inputs = [input {siAlpha = alpha, siBeta = beta} | (alpha, beta) <- intervals]
-        go inputs
-      where
-        go [input] = cachedScoreAB var eval params input
-        go (input : inputs) = do
-          out <- cachedScoreAB var eval params input
-          let score = soScore out
-          if maximize && score >= beta || minimize && score <= alpha
-            then go inputs
-            else return out
 
     iterateMoves :: [(Int,PossibleMove, DepthParams)] -> ScoreM rules eval ScoreOutput
     iterateMoves [] = do

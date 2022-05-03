@@ -34,7 +34,10 @@ class MoveRequest(Thread):
         finally:
             self.owner.move_lock.release()
 
+
 class AI(object):
+    DEFAULT_TIMEOUT = 120*1000
+
     def __init__(self, **kwargs):
         self.title = "Default AI"
         self.depth = 2
@@ -45,8 +48,8 @@ class AI(object):
         self.moves_bound_high = 8
         self.start_depth = None
         self.use_positional_score = True
-        self.timeout = None
-        self.use_timeout = False
+        self.timeout = AI.DEFAULT_TIMEOUT
+        self.deepening_within_timeout = False
         self.random_opening_depth = 1
         self.random_opening_options = 1
 
@@ -97,7 +100,7 @@ class AI(object):
         ai.moves_bound_low = settings.value("moves_bound_low", type=int)
         ai.moves_bound_high = settings.value("moves_bound_high", type=int)
         ai.use_positional_score = settings.value("use_positional_score", type=bool)
-        ai.use_timeout = settings.value("use_timeout", type=bool)
+        ai.deepening_within_timeout = settings.value("use_timeout", type=bool)
         ai.timeout = settings.value("timeout", type=int)
         ai.random_opening_depth = settings.value("random_opening_depth", ai.random_opening_depth, type=int)
         ai.random_opening_options = settings.value("random_opening_options", ai.random_opening_options, type=int)
@@ -159,7 +162,7 @@ class AI(object):
         settings.setValue("moves_bound_low", self.moves_bound_low)
         settings.setValue("moves_bound_high", self.moves_bound_high)
         settings.setValue("use_positional_score", self.use_positional_score)
-        settings.setValue("use_timeout", self.use_timeout)
+        settings.setValue("use_timeout", self.deepening_within_timeout)
         settings.setValue("timeout", self.timeout)
         settings.setValue("random_opening_depth", self.random_opening_depth)
         settings.setValue("random_opening_options", self.random_opening_options)
@@ -190,7 +193,8 @@ class AI(object):
             "moves_bound_low": self.moves_bound_low,
             "moves_bound_high": self.moves_bound_high,
             "use_positional_score": self.use_positional_score,
-            "time": self.timeout if self.use_timeout else None,
+            "time": self.timeout,
+            "deepening_within_timeout": self.deepening_within_timeout,
             "random_opening_depth": self.random_opening_depth,
             "random_opening_options": self.random_opening_options,
 
