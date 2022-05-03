@@ -20,13 +20,10 @@ module AI.AlphaBeta.Types
     BoardDataCache, AIData, CacheValue,
     ScoreMoveInput (..),
     AICacheHandle (..),
-    StorageState (..),
     ScoreState (..), ScoreM (..),
     ScoreInput (..), ScoreOutput (..),
     DepthIterationInput (..), DepthIterationOutput,
-    AiOutput,
-    Storage,
-    runStorage
+    AiOutput
   ) where
 
 import Control.Monad.State as St
@@ -249,45 +246,6 @@ data AICacheHandle rules eval = AICacheHandle {
   , aichCurrentCounts :: TVar BoardCounts
   }
 
--- | State for the Storage monad
-data StorageState = StorageState {
-    ssLogging :: LoggingTState
-  , ssMetrics :: Metrics.Metrics
-  , ssMetricsEnabled :: Bool
-  , ssBoardSize :: BoardSize
-  }
-
--- | Storage monad.
-type Storage a = StateT StorageState IO a
-
-instance HasMetricsConfig (StateT StorageState IO) where
-  isMetricsEnabled = gets ssMetricsEnabled
-
-instance HasLogContext (StateT StorageState IO) where
-  getLogContext = gets (ltsContext . ssLogging)
-
-  withLogContext frame actions = do
-    logging <- gets ssLogging
-    let logging' = logging {ltsContext = frame : ltsContext logging} 
-    modify $ \ss -> ss {ssLogging = logging'}
-    result <- actions
-    modify $ \ss -> ss {ssLogging = logging}
-    return result
-    
-instance HasLogger (StateT StorageState IO) where
-  getLogger = gets (ltsLogger . ssLogging)
-
-  localLogger logger actions = do
-    logging <- gets ssLogging
-    let logging' = logging {ltsLogger = logger}
-    modify $ \ss -> ss {ssLogging = logging'}
-    result <- actions
-    modify $ \ss -> ss {ssLogging = logging}
-    return result
-
-instance Metrics.MonadMetrics (StateT StorageState IO) where
-  getMetrics = gets ssMetrics
-
 -- | State of ScoreM monad.
 data ScoreState rules eval = ScoreState {
     ssRules :: rules
@@ -321,7 +279,7 @@ data ScoreOutput = ScoreOutput {
 type ScoreM rules eval a = StateT (ScoreState rules eval) Checkers a
 
 instance HasMetricsConfig (StateT (ScoreState rules eval) Checkers) where
-  isMetricsEnabled = lift isMetricsEnabled
+  isMetricsEnabled name = lift $ isMetricsEnabled name
 
 instance HasLogger (StateT (ScoreState rules eval) Checkers) where
   getLogger = lift getLogger
@@ -351,12 +309,3 @@ data DepthIterationInput = DepthIterationInput {
 type DepthIterationOutput = [MoveAndScore]
 type AiOutput = ([PossibleMove], Score)
 
-runStorage :: (GameRules rules, Evaluator eval) => AICacheHandle rules eval -> Storage a -> Checkers a
-runStorage handle actions = do
-  lts <- asks csLogging
-  let bsize = boardSize (aichRules handle)
-  metrics <- Metrics.getMetrics
-  metricsEnabled <- isMetricsEnabled
-  let initState = StorageState lts metrics metricsEnabled bsize
-  liftIO $ evalStateT actions initState
-  

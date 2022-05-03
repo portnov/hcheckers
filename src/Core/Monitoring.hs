@@ -13,24 +13,24 @@ import Text.Printf
 
 import Core.Types
 
-ifMetricsEnabled :: (Monad m, HasMetricsConfig m) => m () -> m ()
-ifMetricsEnabled action = do
-  enabled <- isMetricsEnabled
+ifMetricsEnabled :: (Monad m, HasMetricsConfig m) => T.Text -> m () -> m ()
+ifMetricsEnabled name action = do
+  enabled <- isMetricsEnabled name
   when enabled action
 
 increment :: (MonadIO m, Metrics.MonadMetrics m, HasMetricsConfig m) => T.Text -> m ()
-increment name = ifMetricsEnabled $ Metrics.increment name
+increment name = ifMetricsEnabled name $ Metrics.increment name
 
 timed :: (MonadIO m, Metrics.MonadMetrics m, MonadMask m, HasMetricsConfig m) => T.Text -> m a -> m a
 timed name action = do
-  enabled <- isMetricsEnabled
+  enabled <- isMetricsEnabled name
   if enabled
     then Metrics.timed name action
     else action
 
 distribution :: (MonadIO m, Metrics.MonadMetrics m, HasMetricsConfig m) => T.Text -> Double -> m ()
 distribution name x =
-  ifMetricsEnabled $ Metrics.distribution name x
+  ifMetricsEnabled name $ Metrics.distribution name x
 
 getCurrentMetrics :: (MonadIO m, Metrics.MonadMetrics m) => Maybe T.Text -> m EKG.Sample
 getCurrentMetrics mbPrefix = do

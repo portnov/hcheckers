@@ -28,7 +28,7 @@ withCheckers cmd actions = do
   print cfg
   logChan <- newChan
   metrics <- Metrics.initialize
-  when (gcEnableMetrics cfg) $ do
+  when (gcEnableMetrics cfg /= NoMetrics) $ do
     let store = metrics ^. Metrics.metricsStore
     EKG.registerGcMetrics store
     EKG.forkServerWith store (TE.encodeUtf8 $ gcHost cfg) (gcMetricsPort cfg)

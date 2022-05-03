@@ -773,11 +773,20 @@ instance Default BattleServerConfig where
           , bsPort = 8865
         }
 
+data MetricsMask =
+    NoMetrics
+  | MetricsPrefix T.Text
+  | AllMetrics
+  deriving (Eq, Show, Typeable, Generic)
+
+instance Default MetricsMask where
+  def = AllMetrics
+
 data GeneralConfig = GeneralConfig {
     gcHost :: T.Text
   , gcPort :: Int
   , gcLocal :: Bool
-  , gcEnableMetrics :: Bool
+  , gcEnableMetrics :: MetricsMask
   , gcMetricsPort :: Int
   , gcLogFile :: FilePath
   , gcLogLevel :: Level
@@ -791,7 +800,7 @@ instance Default GeneralConfig where
     gcHost = "localhost",
     gcLocal = False,
     gcPort = 8864,
-    gcEnableMetrics = True,
+    gcEnableMetrics = AllMetrics,
     gcMetricsPort = 8000,
     gcLogFile = "hcheckers.log",
     gcLogLevel = info_level,
@@ -898,10 +907,15 @@ instance MonadMetrics Checkers where
   getMetrics = asks csMetrics
 
 class HasMetricsConfig m where
-  isMetricsEnabled :: m Bool
+  isMetricsEnabled :: T.Text -> m Bool
 
 instance HasMetricsConfig Checkers where
-  isMetricsEnabled = asks (gcEnableMetrics . csConfig)
+  isMetricsEnabled name = do
+    mask <- asks (gcEnableMetrics . csConfig)
+    case mask of
+      AllMetrics -> return True
+      NoMetrics -> return False
+      MetricsPrefix prefix -> return $ prefix `T.isPrefixOf` name
 
 timed :: String -> Checkers a -> Checkers a
 timed message actions = do

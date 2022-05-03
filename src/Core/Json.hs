@@ -218,6 +218,15 @@ instance FromJSON BattleServerConfig where
     <*> v .:? "host" .!= bsHost def
     <*> v .:? "port" .!= bsPort def
 
+instance FromJSON MetricsMask where
+  parseJSON (String text)
+    | text `elem` ["on", "true", "all"] = return AllMetrics
+    | text `elem` ["off", "false", "none"] = return NoMetrics
+    | otherwise = return $ MetricsPrefix text
+  parseJSON (Bool True) = return AllMetrics
+  parseJSON (Bool False) = return NoMetrics
+  parseJSON invalid = typeMismatch "metrics" invalid
+
 instance FromJSON GeneralConfig where
   parseJSON = withObject "GeneralConfig" $ \v -> GeneralConfig
     <$> v .:? "host" .!= (gcHost def)
