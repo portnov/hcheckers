@@ -698,7 +698,7 @@ runAI ai@(AlphaBeta params rules eval) handle gameId side aiSession board = do
                   [] -> return results
                   [_] -> do
                     $info "Exactly one move is `too good'; do that move." ()
-                    return bestResults
+                    return results
                   _ ->
                     if allowNext
                       then
@@ -1174,8 +1174,7 @@ scoreAB var eval params input
         then do
           best <- getBest
           quiescene <- checkQuiescene
-          let logStop = dpCurrent dp == 1
-          $infoOrDebug logStop "Requested stop. Current level = {}, return best = {}" (dpCurrent dp, show best)
+          $debug "Requested stop. Current level = {}, return best = {}" (dpCurrent dp, show best)
           return $ ScoreOutput best quiescene True
         else do
           $verbose "{}|+Check move of side {}: {}" (indent, show side, show move)
