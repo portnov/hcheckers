@@ -146,6 +146,6 @@ saveAiData rules var = do
       liftIO $ HT.markClean ht
       end <- liftIO $ getTime RealtimeCoarse
       let dt = diffTimeSpec end start
-          dtStr = printf "%d.%d" (sec dt) (nsec dt `div` (1000*1000))
+          dtStr = printf "%d.%03d" (sec dt) (nsec dt `div` (1000*1000))
       $info "Save AI cache: {} - {} boards, in {} seconds" (path, length boardsData, dtStr :: String)
 
