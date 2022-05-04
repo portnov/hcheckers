@@ -145,7 +145,8 @@ instance (GameRules rules, VectorEvaluator eval, ToJSON eval) => GameAi (AlphaBe
       AlwaysDecline -> return False
       AcceptIfLosing -> do
         let depth = mkDepthParams (abDepth params) params
-        score <- doScore rules eval storage params gameId side aiSession depth board loose win
+        scoreOut <- doScore rules eval storage params gameId side aiSession depth board loose win
+        let score = soScore scoreOut
         let loosing = (side == First && score < 0) || (side == Second && score > 0)
         if loosing
             then return True
@@ -200,15 +201,18 @@ scoreMove (ScoreMoveInput {..}) = do
      let AlphaBeta params rules eval = smiAi
      score <- Monitoring.timed "ai.score.move" $ do
                 let board' = applyMoveActions (pmResult smiMove) smiBoard
-                score <- doScore rules eval smiCache params smiGameId (opposite smiSide) smiAiSession smiDepth board' smiAlpha smiBeta
+                scoreOut <- doScore rules eval smiCache params smiGameId (opposite smiSide) smiAiSession smiDepth board' smiAlpha smiBeta
                           `catchError` (\(e :: Error) -> do
                                         $info "doScore: move {}, depth {}: {}" (show smiMove, dpTarget smiDepth, show e)
                                         throwError e
                                   )
-                $info "Check: {} ([{} - {}], depth {}) => {}" (show smiMove, show smiAlpha, show smiBeta, dpTarget smiDepth, show score)
-                return score
+                let interruptMessage = if soInterrupted scoreOut
+                                         then " [Interrupted]"
+                                         else ""
+                $info "Check: {} ([{} - {}], depth {}) => {}{}" (show smiMove, show smiAlpha, show smiBeta, dpTarget smiDepth, show (soScore scoreOut), interruptMessage :: T.Text)
+                return scoreOut
      
-     return $ MoveAndScore smiMove score
+     return $ MoveAndScore smiMove (soScore score) (soInterrupted score)
 
 scoreMoveGroup :: (GameRules rules, VectorEvaluator eval) => [ScoreMoveInput rules eval] -> Checkers [MoveAndScore]
 scoreMoveGroup inputs = go [] inputs
@@ -228,7 +232,8 @@ scoreMoveGroup inputs = go [] inputs
             | maximize = input {smiAlpha = prevScore best}
             | otherwise = input {smiBeta = nextScore best}
 
-      result@(MoveAndScore move score) <- scoreMove input'
+      -- FIXME: check for interruption?
+      result@(MoveAndScore move score interrupted) <- scoreMove input'
       liftIO $ atomically $ do
         updatedBest <- readTVar bestVar
         let best'
@@ -284,13 +289,10 @@ getPossibleMoves handle side board = Monitoring.timed "ai.possible_moves.duratio
 
 class Monad m => EvalMoveMonad m where
   checkPrimeVariation :: (GameRules rules) => AICacheHandle rules eval -> CacheKey -> m (Maybe PerBoardData)
-  getKillerMove :: Int -> m (Maybe MoveAndScore)
 
 instance EvalMoveMonad Checkers where
   checkPrimeVariation var key = do
     lookupAiCacheC key var
-
-  getKillerMove _ = return Nothing
 
 -- ScoreM instance
 instance EvalMoveMonad (StateT (ScoreState rules eval) Checkers) where
@@ -298,8 +300,6 @@ instance EvalMoveMonad (StateT (ScoreState rules eval) Checkers) where
       cache <- gets ssCache
       lookupAiCacheS' key cache
 
-  getKillerMove = getGoodMove
-  
 evalMove :: (EvalMoveMonad m, GameRules rules, VectorEvaluator eval)
         => AICacheHandle rules eval
         -> eval
@@ -377,24 +377,6 @@ sortMoves eval params var side board mbPrevMove moves = do
         else return moves
 --     else return moves
 
-rememberGoodMove :: Int -> Side -> PossibleMove -> Score -> ScoreM rules eval ()
-rememberGoodMove depth side move score = do
-  goodMoves <- gets ssBestMoves
-  let goodMoves' = case M.lookup depth goodMoves of
-                     Nothing -> M.insert depth (MoveAndScore move score) goodMoves
-                     Just (MoveAndScore _ prevScore)
-                      | (maximize && score > prevScore) || (minimize && score < prevScore)
-                          -> M.insert depth (MoveAndScore move score) goodMoves
-                      | otherwise -> goodMoves
-      maximize = side == First
-      minimize = not maximize
-  modify $ \st -> st {ssBestMoves = goodMoves'}
-
-getGoodMove :: Int -> ScoreM rules eval (Maybe MoveAndScore)
-getGoodMove depth = do
-  goodMoves <- gets ssBestMoves
-  return $ M.lookup depth goodMoves
-
 
 -- | General driver / controller for Alpha-Beta prunning algorithm.
 -- This method is responsible in running scoreAB method on all possible moves
@@ -453,9 +435,8 @@ runAI :: (GameRules rules, VectorEvaluator eval)
       -> Board
       -> Checkers AiOutput
 runAI ai@(AlphaBeta params rules eval) handle gameId side aiSession board = do
-    when (not $ abDeepeningWithinTimeout params) $ do
-      timeout <- getTimeout params
-      void $ forkCheckers $ timeoutSignaller (aiStopSignal aiSession) timeout
+    timeout <- getTimeout params
+    void $ forkCheckers $ timeoutSignaller (aiStopSignal aiSession) timeout
 
     options <- depthDriver =<< getPossibleMoves handle side board
     if null options
@@ -477,45 +458,6 @@ runAI ai@(AlphaBeta params rules eval) handle gameId side aiSession board = do
     worseThan s1 s2
       | maximize = s1 < s2
       | otherwise = s1 > s2
-
---     preselect = do
---       moves <- getPossibleMoves handle side board
---       let simple = DepthParams {
---                     dpInitialTarget = 2
---                   , dpTarget = 2
---                   , dpCurrent = -1
---                   , dpMax = 4
---                   , dpMin = 2
---                   , dpForcedMode = False
---                   , dpStaticMode = False
---                 }
---       result <- sortMoves params handle side simple board Nothing moves
---       $debug "Pre-selected options: {}" (Single $ show result)
---       return result
-
-    preselect :: Depth -> [PossibleMove] -> Checkers [Score]
-    preselect depth moves = do
-      let simple = DepthParams {
-                    dpInitialTarget = depth
-                  , dpTarget = depth
-                  , dpCurrent = -1
-                  , dpMax = 6
-                  , dpMin = depth
-                  , dpForcedMode = False
-                  , dpStaticMode = False
-                  , dpReductedMode = False
-                }
-      $info "Preselecting; number of possible moves = {}, depth = {}" (length moves, dpTarget simple)
-      options <- scoreMoves' False moves simple (loose, win)
-      let key = if maximize
-                  then negate . rScore
-                  else rScore
-      return $ map key options
---       let sorted = sortOn key options
---           bestOptions = take (abMovesHighBound params) sorted
---       let result = map fst sorted
---       $debug "Pre-selected options: {}" (Single $ show result)
---       return result
 
     depthDriver :: [PossibleMove] -> Checkers DepthIterationOutput
     depthDriver moves =
@@ -553,21 +495,20 @@ runAI ai@(AlphaBeta params rules eval) handle gameId side aiSession board = do
     goTimed :: DepthIterationInput
             -> Checkers (DepthIterationOutput, Maybe DepthIterationInput)
     goTimed input = do
-      ret <- tryC $ go input
-      case ret of
-        Right result -> return result
-        Left TimeExhaused ->
+      ret@(output,_) <- go input
+      if any rInterrupted output
+        then 
           case diiPrevResult input of
-            Just result -> return (result, Nothing)
-            Nothing -> return ([MoveAndScore move 0 | move <- diiMoves input], Nothing)
-        Left err -> throwError err
+            Just prevResult -> return (prevResult, Nothing)
+            Nothing -> return ([MoveAndScore move 0 True | move <- diiMoves input], Nothing)
+        else return ret
 
     goIterative :: Depth -> DepthIterationInput -> Checkers DepthIterationOutput
     goIterative target input = do
       (output, mbNextInput) <- go input
       case mbNextInput of
         Nothing -> do
-          let bad (MoveAndScore _ score) = (maximize && score <= score0 - 1 && score > loose) || (minimize && score >= score0 + 1 && score < win)
+          let bad (MoveAndScore _ score _) = (maximize && score <= score0 - 1 && score > loose) || (minimize && score >= score0 + 1 && score < win)
           if abDeeperIfBad params && all bad output
             then do
                  let nextInput = deeper (abDepth $ diiParams input) 1 output input
@@ -587,7 +528,7 @@ runAI ai@(AlphaBeta params rules eval) handle gameId side aiSession board = do
       if length diiMoves <= 1 -- Just one move possible
         then do
           $info "There is only one move possible; just do it." ()
-          return ([MoveAndScore move score0 | move <- diiMoves], Nothing)
+          return ([MoveAndScore move score0 False | move <- diiMoves], Nothing)
                                                              
         else do
           let var = aichData handle
@@ -732,7 +673,7 @@ runAI ai@(AlphaBeta params rules eval) handle gameId side aiSession board = do
       if alpha == beta
         then do
           $info "Empty scores interval: [{}]. We have to think that all moves have this score." (Single alpha)
-          return [MoveAndScore move alpha | move <- moves]
+          return [MoveAndScore move alpha False | move <- moves]
         else do
             results <- widthIteration prevResult moves dp interval
             let (bestResults, badScore, badMoves) = selectBestEdge interval moves results
@@ -744,14 +685,14 @@ runAI ai@(AlphaBeta params rules eval) handle gameId side aiSession board = do
                     if (maximize && alpha <= loose) || (minimize && beta >= win)
                       then do
                         $info "All moves are `too bad'; but there is no worse interval, return all what we have" ()
-                        return [MoveAndScore move badScore | move <- moves]
+                        return [MoveAndScore move badScore False | move <- moves]
                       else do
                         let interval' = prevInterval (isAlmostLoose side) interval
                         $info "All moves are `too bad'; consider worse scores interval: [{} - {}]" interval'
                         widthController False True prevResult badMoves dp interval'
                   else do
                     $info "All moves are `too bad' ({}), but we have already checked worse interval; so this is the real score." (Single badScore)
-                    return [MoveAndScore move badScore | move <- moves]
+                    return [MoveAndScore move badScore False | move <- moves]
               else
                 case bestResults of
                   [] -> return results
@@ -832,11 +773,12 @@ runAI ai@(AlphaBeta params rules eval) handle gameId side aiSession board = do
     joinResults (Just prevResults) results = zipWithM joinResult prevResults results
 
     joinResult :: MoveAndScore -> Either Error MoveAndScore -> Checkers MoveAndScore
-    joinResult prev@(MoveAndScore move score) (Left TimeExhaused) = do
-      $info "Time exhaused while checking move {}, use result from previous depth: {}" (show move, score)
-      return prev
+    joinResult prevResult (Right result)
+      | rInterrupted result = do
+          -- $info "Time exhaused while checking move {}; use result from previous depth: {}" (show (rMove result), rScore result)
+          return prevResult
+      | otherwise = return result
     joinResult _ (Left err) = throwError err
-    joinResult _ (Right result) = return result
 
     selectBestEdge :: (Score, Score) -> [PossibleMove] -> [MoveAndScore] ->
                       ([MoveAndScore], Score, [PossibleMove])
@@ -878,21 +820,15 @@ doScore :: (GameRules rules, VectorEvaluator eval)
         -> Board
         -> Score -- ^ Alpha
         -> Score -- ^ Beta
-        -> Checkers Score
+        -> Checkers ScoreOutput
 doScore rules eval var params gameId side aiSession dp board alpha beta = do
     initState <- mkInitState
-    out <- evalStateT (cachedScoreAB var eval params input) initState
-    return $ soScore out
+    evalStateT (cachedScoreAB var eval params input) initState
   where
     input = ScoreInput side dp alpha beta board Nothing Nothing 
     mkInitState = do
       cache <- allocateCache var eval
-      now <- liftIO $ getTime RealtimeCoarse
-      let deepenTimeout = if abDeepeningWithinTimeout params
-                            -- TimeSpec expects nanoseconds
-                            then Just $ TimeSpec 0 (fromIntegral $ abTimeout params * 1000 * 1000)
-                            else Nothing
-      return $ ScoreState rules eval cache gameId aiSession [loose] M.empty now deepenTimeout
+      return $ ScoreState rules eval cache gameId aiSession [loose] M.empty
 
 getTimeout :: AlphaBetaParams -> Checkers Int
 getTimeout params = do
@@ -915,6 +851,14 @@ timeoutSignaller signal timeout = liftIO $ do
           -- threadDelay expects microseconds
           threadDelay $ 100 * 1000
           loop end
+
+isStopSignalled :: ScoreM rules eval Bool
+isStopSignalled = do
+  stopSignal <- gets (aiStopSignal . ssAiSession)
+  check <- liftIO $ tryReadMVar stopSignal
+  case check of
+    Nothing -> return False
+    Just () -> return True
 
 clamp :: Ord a => a -> a -> a -> a
 clamp alpha beta score
@@ -966,7 +910,7 @@ cachedScoreAB var eval params input = do -- scoreAB var eval params input
         -- out <- Monitoring.timed "ai.score.board" $ scoreAB var eval params input
         -- when (soScore out /= s && s > alpha && s < beta) $
         --     $info "@{} Side {}, AB [{} - {}]: Cached value {} != actual value {}" (depth, show side, alpha, beta, s, soScore out)
-        return $ ScoreOutput s False
+        return $ ScoreOutput s False False
     CacheRangeHit alpha' beta' -> do
       out <- Monitoring.timed "ai.score.board" $ scoreAB var eval params $ input -- {siAlpha = alpha', siBeta = beta'}
       let score = soScore out
@@ -1039,25 +983,6 @@ updateDepth params moves dp
 isQuiescene :: [PossibleMove] -> Bool
 isQuiescene moves = not (any isCapture moves || any isPromotion moves)
 
--- | Check if timeout is exhaused.
-isTimeExhaused :: ScoreM rules eval Bool
-isTimeExhaused = do
-  check <- gets ssTimeout
-  case check of
-    Nothing -> return False
-    Just delta -> do
-      start <- gets ssStartTime
-      now <- liftIO $ getTime RealtimeCoarse
-      return $ start + delta <= now
-
-isStopSignalled :: ScoreM rules eval Bool
-isStopSignalled = do
-  stopSignal <- gets (aiStopSignal . ssAiSession)
-  check <- liftIO $ tryReadMVar stopSignal
-  case check of
-    Nothing -> return False
-    Just () -> return True
-
 -- | Calculate score for the board.
 -- This implements the alpha-beta section algorithm itself.
 scoreAB :: forall rules eval. (GameRules rules, VectorEvaluator eval)
@@ -1070,7 +995,7 @@ scoreAB var eval params input
   | alpha == beta = do
       $verbose "Alpha == Beta == {}, return it" (Single $ show alpha)
       quiescene <- checkQuiescene
-      return $ ScoreOutput alpha quiescene
+      return $ ScoreOutput alpha quiescene False
 
   | isTargetDepth dp = do
       -- target depth is achieved, calculate score of current board directly
@@ -1078,14 +1003,14 @@ scoreAB var eval params input
       let score0 = evalBoard' evaluator board
       $verbose "    X Side: {}, A = {}, B = {}, score0 = {}" (show side, show alpha, show beta, show score0)
       quiescene <- checkQuiescene
-      return $ ScoreOutput score0 quiescene
+      return $ ScoreOutput score0 quiescene False
 
   | otherwise = do
       evaluator <- gets ssEvaluator
       let score0 = evalBoard' evaluator board
       futilePrunned <- checkFutility score0
       case futilePrunned of
-        Just out@(ScoreOutput score0 quiescene) -> do
+        Just out@(ScoreOutput score0 _ _) -> do
             $verbose "Further search is futile, return current score0 = {}" (Single $ show score0)
             return out
         Nothing -> do
@@ -1102,14 +1027,14 @@ scoreAB var eval params input
             -- this actually means that corresponding side lost.
             then do
               $verbose "{}`—No moves left." (Single indent)
-              return $ ScoreOutput worst True
+              return $ ScoreOutput worst True False
             else
               if dpStaticMode dp && isQuiescene moves
                 -- In static mode, we are considering forced moves only.
                 -- If we have reached a quiescene, then that's all.
                 then do
                   $verbose "Reached quiescene in static mode; return current score0 = {}" (Single $ show score0)
-                  return $ ScoreOutput score0 True
+                  return $ ScoreOutput score0 True False
                 else do
                   -- first, let "best" be the worse possible value
                   let best
@@ -1172,7 +1097,7 @@ scoreAB var eval params input
           score0 >= -10 &&
           score0 <= 10 &&
           isBad
-        then return $ Just $ ScoreOutput score0 quiescene
+        then return $ Just $ ScoreOutput score0 quiescene False
         else return Nothing
 
     evalBoard' :: eval -> Board -> Score
@@ -1242,19 +1167,16 @@ scoreAB var eval params input
       $verbose "{}`—All moves considered at this level, return best = {}" (indent, show best)
       quiescene <- checkQuiescene
       -- $info "@{} All checked: {}: [{} - {}] => {}" (dpCurrent dp, show side, alpha, beta, show best)
-      return $ ScoreOutput best quiescene
+      return $ ScoreOutput best quiescene False
     iterateMoves ((i,move, dp) : moves) = do
-      timeout <- isTimeExhaused
-      when timeout $ do
-        -- $info "Timeout exhaused for depth {}." (Single $ dpCurrent dp)
-        throwError TimeExhaused
       stopSignal <- isStopSignalled
       if stopSignal
         then do
           best <- getBest
           quiescene <- checkQuiescene
-          $info "Requested stop. Current level = {}, return best = {}" (dpCurrent dp, show best)
-          return $ ScoreOutput best quiescene
+          let logStop = dpCurrent dp == 1
+          $infoOrDebug logStop "Requested stop. Current level = {}, return best = {}" (dpCurrent dp, show best)
+          return $ ScoreOutput best quiescene True
         else do
           $verbose "{}|+Check move of side {}: {}" (indent, show side, show move)
           evaluator <- gets ssEvaluator
@@ -1290,12 +1212,11 @@ scoreAB var eval params input
                  setBest score
                  if (maximize && score >= beta) || (minimize && score <= alpha)
                    then do
-                        -- rememberGoodMove (dpCurrent dp) side move score
                         Monitoring.distribution "ai.section.at" $ fromIntegral i
                         $verbose "{}`—Return {} for depth {} = {}" (indent, bestStr, dpCurrent dp, show score)
                         quiescene <- checkQuiescene
                         -- $info "@{} Section: {}: [{} - {}] => {}" (dpCurrent dp, show side, alpha, beta, show score)
-                        return $ ScoreOutput score quiescene
+                        return $ ScoreOutput score quiescene False
                         
                    else iterateMoves moves
             else do

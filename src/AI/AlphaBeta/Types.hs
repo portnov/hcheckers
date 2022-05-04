@@ -233,6 +233,7 @@ type MovesMemo = TBoardMap (Maybe [PossibleMove], Maybe [PossibleMove])
 data MoveAndScore = MoveAndScore {
     rMove :: {-# UNPACK #-} ! PossibleMove
   , rScore :: {-# UNPACK #-} ! Score
+  , rInterrupted :: ! Bool
   }
   deriving (Eq, Show, Generic, Typeable)
 
@@ -257,8 +258,6 @@ data ScoreState rules eval = ScoreState {
   , ssAiSession :: AiSession
   , ssBestScores :: [Score] -- ^ At each level of depth-first search, there is own "best score"
   , ssBestMoves :: M.Map Int MoveAndScore
-  , ssStartTime :: TimeSpec -- ^ Start time of calculation
-  , ssTimeout :: Maybe TimeSpec -- ^ Nothing for "no timeout"
   }
 
 -- | Input data for scoreAB method.
@@ -275,6 +274,7 @@ data ScoreInput = ScoreInput {
 data ScoreOutput = ScoreOutput {
     soScore :: Score
   , soQuiescene :: Bool
+  , soInterrupted :: Bool
   }
 
 -- | ScoreM monad.

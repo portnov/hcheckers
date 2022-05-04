@@ -25,3 +25,10 @@ verbose = [| \fmt args -> return () |]
 traceConfig :: Q Exp
 traceConfig = putMessage config_level
 
+infoOrDebug :: Q Exp
+infoOrDebug = [|
+      \isInfo fmt args -> if isInfo
+                            then $info fmt args
+                            else $debug fmt args
+  |]
+
