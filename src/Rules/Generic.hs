@@ -146,7 +146,7 @@ abstractRules :: GenericRules -> GenericRules
 abstractRules =
   let
     possibleMoves rules side board =
-      let manSimpleMoves = concatMap (gManSimpleMoves rules side board) (filter (manHasSimpleMoves rules side board) men)
+      let manSimpleMoves = concatMap (gManSimpleMoves rules side board) men
           kingSimpleMoves = concatMap (gKingSimpleMoves rules side board) kings
 
           men = myMenA side board
@@ -192,7 +192,7 @@ abstractRules =
       in fromIntegral $ (1 + add) + 2 * min row' col'
 
     mobility rules side board =
-      sum (map (manSimpleMovesCount rules side board) (myMenA side board)) +
+      LS.size (allMenSteps rules side board) +
       sum (map (kingPositionScore board) (myKings side board))
 
     manCaptures' rules side board src =
@@ -217,13 +217,6 @@ abstractRules =
       case ctPiece of
         (Piece Man _) -> gManCaptures rules ct
         (Piece King _) -> gKingCaptures rules ct
-
-    manHasSimpleMoves rules side board src = any check (gManSimpleMoveDirections rules)
-      where
-        check dir =
-          case myNeighbour rules side dir src of
-            Nothing -> False
-            Just dst -> isFree dst board
 
     manSimpleMovesCount rules side board src = sum $ map check (gManSimpleMoveDirections rules)
       where
@@ -427,6 +420,12 @@ abstractRules =
     manSimpleMoveDirections rules = [ForwardLeft, ForwardRight]
 
     orientation rules = FirstAtBottom
+
+    allMenSteps rules side board =
+        LS.unions (map manSimpleMoveTargetsL $ myMenA side board) `LS.difference` bOccupied board
+      where
+        manSimpleMoveTargetsL src = LS.fromList $ mapMaybe (check src) (gManSimpleMoveDirections rules)
+        check src dir = aLabel <$> myNeighbour rules side dir src
 
     rules this = GenericRules {
       gPossibleMoves = possibleMoves this

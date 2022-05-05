@@ -113,6 +113,11 @@ unions sets = foldr union empty sets
 intersect :: LabelSet -> LabelSet -> LabelSet
 intersect (LabelSet192 x1 y1 z1) (LabelSet192 x2 y2 z2) = LabelSet192 (x1 .&. x2) (y1 .&. y2) (z1 .&. z2)
 
+difference :: LabelSet -> LabelSet -> LabelSet
+difference (LabelSet192 x1 y1 z1) (LabelSet192 x2 y2 z2) = LabelSet192 (x1 .\. x2) (y1 .\. y2) (z1 .\. z2)
+  where
+    x .\. y = x .&. (complement y)
+
 fromList :: [Label] -> LabelSet
 fromList labels = foldr union empty $ map singleton labels
 
