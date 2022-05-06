@@ -218,15 +218,16 @@ initAiStorage :: SomeRules -> SomeAi -> Checkers ()
 initAiStorage (SomeRules rules) (SomeAi ai) = do
   var <- askSupervisor
   let key = (rulesName rules, aiName ai)
-  storage <- createAiStorage ai
-
-  liftIO $ atomically $ do
-    st <- readTVar var
-    case M.lookup key (ssAiStorages st) of
-      Nothing -> do
-        modifyTVar var $ \st ->
-          st {ssAiStorages = M.insert key (toDyn storage) (ssAiStorages st)}
-      Just _ -> return ()
+  -- FIXME: this readTVar+modifyTVar should be one atomic
+  -- action, but STM does not allow to put createAiStorage
+  -- into STM transaction.
+  st <- liftIO $ atomically $ readTVar var
+  case M.lookup key (ssAiStorages st) of
+    Nothing -> do
+      storage <- createAiStorage ai
+      liftIO $ atomically $ modifyTVar var $ \st ->
+        st {ssAiStorages = M.insert key (toDyn storage) (ssAiStorages st)}
+    Just _ -> return ()
 
 -- initAiStorage_ :: SomeRules -> SomeAi -> Checkers ()
 -- initAiStorage_ (SomeRules rules) (SomeAi ai) = do
