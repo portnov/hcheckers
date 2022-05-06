@@ -445,8 +445,8 @@ class (Typeable g, Show g, HasBoardOrientation g, HasSideNotation g, HasTopology
 
   getAllAddresses :: g -> [Address]
 
-  getAllLabels :: g -> [Label]
-  getAllLabels g = map aLabel (getAllAddresses g)
+  getAllLabels :: g -> LabelSet
+  getAllLabels g = LS.fromList $ map aLabel (getAllAddresses g)
 
 fieldsCount :: GameRules rules => rules -> Line
 fieldsCount rules =

@@ -248,17 +248,23 @@ isFreeInDirection dir src board n =
 allMyLabels :: Side -> Board -> [Label]
 allMyLabels side board = myMen side board ++ myKings side board
 
+myMenB :: Side -> Board -> LabelSet
+myMenB First board = bFirstMen board
+myMenB Second board = bSecondMen board
+
+myKingsB :: Side -> Board -> LabelSet
+myKingsB First board = bFirstKings board
+myKingsB Second board = bSecondKings board
+
 myMen :: Side -> Board -> [Label]
-myMen First board = LS.toList $ bFirstMen board
-myMen Second board = LS.toList $ bSecondMen board
+myMen side board = LS.toList $ myMenB side board
 
 myMenA :: Side -> Board -> [Address]
 myMenA side board =
   map (\l -> resolve l board) $ myMen side board
 
 myKings :: Side -> Board -> [Label]
-myKings First board = LS.toList $ bFirstKings board
-myKings Second board = LS.toList $ bSecondKings board
+myKings side board = LS.toList $ myKingsB side board
 
 myKingsA :: Side -> Board -> [Address]
 myKingsA side board =
@@ -277,6 +283,11 @@ myLabelsCount :: Side -> Board -> (Label -> Bool) -> (Int, Int)
 myLabelsCount side board p =
   (length $ filter p $ myMen side board,
    length $ filter p $ myKings side board)
+
+myLabelsCountB :: Side -> Board -> LabelSet -> (Int, Int)
+myLabelsCountB side board set =
+  (LS.size $ myMenB side board `LS.intersect` set,
+   LS.size $ myKingsB side board `LS.intersect` set)
 
 myLabelsCount' :: Integral i => Side -> Board -> (Label -> i) -> (i, i)
 myLabelsCount' side board w =

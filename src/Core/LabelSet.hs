@@ -121,6 +121,9 @@ difference (LabelSet192 x1 y1 z1) (LabelSet192 x2 y2 z2) = LabelSet192 (x1 .\. x
 fromList :: [Label] -> LabelSet
 fromList labels = foldr union empty $ map singleton labels
 
+fromPredicate :: (Label -> Bool) -> LabelSet
+fromPredicate p = fromList $ filter p $ map unpackIndex [0 .. 191]
+
 insert :: Label -> LabelSet -> LabelSet
 insert label (LabelSet192 x y z) =
   let idx = labelIndex label

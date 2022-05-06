@@ -34,7 +34,17 @@ weightForSide First w = sewFirst w
 weightForSide Second w = sewSecond w
 
 data SimpleEvaluatorData = SimpleEvaluatorData {  
-    sedCenter :: SimpleEvaluatorWeights
+    sedCenter :: ! SimpleEvaluatorWeights
+  }
+  deriving (Show)
+
+data SimpleEvaluatorCache = SimpleEvaluatorCache {
+      secLeftHalf :: ! LabelSet
+    , secRightHalf :: ! LabelSet
+    , secBorders :: ! LabelSet
+    , secFirstBackyard :: ! LabelSet
+    , secSecondBackyard :: ! LabelSet
+    , secAddressData :: AddressMap SimpleEvaluatorData
   }
   deriving (Show)
 
@@ -54,7 +64,7 @@ data SimpleEvaluator = SimpleEvaluator {
     seThreatWeight :: ScoreBase,
     seAttackedManCoef :: ScoreBase,
     seAttackedKingCoef :: ScoreBase,
-    seCache :: AddressMap SimpleEvaluatorData
+    seCache :: SimpleEvaluatorCache
   }
   deriving (Show)
 
@@ -178,26 +188,54 @@ waveRho (SomeRules rules) side isGood addr best = go addr
                 Just dst -> max 0 $ go dst - 1
         in  maximum $ map check $ getForwardDirections rules
 
-buildCache :: SomeRules -> AddressMap SimpleEvaluatorData
-buildCache iface@(SomeRules rules) = IM.fromList [(labelIndex (aLabel addr), labelData addr) | addr <- getAllAddresses rules]
+buildCache :: SomeRules -> SimpleEvaluatorCache
+buildCache iface@(SomeRules rules) =
+    SimpleEvaluatorCache {
+        secLeftHalf = leftHalf
+      , secRightHalf = rightHalf
+      , secBorders = mkLabelSet isBorder
+      , secFirstBackyard = mkLabelSet (isBackyard First)
+      , secSecondBackyard = mkLabelSet (isBackyard Second)
+      , secAddressData = IM.fromList [(labelIndex (aLabel addr), labelData addr) | addr <- getAllAddresses rules]
+    }
   where
-    labelData addr = SimpleEvaluatorData $ SimpleEvaluatorWeights {
-        sewFirst = waveRho iface First (isCenter . aLabel) addr best,
-        sewSecond = waveRho iface Second (isCenter . aLabel) addr best
-      }
+    labelData addr = SimpleEvaluatorData {
+                       sedCenter = SimpleEvaluatorWeights {
+                                     sewFirst = waveRho iface First (isCenter . aLabel) addr best,
+                                     sewSecond = waveRho iface Second (isCenter . aLabel) addr best
+                                   }
+                     }
+
+    allLabels = getAllLabels rules
+
+    mkLabelSet :: (Label -> Bool) -> LabelSet
+    mkLabelSet p = LS.fromPredicate p `LS.intersect` allLabels
 
     (nrows, ncols) = boardSize rules
 
     best = fromIntegral $ nrows `div` 2 - 1
 
-    crow           = nrows `div` 2
-    ccol           = ncols `div` 2
-    halfCol        = ccol `div` 2
-    halfRow        = crow `div` 2
+    crow      = nrows `div` 2
+    ccol      = ncols `div` 2
+    quaterCol = ccol `div` 2
 
     isCenter (labelTuple -> (col,row)) =
-      (col >= ccol - halfCol && col < ccol + halfCol)
+      (col >= ccol - quaterCol && col < ccol + quaterCol)
         && (row >= crow - 1 && row < crow + 1)
+
+    leftHalf = mkLabelSet isLeftHalf
+    rightHalf = allLabels `LS.difference` leftHalf
+
+    isLeftHalf (labelColumn -> col) = col >= ccol
+
+    isBorder (labelColumn -> col) =
+        col == 0 || col == ncols - 1
+
+    isBackyard side (labelRow -> row) =
+        case boardSide (boardOrientation rules) side of
+          Top    -> row == nrows-1
+          Bottom -> row == 0
+
 
 preEval :: SimpleEvaluator -> Side -> Board -> PreScore
 preEval (SimpleEvaluator { seRules = iface@(SomeRules rules), ..}) side board =
@@ -212,16 +250,13 @@ preEval (SimpleEvaluator { seRules = iface@(SomeRules rules), ..}) side board =
       in  kingCoef * fromIntegral myKings + fromIntegral myMen
 
     (nrows, ncols) = bSize board
-    crow           = nrows `div` 2
     ccol           = ncols `div` 2
-    halfCol        = ccol `div` 2
-    halfRow        = crow `div` 2
 
     isLeftHalf (labelColumn -> col) = col >= ccol
 
     asymetry =
-      let (leftMen , leftKings ) = myLabelsCount side board isLeftHalf
-          (rightMen, rightKings) = myLabelsCount side board (not . isLeftHalf)
+      let (leftMen , leftKings ) = myLabelsCountB side board (secLeftHalf seCache)
+          (rightMen, rightKings) = myLabelsCountB side board (secRightHalf seCache)
       in  abs $ (leftMen + leftKings) - (rightMen + rightKings)
 
     isBackedAt addr dir =
@@ -235,26 +270,16 @@ preEval (SimpleEvaluator { seRules = iface@(SomeRules rules), ..}) side board =
     backedScore =
       fromIntegral $ sum $ map backedScoreOf $ allMyAddresses side board
 
-    isBackyard (labelRow -> row) =
-        case boardSide (boardOrientation rules) side of
-          Top    -> row == nrows-1
-          Bottom -> row == 0
+    backyard
+      | side == First = fst $ myLabelsCountB side board (secFirstBackyard seCache)
+      | otherwise = fst $ myLabelsCountB side board (secSecondBackyard seCache)
 
-    backyard =
-      let (backMen, _) = myLabelsCount side board isBackyard
-      in  backMen
-
-    tempNumber (labelTuple -> (col,row)) =
+    tempNumber (labelRow -> row) =
       case boardSide (boardOrientation rules) side of
         Top    -> nrows - row
         Bottom -> row + 1
 
-    isBorder (labelTuple -> (col,row)) =
-        col == 0 || col == ncols - 1
-
-    borderNumber =
-      let (men, _) = myLabelsCount side board isBorder
-      in  men
+    borderNumber = fst $ myLabelsCountB side board (secBorders seCache)
 
     opponentSideCount =
       sum $ map tempNumber $ myMen side board
@@ -291,7 +316,7 @@ preEval (SimpleEvaluator { seRules = iface@(SomeRules rules), ..}) side board =
     attackedMen = getPiecesCount (Piece Man side) attackedFields board
     attackedKings = getPiecesCount (Piece King side) attackedFields board
 
-    centerNumber l = weightForSide side $ sedCenter $ seCache IM.! (labelIndex l)
+    centerNumber l = weightForSide side $ sedCenter $ (secAddressData seCache) IM.! (labelIndex l)
 
     centerScore =
       let (men, kings) = myLabelsCount' side board centerNumber in men + kings
