@@ -17,6 +17,7 @@ import           Data.Aeson.Types as AT
 import           Data.Default
 import qualified Data.Vector as V
 import qualified Data.Map as M
+import qualified Data.IntMap as IM
 
 import           Core.Types
 import           Core.Board
@@ -53,7 +54,7 @@ data SimpleEvaluator = SimpleEvaluator {
     seThreatWeight :: ScoreBase,
     seAttackedManCoef :: ScoreBase,
     seAttackedKingCoef :: ScoreBase,
-    seCache :: M.Map Address SimpleEvaluatorData
+    seCache :: AddressMap SimpleEvaluatorData
   }
   deriving (Show)
 
@@ -177,8 +178,8 @@ waveRho (SomeRules rules) side isGood addr best = go addr
                 Just dst -> max 0 $ go dst - 1
         in  maximum $ map check $ getForwardDirections rules
 
-buildCache :: SomeRules -> M.Map Address SimpleEvaluatorData
-buildCache iface@(SomeRules rules) = M.fromList [(addr, labelData addr) | addr <- getAllAddresses rules]
+buildCache :: SomeRules -> AddressMap SimpleEvaluatorData
+buildCache iface@(SomeRules rules) = IM.fromList [(labelIndex (aLabel addr), labelData addr) | addr <- getAllAddresses rules]
   where
     labelData addr = SimpleEvaluatorData $ SimpleEvaluatorWeights {
         sewFirst = waveRho iface First (isCenter . aLabel) addr best,
@@ -197,7 +198,6 @@ buildCache iface@(SomeRules rules) = M.fromList [(addr, labelData addr) | addr <
     isCenter (labelTuple -> (col,row)) =
       (col >= ccol - halfCol && col < ccol + halfCol)
         && (row >= crow - 1 && row < crow + 1)
-        -- && (row >= crow - halfRow && row < crow + halfRow)
 
 preEval :: SimpleEvaluator -> Side -> Board -> PreScore
 preEval (SimpleEvaluator { seRules = iface@(SomeRules rules), ..}) side board =
@@ -256,8 +256,6 @@ preEval (SimpleEvaluator { seRules = iface@(SomeRules rules), ..}) side board =
       let (men, _) = myLabelsCount side board isBorder
       in  men
 
-    centerNumber addr = weightForSide side $ sedCenter $ seCache M.! addr
-
     opponentSideCount =
       sum $ map tempNumber $ myMen side board
 
@@ -293,8 +291,10 @@ preEval (SimpleEvaluator { seRules = iface@(SomeRules rules), ..}) side board =
     attackedMen = getPiecesCount (Piece Man side) attackedFields board
     attackedKings = getPiecesCount (Piece King side) attackedFields board
 
+    centerNumber l = weightForSide side $ sedCenter $ seCache IM.! (labelIndex l)
+
     centerScore =
-      let (men, kings) = myAddressesCount' side board centerNumber in men + kings
+      let (men, kings) = myLabelsCount' side board centerNumber in men + kings
   in
     PreScore
       { psNumeric  = numericScore
