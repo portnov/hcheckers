@@ -924,7 +924,7 @@ cachedScoreAB var eval params input = do -- scoreAB var eval params input
           -- (so this is a real score, not alpha/beta bound)
           item = PerBoardData (dpLast dp) score' bound
           item' = PerBoardData (dpLast dp) (negate score') bound
-      when (bound == Exact && soQuiescene out && not (dpStaticMode dp)) $ do
+      when (bound == Exact && soQuiescene out && not (dpStaticMode dp) && not (soInterrupted out)) $ do
           lift $ putAiCache cacheKey item var
           lift $ putAiCache cacheKey' item' var
       return $ out {soScore = score'}
