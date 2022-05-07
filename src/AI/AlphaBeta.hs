@@ -1005,7 +1005,10 @@ scoreAB var eval params input
       $verbose "    X Side: {}, A = {}, B = {}, score0 = {}" (show side, show alpha, show beta, show score0)
       quiescene <- checkQuiescene
       return $ ScoreOutput score0 quiescene False
-  
+
+  | myCounts First board == (0,0) = return $ ScoreOutput loose False False
+  | myCounts Second board == (0,0) = return $ ScoreOutput win False False
+
   | otherwise = do
       mbRuleSpecific <- checkRuleSpecific
       case mbRuleSpecific of
