@@ -46,6 +46,7 @@ instance GameRules Simple where
 
   possibleMoves (Simple rules) side board = gPossibleMoves rules side board
   mobilityScore (Simple rules) side board = gMobilityScore rules side board
+  ruleSpecificScoreBoard _ board = genericRuleSpecificScore board
 
   pdnId _ = "43"
   getAllAddresses r = addresses8 r

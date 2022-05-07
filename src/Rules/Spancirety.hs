@@ -51,6 +51,7 @@ instance GameRules Spancirety where
 
   possibleMoves _ = possibleMoves russian
   mobilityScore _ = mobilityScore russian
+  ruleSpecificScoreBoard _ board = genericRuleSpecificScore board
 
   updateRules r _ = r
 

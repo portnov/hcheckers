@@ -50,6 +50,7 @@ instance GameRules English where
 
   possibleMoves (English rules) side board = gPossibleMoves rules side board
   mobilityScore (English rules) side board = gMobilityScore rules side board
+  ruleSpecificScoreBoard _ board = genericRuleSpecificScore board
 
   pdnId _ = "21"
   getAllAddresses r = addresses8' r

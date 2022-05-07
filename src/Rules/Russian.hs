@@ -45,6 +45,7 @@ instance GameRules Russian where
 
   possibleMoves (Russian rules) side board = gPossibleMoves rules side board
   mobilityScore (Russian rules) side board = gMobilityScore rules side board
+  ruleSpecificScoreBoard _ board = genericRuleSpecificScore board
 
   updateRules r _ = r
 

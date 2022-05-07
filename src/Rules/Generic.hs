@@ -142,6 +142,17 @@ genericNextMoves rules ct@(CaptureState {..}) continuePromoted pm =
     b = setPiece (pmEnd pm) piece' $ removePiece ctCurrent ctBoard
     captured' = LS.union ctCaptured (pmVictims pm)
 
+genericRuleSpecificScore :: Board -> Maybe Score
+genericRuleSpecificScore board =
+  case (myCounts First board, myCounts Second board) of
+    ((0,0), _) -> Just loose
+    (_, (0,0)) -> Just win
+    ((0,1), (0,1)) -> Just (Score 0 0)
+    ((0,2), (0,1)) -> Just (Score 0 0)
+    ((0,1), (0,2)) -> Just (Score 0 0)
+    ((1,1), (1,1)) -> Just (Score 0 0)
+    _ -> Nothing
+
 abstractRules :: GenericRules -> GenericRules
 abstractRules =
   let

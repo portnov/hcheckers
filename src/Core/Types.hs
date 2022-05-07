@@ -432,6 +432,9 @@ class (Typeable g, Show g, HasBoardOrientation g, HasSideNotation g, HasTopology
   mobilityScore :: g -> Side -> Board -> Int
   mobilityScore g side board = length $ possibleMoves g side board
 
+  ruleSpecificScoreBoard :: g -> Board -> Maybe Score
+  ruleSpecificScoreBoard _ _ = Nothing
+
   updateRules :: g -> Value -> g
   getGameResult :: g -> GameState -> Board -> Side -> Maybe GameResult
   rulesName :: g -> String

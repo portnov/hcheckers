@@ -63,6 +63,7 @@ instance GameRules Canadian where
 
   possibleMoves (Canadian rules) side board = gPossibleMoves rules side board
   mobilityScore (Canadian rules) side board = gMobilityScore rules side board
+  ruleSpecificScoreBoard _ board = genericRuleSpecificScore board
   getAllAddresses r = addresses12 r
 
 canadian :: Canadian

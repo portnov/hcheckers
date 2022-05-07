@@ -43,6 +43,7 @@ instance GameRules Czech where
 
   possibleMoves (Czech rules) side board = gPossibleMoves rules side board
   mobilityScore (Czech rules) side board = gMobilityScore rules side board
+  ruleSpecificScoreBoard _ board = genericRuleSpecificScore board
 
   updateRules r _ = r
 

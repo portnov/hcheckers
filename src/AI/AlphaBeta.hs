@@ -801,6 +801,7 @@ runAI ai@(AlphaBeta params rules eval) handle gameId side aiSession board = do
       if nOptions == 1
         then do
           let goodMoves = [rMove result | result <- pairs, rScore result == maxScore]
+          $info "Not opening: good moves {}, score {}" (show goodMoves, show maxScore)
           return (goodMoves, maxScore)
         else do
           let srt = if maximize then sortOn (negate . rScore) else sortOn rScore
@@ -916,8 +917,8 @@ cachedScoreAB var eval params input = do -- scoreAB var eval params input
       let score = soScore out
           score' = clamp alpha' beta' score
           bound
-            | score <= alpha' = Alpha
-            | score >= beta' = Beta
+            | score <= nextScore alpha' = Alpha
+            | score >= prevScore beta' = Beta
             | otherwise = Exact
           -- we can only put the result to the cache if we know
           -- that this score was not clamped by alpha or beta
@@ -1004,54 +1005,57 @@ scoreAB var eval params input
       $verbose "    X Side: {}, A = {}, B = {}, score0 = {}" (show side, show alpha, show beta, show score0)
       quiescene <- checkQuiescene
       return $ ScoreOutput score0 quiescene False
-
+  
   | otherwise = do
-      evaluator <- gets ssEvaluator
-      let score0 = evalBoard' evaluator board
-      futilePrunned <- checkFutility score0
-      case futilePrunned of
-        Just out@(ScoreOutput score0 _ _) -> do
-            $verbose "Further search is futile, return current score0 = {}" (Single $ show score0)
-            return out
+      mbRuleSpecific <- checkRuleSpecific
+      case mbRuleSpecific of
+        Just out -> return out
         Nothing -> do
-                
-          moves <- case siPossibleMoves input of
-                     Nothing -> lift $ getPossibleMoves var side board
-                     Just ms -> return ms
-          let quiescene = isQuiescene moves
-          let worst
-                | maximize = alpha
-                | otherwise = beta
+          evaluator <- gets ssEvaluator
+          let score0 = evalBoard' evaluator board
+          futilePrunned <- checkFutility score0
+          case futilePrunned of
+            Just out@(ScoreOutput score0 _ _) -> do
+                $verbose "Further search is futile, return current score0 = {}" (Single $ show score0)
+                return out
+            Nothing -> do
+                    
+              moves <- case siPossibleMoves input of
+                         Nothing -> lift $ getPossibleMoves var side board
+                         Just ms -> return ms
+              let quiescene = isQuiescene moves
+              let worst
+                    | maximize = alpha
+                    | otherwise = beta
 
-          if null moves
-            -- this actually means that corresponding side lost.
-            then do
-              $verbose "{}`—No moves left." (Single indent)
-              return $ ScoreOutput worst True False
-            else
-              if dpStaticMode dp && isQuiescene moves
-                -- In static mode, we are considering forced moves only.
-                -- If we have reached a quiescene, then that's all.
+              if null moves
+                -- this actually means that corresponding side lost.
                 then do
-                  $verbose "Reached quiescene in static mode; return current score0 = {}" (Single $ show score0)
-                  return $ ScoreOutput score0 True False
-                else do
-                  -- first, let "best" be the worse possible value
-                  let best
-                        | dpStaticMode dp = evalBoard' evaluator board
-                        | otherwise = worst
+                  $verbose "{}`—No moves left." (Single indent)
+                  return $ ScoreOutput worst True False
+                else
+                  if dpStaticMode dp && isQuiescene moves
+                    -- In static mode, we are considering forced moves only.
+                    -- If we have reached a quiescene, then that's all.
+                    then do
+                      $verbose "Reached quiescene in static mode; return current score0 = {}" (Single $ show score0)
+                      return $ ScoreOutput score0 True False
+                    else do
+                      -- first, let "best" be the worse possible value
+                      let best
+                            | dpStaticMode dp = evalBoard' evaluator board
+                            | otherwise = worst
 
-                  push best
-                  $verbose "{}V Side: {}, A = {}, B = {}" (indent, show side, show alpha, show beta)
-                  rules <- gets ssRules
-                  dp' <- updateDepth params moves dp
-                  let prevMove = siPrevMove input
-                  sortedMoves <- sortMoves eval params var side board prevMove moves
---                   let depths = correspondingDepths (length moves') score0 quiescene dp'
-                  let depths = repeat dp'
-                  out <- iterateMoves $ zip3 [1..] sortedMoves depths
-                  pop
-                  return out
+                      push best
+                      $verbose "{}V Side: {}, A = {}, B = {}" (indent, show side, show alpha, show beta)
+                      dp' <- updateDepth params moves dp
+                      let prevMove = siPrevMove input
+                      sortedMoves <- sortMoves eval params var side board prevMove moves
+    --                   let depths = correspondingDepths (length moves') score0 quiescene dp'
+                      let depths = repeat dp'
+                      out <- iterateMoves $ zip3 [1..] sortedMoves depths
+                      pop
+                      return out
 
   where
 
@@ -1114,6 +1118,19 @@ scoreAB var eval params input
       rules <- gets ssRules
       moves <- lift $ getPossibleMoves var (opposite side) board
       return $ isQuiescene moves
+
+    checkRuleSpecific :: ScoreM rules eval (Maybe ScoreOutput)
+    checkRuleSpecific = do
+      rules <- gets ssRules
+      case ruleSpecificScoreBoard rules board of
+        Nothing -> return Nothing
+        Just score -> do
+          quiescene <- checkQuiescene
+          if quiescene
+            then do
+              $verbose "Rule-specific score = {}" (Single $ show score)
+              return $ Just $ ScoreOutput score quiescene False 
+            else return Nothing
 
     push :: Score -> ScoreM rules eval ()
     push score =

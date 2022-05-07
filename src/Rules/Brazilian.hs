@@ -47,6 +47,7 @@ instance GameRules Brazilian where
 
   possibleMoves (Brazilian rules) side board = gPossibleMoves rules side board
   mobilityScore (Brazilian rules) side board = gMobilityScore rules side board
+  ruleSpecificScoreBoard _ board = genericRuleSpecificScore board
 
   getGameResult = genericGameResult
   getAllAddresses r = addresses8 r

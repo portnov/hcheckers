@@ -62,6 +62,7 @@ instance GameRules International where
 
   possibleMoves (International rules) side board = gPossibleMoves rules side board
   mobilityScore (International rules) side board = gMobilityScore rules side board
+  ruleSpecificScoreBoard _ board = genericRuleSpecificScore board
 
   pdnId _ = "20"
   getAllAddresses r = addresses10 r
