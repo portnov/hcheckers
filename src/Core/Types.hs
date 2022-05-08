@@ -585,6 +585,8 @@ class (Show ai, Typeable (AiStorage ai), ToJSON ai) => GameAi ai where
 
   chooseMove :: ai -> AiStorage ai -> GameId -> Side -> AiSession -> Board -> Checkers [PossibleMove]
 
+  aiEvalBoard :: ai -> AiStorage ai -> GameId -> Side -> AiSession -> Board -> Checkers Score
+
   -- | Answer for a draw request.
   -- Default implementation always accepts the draw.
   decideDrawRequest :: ai -> AiStorage ai -> GameId -> Side -> AiSession -> Board -> Checkers Bool

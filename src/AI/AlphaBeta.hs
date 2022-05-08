@@ -139,6 +139,12 @@ instance (GameRules rules, VectorEvaluator eval, ToJSON eval) => GameAi (AlphaBe
     Monitoring.distribution "ai.chosen.moves.count" $ fromIntegral (length moves)
     return moves
 
+  aiEvalBoard ai@(AlphaBeta params rules eval) storage gameId side aiSession board =
+    Monitoring.timed "ai.eval.board" $ do
+        let depth = mkDepthParams (abDepth params) params
+        out <- doScore rules eval storage params gameId side aiSession depth board loose win
+        return $ soScore out
+
   decideDrawRequest ai@(AlphaBeta params rules eval) storage gameId side aiSession board = do
     case abDrawPolicy params of
       AlwaysAccept -> return True
@@ -1235,7 +1241,7 @@ scoreAB var eval params input
                         $verbose "{}`—Return {} for depth {} = {}" (indent, bestStr, dpCurrent dp, show score)
                         quiescene <- checkQuiescene
                         -- $info "@{} Section: {}: [{} - {}] => {}" (dpCurrent dp, show side, alpha, beta, show score)
-                        return $ ScoreOutput score quiescene False
+                        return $ out {soQuiescene = quiescene}
                         
                    else iterateMoves moves
             else do

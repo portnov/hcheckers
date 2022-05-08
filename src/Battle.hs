@@ -14,6 +14,7 @@ module Battle where
 import Control.Monad
 import Control.Monad.IO.Class
 import Control.Concurrent
+import Control.Concurrent.STM
 import Data.List (sortOn)
 import Data.Aeson hiding (json)
 import Data.Aeson.Types
@@ -30,11 +31,13 @@ import Network.HTTP.Req
 import Text.URI (mkURI)
 
 import Core.Types hiding (timed)
+import Core.LabelSet as LS
 import Core.Board
 import Core.Json () -- instances only
 import Core.Supervisor
 import Core.Parallel
-import Core.Monitoring
+import Core.Monitoring as Monitoring
+import Formats.Fen (boardToFen, showFen)
 import Rest.Common
 import AI.AlphaBeta.Types
 import AI
@@ -270,6 +273,25 @@ runBattleLocal rules (i,ai1) (j,ai2) path = do
   liftIO $ printf "Battle AI#%d vs AI#%d: %s\n" i j (show result)
   return result
 
+checkPossibleBoards :: SomeRules -> SomeAi -> Int -> Int -> Int -> Int -> Checkers ()
+checkPossibleBoards rules@(SomeRules r) someAi@(SomeAi ai) nFirstMen nFirstKings nSecondMen nSecondKings = do
+  initAiStorage rules someAi
+  sup <- askSupervisor
+  supervisor <- liftIO $ atomically $ readTVar sup
+  let board0 = buildBoard supervisor r (boardOrientation r) (boardSize r)
+  let boards = generatePossibleBoards board0 nFirstMen nFirstKings nSecondMen nSecondKings
+  let n = length boards
+  let aiSide = First
+  gameId <- newGame rules aiSide Nothing
+  forM_ (zip [1..] boards) $ \(i, board) -> do
+    Monitoring.increment "learn.boards"
+    withAiStorage rules ai $ \storage -> do
+      (_,aiSession) <- newAiSession
+      score <- aiEvalBoard ai storage gameId aiSide aiSession board
+      let fen = showFen (bSize board) (boardToFen aiSide board)
+      liftIO $ printf "Board #%d/%d:\t%s:\tMove: %s\n" (i :: Integer) n fen (show score)
+      return ()
+
 hasKing :: Side -> BoardRep -> Bool
 hasKing side (BoardRep lst) = any isKing (map snd lst)
   where
@@ -382,4 +404,21 @@ runBattleRemoteIO baseUrl rulesName aiPath1 aiPath2 = do
   rs <- runReq defaultHttpConfig $
           req POST (url /: "battle" /: "run") (ReqBodyJson rq) jsonResponse opts
   return (responseBody rs)
+
+generatePossibleBoards :: Board -> Int -> Int -> Int -> Int -> [Board]
+generatePossibleBoards board0 nFirstMen nFirstKings nSecondMen nSecondKings =
+    let pieces = replicate nFirstMen (Piece Man First) ++
+                  replicate nFirstKings (Piece King First) ++
+                  replicate nSecondMen (Piece Man Second) ++
+                  replicate nSecondKings (Piece King Second)
+
+        go _ _ [] = []
+        go board free [piece] =
+          let freeList = LS.toList free
+          in  [setPiece' label piece board | label <- freeList]
+        go board free (piece : pieces) =
+          let freeList = LS.toList free
+          in  concat [go (setPiece' label piece board) (LS.delete label free) pieces | label <- freeList]
+
+    in  go board0 (allFreeLabels board0) pieces
 

@@ -77,6 +77,17 @@ special cmd args =
               return ()
             printCurrentMetrics (Just "ai.")
 
+    ["enumerate", rulesName, aiPath, firstMenS, firstKingsS, secondMenS, secondKingsS] -> do
+      let firstMen = read firstMenS
+          firstKings = read firstKingsS
+          secondMen = read secondMenS
+          secondKings = read secondKingsS
+      withRules rulesName $ \rules -> do
+        ai <- loadAi "default" rules aiPath
+        withCheckers cmd $ do
+            withLogContext (LogContextFrame [] (include defaultLogFilter)) $ do
+              checkPossibleBoards (SomeRules rules) (SomeAi ai) firstMen firstKings secondMen secondKings
+
     ["battle", rulesName, path1, path2] -> do
       withRules rulesName $ \rules -> do
         ai1 <- loadAi "default" rules path1

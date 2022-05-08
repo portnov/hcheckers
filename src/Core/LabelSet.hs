@@ -94,6 +94,25 @@ toList :: LabelSet -> [Label]
 toList (LabelSet192 x y z) =
     map unpackIndex $ bitsList x ++ map (+64) (bitsList y) ++ map (+128) (bitsList z)
 
+uncons :: LabelSet -> Maybe (Label, LabelSet)
+uncons set =
+  case set of
+    (LabelSet192 0 0 0) -> Nothing
+    (LabelSet192 0 0 z) ->
+      let i = check z
+      in  Just (unpackIndex (128 + i), LabelSet192 0 0 (clearBit z i))
+    (LabelSet192 0 y z) ->
+      let i = check y
+      in  Just (unpackIndex (64 + i), LabelSet192 0 (clearBit y i) z)
+    (LabelSet192 x y z) ->
+      let i = check x
+      in  Just (unpackIndex i, LabelSet192 (clearBit x i) y z)
+  where
+    check x = go 0 x
+    go i x
+      | testBit x i = i
+      | otherwise = go (i+1) x
+
 singleton :: Label -> LabelSet
 singleton  label =
     if idx < 64

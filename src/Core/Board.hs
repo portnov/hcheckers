@@ -66,6 +66,11 @@ allFields b = IM.keys (bAddresses b)
 allLabels :: Board -> [Label]
 allLabels b = map unpackIndex $ allFields b
 
+allFreeLabels :: Board -> LabelSet
+allFreeLabels board =
+  let allLabelsSet = LS.fromList $ allLabels board
+  in  allLabelsSet `LS.difference` bOccupied board
+
 allPieces :: Board -> [Maybe Piece]
 allPieces b =
     [getPiece' (LS.mkLabel col row) b | col <- [0 .. ncols-1], row <-  [0 .. nrows-1]]
