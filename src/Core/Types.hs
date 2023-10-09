@@ -51,8 +51,8 @@ import qualified Core.HTable as HT
 
 -- | Label is a coordinate of field on the board.
 data Label = Label {
-    labelColumn :: ! Line,
-    labelRow :: ! Line
+    labelColumn :: !Line,
+    labelRow :: !Line
   }
   deriving (Eq, Ord, Typeable, Generic)
 
@@ -145,7 +145,7 @@ instance Hashable Piece where
 type UnboxedPiece = Word8
 
 data Address = Address {
-    aLabel :: ! Label,
+    aLabel :: !Label,
     aPromotionSide :: Maybe Side,
     aUpLeft :: Maybe Address,
     aUpRight :: Maybe Address,
@@ -192,9 +192,9 @@ data Board = Board {
   , bFirstAttacked :: LabelSet
   , bSecondAttacked :: LabelSet
 --   , boardCounts :: BoardCounts
-  , bSize :: {-# UNPACK #-} ! BoardSize
-  , boardHash :: {-# UNPACK #-} ! BoardHash
-  , randomTable :: ! RandomTable
+  , bSize :: {-# UNPACK #-} !BoardSize
+  , boardHash :: {-# UNPACK #-} !BoardHash
+  , randomTable :: !RandomTable
   }
   deriving (Typeable)
 
@@ -218,10 +218,10 @@ boardEq b1 b2 =
 -- | Statistic information about the board.
 -- Can be used as a part of key in some caches.
 data BoardCounts = BoardCounts {
-    bcFirstMen :: ! Int
-  , bcSecondMen :: ! Int
-  , bcFirstKings :: ! Int
-  , bcSecondKings :: ! Int
+    bcFirstMen :: !Int
+  , bcSecondMen :: !Int
+  , bcFirstKings :: !Int
+  , bcSecondKings :: !Int
   }
   deriving (Eq, Ord, Show, Typeable, Generic)
 
@@ -237,9 +237,6 @@ instance Hashable Board where
   hashWithSalt salt board = boardHash board
 
 type BoardKey = LabelMap Piece
-
-instance Hashable BoardKey where
-  hashWithSalt salt bk = hashWithSalt salt (IM.assocs bk)
 
 type BoardHash = Int
 type RandomTable = UArray (UnboxedPiece, FieldIndex) BoardHash
@@ -297,9 +294,9 @@ instance Show PlayerDirection where
 -- there can take place a capturing of another piece
 -- or current piece promotion to king.
 data Step = Step {
-    sDirection :: ! PlayerDirection,
-    sCapture :: ! Bool,
-    sPromote :: ! Bool
+    sDirection :: !PlayerDirection,
+    sCapture :: !Bool,
+    sPromote :: !Bool
   }
   deriving (Eq, Ord, Typeable)
 
@@ -317,8 +314,8 @@ instance Show Step where
 -- | Move (or should we say half-move? because it's about one player's move) is
 -- a series of steps from one field to neighbour, and to neighbour...
 data Move = Move {
-    moveBegin :: ! Address,
-    moveSteps :: ! [Step]
+    moveBegin :: !Address,
+    moveSteps :: ![Step]
   }
   deriving (Eq, Ord, Typeable)
 
@@ -395,13 +392,13 @@ boardRepLen (BoardRep lst) = length lst
 -- | More convinient format for game rules to specify
 -- which moves are possible
 data PossibleMove = PossibleMove {
-    pmBegin :: ! Address
+    pmBegin :: !Address
   , pmEnd :: Address
   , pmVictims :: [Address] -- ^ list of captured fields
   , pmVictimsCount :: Int
   , pmMove :: Move
-  , pmPromote :: ! Bool      -- ^ is there any promotion in the move
-  , pmResult :: ! [MoveAction]
+  , pmPromote :: !Bool      -- ^ is there any promotion in the move
+  , pmResult :: ![MoveAction]
   }
   deriving (Typeable)
 
@@ -423,10 +420,10 @@ instance Show PossibleMove where
 
 -- | The primitive action that can take place during the move
 data MoveAction =
-    Take ! Address            -- ^ Lift the piece from the board (at the beginning of the move)
-  | MarkCaptured ! Address  -- ^ Remove the piece that was captured (should be performed at the end of the move)
-  | RemoveCaptured ! Address  -- ^ Remove the piece that was captured - immediately
-  | Put ! Address ! Piece       -- ^ Put the piece to the board (at the end of the move)
+    Take !Address            -- ^ Lift the piece from the board (at the beginning of the move)
+  | MarkCaptured !Address  -- ^ Remove the piece that was captured (should be performed at the end of the move)
+  | RemoveCaptured !Address  -- ^ Remove the piece that was captured - immediately
+  | Put !Address !Piece       -- ^ Put the piece to the board (at the end of the move)
   deriving (Eq, Ord, Show, Typeable)
 
 class HasBoardOrientation a where

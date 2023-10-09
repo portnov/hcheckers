@@ -193,9 +193,6 @@ labelSetSize = IS.size
 labelSetMember :: Label -> LabelSet -> Bool
 labelSetMember (Label col row) set = IS.member (mkIndex col row) set
 
-instance Hashable IS.IntSet where
-  hashWithSalt salt set = hashWithSalt salt (IS.toList set)
-
 instance Show Board where
   show b = printf "{First Men: %s; Second Men: %s; First Kings: %s; Second Kings: %s}"
               (show $ labelSetToList $ bFirstMen b)

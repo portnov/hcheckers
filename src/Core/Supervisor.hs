@@ -28,7 +28,7 @@ import Data.Aeson hiding (Error)
 import Data.Dynamic
 import Data.Store
 import GHC.Generics
-import System.Random
+import System.Random hiding (uniform)
 import System.Log.Heavy
 import System.Log.Heavy.TH
 import System.Log.Heavy.Format

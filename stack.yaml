@@ -18,7 +18,7 @@
 #
 # resolver: ./custom-snapshot.yaml
 # resolver: https://example.com/snapshots/2018-01-01.yaml
-resolver: lts-17.2
+resolver: lts-21.14
 
 # User packages to be built.
 # Various formats can be used as shown in the example below.
@@ -42,8 +42,13 @@ packages:
 extra-deps:
   - heavy-logger-0.3.2.1
   - text-format-heavy-0.1.5.2
-  - random-access-file-0.1.0.0
   - unix-memory-0.1.2
+  - ekg-0.4.0.15
+  - monad-metrics-0.2.2.0
+  - snap-server-1.1.2.0
+  - git: git@github.com:portnov/ekg-json.git
+    commit: 0704fa11b59de0e5a2ffadf39b7319dd2c14a762
+
 
 # Override default flag values for local packages and extra-deps
 # flags: {}

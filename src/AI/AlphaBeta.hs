@@ -31,6 +31,7 @@ import Data.List (sortOn, transpose)
 import Data.Text.Format.Heavy
 import Data.Aeson
 import Data.Aeson.Types (unexpected)
+import qualified Data.Aeson.KeyMap as KM
 import System.Log.Heavy
 import System.Log.Heavy.TH
 import System.Clock
@@ -100,7 +101,7 @@ instance ToJSON eval => ToJSON (AlphaBeta rules eval) where
   toJSON (AlphaBeta params rules eval) =
     let Object paramsV = toJSON params
         Object evalV = toJSON eval
-    in  Object $ H.union paramsV evalV
+    in  Object $ KM.union paramsV evalV
 
 mkDepthParams :: Depth -> AlphaBetaParams -> DepthParams
 mkDepthParams depth params =

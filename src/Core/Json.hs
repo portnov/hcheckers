@@ -4,6 +4,7 @@ module Core.Json where
 import Control.Concurrent
 import Data.Aeson
 import Data.Aeson.Types
+import qualified Data.Aeson.KeyMap as KM
 import qualified Data.Text as T
 import Data.Default
 import qualified Data.HashMap.Strict as HM
@@ -241,6 +242,6 @@ instance FromJSON Level where
   parseJSON invalid = typeMismatch "logging level" invalid
 
 mergeObjects :: Value -> Value -> Value
-mergeObjects (Object v1) (Object v2) = Object (HM.union v1 v2)
+mergeObjects (Object v1) (Object v2) = Object (KM.union v1 v2)
 mergeObjects _ _ = error "not object value"
 

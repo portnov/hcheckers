@@ -17,6 +17,8 @@ import Control.Concurrent
 import Data.List (sortOn)
 import Data.Aeson hiding (json)
 import Data.Aeson.Types
+import qualified Data.Aeson.Key as K
+import qualified Data.Aeson.KeyMap as KM
 import Data.Yaml
 import Data.Maybe
 import qualified Data.Map as M
@@ -313,7 +315,7 @@ updateObject :: [Pair] -> Value -> Value
 updateObject pairs (Object v) = Object $ go pairs v
   where
     go [] v = v
-    go ((key, value):pairs) v = go pairs (H.insert key value v)
+    go ((key, value):pairs) v = go pairs (KM.insert key value v)
 updateObject _ _ = error "invalid object"
 
 modifyObject :: [(T.Text, ScoreBase)] -> Value -> Value
@@ -321,7 +323,7 @@ modifyObject pairs (Object v) = Object $ go pairs v
   where
     go [] v = v
     go ((key, delta):pairs) v =
-      let v' = H.insertWith modify key (Number (fromIntegral delta)) v
+      let v' = KM.insertWith modify (K.fromText key) (Number (fromIntegral delta)) v
       in  go pairs v'
     
     modify (Number v1) (Number v2) = Number (v1+v2)

@@ -21,8 +21,8 @@ import           Core.Types
 import           Core.Board
 
 data SimpleEvaluatorWeights = SimpleEvaluatorWeights {
-    sewFirst :: {-# UNPACK #-} ! ScoreBase
-  , sewSecond :: {-# UNPACK #-} ! ScoreBase
+    sewFirst :: {-# UNPACK #-} !ScoreBase
+  , sewSecond :: {-# UNPACK #-} !ScoreBase
   }
   deriving (Show)
 
@@ -115,7 +115,7 @@ instance ToJSON SimpleEvaluator where
     ]
 
 data PreScore = PreScore {
-      psNumeric :: ! ScoreBase
+      psNumeric :: !ScoreBase
     , psMobility :: ScoreBase
     , psBackyard :: ScoreBase
     , psCenter :: ScoreBase

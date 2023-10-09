@@ -146,9 +146,9 @@ instance Binary Bound
 instance Store Bound
 
 data PerBoardData = PerBoardData {
-    itemDepth :: {-# UNPACK #-}  ! Depth
-  , itemScore :: {-# UNPACK #-}  ! Score
-  , itemBound :: ! Bound
+    itemDepth :: {-# UNPACK #-}  !Depth
+  , itemScore :: {-# UNPACK #-}  !Score
+  , itemBound :: !Bound
   }
   deriving (Generic, Typeable, Show)
 
@@ -217,22 +217,22 @@ data ScoreMoveInput rules eval = ScoreMoveInput {
     smiAi :: AlphaBeta rules eval
   , smiCache :: AICacheHandle rules eval
   , smiGameId :: GameId
-  , smiSide :: ! Side 
-  , smiAiSession :: ! AiSession
-  , smiIndex :: ! Int
-  , smiDepth :: {-# UNPACK #-} ! DepthParams
-  , smiBoard :: {-# UNPACK #-} ! Board
-  , smiMove :: {-# UNPACK #-} ! PossibleMove
-  , smiAlpha :: {-# UNPACK #-} ! Score
-  , smiBeta :: {-# UNPACK #-} ! Score
+  , smiSide :: !Side 
+  , smiAiSession :: !AiSession
+  , smiIndex :: !Int
+  , smiDepth :: {-# UNPACK #-} !DepthParams
+  , smiBoard :: {-# UNPACK #-} !Board
+  , smiMove :: {-# UNPACK #-} !PossibleMove
+  , smiAlpha :: {-# UNPACK #-} !Score
+  , smiBeta :: {-# UNPACK #-} !Score
   , smiBest :: TVar Score
   }
 
 type MovesMemo = TBoardMap (Maybe [PossibleMove], Maybe [PossibleMove])
 
 data MoveAndScore = MoveAndScore {
-    rMove :: {-# UNPACK #-} ! PossibleMove
-  , rScore :: {-# UNPACK #-} ! Score
+    rMove :: {-# UNPACK #-} !PossibleMove
+  , rScore :: {-# UNPACK #-} !Score
   }
   deriving (Eq, Show, Generic, Typeable)
 
