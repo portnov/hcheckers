@@ -1,10 +1,10 @@
 name:                hcheckers
-version:             2022.4.1
+version:             2023.10.1
 github:              "portnov/hcheckers"
 license:             BSD3
 author:              "Ilya V. Portnov"
 maintainer:          "portnov84@rambler.ru"
-copyright:           "2018 Ilya V. Portnov"
+copyright:           "2018-2023 Ilya V. Portnov"
 
 extra-source-files:
 - README.md
