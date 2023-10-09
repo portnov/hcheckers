@@ -7,6 +7,7 @@ module Rest.Game where
 import Control.Monad.Reader
 import Control.Concurrent
 import Control.Concurrent.STM
+import qualified Data.Version as Version
 import qualified Data.Text                     as T
 import qualified Data.Text.Lazy                as TL
 import           Data.Maybe
@@ -18,6 +19,7 @@ import           System.Log.Heavy.TH
 import           Core.Types
 import           Core.Board
 import           Core.Supervisor
+import Core.Version
 import           Core.Json                      ( ) -- import instances only
 import           Formats.Types
 import           Formats.Fen
@@ -59,6 +61,9 @@ restServer :: MVar () -> ScottyT Error Checkers ()
 restServer shutdownVar = do
 
   defaultHandler transformError
+
+  get "/version" $ do
+    json getVersion
 
   post "/game/new" $ do
     rq <- jsonData

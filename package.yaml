@@ -70,6 +70,7 @@ dependencies:
 - template-haskell
 - hsyslog
 - optparse-applicative
+- githash
 
 flags:
   verbose:

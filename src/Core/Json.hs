@@ -11,6 +11,7 @@ import qualified Data.HashMap.Strict as HM
 import System.Log.Heavy
 
 import Core.Types
+import Core.Version
 import Core.Logging
 import Core.Supervisor
 import Formats.Types
@@ -32,6 +33,9 @@ instance FromJSON GameResult
 instance ToJSON BoardOrientation
 
 instance ToJSON BoardTopology
+
+instance ToJSON Version where
+  toJSON (Version release hash) = object ["release" .= release, "hash" .= hash]
 
 instance ToJSON AiSessionStatus where
   toJSON AiRunning = object ["status" .= ("running" :: T.Text)]
