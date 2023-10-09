@@ -4,8 +4,6 @@ module Main where
 
 import Control.Monad
 import Control.Monad.Reader
-import Data.Default
-import Data.Maybe
 import qualified Data.Map as M
 import qualified Data.Text as T
 import qualified Data.ByteString.Lazy.Char8 as C8
@@ -15,8 +13,8 @@ import Options.Applicative
 import Text.Printf
 
 import Core.Types hiding (timed)
+import qualified Core.Version as V
 import AI
-import AI.AlphaBeta.Types
 import AI.AlphaBeta.Persistent (loadAiData')
 import Rest.Common (runRestServer)
 import Rest.Game (restServer)
@@ -38,22 +36,30 @@ import Rules.Russian
 main :: IO ()
 main = do
   cmd <- execParser parserInfo
-  case cmdSpecial cmd of
-    Nothing ->
-      withCheckers cmd $ do
-          logLevel <- asks (gcLogLevel . csConfig)
-          host <- asks (T.unpack . gcHost . csConfig)
-          port <- asks (gcPort . csConfig)
-          bsConfig <- asks (gcBattleServerConfig . csConfig)
-          let fltr = [([], logLevel)]
-          withLogContext (LogContextFrame [] (include fltr)) $ do
-              if fromMaybe False (cmdBattleServer cmd)
-                then if bsEnable bsConfig
-                       then runRestServer (T.unpack $ bsHost bsConfig) (bsPort bsConfig) Rest.Battle.restServer
-                       else fail "Battle server is not enabled in config"
-                else runRestServer host port Rest.Game.restServer
-                
-    Just str -> special cmd (words str)
+  case cmd of
+    CmdVersion -> do
+        putStrLn $ T.unpack $ V.showVersion V.getVersion
+    CmdSpecial str -> do
+        special cmd (words str)
+    _ -> withCheckers cmd $ do
+              when (cmdDumpConfig cmd) $ do
+                cfg <- asks csConfig
+                liftIO $ print cfg
+              logLevel <- asks (gcLogLevel . csConfig)
+              let fltr = [([], logLevel)]
+              withLogContext (LogContextFrame [] (include fltr)) $ do
+                  case cmd of
+                    CmdBattle -> do
+                      bsConfig <- asks (gcBattleServerConfig . csConfig)
+                      let host = T.unpack $ bsHost bsConfig
+                          port = bsPort bsConfig
+                      if bsEnable bsConfig
+                         then runRestServer host port Rest.Battle.restServer
+                         else fail "Battle server is not enabled in config"
+                    _ -> do
+                      host <- asks (T.unpack . gcHost . csConfig)
+                      port <- asks (gcPort . csConfig)
+                      runRestServer host port Rest.Game.restServer
 
 special :: CmdLine -> [String] -> IO ()
 special cmd args =
@@ -139,4 +145,7 @@ special cmd args =
         liftIO $ printf "Evaluator: %s\n" (show vec)
         forM_ (M.assocs bmap) $ \(bHash, item) -> do
             liftIO $ printf "Hash: %d => %s\n" bHash (show item)
+
+    (cmd:_) ->
+      putStrLn $ "Unknown special command: " ++ cmd
 

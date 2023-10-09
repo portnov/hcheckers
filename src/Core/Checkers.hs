@@ -25,7 +25,6 @@ withCheckers :: CmdLine -> Checkers a -> IO a
 withCheckers cmd actions = do
   supervisor <- mkSupervisor
   cfg <- loadConfig cmd
-  print cfg
   logChan <- newChan
   metrics <- Metrics.initialize
   when (gcEnableMetrics cfg) $ do

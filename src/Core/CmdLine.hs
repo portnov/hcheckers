@@ -7,10 +7,12 @@ import Data.Char (toLower)
 data CmdLine = CmdLine {
       cmdConfigPath :: Maybe FilePath
     , cmdLocal :: Maybe Bool
-    , cmdBattleServer :: Maybe Bool
     , cmdMetrics :: Maybe Bool
-    , cmdSpecial :: Maybe String
+    , cmdDumpConfig :: Bool
     }
+  | CmdBattle
+  | CmdSpecial String
+  | CmdVersion
   deriving (Eq, Show)
 
 bool :: ReadM Bool
@@ -23,30 +25,42 @@ bool = eitherReader $ \str ->
     _ -> Left $ "Unknown boolean value: " ++ str
 
 cmdline :: Parser CmdLine
-cmdline = CmdLine
-  <$> optional (strOption
-        ( long "config"
-         <> short 'c'
-         <> metavar "PATH"
-         <> help "Path to the config file" ) )
-  <*> optional (option bool
-        ( long "local"
-         <> short 'L'
-         <> metavar "on|off"
-         <> help "Run server in local mode" ) )
-  <*> optional (option bool
-        ( long "battle"
-          <> short 'B'
-          <> metavar "on|off"
-          <> help "Run `battle server' instead of normal game server") )
-  <*> optional (option bool
-        ( long "metrics"
-          <> metavar "on|off"
-          <> help "Enable or disable metrics monitoring. This command-line option overrides one specified in the config file.")
-        )
-  <*> optional (strOption
-        ( long "special"
-         <> metavar "COMMAND" ) )
+cmdline =
+    (CmdLine
+      <$> optional (strOption
+            ( long "config"
+             <> short 'c'
+             <> metavar "PATH"
+             <> help "Path to the config file" ) )
+      <*> optional (option bool
+            ( long "local"
+             <> short 'L'
+             <> metavar "on|off"
+             <> help "Run server in local mode" ) )
+      <*> optional (option bool
+            ( long "metrics"
+              <> metavar "on|off"
+              <> help "Enable or disable metrics monitoring. This command-line option overrides one specified in the config file.")
+            )
+      <*> switch
+              ( long "dump-config"
+                <> help "Print resulting configuration parameters (including both ones read from file and parsed from command line)"
+              )
+    ) <|> flag' CmdBattle
+              ( long "battle"
+                <> short 'B'
+                <> help "Run `battle server' instead of normal game server")
+      <|> (CmdSpecial
+          <$> strOption
+                ( long "special"
+                 <> metavar "COMMAND"
+                 <> help "Run special command (undocumented)"
+                )
+    ) <|> flag' CmdVersion
+              ( long "version"
+                <> short 'v'
+                <> help "Display version information and exit"
+              )
 
 parserInfo :: ParserInfo CmdLine
 parserInfo = info (cmdline <**> helper)
