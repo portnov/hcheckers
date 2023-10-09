@@ -851,8 +851,9 @@ class Checkers(QMainWindow):
         webbrowser.open(WIKI_URL)
 
     def _on_about(self, checked=None):
+        server_version = self.game.get_version()
         title = _("About HCheckers")
-        text = _("This is HCheckers Client application, version {}. Please report issues at {}.").format(HCHECKERS_VERSION, BUGTRACKER_URL)
+        text = _("This is HCheckers Client application, version {0}.<br>Server version is {1} ({2}).<br>Please report issues at <a href=\"{3}\">{3}</a>.").format(HCHECKERS_VERSION, server_version['release'], server_version['hash'], BUGTRACKER_URL)
         QMessageBox.about(self, title, text)
 
     def _on_rules_help(self):

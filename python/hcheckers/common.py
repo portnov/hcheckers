@@ -3,7 +3,7 @@ from requests.exceptions import ConnectionError
 import webbrowser
 from PyQt5.QtWidgets import QDialog, QLineEdit
 
-HCHECKERS_VERSION = "2022.04"
+HCHECKERS_VERSION = "2023.10"
 
 MAN = 1
 KING = 2

@@ -28,6 +28,6 @@ getVersion =
       info = $$G.tGitInfoCwdTry
       gitHash = case info of
                   Left _ -> "not git"
-                  Right gitInfo -> T.pack $ G.giHash gitInfo
+                  Right gitInfo -> T.pack $ take 8 $ G.giHash gitInfo
   in  Version packageVersion gitHash
 

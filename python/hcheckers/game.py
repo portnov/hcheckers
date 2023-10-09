@@ -365,6 +365,17 @@ class Game(object):
         self._colors = None
         return self.game_id, first_side
 
+    def get_version(self):
+        url = join(self.base_url, "version")
+        try:
+            rs = self.get(url)
+            return rs.json()
+        except RequestError as e:
+            if e.rs.status_code == requests.codes.not_found:
+                return dict(release="unknown", hash="old")
+            else:
+                raise e
+
     def get_notation(self, rules):
         url = join(self.base_url, "notation", rules)
         rs = self.get(url)
