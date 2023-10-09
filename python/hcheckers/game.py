@@ -370,6 +370,8 @@ class Game(object):
         try:
             rs = self.get(url)
             return rs.json()
+        except requests.exceptions.ConnectionError as e:
+            return dict(release="not present", hash="no connection")
         except RequestError as e:
             if e.rs.status_code == requests.codes.not_found:
                 return dict(release="unknown", hash="old")
