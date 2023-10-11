@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2023-10-09 20:01+0500\n"
+"POT-Creation-Date: 2023-10-11 21:24+0500\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -163,45 +163,45 @@ msgstr ""
 msgid "Master"
 msgstr ""
 
-#: game.py:358 game.py:412 game.py:414 lobby.py:37 newgamedlg.py:121
+#: game.py:359 game.py:415 game.py:417 lobby.py:37 newgamedlg.py:121
 msgid "White"
 msgstr ""
 
-#: game.py:360 game.py:412 game.py:414 lobby.py:37 newgamedlg.py:122
+#: game.py:361 game.py:415 game.py:417 lobby.py:37 newgamedlg.py:122
 msgid "Black"
 msgstr ""
 
-#: game.py:362
+#: game.py:363
 msgid "Newly created game ID: {}. First side to move: {}."
 msgstr ""
 
-#: game.py:428
+#: game.py:431
 msgid ""
 "AI parameters:\n"
 "{}"
 msgstr ""
 
-#: game.py:547
+#: game.py:553
 msgid "Offer for a draw posted."
 msgstr ""
 
-#: game.py:562
+#: game.py:568
 msgid "You accepted draw."
 msgstr ""
 
-#: game.py:564
+#: game.py:570
 msgid "You declined draw."
 msgstr ""
 
-#: game.py:574
+#: game.py:580
 msgid "Game #{}: you capitulated."
 msgstr ""
 
-#: game.py:580
+#: game.py:586
 msgid "Server shutdown requested."
 msgstr ""
 
-#: game.py:622
+#: game.py:628
 msgid "Requested AI to stop thinking"
 msgstr ""
 
@@ -337,7 +337,7 @@ msgstr ""
 msgid "Close this dialog and exit the program"
 msgstr ""
 
-#: newgamedlg.py:247 toplevel.py:825
+#: newgamedlg.py:247 toplevel.py:839
 msgid "Settings have been updated."
 msgstr ""
 
@@ -485,7 +485,7 @@ msgstr ""
 msgid "Load AI settings from JSON file"
 msgstr ""
 
-#: settingsdlg.py:180 toplevel.py:592 toplevel.py:605 toplevel.py:794
+#: settingsdlg.py:180 toplevel.py:594 toplevel.py:607 toplevel.py:808
 msgid "Save file"
 msgstr ""
 
@@ -623,7 +623,7 @@ msgstr ""
 msgid "Starting HCheckers..."
 msgstr ""
 
-#: toplevel.py:152 toplevel.py:748
+#: toplevel.py:152 toplevel.py:762
 msgid "Your turn."
 msgstr ""
 
@@ -649,7 +649,7 @@ msgid ""
 "{}"
 msgstr ""
 
-#: toplevel.py:215 toplevel.py:887 toplevel.py:892
+#: toplevel.py:215 toplevel.py:901 toplevel.py:906
 msgid "Exception"
 msgstr ""
 
@@ -781,79 +781,87 @@ msgstr ""
 msgid "Waiting for another side to join the game."
 msgstr ""
 
+#: toplevel.py:616
+msgid "Undo"
+msgstr ""
+
 #: toplevel.py:620
+msgid "Undo (number of previously undone moves: {})"
+msgstr ""
+
+#: toplevel.py:634
 msgid "Nothing to undo."
 msgstr ""
 
-#: toplevel.py:637
+#: toplevel.py:651
 msgid "Waiting for an advice from AI"
 msgstr ""
 
-#: toplevel.py:643
+#: toplevel.py:657
 msgid "Offer a draw?"
 msgstr ""
 
-#: toplevel.py:644
+#: toplevel.py:658
 msgid "Are you sure you want to offer a draw to the other side? This action can not be undone."
 msgstr ""
 
-#: toplevel.py:654
+#: toplevel.py:668
 msgid "Waiting for a response on draw offer from another side"
 msgstr ""
 
-#: toplevel.py:672
+#: toplevel.py:686
 msgid "Capitulate?"
 msgstr ""
 
-#: toplevel.py:673
+#: toplevel.py:687
 msgid "Are you sure you want to capitulate? This action can not be undone."
 msgstr ""
 
-#: toplevel.py:686 toplevel.py:688
+#: toplevel.py:700 toplevel.py:702
 msgid "{} win"
 msgstr ""
 
-#: toplevel.py:690
+#: toplevel.py:704
 msgid "Draw"
 msgstr ""
 
-#: toplevel.py:700
+#: toplevel.py:714
 msgid "Game result: {}"
 msgstr ""
 
-#: toplevel.py:703
+#: toplevel.py:717
 msgid "Game over."
 msgstr ""
 
-#: toplevel.py:726
+#: toplevel.py:740
 msgid "Accept the draw?"
 msgstr ""
 
-#: toplevel.py:727
+#: toplevel.py:741
 msgid "Another side have offered you a draw. Do you wish to accept it?"
 msgstr ""
 
-#: toplevel.py:737
+#: toplevel.py:751
 msgid "Response on a draw offer"
 msgstr ""
 
-#: toplevel.py:753
+#: toplevel.py:767
 msgid "AI suggested the following move(s): {}"
 msgstr ""
 
-#: toplevel.py:788
+#: toplevel.py:802
 msgid "Log has been cleared."
 msgstr ""
 
-#: toplevel.py:855
+#: toplevel.py:869
 msgid "About HCheckers"
 msgstr ""
 
-#: toplevel.py:856
+#: toplevel.py:870
 msgid "This is HCheckers Client application, version {0}.<br>Server version is {1} ({2}).<br>Please report issues at <a href=\"{3}\">{3}</a>."
 msgstr ""
 
-#: toplevel.py:868
+#: toplevel.py:882
 msgid ""
 "Unexpected response received from the server.\n"
 "Request URL: {}\n"
@@ -861,15 +869,15 @@ msgid ""
 "Response message: {}"
 msgstr ""
 
-#: toplevel.py:879
+#: toplevel.py:893
 msgid "No such move: {}"
 msgstr ""
 
-#: toplevel.py:883
+#: toplevel.py:897
 msgid "Status of current game is unsuitable for this operation. Game status is {}; required status is {}"
 msgstr ""
 
-#: toplevel.py:891
+#: toplevel.py:905
 msgid ""
 "An exception occured while connecting to the server.\n"
 "Request URL: {}\n"
