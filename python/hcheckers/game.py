@@ -264,6 +264,7 @@ class Game(object):
         self.draw_state = None
         self._colors = None
         self.undo_count = 0
+        self.hint_count = 0
 
     def is_active(self):
         defined = not (self.base_url is None or self.user_name is None or self.game_id is None)
@@ -529,6 +530,7 @@ class Game(object):
         rs = self.get(url)
         result = rs.json()
         session = result["response"]["poll"]
+        self.hint_count = result["response"]["hint_count"]
         messages = result["messages"]
         self._process_messages(messages)
         return session

@@ -570,6 +570,7 @@ class Checkers(QMainWindow):
             self.splashscreen.finish(self)
 
         self._display_undo_count(None)
+        self._display_hint_count(None)
 
         if result == EXIT:
             print("Exit!")
@@ -619,6 +620,17 @@ class Checkers(QMainWindow):
             self.undo_action.setIconText(str(undo_count))
             undo_button.setToolTip(_("Undo (number of previously undone moves: {})").format(undo_count))
 
+    def _display_hint_count(self, hint_count):
+        hint_button = self.toolbar.widgetForAction(self.ai_hint_action)
+        if not hint_count:
+            hint_button.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonIconOnly)
+            self.ai_hint_action.setIconText(None)
+            hint_button.setToolTip(_("Ask for AI advice"))
+        else:
+            hint_button.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
+            self.ai_hint_action.setIconText(str(hint_count))
+            hint_button.setToolTip(_("Ask for AI advice (number of previously requested advices: {})").format(hint_count))
+
     @handling_error
     def _on_undo(self, checked=None):
         try:
@@ -651,6 +663,7 @@ class Checkers(QMainWindow):
         text = _("Waiting for an advice from AI")
         self.statusBar().showMessage(text)
         self.board.show_text_message(text, delay=WAITING_MOVE_MESSAGE_DELAY)
+        self._display_hint_count(self.game.hint_count)
 
     @handling_error
     def _on_draw_rq(self, checked=None):
