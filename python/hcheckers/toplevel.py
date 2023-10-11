@@ -569,6 +569,8 @@ class Checkers(QMainWindow):
         if self.splashscreen:
             self.splashscreen.finish(self)
 
+        self._display_undo_count(None)
+
         if result == EXIT:
             print("Exit!")
             #QApplication.quit()
@@ -606,6 +608,17 @@ class Checkers(QMainWindow):
         if path:
             self.board.save_image(path)
 
+    def _display_undo_count(self, undo_count):
+        undo_button = self.toolbar.widgetForAction(self.undo_action)
+        if not undo_count:
+            undo_button.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonIconOnly)
+            self.undo_action.setIconText(None)
+            undo_button.setToolTip(_("Undo"))
+        else:
+            undo_button.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
+            self.undo_action.setIconText(str(undo_count))
+            undo_button.setToolTip(_("Undo (number of previously undone moves: {})").format(undo_count))
+
     @handling_error
     def _on_undo(self, checked=None):
         try:
@@ -614,6 +627,7 @@ class Checkers(QMainWindow):
             self.board.hint_moves = None
             self.board.repaint()
             self.history.fill()
+            self._display_undo_count(self.game.undo_count)
         except RequestError as e:
             error = e.rs.json().get("error", None)
             if error == "NothingToUndo":

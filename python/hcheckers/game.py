@@ -263,6 +263,7 @@ class Game(object):
         self.finished = False
         self.draw_state = None
         self._colors = None
+        self.undo_count = 0
 
     def is_active(self):
         defined = not (self.base_url is None or self.user_name is None or self.game_id is None)
@@ -536,7 +537,9 @@ class Game(object):
         url = join(self.base_url, "game", self.game_id, "undo", self.user_name)
         rs = self.post(url)
         result = rs.json()
-        board = Game.parse_board(result["response"])
+        response = result["response"]
+        board = Game.parse_board(response["board"])
+        self.undo_count = response["undo_count"]
         return board
     
     def request_draw(self):
