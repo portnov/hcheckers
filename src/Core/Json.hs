@@ -177,7 +177,7 @@ instance ToJSON RsPayload where
   toJSON (PossibleMovesRs moves) = toJSON moves
   toJSON (MoveRs board sessionId) = object ["board" .= board, "poll" .= sessionId]
   toJSON (PollMoveRs status) = toJSON status
-  toJSON (AiHintRs sessionId) = object ["poll" .= sessionId]
+  toJSON (AiHintRs hintCount sessionId) = object ["poll" .= sessionId, "hint_count" .= hintCount]
   toJSON (StopAiRs) = object ["stop" .= ("ok" :: T.Text)]
   toJSON (UndoRs undoCount board) = object ["board" .= board, "undo_count" .= undoCount]
   toJSON CapitulateRs = object ["capitulate" .= ("ok" :: T.Text)]

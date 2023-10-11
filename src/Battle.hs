@@ -23,7 +23,6 @@ import Data.Yaml
 import Data.Maybe
 import qualified Data.Map as M
 import qualified Data.Vector as V
-import qualified Data.HashMap.Strict as H
 import qualified Data.Text as T
 import Text.Printf
 import System.Random

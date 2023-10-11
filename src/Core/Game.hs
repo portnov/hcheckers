@@ -88,6 +88,10 @@ gameState = do
   status <- gets gStatus
   return (gsSide st, status, gsCurrentBoard st)
 
+gameBoard :: GameM Board
+gameBoard =
+  gets (gsCurrentBoard . gState)
+
 -- | Get game's history
 gameHistory :: GameM [HistoryRecordRep]
 gameHistory = do
@@ -188,13 +192,24 @@ data GUndoRs = GUndoRs Board Int [Notify]
 setUndoCount :: Int -> GamePlayerStats -> GamePlayerStats
 setUndoCount n st = st {pUndoCount = n}
 
+setHintCount :: Int -> GamePlayerStats -> GamePlayerStats
+setHintCount n st = st {pAiHintsCount = n}
+
 increaseUndoCount :: Side -> Game -> Game
 increaseUndoCount First  game = game {gStats1 = setUndoCount (pUndoCount (gStats1 game) + 1) (gStats1 game)}
 increaseUndoCount Second game = game {gStats2 = setUndoCount (pUndoCount (gStats2 game) + 1) (gStats2 game)}
 
+increaseHintCount :: Side -> Game -> Game
+increaseHintCount First  game = game {gStats1 = setHintCount (pAiHintsCount (gStats1 game) + 1) (gStats1 game)}
+increaseHintCount Second game = game {gStats2 = setHintCount (pAiHintsCount (gStats2 game) + 1) (gStats2 game)}
+
 getUndoCount :: Side -> Game -> Int
 getUndoCount First  g = pUndoCount (gStats1 g)
 getUndoCount Second g = pUndoCount (gStats2 g)
+
+getHintCount :: Side -> Game -> Int
+getHintCount First  g = pAiHintsCount (gStats1 g)
+getHintCount Second g = pAiHintsCount (gStats2 g)
 
 -- | Execute undo
 doUndoRq :: Side -> GameM GUndoRs

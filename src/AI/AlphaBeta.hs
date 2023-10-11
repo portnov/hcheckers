@@ -24,10 +24,9 @@ import Control.Concurrent.STM
 import qualified Data.Text as T
 import qualified Data.Map as M
 import qualified Data.Vector as V
-import qualified Data.HashMap.Strict as H
 import Data.Maybe
 import Data.Default
-import Data.List (sortOn, transpose)
+import Data.List (sortOn)
 import Data.Text.Format.Heavy
 import Data.Aeson
 import Data.Aeson.Types (unexpected)

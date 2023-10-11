@@ -105,7 +105,7 @@ data RsPayload =
   | PossibleMovesRs [MoveRep]
   | MoveRs BoardRep (Maybe AiSessionId)
   | PollMoveRs AiSessionStatus
-  | AiHintRs AiSessionId
+  | AiHintRs Int AiSessionId
   | StopAiRs
   | UndoRs Int BoardRep
   | CapitulateRs
@@ -574,13 +574,16 @@ letAiMove separateThread gameId side mbBoard = do
 
     _ -> return Nothing
 
-askAiMove :: GameId -> Side -> Checkers AiSessionId
+askAiMove :: GameId -> Side -> Checkers (AiSessionId, Int)
 askAiMove gameId side = do
   game <- getGame gameId
-  (_, _, board) <- withGame gameId $ \_ -> do
-                     checkStatus Running
-                     checkCurrentSide side
-                     gameState
+  (board, hintCount) <- withGame gameId $ \_ -> do
+                           checkStatus Running
+                           checkCurrentSide side
+                           b <- gameBoard
+                           modify $ increaseHintCount side
+                           h <- gets (getHintCount side)
+                           return (b, h)
   let side' = opposite side
   case getPlayer game side' of
     AI ai -> do
@@ -593,7 +596,7 @@ askAiMove gameId side = do
             $info "AI returned {} move(s) in {}s" (length aiMoves, showTimeDiff dt)
             let message = AiHintNotify side side moves
             queueNotifications (getGameId game) [message]
-          return sessionId
+          return (sessionId, hintCount)
     _ -> throwError NotAnAi
 
 resetAiStorageG :: GameId -> Side -> Checkers ()
