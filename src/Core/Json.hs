@@ -7,7 +7,6 @@ import Data.Aeson.Types
 import qualified Data.Aeson.KeyMap as KM
 import qualified Data.Text as T
 import Data.Default
-import qualified Data.HashMap.Strict as HM
 import System.Log.Heavy
 
 import Core.Types
@@ -180,7 +179,7 @@ instance ToJSON RsPayload where
   toJSON (PollMoveRs status) = toJSON status
   toJSON (AiHintRs sessionId) = object ["poll" .= sessionId]
   toJSON (StopAiRs) = object ["stop" .= ("ok" :: T.Text)]
-  toJSON (UndoRs board) = toJSON board
+  toJSON (UndoRs undoCount board) = object ["board" .= board, "undo_count" .= undoCount]
   toJSON CapitulateRs = object ["capitulate" .= ("ok" :: T.Text)]
   toJSON (DrawRqRs sessionId) = object ["draw_request" .= ("pending" :: T.Text), "poll" .= sessionId]
   toJSON (DrawAcceptRs accepted) = object ["draw_accepted" .= accepted]

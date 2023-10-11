@@ -16,6 +16,7 @@ import Control.Monad.State
 import Control.Monad.Except
 import Control.Concurrent.STM
 import qualified Data.Map as M
+import Data.Default
 
 import Core.Types
 import Core.Board
@@ -42,6 +43,8 @@ mkGame supervisor rules id firstSide mbBoardRep = do
           gPlayer2 = Nothing,
           gMsgbox1 = msgbox1,
           gMsgbox2 = msgbox2,
+          gStats1 = def,
+          gStats2 = def,
           gSpectatorsMsgBox = M.empty
         }
 
@@ -180,7 +183,18 @@ doMoveRepRq side mRep = do
     Parsed move -> doMoveRq side move
 
 -- | Undo result
-data GUndoRs = GUndoRs Board [Notify]
+data GUndoRs = GUndoRs Board Int [Notify]
+
+setUndoCount :: Int -> GamePlayerStats -> GamePlayerStats
+setUndoCount n st = st {pUndoCount = n}
+
+increaseUndoCount :: Side -> Game -> Game
+increaseUndoCount First  game = game {gStats1 = setUndoCount (pUndoCount (gStats1 game) + 1) (gStats1 game)}
+increaseUndoCount Second game = game {gStats2 = setUndoCount (pUndoCount (gStats2 game) + 1) (gStats2 game)}
+
+getUndoCount :: Side -> Game -> Int
+getUndoCount First  g = pUndoCount (gStats1 g)
+getUndoCount Second g = pUndoCount (gStats2 g)
 
 -- | Execute undo
 doUndoRq :: Side -> GameM GUndoRs
@@ -193,7 +207,9 @@ doUndoRq side = do
      Just (prevBoard, prevSt) -> do
        let push = UndoNotify (opposite side) side (boardRep prevBoard)
        modify $ \game -> game {gState = prevSt}
-       return $ GUndoRs prevBoard [push]
+       modify $ increaseUndoCount side
+       undoCount <- gets (getUndoCount side)
+       return $ GUndoRs prevBoard undoCount [push]
 
 pushMove :: Move -> Board -> GameState -> GameState
 pushMove move board st =

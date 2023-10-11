@@ -28,7 +28,6 @@ import Data.Array.IArray as A
 import qualified Data.Text as T
 import qualified Data.Text.Lazy as TL
 import qualified Data.Text.Lazy.Builder.Int as Builder
-import qualified StmContainers.Map as SM
 import Data.Text.Format.Heavy
 import Data.Dynamic
 import Data.Int
@@ -654,6 +653,15 @@ isUser _ _ = False
 data GameStatus = New | Running | DrawRequested Side | Ended GameResult
   deriving (Eq, Show, Generic)
 
+data GamePlayerStats = GamePlayerStats {
+    pUndoCount :: Int
+  , pAiHintsCount :: Int
+  }
+  deriving (Eq, Show)
+
+instance Default GamePlayerStats where
+  def = GamePlayerStats 0 0
+
 data Game = Game {
     getGameId :: GameId
   , gInitialBoard :: Board
@@ -664,6 +672,8 @@ data Game = Game {
   , gPlayer2 :: Maybe Player
   , gMsgbox1 :: TChan Notify
   , gMsgbox2 :: TChan Notify
+  , gStats1 :: GamePlayerStats
+  , gStats2 :: GamePlayerStats
   , gSpectatorsMsgBox :: M.Map String (TChan Notify)
   }
 

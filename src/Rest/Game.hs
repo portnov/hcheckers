@@ -7,7 +7,6 @@ module Rest.Game where
 import Control.Monad.Reader
 import Control.Concurrent
 import Control.Concurrent.STM
-import qualified Data.Version as Version
 import qualified Data.Text                     as T
 import qualified Data.Text.Lazy                as TL
 import           Data.Maybe
@@ -190,9 +189,9 @@ restServer shutdownVar = do
   post "/game/:id/undo/:name" $ do
     gameId   <- param "id"
     name     <- param "name"
-    board    <- liftCheckers gameId $ doUndo gameId name
+    (board, undoCount) <- liftCheckers gameId $ doUndo gameId name
     messages <- liftCheckers gameId $ getMessages name
-    json $ Response (UndoRs board) messages
+    json $ Response (UndoRs undoCount board) messages
 
   post "/game/:id/capitulate/:name" $ do
     gameId <- param "id"

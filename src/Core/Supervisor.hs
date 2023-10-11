@@ -107,7 +107,7 @@ data RsPayload =
   | PollMoveRs AiSessionStatus
   | AiHintRs AiSessionId
   | StopAiRs
-  | UndoRs BoardRep
+  | UndoRs Int BoardRep
   | CapitulateRs
   | DrawRqRs (Maybe AiSessionId)
   | DrawAcceptRs Bool
@@ -432,14 +432,14 @@ doMove gameId name moveRq = do
   return $ MoveRs (boardRep board') sessionId
 
 -- | Undo last pair of moves in the specified game.
-doUndo :: GameId -> String -> Checkers BoardRep
+doUndo :: GameId -> String -> Checkers (BoardRep, Int)
 doUndo gameId name = do
   game <- getGame gameId
   side <- sideByUser game name
-  GUndoRs board' messages <- withGame gameId $ \_ -> doUndoRq side
+  GUndoRs board' undoCnt messages <- withGame gameId $ \_ -> doUndoRq side
   queueNotifications gameId messages
   letAiMove False gameId side (Just board')
-  return $ boardRep board'
+  return (boardRep board', undoCnt)
 
 doCapitulate :: GameId -> String -> Checkers ()
 doCapitulate gameId name = do
