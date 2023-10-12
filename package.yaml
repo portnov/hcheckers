@@ -27,7 +27,6 @@ dependencies:
 - hashtables
 - vector
 - concurrent-extra
-- stm-containers
 - psqueues
 - aeson
 - yaml
