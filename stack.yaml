@@ -46,7 +46,7 @@ extra-deps:
   - ekg-0.4.0.15
   - monad-metrics-0.2.2.0
   - snap-server-1.1.2.0
-  - git: git@github.com:portnov/ekg-json.git
+  - git: https://github.com/portnov/ekg-json.git
     commit: 0704fa11b59de0e5a2ffadf39b7319dd2c14a762
 
 
