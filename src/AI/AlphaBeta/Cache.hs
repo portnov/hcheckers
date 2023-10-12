@@ -20,7 +20,6 @@ import Control.Concurrent
 import Control.Monad.State
 import Control.Monad.Reader
 import Control.Concurrent.STM
-import qualified StmContainers.Map as SM
 import qualified Data.Map as M
 
 import Core.Types
@@ -31,7 +30,6 @@ import Core.Parallel
 import qualified Core.Monitoring as Monitoring
 import AI.AlphaBeta.Types
 import AI.AlphaBeta.Persistent
-import qualified Core.HTable as HT
 
 mkCacheKey :: VectorEvaluator eval => eval -> Board -> CacheKey
 mkCacheKey eval board = (evalToVector eval, board)

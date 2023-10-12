@@ -15,9 +15,7 @@ import Control.Monad
 import Control.Monad.State
 import Control.Monad.Reader
 import Control.DeepSeq (force)
-import qualified ListT
 import Control.Concurrent.STM
-import qualified StmContainers.Map as SM
 import qualified Data.ByteString as B
 import qualified Data.Map as M
 import qualified Data.Vector as V
