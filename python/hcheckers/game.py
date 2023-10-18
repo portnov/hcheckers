@@ -430,7 +430,7 @@ class Game(object):
         url = join(self.base_url, "game", self.game_id, "attach", "ai", str(side))
         ai_params = ai.params()
         logging.info(_("AI parameters:\n{}").format(json.dumps(ai_params, indent=2)))
-        rq = {"ai": "default", "params": ai_params}
+        rq = {"ai": "default", "name": ai.title, "params": ai_params}
         rs = self.post(url, json=rq)
         result = rs.json()
 

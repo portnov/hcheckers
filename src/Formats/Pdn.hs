@@ -366,6 +366,15 @@ gameToPdn rnd game =
                _ -> Nothing
 
     tags = [Event "HCheckers game", GameType (gRules game), FEN (boardToFen First $ gInitialBoard game)]
+            ++ [firstPlayerTag] ++ [secondPlayerTag]
+
+    invert = boardOrientation (gRules game) == SecondAtBottom
+    firstName  = getPlayerName game First
+    secondName = getPlayerName game Second
+
+    (firstPlayerTag, secondPlayerTag)
+      | invert    = (Black firstName, White secondName)
+      | otherwise = (White firstName, Black secondName)
 
     moves = movesToInstructions $ translate (gRules game) board0 (reverse $ gsHistory $ gState game)
 

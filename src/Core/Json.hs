@@ -96,7 +96,7 @@ instance ToJSON ThreadId where
 
 instance ToJSON Player where
   toJSON (User name) = toJSON name
-  toJSON (AI ai) = toJSON (aiName ai)
+  toJSON (AI name _) = toJSON name
 
 instance ToJSON SomeRules where
   toJSON (SomeRules rules) = toJSON (rulesName rules)
@@ -130,6 +130,7 @@ instance FromJSON NewGameRq where
 instance FromJSON AttachAiRq where
   parseJSON = withObject "AttachAi" $ \v -> AttachAiRq
     <$> v .: "ai"
+    <*> v .:? "name" .!= "AI"
     <*> v .:? "params" .!= Null
 
 instance FromJSON PdnInfoRq where

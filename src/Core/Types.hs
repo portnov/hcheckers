@@ -17,6 +17,7 @@ import Control.Monad.Except
 import Control.Monad.Metrics as Metrics
 import Control.Concurrent
 import Control.Concurrent.STM
+import Data.Maybe (fromJust)
 import Data.List
 import Data.Array.Unboxed
 import Data.Aeson.Types
@@ -495,6 +496,9 @@ data SomeRules = forall g. GameRules g => SomeRules g
 instance Show SomeRules where
   show (SomeRules rules) = rulesName rules
 
+instance HasBoardOrientation SomeRules where
+  boardOrientation (SomeRules rules) = boardOrientation rules
+
 type ScoreBase = Int16
 
 -- note: if I try to make fields of this structure strict and unpacked,
@@ -638,17 +642,23 @@ updateSomeAi (SomeAi ai) params = SomeAi (updateAi ai params)
 
 type GameId = String
 
+type UserName = T.Text
+
 data Player =
-    User String
-  | forall ai. GameAi ai => AI ai
+    User UserName
+  | forall ai. GameAi ai => AI UserName ai
 
 instance Show Player where
-  show (User name) = name
-  show (AI ai) = aiName ai
+  show (User name) = T.unpack name
+  show (AI name ai) = aiName ai ++ " as " ++ T.unpack name
 
-isUser :: String -> Player -> Bool
+isUser :: UserName -> Player -> Bool
 isUser name (User n) = n == name
 isUser _ _ = False
+
+playerName :: Player -> UserName
+playerName (User name) = name
+playerName (AI name _) = name
 
 data GameStatus = New | Running | DrawRequested Side | Ended GameResult
   deriving (Eq, Show, Generic)
@@ -674,7 +684,7 @@ data Game = Game {
   , gMsgbox2 :: TChan Notify
   , gStats1 :: GamePlayerStats
   , gStats2 :: GamePlayerStats
-  , gSpectatorsMsgBox :: M.Map String (TChan Notify)
+  , gSpectatorsMsgBox :: M.Map UserName (TChan Notify)
   }
 
 instance Show Game where
@@ -685,6 +695,10 @@ instance Show Game where
 
 instance Eq Game where
   g1 == g2 = getGameId g1 == getGameId g2
+
+getPlayerName :: Game -> Side -> UserName
+getPlayerName game First  = playerName $ fromJust $ gPlayer1 game
+getPlayerName game Second = playerName $ fromJust $ gPlayer2 game
 
 data GameState = GameState {
     gsSide :: Side

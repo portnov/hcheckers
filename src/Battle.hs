@@ -262,8 +262,8 @@ runBattleLocal rules (i,ai1) (j,ai2) path = do
   gameId <- newGame rules firstSide Nothing
   registerUser gameId First "AI1"
   registerUser gameId Second "AI2"
-  attachAi gameId First ai1
-  attachAi gameId Second ai2
+  attachAi gameId First "AI1" ai1
+  attachAi gameId Second "AI2" ai2
   -- resetAiStorageG gameId First
   -- resetAiStorageG gameId Second
   runGame gameId

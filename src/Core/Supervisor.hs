@@ -74,7 +74,11 @@ data NewGameRq = NewGameRq {
 -- | Request for attaching AI to the game.
 -- Parameter is identifier of AI implementation.
 -- Currently there is only one, named 'default'.
-data AttachAiRq = AttachAiRq String Value
+data AttachAiRq = AttachAiRq {
+    airqImplementation :: T.Text
+  , airqPlayerName :: UserName
+  , airqParams :: Value
+  }
   deriving (Eq, Show, Generic)
 
 data PdnInfoRq = PdnInfoRq String T.Text
@@ -197,17 +201,17 @@ withRules name fn =
     _ -> error "unknown rules"
 
 -- | List of supported AI implementations
-supportedAis :: [(String, SomeRules -> SomeAi)]
+supportedAis :: [(T.Text, SomeRules -> SomeAi)]
 supportedAis = [("default", \(SomeRules rules) -> SomeAi (AlphaBeta def rules (dfltEvaluator rules)))]
 
 -- | Select AI implementation by client request
-selectAi :: AttachAiRq -> SomeRules -> Maybe SomeAi
-selectAi (AttachAiRq name params) rules = go supportedAis
+selectAi :: AttachAiRq -> SomeRules -> Maybe (SomeAi, UserName)
+selectAi (AttachAiRq impl name params) rules = go supportedAis
   where
-    go :: [(String, SomeRules -> SomeAi)] -> Maybe SomeAi
+    go :: [(T.Text, SomeRules -> SomeAi)] -> Maybe (SomeAi, UserName)
     go [] = Nothing
     go ((key, fn) : other)
-      | key == name = Just $ updateSomeAi (fn rules) params
+      | key == impl = Just (updateSomeAi (fn rules) params, name)
       | otherwise = go other
 
 -- | Initialize AI storage.
@@ -254,7 +258,7 @@ setHistory gameId history =
   withGame gameId $ \_ -> setGameHistory history
 
 -- | Register a user in the game
-registerUser :: GameId -> Side -> String -> Checkers ()
+registerUser :: GameId -> Side -> UserName -> Checkers ()
 registerUser gameId side name = do
     var <- askSupervisor
     res <- liftIO $ atomically $ do
@@ -284,16 +288,16 @@ registerUser gameId side name = do
         _ -> False
 
 -- | Attach AI to the game
-attachAi :: GameId -> Side -> SomeAi -> Checkers ()
-attachAi gameId side (SomeAi ai) = do
+attachAi :: GameId -> Side -> UserName -> SomeAi -> Checkers ()
+attachAi gameId side name (SomeAi ai) = do
     var <- askSupervisor
     liftIO $ atomically $ modifyTVar var $ \st -> st {ssGames = M.update (Just . update) gameId (ssGames st)}
   where
     update game
-      | side == First = game {gPlayer1 = Just $ AI ai}
-      | otherwise     = game {gPlayer2 = Just $ AI ai}
+      | side == First = game {gPlayer1 = Just $ AI name ai}
+      | otherwise     = game {gPlayer2 = Just $ AI name ai}
 
-attachSpectator :: GameId -> String -> Checkers ()
+attachSpectator :: GameId -> UserName -> Checkers ()
 attachSpectator gameId name = do
     var <- askSupervisor
     res <- liftIO $ atomically $ do
@@ -375,7 +379,7 @@ getInitialBoard gameId = do
 
 -- | Find a game by participating user name.
 -- Returns Just game if there is exactly one such game.
-getGameByUser :: String -> Checkers (Maybe Game)
+getGameByUser :: UserName -> Checkers (Maybe Game)
 getGameByUser name = do
   var <- askSupervisor
   st <- liftIO $ atomically $ readTVar var
@@ -385,7 +389,7 @@ getGameByUser name = do
 
 -- | Get all messages pending for specified user.
 -- Remove that messages from mailboxes.
-getMessages :: String -> Checkers [Notify]
+getMessages :: UserName -> Checkers [Notify]
 getMessages name = do
   var <- askSupervisor
   liftIO $ atomically $ do
@@ -422,7 +426,7 @@ getPossibleMoves gameId side =
           return $ map (moveRep rules side) moves
 
 -- | Execute specified move in specified game and return a new board.
-doMove :: GameId -> String -> MoveRep -> Checkers RsPayload
+doMove :: GameId -> UserName -> MoveRep -> Checkers RsPayload
 doMove gameId name moveRq = do
   game <- getGame gameId
   side <- sideByUser game name
@@ -432,7 +436,7 @@ doMove gameId name moveRq = do
   return $ MoveRs (boardRep board') sessionId
 
 -- | Undo last pair of moves in the specified game.
-doUndo :: GameId -> String -> Checkers (BoardRep, Int)
+doUndo :: GameId -> UserName -> Checkers (BoardRep, Int)
 doUndo gameId name = do
   game <- getGame gameId
   side <- sideByUser game name
@@ -441,7 +445,7 @@ doUndo gameId name = do
   letAiMove False gameId side (Just board')
   return (boardRep board', undoCnt)
 
-doCapitulate :: GameId -> String -> Checkers ()
+doCapitulate :: GameId -> UserName -> Checkers ()
 doCapitulate gameId name = do
   game <- getGame gameId
   side <- sideByUser game name
@@ -452,7 +456,7 @@ doCapitulate gameId name = do
         ]
   queueNotifications gameId messages
 
-doDrawRequest :: GameId -> String -> Checkers (Maybe AiSessionId)
+doDrawRequest :: GameId -> UserName -> Checkers (Maybe AiSessionId)
 doDrawRequest gameId name = do
   game <- getGame gameId
   side <- sideByUser game name
@@ -478,7 +482,7 @@ doDrawAccept' gameId side accepted = do
           else [drawNotify]
   queueNotifications gameId messages
 
-doDrawAccept :: GameId -> String -> Bool -> Checkers ()
+doDrawAccept :: GameId -> UserName -> Bool -> Checkers ()
 doDrawAccept gameId name accepted = do
   game <- getGame gameId
   side <- sideByUser game name
@@ -547,7 +551,7 @@ letAiMove separateThread gameId side mbBoard = do
 
   game <- getGame gameId
   case getPlayer game side of
-    AI ai -> do
+    AI _ ai -> do
 
       let inThread = if separateThread
                        then \a -> (void $ forkCheckers a)
@@ -586,7 +590,7 @@ askAiMove gameId side = do
                            return (b, h)
   let side' = opposite side
   case getPlayer game side' of
-    AI ai -> do
+    AI _ ai -> do
       someRules@(SomeRules rules) <- getRules gameId
       withAiStorage someRules ai $ \storage -> do
           (sessionId, aiSession) <- newAiSession
@@ -603,7 +607,7 @@ resetAiStorageG :: GameId -> Side -> Checkers ()
 resetAiStorageG gameId side = do
   game <- getGame gameId
   case getPlayer game side of
-    AI ai -> do
+    AI _ ai -> do
       rules <- getRules gameId
       withAiStorage rules ai $ \storage -> do
         resetAiStorage ai storage
@@ -616,7 +620,7 @@ aiDrawRequest gameId side = do
            (_, _, b) <- withGame gameId $ \_ -> gameState
            return b
   case getPlayer game side of
-    AI ai -> do
+    AI _ ai -> do
       rules <- getRules gameId
       withAiStorage rules ai $ \storage -> do
         (sessionId, aiSession) <- newAiSession
@@ -717,26 +721,26 @@ getPlayer game Second = fromJust $ gPlayer2 game
 
 isAI :: Game -> Side -> Bool
 isAI game First = case gPlayer1 game of
-                    Just (AI _) -> True
+                    Just (AI _ _) -> True
                     _ -> False
 isAI game Second = case gPlayer2 game of
-                     Just (AI _) -> True
+                     Just (AI _ _) -> True
                      _ -> False
 
-sideByUser' :: Game -> String -> Maybe Side
+sideByUser' :: Game -> UserName -> Maybe Side
 sideByUser' game name =
   case (gPlayer1 game, gPlayer2 game) of
     (Just (User name1), _) | name1 == name -> Just First
     (_, Just (User name2)) | name2 == name -> Just Second
     _ -> Nothing
 
-sideByUser :: Game -> String -> Checkers Side
+sideByUser :: Game -> UserName -> Checkers Side
 sideByUser game name =
   case sideByUser' game name of
     Just side -> return side
     Nothing -> throwError NoSuchUserInGame
 
-getSideByUser :: GameId -> String -> Checkers Side
+getSideByUser :: GameId -> UserName -> Checkers Side
 getSideByUser gameId name = do
   game <- getGame gameId
   sideByUser game name

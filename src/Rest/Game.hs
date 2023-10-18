@@ -88,11 +88,11 @@ restServer shutdownVar = do
     rq     <- jsonData
     case selectAi rq rules of
       Nothing -> error400 "invalid ai settings"
-      Just ai -> do
+      Just (ai, name) -> do
         liftCheckers gameId $ do
-          $info "Attached AI: {} to game #{} as {}" (show ai, gameId, show side)
+          $info "Attached AI: {} as {} to game #{} as {}" (show ai, name, gameId, show side)
           initAiStorage rules ai
-          attachAi gameId side ai
+          attachAi gameId side name ai
         json $ Response AttachAiRs []
 
   post "/game/:id/attach/:name/spectate" $ do
