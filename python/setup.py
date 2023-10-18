@@ -2,7 +2,7 @@
 from setuptools import setup
 
 setup(name = 'hcheckers',
-        version = '2022.04',
+        version = '2023.10',
         description = 'HCheckers client application',
         url = 'https://github.com/portnov/hcheckers',
         author = 'Ilya V. Portnov',
