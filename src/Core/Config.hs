@@ -42,9 +42,9 @@ loadConfig cmd = do
           case r of
             Left err -> fail $ show err
             Right cfg -> return cfg
-  let config' = case cmdLocal cmd of
-                  Nothing -> config
-                  Just local -> config {gcLocal = local}
+  let config' = case cmdCommand cmd of
+                  RunGameServer (Just local) -> config {gcLocal = local}
+                  _ -> config
       config'' = case cmdMetrics cmd of
                   Nothing -> config'
                   Just metrics -> config {gcEnableMetrics = metrics}

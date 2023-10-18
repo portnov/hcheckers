@@ -39,27 +39,28 @@ main = do
   case cmd of
     CmdVersion -> do
         putStrLn $ T.unpack $ V.showVersion V.getVersion
-    CmdSpecial str -> do
-        special cmd (words str)
-    _ -> withCheckers cmd $ do
-              when (cmdDumpConfig cmd) $ do
-                cfg <- asks csConfig
-                liftIO $ print cfg
-              logLevel <- asks (gcLogLevel . csConfig)
-              let fltr = [([], logLevel)]
-              withLogContext (LogContextFrame [] (include fltr)) $ do
-                  case cmd of
-                    CmdBattle -> do
-                      bsConfig <- asks (gcBattleServerConfig . csConfig)
-                      let host = T.unpack $ bsHost bsConfig
-                          port = bsPort bsConfig
-                      if bsEnable bsConfig
-                         then runRestServer host port Rest.Battle.restServer
-                         else fail "Battle server is not enabled in config"
-                    _ -> do
-                      host <- asks (T.unpack . gcHost . csConfig)
-                      port <- asks (gcPort . csConfig)
-                      runRestServer host port Rest.Game.restServer
+    _ ->
+      case cmdCommand cmd of
+        SpecialCommand str -> special cmd (words str)
+        _ ->  withCheckers cmd $ do
+                when (cmdDumpConfig cmd) $ do
+                  cfg <- asks csConfig
+                  liftIO $ print cfg
+                logLevel <- asks (gcLogLevel . csConfig)
+                let fltr = [([], logLevel)]
+                withLogContext (LogContextFrame [] (include fltr)) $ do
+                    case cmdCommand cmd of
+                      RunBattleServer -> do
+                        bsConfig <- asks (gcBattleServerConfig . csConfig)
+                        let host = T.unpack $ bsHost bsConfig
+                            port = bsPort bsConfig
+                        if bsEnable bsConfig
+                           then runRestServer host port Rest.Battle.restServer
+                           else fail "Battle server is not enabled in config"
+                      RunGameServer {} -> do
+                        host <- asks (T.unpack . gcHost . csConfig)
+                        port <- asks (gcPort . csConfig)
+                        runRestServer host port Rest.Game.restServer
 
 special :: CmdLine -> [String] -> IO ()
 special cmd args =

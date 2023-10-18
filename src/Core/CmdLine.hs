@@ -4,14 +4,18 @@ module Core.CmdLine where
 import Options.Applicative
 import Data.Char (toLower)
 
+data CmdCommand =
+    RunGameServer { cmdLocal :: Maybe Bool }
+  | RunBattleServer
+  | SpecialCommand String
+  deriving (Eq, Show)
+
 data CmdLine = CmdLine {
       cmdConfigPath :: Maybe FilePath
-    , cmdLocal :: Maybe Bool
     , cmdMetrics :: Maybe Bool
     , cmdDumpConfig :: Bool
+    , cmdCommand :: CmdCommand
     }
-  | CmdBattle
-  | CmdSpecial String
   | CmdVersion
   deriving (Eq, Show)
 
@@ -33,11 +37,6 @@ cmdline =
              <> metavar "PATH"
              <> help "Path to the config file" ) )
       <*> optional (option bool
-            ( long "local"
-             <> short 'L'
-             <> metavar "on|off"
-             <> help "Run server in local mode" ) )
-      <*> optional (option bool
             ( long "metrics"
               <> metavar "on|off"
               <> help "Enable or disable metrics monitoring. This command-line option overrides one specified in the config file.")
@@ -46,21 +45,33 @@ cmdline =
               ( long "dump-config"
                 <> help "Print resulting configuration parameters (including both ones read from file and parsed from command line)"
               )
-    ) <|> flag' CmdBattle
-              ( long "battle"
-                <> short 'B'
-                <> help "Run `battle server' instead of normal game server")
-      <|> (CmdSpecial
-          <$> strOption
-                ( long "special"
-                 <> metavar "COMMAND"
-                 <> help "Run special command (undocumented)"
-                )
+      <*> parseCommand
     ) <|> flag' CmdVersion
               ( long "version"
                 <> short 'v'
                 <> help "Display version information and exit"
               )
+
+parseCommand :: Parser CmdCommand
+parseCommand =
+    (RunGameServer
+      <$> optional (option bool
+            ( long "local"
+              <> short 'L'
+              <> metavar "on|off"
+              <> help "Run server in local mode" )
+            )
+    ) <|> (flag' RunBattleServer
+              ( long "battle"
+                <> short 'B'
+                <> help "Run `battle server' instead of normal game server")
+    ) <|> (SpecialCommand
+          <$> strOption
+                ( long "special"
+                 <> metavar "COMMAND"
+                 <> help "Run special command (undocumented)"
+                )
+    )
 
 parserInfo :: ParserInfo CmdLine
 parserInfo = info (cmdline <**> helper)
