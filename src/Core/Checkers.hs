@@ -21,7 +21,7 @@ isGameMessage :: LogMessage -> Bool
 isGameMessage msg = 
   isJust $ gameIdFromLogMsg msg
 
-withCheckers :: CmdLine -> Checkers a -> IO a
+withCheckers :: CmdLineCommand c => CmdLine c -> Checkers a -> IO a
 withCheckers cmd actions = do
   supervisor <- mkSupervisor
   cfg <- loadConfig cmd

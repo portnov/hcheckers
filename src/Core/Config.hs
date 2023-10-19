@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Core.Config
-  (locateConfig, loadConfig
+  (locateConfig, loadConfig, CmdLineCommand (..)
   ) where
 
 import Data.Yaml
@@ -27,7 +27,17 @@ locateConfig = do
         then return $ Just etcPath
         else return Nothing
 
-loadConfig :: CmdLine -> IO GeneralConfig
+class CmdLineCommand c where
+  updateConfigFromCmd :: GeneralConfig -> c -> GeneralConfig
+
+instance CmdLineCommand ServerCommand where
+  updateConfigFromCmd config (RunGameServer (Just local)) = config {gcLocal = local}
+  updateConfigFromCmd config _ = config
+
+instance CmdLineCommand SpecialCommand where
+  updateConfigFromCmd config _ = config
+
+loadConfig :: CmdLineCommand c => CmdLine c -> IO GeneralConfig
 loadConfig cmd = do
   mbPath <-
       case cmdConfigPath cmd of
@@ -42,9 +52,7 @@ loadConfig cmd = do
           case r of
             Left err -> fail $ show err
             Right cfg -> return cfg
-  let config' = case cmdCommand cmd of
-                  RunGameServer (Just local) -> config {gcLocal = local}
-                  _ -> config
+  let config' = updateConfigFromCmd config (cmdCommand cmd)
       config'' = case cmdMetrics cmd of
                   Nothing -> config'
                   Just metrics -> config {gcEnableMetrics = metrics}

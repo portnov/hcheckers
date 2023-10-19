@@ -4,7 +4,8 @@
 module Core.Version (
     Version (..),
     showVersion,
-    getVersion
+    getVersion,
+    printVersion
   ) where
 
 import qualified Data.Text as T
@@ -30,4 +31,7 @@ getVersion =
                   Left _ -> "not git"
                   Right gitInfo -> T.pack $ take 8 $ G.giHash gitInfo
   in  Version packageVersion gitHash
+
+printVersion :: IO ()
+printVersion = putStrLn $ T.unpack $ showVersion getVersion
 

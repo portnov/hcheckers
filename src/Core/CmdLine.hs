@@ -4,17 +4,62 @@ module Core.CmdLine where
 import Options.Applicative
 import Data.Char (toLower)
 
-data CmdCommand =
+data ServerCommand =
     RunGameServer { cmdLocal :: Maybe Bool }
   | RunBattleServer
-  | SpecialCommand String
   deriving (Eq, Show)
 
-data CmdLine = CmdLine {
+data SpecialCommand =
+      Learn {
+          scRulesName :: String
+        , scAiPath :: FilePath
+        , scPdnPath :: FilePath
+      }
+    | Bench {
+          scRulesName :: String
+        , scAiPath :: FilePath
+        , scCount :: Int
+      }
+    | Battle {
+          scRulesName :: String
+        , scAiPath1 :: FilePath
+        , scAiPath2 :: FilePath
+      }
+    | RemoteBattle {
+          scHost :: String
+        , scRulesName :: String
+        , scAiPath1 :: FilePath
+        , scAiPath2 :: FilePath
+      }
+    | Match {
+          scRulesName :: String
+        , scCount :: Int
+        , scAiPath1 :: FilePath
+        , scAiPath2 :: FilePath
+      }
+    | Tournament {
+          scMatchesCount :: Int
+        , scGamesCount :: Int
+        , scAiPaths :: [FilePath]
+      }
+    | Genetics {
+          scYamlPath :: FilePath
+      }
+    | Generate {
+          scCount :: Int
+        , scDelta :: Int
+        , scAiPath :: FilePath
+      }
+    | Dump {
+          scDataPath :: FilePath
+      }
+  deriving (Eq, Show)
+
+data CmdLine c = CmdLine {
       cmdConfigPath :: Maybe FilePath
     , cmdMetrics :: Maybe Bool
     , cmdDumpConfig :: Bool
-    , cmdCommand :: CmdCommand
+    , cmdCommand :: c
     }
   | CmdVersion
   deriving (Eq, Show)
@@ -28,8 +73,8 @@ bool = eitherReader $ \str ->
     "false" -> Right False
     _ -> Left $ "Unknown boolean value: " ++ str
 
-cmdline :: Parser CmdLine
-cmdline =
+cmdline :: Parser c -> Parser (CmdLine c)
+cmdline command =
     (CmdLine
       <$> optional (strOption
             ( long "config"
@@ -45,15 +90,15 @@ cmdline =
               ( long "dump-config"
                 <> help "Print resulting configuration parameters (including both ones read from file and parsed from command line)"
               )
-      <*> parseCommand
+      <*> command
     ) <|> flag' CmdVersion
               ( long "version"
                 <> short 'v'
                 <> help "Display version information and exit"
               )
 
-parseCommand :: Parser CmdCommand
-parseCommand =
+parseServerCommand :: Parser ServerCommand
+parseServerCommand =
     (RunGameServer
       <$> optional (option bool
             ( long "local"
@@ -65,18 +110,76 @@ parseCommand =
               ( long "battle"
                 <> short 'B'
                 <> help "Run `battle server' instead of normal game server")
-    ) <|> (SpecialCommand
-          <$> strOption
-                ( long "special"
-                 <> metavar "COMMAND"
-                 <> help "Run special command (undocumented)"
-                )
     )
 
-parserInfo :: ParserInfo CmdLine
-parserInfo = info (cmdline <**> helper)
-  ( fullDesc
-    <> progDesc "HCheckers server application"
-    <> header "Run HCheckers server"
-    <> footer "Use `+RTS options' after all HCheckers parameters to specify options for GHC Runtime, such as amount of heap to be used; for example, `hcheckersd --local=on +RTS -H1G'. Use `hcheckersd +RTS -?' to display help about Runtime options.")
+parseSpecialCommand :: Parser SpecialCommand
+parseSpecialCommand = hsubparser (
+       cmd "learn" learn "learn"
+    <> cmd "bench" bench "benchmark"
+    <> cmd "battle" battle "run battle"
+    <> cmd "remote-battle" remoteBattle "run battle on a remote host"
+    <> cmd "match" match "run match"
+    <> cmd "tournament" tournament "run tournament"
+    <> cmd "genetics" genetics "run genetics search"
+    <> cmd "generate" generate "generate AI variants for genetic search"
+    <> cmd "dump" dump "dump cache file"
+  )
+  where
+    cmd name func helpText = command name (info func (progDesc helpText))
+
+    parseRules = strArgument (metavar "RULES" <> help "Rules name")
+    parseAiPath = strArgument (metavar "FILE.JSON" <> help "Path to AI settings")
+    parseCount meta helpText = argument auto (metavar meta <> help helpText)
+
+    learn :: Parser SpecialCommand
+    learn = Learn
+      <$> parseRules
+      <*> parseAiPath
+      <*> strArgument (metavar "FILE.PDN" <> help "Path to PDN file")
+
+    bench :: Parser SpecialCommand
+    bench = Bench
+      <$> parseRules
+      <*> parseAiPath
+      <*> parseCount "COUNT" "count"
+
+    battle :: Parser SpecialCommand
+    battle = Battle
+      <$> parseRules
+      <*> parseAiPath
+      <*> parseAiPath
+
+    remoteBattle :: Parser SpecialCommand
+    remoteBattle = RemoteBattle
+      <$> strArgument (metavar "HTTP://HOST:PORT" <> help "Battle server URL")
+      <*> parseRules
+      <*> parseAiPath
+      <*> parseAiPath
+
+    match :: Parser SpecialCommand
+    match = Match
+      <$> parseRules
+      <*> parseCount "N" "Number of battles"
+      <*> parseAiPath
+      <*> parseAiPath
+
+    tournament :: Parser SpecialCommand
+    tournament = Tournament
+      <$> parseCount "N" "Number of matches in tournament"
+      <*> parseCount "M" "Number of games in each match"
+      <*> many parseAiPath
+
+    genetics :: Parser SpecialCommand
+    genetics = Genetics
+      <$> strArgument (metavar "SETTINGS.YAML" <> help "Settings for genetics algorithm")
+
+    generate :: Parser SpecialCommand
+    generate = Generate
+      <$> parseCount "N" "Number of AI configurations to generate"
+      <*> parseCount "DELTA" "Variation value"
+      <*> parseAiPath
+
+    dump :: Parser SpecialCommand
+    dump = Dump
+      <$> strArgument (metavar "FILE.CACHE")
 
