@@ -640,6 +640,13 @@ instance Show SomeAi where
 updateSomeAi :: SomeAi -> Value -> SomeAi
 updateSomeAi (SomeAi ai) params = SomeAi (updateAi ai params)
 
+data AiPersonality = AiPersonality {
+    aipSlug :: T.Text
+  , aipName :: M.Map T.Text T.Text
+  , aipSettings :: Value
+  }
+  deriving (Eq, Show)
+
 type GameId = String
 
 type UserName = T.Text
@@ -803,6 +810,7 @@ data AiConfig = AiConfig {
   , aiUpdateCacheMaxDepth :: Depth
   , aiUpdateCacheMaxPieces :: Int
   , aiHtableSize :: Int
+  , aiSettingsDirectory :: Maybe FilePath
   }
   deriving (Show, Typeable, Generic)
 
@@ -819,6 +827,7 @@ instance Default AiConfig where
         , aiUpdateCacheMaxDepth = 6
         , aiUpdateCacheMaxPieces = 8
         , aiHtableSize = 1024
+        , aiSettingsDirectory = Nothing
       }
 
 data BattleServerConfig = BattleServerConfig {

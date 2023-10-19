@@ -202,6 +202,14 @@ instance ToJSON SideNotation where
 instance ToJSON Response where
   toJSON (Response payload messages) = object ["response" .= payload, "messages" .= messages]
 
+instance ToJSON AiPersonality where
+  toJSON (AiPersonality slug names value) =
+    object [
+      "slug" .= slug,
+      "name" .= names,
+      "settings" .= value
+    ]
+
 instance FromJSON AiConfig where
   parseJSON = withObject "AiConfig" $ \v -> AiConfig
       <$> v .:? "threads" .!= (aiThreads def)
@@ -215,6 +223,7 @@ instance FromJSON AiConfig where
       <*> v .:? "update_cache_max_depth" .!= (aiUpdateCacheMaxDepth def)
       <*> v .:? "update_cache_max_pieces" .!= (aiUpdateCacheMaxPieces def)
       <*> v .:? "ttable_size" .!= (aiHtableSize def)
+      <*> v .:? "settings_directory" .!= (aiSettingsDirectory def)
 
 instance FromJSON BattleServerConfig where
   parseJSON = withObject "BattleServerConfig" $ \v -> BattleServerConfig

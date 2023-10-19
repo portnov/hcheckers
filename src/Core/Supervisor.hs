@@ -13,6 +13,7 @@ module Core.Supervisor where
 
 import Control.Monad
 import Control.Monad.State
+import Control.Monad.Reader
 import Control.Monad.Except
 import Control.Concurrent
 import Control.Concurrent.STM
@@ -37,6 +38,7 @@ import System.Random.MWC
 import System.Environment
 import System.FilePath
 import System.Directory
+import System.FilePath.Glob (glob)
 
 import Core.Types
 import Core.Board
@@ -256,6 +258,67 @@ newGame r@(SomeRules rules) firstSide mbBoardRep = do
 setHistory :: GameId -> [HistoryRecord] -> Checkers ()
 setHistory gameId history = 
   withGame gameId $ \_ -> setGameHistory history
+
+locateDefaultAiSettingsDirectory :: IO (Maybe FilePath)
+locateDefaultAiSettingsDirectory = do
+  home <- getEnv "HOME"
+  let homePath = home </> ".config" </> "hcheckers" </> "ai"
+  ex <- doesDirectoryExist homePath
+  if ex
+    then return $ Just homePath
+    else do
+      let etcPath = "/etc" </> "hcheckers" </> "ai"
+      ex <- doesDirectoryExist etcPath
+      if ex
+        then return $ Just etcPath
+        else return Nothing
+
+getAiSettingsDirectory :: Checkers (Maybe FilePath)
+getAiSettingsDirectory = do
+  mbConfigPath <- asks (aiSettingsDirectory . gcAiConfig . csConfig)
+  case mbConfigPath of
+    Just path -> return (Just path)
+    Nothing -> liftIO locateDefaultAiSettingsDirectory
+
+instance FromJSON AiPersonality where
+  parseJSON = withObject "AI" $ \v -> AiPersonality
+      <$> v .: "slug"
+      <*> v .: "name"
+      <*> v .: "settings"
+
+listAiSettings :: String -> Checkers [AiPersonality]
+listAiSettings impl = do
+    mbSettingsPath <- getAiSettingsDirectory
+    case mbSettingsPath of
+      Nothing -> return []
+      Just rootPath -> do
+        let implPath = rootPath </> impl
+        ex <- liftIO $ doesDirectoryExist implPath
+        if ex
+          then do
+            paths <- liftIO $ glob (implPath </> "*.json")
+            personalities <- forM paths loadAiSettings
+            return $ catMaybes personalities
+          else return []
+  where
+    loadAiSettings :: FilePath -> Checkers (Maybe AiPersonality)
+    loadAiSettings path = do
+      res <- liftIO $ eitherDecodeFileStrict path
+      case res of
+        Left err -> do
+          $reportError "Can't parse AI settings file: {}: {}" (path, err)
+          return Nothing
+        Right value -> return $ Just value
+
+loadAiSetting :: String -> T.Text -> Checkers (Maybe AiPersonality)
+loadAiSetting impl slug = do
+    personalities <- listAiSettings impl
+    return $ search personalities
+  where
+    search [] = Nothing
+    search (p : ps)
+      | aipSlug p == slug = Just p
+      | otherwise = search ps
 
 -- | Register a user in the game
 registerUser :: GameId -> Side -> UserName -> Checkers ()

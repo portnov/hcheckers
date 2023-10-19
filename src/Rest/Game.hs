@@ -14,6 +14,7 @@ import           Data.Aeson              hiding ( json )
 import           Web.Scotty.Trans
 import           System.Log.Heavy
 import           System.Log.Heavy.TH
+import Network.HTTP.Types.Status
 
 import           Core.Types
 import           Core.Board
@@ -220,6 +221,19 @@ restServer shutdownVar = do
     liftCheckers gameId $ doDrawAccept gameId name False
     messages <- liftCheckers gameId $ getMessages name
     json $ Response (DrawAcceptRs False) messages
+
+  get "/ai/:impl" $ do
+    impl <- param "impl"
+    personalities <- liftCheckers_ $ listAiSettings impl
+    json personalities
+
+  get "/ai/:impl/:slug" $ do
+    impl <- param "impl"
+    slug <- param "slug"
+    mbPersonality <- liftCheckers_ $ loadAiSetting impl slug
+    case mbPersonality of
+      Just personality -> json personality
+      Nothing -> status status404
 
   get "/poll/:name" $ do
     name     <- param "name"
