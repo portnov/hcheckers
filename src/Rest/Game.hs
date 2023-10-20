@@ -223,6 +223,10 @@ restServer shutdownVar = do
     messages <- liftCheckers gameId $ getMessages name
     json $ Response (DrawAcceptRs False) messages
 
+  get "/ai/custom/permissions" $ do
+    enabled <- liftCheckers_ isCustomAiSettingsEnabled
+    json $ object ["custom_settings_enabled" .= enabled]
+
   get "/ai/:impl" $ do
     impl <- param "impl"
     personalities <- liftCheckers_ $ listAiSettings impl

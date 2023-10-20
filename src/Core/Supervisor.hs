@@ -207,6 +207,9 @@ withRules name fn =
 supportedAis :: [(T.Text, SomeRules -> SomeAi)]
 supportedAis = [("default", \(SomeRules rules) -> SomeAi (AlphaBeta def rules (dfltEvaluator rules)))]
 
+isCustomAiSettingsEnabled :: Checkers Bool
+isCustomAiSettingsEnabled = asks (aiEnableCustomSettings . gcAiConfig . csConfig)
+
 -- | Select AI implementation by client request
 selectAi :: AttachAiRq -> SomeRules -> Checkers (Maybe (SomeAi, UserName))
 selectAi (AttachAiRq impl name useServerParams params) rules =
@@ -217,7 +220,7 @@ selectAi (AttachAiRq impl name useServerParams params) rules =
         Nothing -> return Nothing
         Just personality -> return $ go (aipSettings personality) supportedAis
     else do
-      enableCustomSetings <- asks (aiEnableCustomSettings . gcAiConfig . csConfig)
+      enableCustomSetings <- isCustomAiSettingsEnabled
       if enableCustomSetings
         then return $ go params supportedAis
         else throwError CustomAiSettingsDisabled

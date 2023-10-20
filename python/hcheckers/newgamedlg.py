@@ -218,7 +218,11 @@ class NewGameDialog(DialogBase):
         ai_list = []
         if self.client is not None:
             ai_list.extend(self.client.get_ai_settings())
-        ai_list.extend(AI.list_from_settings(self.share_dir, settings))
+        enable_custom = True
+        if self.client is not None:
+            enable_custom = self.client.is_custom_ai_settings_enabled()
+        if enable_custom:
+            ai_list.extend(AI.list_from_settings(self.share_dir, settings))
         self.ais = ai_list
         for idx, ai in enumerate(self.ais):
             self.ai.addItem(ai.title, idx)

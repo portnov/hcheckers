@@ -350,6 +350,17 @@ class Game(object):
             #traceback.print_exc()
             return False
 
+    def is_custom_ai_settings_enabled(self):
+        url = join(self.base_url, "ai", "custom", "permissions")
+        try:
+            rs = self.get(url)
+            response = rs.json()
+            return response["custom_settings_enabled"]
+        except requests.exceptions.ConnectionError as e:
+            return True
+        except RequestError:
+            return True
+
     def get_ai_settings(self):
         url = join(self.base_url, "ai", "default")
         try:
