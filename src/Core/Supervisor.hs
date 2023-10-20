@@ -79,6 +79,7 @@ data NewGameRq = NewGameRq {
 data AttachAiRq = AttachAiRq {
     airqImplementation :: T.Text
   , airqPlayerName :: UserName
+  , airqParamsFromServer :: Bool
   , airqParams :: Value
   }
   deriving (Eq, Show, Generic)
@@ -207,14 +208,21 @@ supportedAis :: [(T.Text, SomeRules -> SomeAi)]
 supportedAis = [("default", \(SomeRules rules) -> SomeAi (AlphaBeta def rules (dfltEvaluator rules)))]
 
 -- | Select AI implementation by client request
-selectAi :: AttachAiRq -> SomeRules -> Maybe (SomeAi, UserName)
-selectAi (AttachAiRq impl name params) rules = go supportedAis
+selectAi :: AttachAiRq -> SomeRules -> Checkers (Maybe (SomeAi, UserName))
+selectAi (AttachAiRq impl name useServerParams params) rules =
+    if useServerParams
+    then do
+      mbSettings <- loadAiSetting impl name
+      case mbSettings of
+        Nothing -> return Nothing
+        Just personality -> return $ go (aipSettings personality) supportedAis
+    else return $ go params supportedAis
   where
-    go :: [(T.Text, SomeRules -> SomeAi)] -> Maybe (SomeAi, UserName)
-    go [] = Nothing
-    go ((key, fn) : other)
+    go :: Value -> [(T.Text, SomeRules -> SomeAi)] -> Maybe (SomeAi, UserName)
+    go params [] = Nothing
+    go params ((key, fn) : other)
       | key == impl = Just (updateSomeAi (fn rules) params, name)
-      | otherwise = go other
+      | otherwise = go params other
 
 -- | Initialize AI storage.
 -- There should be exactly one AI storage instance running
@@ -286,13 +294,13 @@ instance FromJSON AiPersonality where
       <*> v .: "name"
       <*> v .: "settings"
 
-listAiSettings :: String -> Checkers [AiPersonality]
+listAiSettings :: T.Text -> Checkers [AiPersonality]
 listAiSettings impl = do
     mbSettingsPath <- getAiSettingsDirectory
     case mbSettingsPath of
       Nothing -> return []
       Just rootPath -> do
-        let implPath = rootPath </> impl
+        let implPath = rootPath </> T.unpack impl
         ex <- liftIO $ doesDirectoryExist implPath
         if ex
           then do
@@ -310,7 +318,7 @@ listAiSettings impl = do
           return Nothing
         Right value -> return $ Just value
 
-loadAiSetting :: String -> T.Text -> Checkers (Maybe AiPersonality)
+loadAiSetting :: T.Text -> T.Text -> Checkers (Maybe AiPersonality)
 loadAiSetting impl slug = do
     personalities <- listAiSettings impl
     return $ search personalities

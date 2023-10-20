@@ -87,7 +87,8 @@ restServer shutdownVar = do
     side   <- param "side"
     rules  <- liftCheckers gameId $ getRules gameId
     rq     <- jsonData
-    case selectAi rq rules of
+    mbAi <- liftCheckers_ $ selectAi rq rules 
+    case mbAi of
       Nothing -> error400 "invalid ai settings"
       Just (ai, name) -> do
         liftCheckers gameId $ do

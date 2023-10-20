@@ -131,6 +131,7 @@ instance FromJSON AttachAiRq where
   parseJSON = withObject "AttachAi" $ \v -> AttachAiRq
     <$> v .: "ai"
     <*> v .:? "name" .!= "AI"
+    <*> v .:? "from_server" .!= False
     <*> v .:? "params" .!= Null
 
 instance FromJSON PdnInfoRq where
