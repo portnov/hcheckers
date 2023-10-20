@@ -2,7 +2,7 @@
 import json
 import logging
 
-from PyQt5.QtGui import QPainter, QPixmap, QIcon
+from PyQt5.QtGui import QPainter, QPixmap, QIcon, QColor, QPalette
 from PyQt5.QtCore import QRect, QSize, Qt, QObject, QTimer, pyqtSignal, QSettings
 from PyQt5.QtWidgets import QWidget, QDialog, QPushButton, QVBoxLayout, QHBoxLayout, QFormLayout, QLineEdit, QComboBox, QGroupBox, QCheckBox, QDialogButtonBox, QFileDialog, QListWidget, QListWidgetItem, QSpinBox, QToolBar, QAction, QTabWidget, QTextEdit, QTabWidget
 
@@ -13,10 +13,14 @@ from hcheckers.theme import *
 JSON_MASK = "JSON files (*.json)"
 
 class AiListWidget(QListWidget):
-    def __init__(self, share_dir, parent=None):
+    def __init__(self, share_dir, parent=None, client=None):
         QListWidget.__init__(self, parent)
+        self.client = client
         self.share_dir = share_dir
         self.ais = []
+
+    def _get_disabled_text_color(self):
+        return self.palette().brush(QPalette.Disabled, QPalette.Text)
 
     def add_ai(self, ai=None):
         if ai is None:
@@ -27,18 +31,27 @@ class AiListWidget(QListWidget):
         if not title:
             title = "Untitled"
         item = QListWidgetItem(self)
+        if ai.from_server:
+            item.setForeground(self._get_disabled_text_color())
         item.setText(title)
         self.update()
 
     def load_ais(self, settings):
+        if self.client is not None:
+            for ai in self.client.get_ai_settings():
+                self.add_ai(ai)
         for ai in AI.list_from_settings(self.share_dir, settings):
             self.add_ai(ai)
 
     def save_ais(self, settings):
         settings.beginWriteArray("AI")
-        for idx, ai in enumerate(self.ais):
+        idx = 0
+        for ai in self.ais:
+            if ai.from_server:
+                continue
             settings.setArrayIndex(idx)
             ai.to_settings(settings)
+            idx += 1
         settings.endArray()
 
     def get_selected_ai(self):
@@ -64,6 +77,7 @@ class AiListWidget(QListWidget):
 class AiEditorWidget(QWidget):
     def __init__(self, parent=None):
         QWidget.__init__(self, parent)
+        self._editable = False
         self._setup()
 
     edited = pyqtSignal()
@@ -162,7 +176,7 @@ class AiEditorWidget(QWidget):
         save.clicked.connect(self._on_save)
         hbox.addWidget(save)
 
-        load = QPushButton(_("Load..."), self)
+        self.load_button = load = QPushButton(_("Load..."), self)
         load.setIcon(QIcon.fromTheme("document-open"))
         load.setToolTip(_("Load AI settings from JSON file"))
         load.clicked.connect(self._on_load)
@@ -198,7 +212,17 @@ class AiEditorWidget(QWidget):
             except Exception as e:
                 logging.exception(e)
 
+    def enable_editor(self, enabled):
+        self._editable = enabled
+        for idx in [0,1,2]:
+            self.tabs.widget(idx).setEnabled(enabled)
+        self.load_button.setEnabled(enabled)
+
+    def is_editor_enabled(self):
+        return self._editable
+
     def set_ai(self, ai):
+        self.enable_editor(not ai.from_server)
         self.title.widget.setText(ai.title)
         self.depth.setValue(ai.depth)
         if ai.start_depth is not None:
@@ -233,6 +257,7 @@ class AiEditorWidget(QWidget):
 
     def get_ai(self):
         ai = AI()
+        ai.from_server = not self.is_editor_enabled()
         ai.title = self.title.widget.text()
         ai.depth = self.depth.value()
         ai.start_depth = self.start_depth.value()
@@ -264,9 +289,10 @@ class AiEditorWidget(QWidget):
         return ai
 
 class AiPresetsPage(QWidget):
-    def __init__(self, share_dir, parent=None):
+    def __init__(self, share_dir, parent=None, client=None):
         QWidget.__init__(self, parent)
-        self.selector = AiListWidget(share_dir, self)
+        self.client = client
+        self.selector = AiListWidget(share_dir, parent=self, client=client)
         self.editor = AiEditorWidget(self)
         layout = QHBoxLayout()
         vbox = QVBoxLayout()
@@ -310,7 +336,9 @@ class AiPresetsPage(QWidget):
             self.selector.set_selected_ai(self.editor.get_ai())
     
     def _on_ai_selected(self, idx):
-        self.editor.set_ai(self.selector.get_selected_ai())
+        ai = self.selector.get_selected_ai()
+        self.del_ai.setEnabled(not ai.from_server)
+        self.editor.set_ai(ai)
 
     def _on_add(self):
         self.selector.add_ai()
@@ -318,6 +346,7 @@ class AiPresetsPage(QWidget):
 
     def _on_copy(self):
         ai = self.selector.get_selected_ai().copy()
+        ai.from_server = False
         ai.title = _("Copy of {}").format(ai.title)
         self.selector.add_ai(ai)
         self.selector.setCurrentRow(self.selector.count()-1)
@@ -472,7 +501,7 @@ class GeneralPage(QWidget):
         settings.setValue("proxy_address", self.proxy_address.text())
 
 class SettingsDialog(DialogBase):
-    def __init__(self, settings, share_dir, parent=None):
+    def __init__(self, settings, share_dir, client=None, parent=None):
         QDialog.__init__(self, parent)
         self.settings = settings
         self.share_dir = share_dir
@@ -482,7 +511,7 @@ class SettingsDialog(DialogBase):
         self.tabs.addTab(self.general, _("General"))
         self.view = ViewSettingsPage(share_dir, self)
         self.tabs.addTab(self.view, _("View Settings"))
-        self.ais = AiPresetsPage(share_dir, self)
+        self.ais = AiPresetsPage(share_dir, parent=self, client=client)
         self.tabs.addTab(self.ais, _("AI Presets"))
         layout.addWidget(self.tabs)
         buttons = QDialogButtonBox(

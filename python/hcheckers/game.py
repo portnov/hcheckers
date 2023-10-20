@@ -37,6 +37,8 @@ class MoveRequest(Thread):
 class AI(object):
     def __init__(self, **kwargs):
         self.title = "Default AI"
+        self.from_server = False
+        self.slug = None
         self.depth = 2
         self.max_combination_depth = 6
         self.dynamic_depth = 6
@@ -67,12 +69,32 @@ class AI(object):
 
         for key in kwargs:
             setattr(self, key, kwargs[key])
-
+    
     def copy(self):
         json_data = self.params()
         ai = AI()
+        ai.from_server = self.from_server
+        ai.slug = self.slug
         ai.load_json(json_data)
         ai.title = self.title
+        return ai
+
+    @staticmethod
+    def get_title_from_json(json_data):
+        titles = json_data["name"]
+        lang = get_current_language()
+        if lang not in titles:
+            lang = "en"
+        if lang in titles:
+            return titles[lang]
+        else:
+            return json_data["slug"]
+
+    @classmethod
+    def from_json(cls, name, json_data):
+        ai = AI()
+        ai.title = name
+        ai.load_json(json_data)
         return ai
 
     @classmethod
@@ -88,6 +110,7 @@ class AI(object):
     @classmethod
     def from_settings(cls, settings):
         ai = AI()
+        ai.from_server = False
         ai.title = settings.value("title")
         ai.depth = settings.value("depth", type=int)
         ai.max_combination_depth = settings.value("max_combination_depth", type=int)
@@ -327,6 +350,22 @@ class Game(object):
             #traceback.print_exc()
             return False
 
+    def get_ai_settings(self):
+        url = join(self.base_url, "ai", "default")
+        try:
+            rs = self.get(url)
+            result = []
+            for item in rs.json():
+                ai = AI.from_json(AI.get_title_from_json(item), item["settings"])
+                ai.from_server = True
+                ai.slug = item["slug"]
+                result.append(ai)
+            return result
+        except requests.exceptions.ConnectionError as e:
+            return []
+        except RequestError:
+            return []
+
     def get_games(self, rules=None):
         if rules is not None:
             url = join(self.base_url, "lobby", rules)
@@ -428,9 +467,13 @@ class Game(object):
     def attach_ai(self, side, ai):
         self.ai_side = side
         url = join(self.base_url, "game", self.game_id, "attach", "ai", str(side))
-        ai_params = ai.params()
-        logging.info(_("AI parameters:\n{}").format(json.dumps(ai_params, indent=2)))
-        rq = {"ai": "default", "name": ai.title, "params": ai_params}
+        if ai.from_server:
+            logging.info(_("AI settings on server: {}").format(ai.slug))
+            rq = {"ai": "default", "name": ai.slug, "from_server": True}
+        else:
+            ai_params = ai.params()
+            logging.info(_("AI parameters:\n{}").format(json.dumps(ai_params, indent=2)))
+            rq = {"ai": "default", "name": ai.title, "params": ai_params}
         rs = self.post(url, json=rq)
         result = rs.json()
 

@@ -2,6 +2,7 @@
 from requests.exceptions import ConnectionError
 import webbrowser
 from PyQt5.QtWidgets import QDialog, QLineEdit
+import locale
 
 HCHECKERS_VERSION = "2023.10"
 
@@ -32,6 +33,10 @@ BUGTRACKER_URL = "https://github.com/portnov/hcheckers/issues"
 SHOW_ON_CLICK = 'on_click'
 SHOW_ALWAYS = 'always'
 NEVER_SHOW = 'never'
+
+def get_current_language():
+    lang = locale.getlocale()[0]
+    return lang.split('_')[0]
 
 class Piece(object):
     def __init__(self, kind, side):

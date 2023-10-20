@@ -170,7 +170,7 @@ class NewGameDialog(DialogBase):
 
         self.refresh_button = refresh = QPushButton(_("Refresh"), self)
         refresh.setIcon(QIcon.fromTheme("view-refresh"))
-        refresh.clicked.connect(self.lobby.fill)
+        refresh.clicked.connect(self._on_refresh)
         refresh.hide()
         lobby_hbox.addWidget(refresh)
 
@@ -211,9 +211,15 @@ class NewGameDialog(DialogBase):
             self.file_path.mask = self.preset_mask
             self.file_path.setPath(self.preset_file)
 
-    def _fill_ais(self, settings):
+    def _fill_ais(self, settings=None):
+        if settings is None:
+            settings = self.settings
         self.ai.clear()
-        self.ais = AI.list_from_settings(self.share_dir, settings)
+        ai_list = []
+        if self.client is not None:
+            ai_list.extend(self.client.get_ai_settings())
+        ai_list.extend(AI.list_from_settings(self.share_dir, settings))
+        self.ais = ai_list
         for idx, ai in enumerate(self.ais):
             self.ai.addItem(ai.title, idx)
         ai = settings.value("ai")
@@ -232,11 +238,15 @@ class NewGameDialog(DialogBase):
     def get_form_layout(self):
         return self.form_layout
 
+    def _on_refresh(self):
+        self.lobby.fill()
+        self._fill_ais()
+
     def _on_exit(self):
         self.done(EXIT)
 
     def _on_settings(self):
-        dialog = SettingsDialog(self.settings, self.share_dir, self)
+        dialog = SettingsDialog(self.settings, self.share_dir, parent=self, client=self.client)
         result = dialog.exec_()
         if result == QDialog.Accepted:
             self.settings.sync()

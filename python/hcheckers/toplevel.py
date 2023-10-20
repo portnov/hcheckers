@@ -838,7 +838,7 @@ class Checkers(QMainWindow):
         self._set_flip_board(self.flip_action.isChecked())
 
     def _on_settings(self):
-        dialog = SettingsDialog(self.settings, self.share_dir, self)
+        dialog = SettingsDialog(self.settings, self.share_dir, parent=self, client=self.game)
         result = dialog.exec_()
         if result == QDialog.Accepted:
             self.board.show_possible_moves = dialog.get_show_possible_moves()
