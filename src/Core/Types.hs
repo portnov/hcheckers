@@ -811,6 +811,7 @@ data AiConfig = AiConfig {
   , aiUpdateCacheMaxPieces :: Int
   , aiHtableSize :: Int
   , aiSettingsDirectory :: Maybe FilePath
+  , aiEnableCustomSettings :: Bool
   }
   deriving (Show, Typeable, Generic)
 
@@ -828,6 +829,7 @@ instance Default AiConfig where
         , aiUpdateCacheMaxPieces = 8
         , aiHtableSize = 1024
         , aiSettingsDirectory = Nothing
+        , aiEnableCustomSettings = True
       }
 
 data BattleServerConfig = BattleServerConfig {
@@ -897,6 +899,7 @@ data Error =
   | TimeExhaused
   | UnknownRules
   | InvalidBoard String
+  | CustomAiSettingsDisabled
   | Unhandled String
   deriving (Eq, Show, Typeable, Generic)
 

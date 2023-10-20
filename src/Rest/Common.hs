@@ -54,6 +54,11 @@ error400 message = do
   json $ object ["error" .= message]
   status status400
 
+error403 :: T.Text -> Rest ()
+error403 message = do
+  json $ object ["error" .= message]
+  status status403
+
 transformError :: Error -> Rest ()
 transformError (Unhandled err) = do
   error400 $ T.pack err
@@ -72,6 +77,8 @@ transformError (InvalidGameStatus expected actual) = do
       "expected" .= expected,
       "actual" .= actual
     ]
+transformError CustomAiSettingsDisabled = do
+  error403 "custom ai settings disabled"
 transformError err = do
   error400 $ T.pack $ show err
 

@@ -216,7 +216,11 @@ selectAi (AttachAiRq impl name useServerParams params) rules =
       case mbSettings of
         Nothing -> return Nothing
         Just personality -> return $ go (aipSettings personality) supportedAis
-    else return $ go params supportedAis
+    else do
+      enableCustomSetings <- asks (aiEnableCustomSettings . gcAiConfig . csConfig)
+      if enableCustomSetings
+        then return $ go params supportedAis
+        else throwError CustomAiSettingsDisabled
   where
     go :: Value -> [(T.Text, SomeRules -> SomeAi)] -> Maybe (SomeAi, UserName)
     go params [] = Nothing

@@ -474,8 +474,13 @@ class Game(object):
             ai_params = ai.params()
             logging.info(_("AI parameters:\n{}").format(json.dumps(ai_params, indent=2)))
             rq = {"ai": "default", "name": ai.title, "params": ai_params}
-        rs = self.post(url, json=rq)
-        result = rs.json()
+        try:
+            rs = self.post(url, json=rq)
+            result = rs.json()
+            return result
+        except RequestError as e:
+            self.game_id = None
+            raise e
 
     def run_game(self):
         url = join(self.base_url, "game", self.game_id, "run")

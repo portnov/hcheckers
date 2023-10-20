@@ -908,6 +908,8 @@ class Checkers(QMainWindow):
                 expected = json.get("expected", "?")
                 actual = json.get("actual", "?")
                 message = _("Status of current game is unsuitable for this operation. Game status is {}; required status is {}").format(actual, expected)
+            elif err_msg == "custom ai settings disabled":
+                message = _("Custom AI settings are disabled on server side")
             else:
                 message = message_format.format(rs.url, rs.status_code, err_msg)
 
