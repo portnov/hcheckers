@@ -65,6 +65,12 @@ def print_history(notation_by_label, history):
         move_str = show_move(notation_by_label, move)
         print(f"{side}: {move_str}")
 
+def check_result(messages):
+    for msg in messages:
+        if "result" in msg:
+            return msg["result"]
+    return None
+
 SERVER_URL = "http://localhost:8864"
 
 parser = argparse.ArgumentParser(description = "Run computer-vs-computer game at HCheckers server")
@@ -92,9 +98,12 @@ if args.input:
         print("Unsupported initial position file format")
         sys.exit(1)
 
+me = "spectator"
+
 game_id, first_side = game.new_game(rules=args.rules, **kwargs)
 game.attach_ai(FIRST, ai1)
 game.attach_ai(SECOND, ai2)
+game.spectate(me)
 game.run_game()
 game.run_game_loop()
 
@@ -103,22 +112,17 @@ notation_by_label = dict()
 for label, label_notation in notation:
     notation_by_label[Label.fromJson(label)] = label_notation
 
-prev_len = 1
 while True:
-    rs = game.get_state()
-    board = Game.parse_board(rs['board'])
-    history = game.get_history()
-    new_len = len(history)
-    if new_len > prev_len:
-        print_board(size, board)
-        print("----")
-        prev_len = new_len
-    else:
-        pass
+    board, messages = game.poll(me)
+    for msg in messages:
+        if "move" in msg:
+            board = Game.parse_board(msg["board"])
+            print_board(size, board)
+            print("-----")
     #print_history(notation_by_label, history)
-    status = rs['status']
-    if status != "Running":
-        print(status)
+    result = check_result(messages)
+    if result is not None:
+        print(result)
         pdn = game.get_pdn()
         with open(args.output, 'w') as f:
             f.write(pdn)

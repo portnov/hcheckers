@@ -474,6 +474,7 @@ class Game(object):
         url = join(self.base_url, "game", self.game_id, "attach", name, str(side))
         rs = self.post(url)
         result = rs.json()
+        return result
 
     def attach_ai(self, side, ai):
         self.ai_side = side
@@ -492,6 +493,12 @@ class Game(object):
         except RequestError as e:
             self.game_id = None
             raise e
+    
+    def spectate(self, user_name):
+        url = join(self.base_url, "game", self.game_id, "attach", user_name, "spectate")
+        rs = self.post(url)
+        result = rs.json()
+        return result
 
     def run_game(self):
         url = join(self.base_url, "game", self.game_id, "run")
@@ -542,8 +549,10 @@ class Game(object):
         result = rs.json()
         return Game.parse_board(result["response"])
     
-    def poll(self):
-        url = join(self.base_url, "poll", self.user_name)
+    def poll(self, user_name=None):
+        if user_name is None:
+            user_name = self.user_name
+        url = join(self.base_url, "poll", user_name)
         rs = self.get(url)
         result = rs.json()
         messages = result["response"]
