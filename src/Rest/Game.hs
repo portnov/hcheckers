@@ -27,26 +27,24 @@ import           Formats.Pdn
 import Rest.Common
 
 boardRq :: SupervisorState -> SomeRules -> NewGameRq -> Rest (Maybe Side, [HistoryRecord], Maybe BoardRep)
-boardRq _ _ (NewGameRq { rqBoard = Just br, rqFen = Nothing, rqPdn = Nothing }) =
+boardRq _ _ (NewGameRq { rqBoard = ExplicitBoard br }) =
   return $ (Nothing, [], Just br)
-boardRq _ rules (NewGameRq { rqBoard = Nothing, rqFen = Just fen, rqPdn = Nothing })
-  = case parseFen rules fen of
+boardRq _ rules (NewGameRq { rqBoard = FenBoard fen }) =
+  case parseFen rules fen of
     Left  err        -> raise $ InvalidBoard err
     Right (side, br) -> return (Just side, [], Just br)
-boardRq rnd rules (NewGameRq { rqBoard = Nothing, rqFen = Nothing, rqPdn = Just pdn })
-  = case parsePdn (Just rules) pdn of
+boardRq rnd rules (NewGameRq { rqBoard = PdnBoard pdn }) =
+  case parsePdn (Just rules) pdn of
     Left  err -> raise $ InvalidBoard err
     Right gr  ->
       case loadPdn rnd gr of
         Left err -> raise err
         Right (history, board) -> return (Nothing, history, Just $ boardRep board)
-boardRq _ _ (NewGameRq { rqPrevBoard = Just gameId }) = do
+boardRq _ _ (NewGameRq { rqBoard = PrevGameBoard gameId }) = do
   board <- liftCheckers_ $ getInitialBoard gameId
   return (Nothing, [], Just $ boardRep board)
-boardRq _ _ (NewGameRq { rqBoard = Nothing, rqFen = Nothing, rqPdn = Nothing }) =
+boardRq _ _ (NewGameRq { rqBoard = DefaultBoard }) =
   return (Nothing, [], Nothing)
-boardRq _ _ _ =
-  raise $ InvalidBoard "only one of fields must be filled: board, fen, pdn"
 
 parsePdnInfo :: PdnInfoRq -> Rest PdnInfo
 parsePdnInfo (PdnInfoRq rname text) = do

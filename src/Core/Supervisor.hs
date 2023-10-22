@@ -62,14 +62,19 @@ import Rules.Czech
 import Rules.Turkish
 import Rules.Armenian
 
+data BoardRq =
+    DefaultBoard
+  | ExplicitBoard BoardRep
+  | FenBoard T.Text
+  | PdnBoard T.Text
+  | PrevGameBoard GameId
+  deriving (Eq, Show, Generic)
+
 -- | Request for new game creation
 data NewGameRq = NewGameRq {
     rqRules :: String         -- ^ Rules identifier
   , rqRulesParams :: Value    -- ^ Rules parameters (no rules support parameters atm)
-  , rqBoard :: Maybe BoardRep -- ^ Initial board, Nothing for default one
-  , rqFen :: Maybe T.Text     -- ^ Initial board in FEN notation
-  , rqPdn :: Maybe T.Text     -- ^ Initial board in PDN notation
-  , rqPrevBoard :: Maybe GameId
+  , rqBoard :: BoardRq
   }
   deriving (Eq, Show, Generic)
 
@@ -169,8 +174,17 @@ supportedRules =
 
 -- | Select rules by client request.
 selectRules :: NewGameRq -> Maybe SomeRules
-selectRules (NewGameRq {rqRules=name, rqRulesParams=params, rqPdn=mbPdn}) =
-    fromPdn mbPdn `mplus` go supportedRules
+selectRules (NewGameRq {rqRules=name, rqRulesParams=params, rqBoard = (PdnBoard pdnText)}) =
+    fromPdn pdnText
+  where
+    -- extract rules (GameType tag) from PDN
+    fromPdn :: T.Text -> Maybe SomeRules
+    fromPdn text =
+      case parsePdn Nothing text of
+        Left _ -> Nothing
+        Right gr -> rulesFromTags (grTags gr)
+selectRules (NewGameRq {rqRules=name, rqRulesParams=params}) = 
+    go supportedRules
   where
     -- extract rules from client request field
     go :: [(String, SomeRules)] -> Maybe SomeRules
@@ -179,22 +193,11 @@ selectRules (NewGameRq {rqRules=name, rqRulesParams=params, rqPdn=mbPdn}) =
       | key == name = Just $ SomeRules $ updateRules rules params
       | otherwise = go other
 
-    -- extract rules (GameType tag) from PDN
-    fromPdn :: Maybe T.Text -> Maybe SomeRules
-    fromPdn Nothing = Nothing
-    fromPdn (Just text) =
-      case parsePdn Nothing text of
-        Left _ -> Nothing
-        Right gr -> rulesFromTags (grTags gr)
-
 selectRules' :: String -> Maybe SomeRules
 selectRules' name = selectRules $ NewGameRq {
     rqRules = name,
     rqRulesParams = Null,
-    rqPdn = Nothing,
-    rqBoard = Nothing,
-    rqFen = Nothing,
-    rqPrevBoard = Nothing
+    rqBoard = DefaultBoard
   }
 
 withRules :: String -> (forall rules. GameRules rules => rules -> a) -> a

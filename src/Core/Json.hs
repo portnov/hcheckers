@@ -2,6 +2,7 @@
 module Core.Json where
 
 import Control.Concurrent
+import Control.Applicative ((<|>))
 import Data.Aeson
 import Data.Aeson.Types
 import qualified Data.Aeson.KeyMap as KM
@@ -118,14 +119,19 @@ instance ToJSON Game where
 
 -- instance FromJSON Player
 
+instance FromJSON BoardRq where
+  parseJSON = withObject "Board" $ \v ->
+        (ExplicitBoard <$> v .: "board")
+    <|> (FenBoard <$> v .: "fen")
+    <|> (PdnBoard <$> v .: "pdn")
+    <|> (PrevGameBoard <$> v .: "previous_board")
+    <|> pure DefaultBoard
+
 instance FromJSON NewGameRq where
-  parseJSON = withObject "NewGame" $ \v -> NewGameRq
+  parseJSON o = (withObject "NewGame" $ \v -> NewGameRq
     <$> v .: "rules"
     <*> v .:? "params" .!= Null
-    <*> v .:? "board"
-    <*> v .:? "fen"
-    <*> v .:? "pdn"
-    <*> v .:? "previous_board"
+    <*> parseJSON o) o
 
 instance FromJSON AttachAiRq where
   parseJSON = withObject "AttachAi" $ \v -> AttachAiRq
