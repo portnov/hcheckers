@@ -266,6 +266,7 @@ class GameSettings(object):
         self.fen_path = None
         self.pdn_path = None
         self.previous_board_game = None
+        self.use_random_board_preset = False
 
 class Game(object):
     def __init__(self, url=None, proxy_usage=PROXY_SYSTEM, proxy_address=None):
@@ -386,11 +387,13 @@ class Game(object):
         result = rs.json()["response"]
         return result
 
-    def new_game(self, rules, board=None, fen_path=None, pdn_path=None, previous_board_game = None):
+    def new_game(self, rules, board=None, fen_path=None, pdn_path=None, previous_board_game = None, use_random_board_preset = False):
         url = join(self.base_url, "game", "new")
         rq = {"rules": rules}
         if board is not None:
             rq["board"] = board
+        elif use_random_board_preset:
+            rq["use_random_board_preset"] = True
         elif previous_board_game is not None:
             rq["previous_board"] = previous_board_game
         elif fen_path is not None:
@@ -511,10 +514,10 @@ class Game(object):
         result = rs.json()
         return result
 
-    def start_new_game(self, user_name, rules="russian", board=None, fen_path=None, pdn_path=None, previous_board_game = None,  user_turn_first=True, ai=None):
+    def start_new_game(self, user_name, rules="russian", board=None, fen_path=None, pdn_path=None, previous_board_game = None, use_random_board_preset=False, user_turn_first=True, ai=None):
         if ai is None:
             ai = AI()
-        game_id, first_side = self.new_game(rules, board=board, fen_path=fen_path, pdn_path=pdn_path, previous_board_game = previous_board_game)
+        game_id, first_side = self.new_game(rules, board=board, fen_path=fen_path, pdn_path=pdn_path, previous_board_game = previous_board_game, use_random_board_preset=use_random_board_preset)
         if user_turn_first:
             self.register_user(user_name, FIRST)
             self.attach_ai(SECOND, ai)

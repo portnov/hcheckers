@@ -40,6 +40,9 @@ boardRq rnd rules (NewGameRq { rqBoard = PdnBoard pdn }) =
       case loadPdn rnd gr of
         Left err -> raise err
         Right (history, board) -> return (Nothing, history, Just $ boardRep board)
+boardRq _ rules (NewGameRq { rqBoard = RandomPreset }) = do
+  board <- liftCheckers_ $ getRandomInitialBoard  rules
+  return (Nothing, [], board)
 boardRq _ _ (NewGameRq { rqBoard = PrevGameBoard gameId }) = do
   board <- liftCheckers_ $ getInitialBoard gameId
   return (Nothing, [], Just $ boardRep board)

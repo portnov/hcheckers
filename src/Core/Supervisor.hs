@@ -21,6 +21,7 @@ import Data.Maybe
 import Data.List
 import qualified Data.Map as M
 import qualified Data.Text as T
+import qualified Data.Text.IO as TIO
 import Data.Array.IArray as A
 import qualified Data.ByteString as B
 import Data.Text.Format.Heavy
@@ -29,7 +30,7 @@ import Data.Aeson hiding (Error)
 import Data.Dynamic
 import Data.Store
 import GHC.Generics
-import System.Random hiding (uniform)
+import System.Random hiding (uniform, uniformR)
 import System.Log.Heavy
 import System.Log.Heavy.TH
 import System.Log.Heavy.Format
@@ -68,6 +69,7 @@ data BoardRq =
   | FenBoard T.Text
   | PdnBoard T.Text
   | PrevGameBoard GameId
+  | RandomPreset
   deriving (Eq, Show, Generic)
 
 -- | Request for new game creation
@@ -276,6 +278,52 @@ newGame r@(SomeRules rules) firstSide mbBoardRep = do
 setHistory :: GameId -> [HistoryRecord] -> Checkers ()
 setHistory gameId history = 
   withGame gameId $ \_ -> setGameHistory history
+
+locateDefaultInitialBoardsDirectory :: IO (Maybe FilePath)
+locateDefaultInitialBoardsDirectory = do
+  home <- getEnv "HOME"
+  let homePath = home </> ".config" </> "hcheckers" </> "initial_positions"
+  ex <- doesDirectoryExist homePath
+  if ex
+    then return $ Just homePath
+    else do
+      let etcPath = "/etc" </> "hcheckers" </> "initial_positions"
+      ex <- doesDirectoryExist etcPath
+      if ex
+        then return $ Just etcPath
+        else return Nothing
+
+getInitialBoardsDirectory :: Checkers (Maybe FilePath)
+getInitialBoardsDirectory = do
+  mbConfigPath <- asks (gcInitialBoardsDirectory . csConfig)
+  case mbConfigPath of
+    Just path -> return (Just path)
+    Nothing -> liftIO locateDefaultInitialBoardsDirectory
+
+getInitialBoards :: SomeRules -> Checkers [FilePath]
+getInitialBoards (SomeRules rules) = do
+  mbRootPath <- getInitialBoardsDirectory
+  case mbRootPath of
+    Nothing -> return []
+    Just rootPath -> do
+      let directory = rootPath </> rulesName rules </> "fen"
+      paths <- liftIO $ glob (directory </> "*.fen")
+      return paths
+
+getRandomInitialBoard :: SomeRules -> Checkers (Maybe BoardRep)
+getRandomInitialBoard rules = do
+  boardPaths <- getInitialBoards rules
+  if null boardPaths
+    then return Nothing
+    else do
+      let n = length boardPaths
+      idx <- liftIO $ (withSystemRandom . asGenIO) $ \gen -> uniformR (0, n-1) gen
+      let boardPath = boardPaths !! idx
+      $info "Using initial board from preset: {}" (Single boardPath)
+      fenText <- liftIO $ TIO.readFile boardPath
+      case parseFen rules fenText of
+        Left err -> throwError $ InvalidBoard err
+        Right (_, board) -> return $ Just board
 
 locateDefaultAiSettingsDirectory :: IO (Maybe FilePath)
 locateDefaultAiSettingsDirectory = do

@@ -22,6 +22,7 @@ MANUAL_BOARD = 2
 LOAD_FEN = 3
 LOAD_PDN = 4
 PREVIOUS_BOARD = 5
+RANDOM_PRESET = 6
 
 FEN_MASK = "FEN notation (*.fen)"
 PDN_MASK = "Portable Draughts Notation (*.pdn)"
@@ -131,6 +132,7 @@ class NewGameDialog(DialogBase):
         self.board_type.addItem(_("Use initial board of previous game"), PREVIOUS_BOARD)  # 2
         self.board_type.addItem(_("Load initial board from FEN file"), LOAD_FEN)          # 3
         self.board_type.addItem(_("Load initial board from PDN file"), LOAD_PDN)          # 4
+        self.board_type.addItem(_("Use random initial board preset"), RANDOM_PRESET)      # 5
         layout.addRow(_("Initial board type"), self.board_type)
 
         self.file_path = FileSelectWidget(self)
@@ -339,6 +341,8 @@ class NewGameDialog(DialogBase):
             game.pdn_path = self.file_path.path()
         elif board_type == PREVIOUS_BOARD:
             game.previous_board_game = self.lobby.get_game_id()
+        elif board_type == RANDOM_PRESET:
+            game.use_random_board_preset = True
 
         game.ai = self.ais[self.ai.currentIndex()]
 

@@ -453,6 +453,7 @@ class HasSideNotation g where
 -- | Interface of game rules
 class (Typeable g, Show g, HasBoardOrientation g, HasSideNotation g, HasTopology g, VectorEvaluator (EvaluatorForRules g), ToJSON (EvaluatorForRules g)) => GameRules g where
   type EvaluatorForRules g
+  rulesName :: g -> String
   -- | Initial board with initial pieces position
   initBoard :: SupervisorState -> g -> Board
   -- | Size of board used
@@ -472,7 +473,6 @@ class (Typeable g, Show g, HasBoardOrientation g, HasSideNotation g, HasTopology
 
   updateRules :: g -> Value -> g
   getGameResult :: g -> GameState -> Board -> Side -> Maybe GameResult
-  rulesName :: g -> String
   pdnId :: g -> String
 
   getBackDirections :: g -> [PlayerDirection]
@@ -854,6 +854,7 @@ data GeneralConfig = GeneralConfig {
   , gcMetricsPort :: Int
   , gcLogFile :: FilePath
   , gcLogLevel :: Level
+  , gcInitialBoardsDirectory :: Maybe FilePath
   , gcAiConfig :: AiConfig
   , gcBattleServerConfig :: BattleServerConfig
   }
@@ -868,6 +869,7 @@ instance Default GeneralConfig where
     gcMetricsPort = 8000,
     gcLogFile = "hcheckers.log",
     gcLogLevel = info_level,
+    gcInitialBoardsDirectory = Nothing,
     gcAiConfig = def,
     gcBattleServerConfig = def
   }

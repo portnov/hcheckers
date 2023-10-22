@@ -14,7 +14,7 @@ import Core.Types
 import Core.Version
 import Core.Logging
 import Core.Supervisor
-import Formats.Types
+import Formats.Types hiding (Parser)
 
 instance ToJSON PlayerDirection where
 
@@ -125,6 +125,7 @@ instance FromJSON BoardRq where
     <|> (FenBoard <$> v .: "fen")
     <|> (PdnBoard <$> v .: "pdn")
     <|> (PrevGameBoard <$> v .: "previous_board")
+    <|> (((v .: "use_random_board_preset") :: Parser Bool) >> pure RandomPreset)
     <|> pure DefaultBoard
 
 instance FromJSON NewGameRq where
@@ -248,6 +249,7 @@ instance FromJSON GeneralConfig where
     <*> v .:? "metrics_port" .!= (gcMetricsPort def)
     <*> v .:? "log_path" .!= (gcLogFile def)
     <*> v .:? "log_level" .!= (gcLogLevel def)
+    <*> v .:? "initial_boards_directory" .!= (gcInitialBoardsDirectory def)
     <*> v .:? "ai" .!= (gcAiConfig def)
     <*> v .:? "battle_server" .!= (gcBattleServerConfig def)
 
