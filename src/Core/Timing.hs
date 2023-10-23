@@ -59,6 +59,14 @@ onStartGame now = withTimingConfig $ \config -> do
   modifyTiming First $ \st -> st {tsTimeLeft = time, tsTimerStarted = now}
   modifyTiming Second $ \st -> st {tsTimeLeft = time, tsTimerStarted = now}
 
+updateTimeLeft :: TimingConfig -> TimingState -> TimeSpec -> Seconds
+updateTimeLeft config@(TimingConfig {tcBaseTime = (TotalTime {})}) st delta =
+    tsTimeLeft st - sec delta + tcTimePerMove config
+updateTimeLeft config st delta =
+    if tsMovesDone st == tptInitMoves (tcBaseTime config)
+      then tptAdditionalTime (tcBaseTime config) - sec delta
+      else tsTimeLeft st - sec delta + tcTimePerMove config
+
 afterMove :: Side -> TimeSpec -> GameM Bool
 afterMove side now = withTimingConfig' True $ \config -> do
   -- end of `side` move
@@ -69,8 +77,8 @@ afterMove side now = withTimingConfig' True $ \config -> do
     then return False
     else do
       modifyTiming side $ \st ->
-        let timeLeft = tsTimeLeft st - (sec delta) + tcTimePerMove config
-        in  st {tsTimeLeft = timeLeft}
+        let timeLeft = updateTimeLeft config st delta
+        in  st {tsTimeLeft = timeLeft, tsMovesDone = tsMovesDone st + 1}
       -- start of `opposite side` move
       modifyTiming (opposite side) $ \st -> st {tsTimerStarted = now}
       r <- getTiming side

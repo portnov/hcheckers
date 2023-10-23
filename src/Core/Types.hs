@@ -685,11 +685,12 @@ type Seconds = Int64
 data TimingState = TimingState {
       tsTimerStarted :: !TimeSpec
     , tsTimeLeft :: !Seconds
+    , tsMovesDone :: Int
   }
   deriving (Eq, Show)
 
 instance Default TimingState where
-  def = TimingState (TimeSpec 0 0) 0
+  def = TimingState (TimeSpec 0 0) 0 0
 
 data Game = Game {
     getGameId :: GameId
