@@ -116,14 +116,17 @@ class NewGameDialog(DialogBase):
 
         self.timing = QComboBox()
         self.timing.addItem(_("Do not use"), NO_TIMING)
+        have_timing_options = False
         if self.client is not None:
             for slug, title in client.get_timing_options():
                 self.timing.addItem(title, slug)
+                have_timing_options = True
         timing = settings.value("timing")
         if timing is not None:
             idx = self.timing.findData(timing)
             self.timing.setCurrentIndex(idx)
-        layout.addRow(_("Time control"), self.timing)
+        if have_timing_options:
+            layout.addRow(_("Time control"), self.timing)
 
         self.user_name = MandatoryField(_("User name"), QLineEdit(self))
         self.user_name.widget.setText(getpass.getuser())
