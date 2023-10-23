@@ -14,6 +14,7 @@ module Core.Types where
 import Control.Monad.Reader
 import Control.Monad.Catch
 import Control.Monad.Except
+import Control.Monad.State
 import Control.Monad.Metrics as Metrics
 import Control.Concurrent
 import Control.Concurrent.STM
@@ -679,6 +680,17 @@ data GamePlayerStats = GamePlayerStats {
 instance Default GamePlayerStats where
   def = GamePlayerStats 0 0
 
+type Seconds = Int64
+
+data TimingState = TimingState {
+      tsTimerStarted :: !TimeSpec
+    , tsTimeLeft :: !Seconds
+  }
+  deriving (Eq, Show)
+
+instance Default TimingState where
+  def = TimingState (TimeSpec 0 0) 0
+
 data Game = Game {
     getGameId :: GameId
   , gInitialBoard :: Board
@@ -691,6 +703,9 @@ data Game = Game {
   , gMsgbox2 :: TChan Notify
   , gStats1 :: GamePlayerStats
   , gStats2 :: GamePlayerStats
+  , gTimingConfig :: Maybe TimingConfig
+  , gTiming1 :: !TimingState
+  , gTiming2 :: !TimingState
   , gSpectatorsMsgBox :: M.Map UserName (TChan Notify)
   }
 
@@ -755,6 +770,11 @@ data Notify =
       nDestination :: Side
     , nSource :: Side
     , nAccepted :: Bool
+    }
+  | TimeLeftNotify {
+      nDestination :: Side
+    , nFirstTimeLeft :: Seconds
+    , nSecondTimeLeft :: Seconds
     }
   | LogNotify {
       nDestination :: Side
@@ -846,6 +866,22 @@ instance Default BattleServerConfig where
           , bsPort = 8865
         }
 
+data BaseTimingConfig =
+    TotalTime Seconds                  -- ^ Total time per whole game, i.e. 45 mins per game
+  | TwoPartsTime {
+        tptInitTime :: Seconds         -- ^ Some time for first N moves in the game
+      , tptInitMoves :: Int            -- ^ Number of first moves to which previous field refers
+      , tptAdditionalTime :: Seconds   -- ^ Time for the rest of the game after first N moves
+    }
+  deriving (Eq, Show)
+
+data TimingConfig = TimingConfig {
+    tcName :: M.Map T.Text T.Text  -- ^ Name translated to different languages
+  , tcBaseTime :: BaseTimingConfig -- ^ Time given for the game initially
+  , tcTimePerMove :: Seconds       -- ^ Time added for each move
+  }
+  deriving (Eq, Show)
+
 data GeneralConfig = GeneralConfig {
     gcHost :: T.Text
   , gcPort :: Int
@@ -855,6 +891,7 @@ data GeneralConfig = GeneralConfig {
   , gcLogFile :: FilePath
   , gcLogLevel :: Level
   , gcInitialBoardsDirectory :: Maybe FilePath
+  , gcTimingOptionsFile :: Maybe FilePath
   , gcAiConfig :: AiConfig
   , gcBattleServerConfig :: BattleServerConfig
   }
@@ -870,6 +907,7 @@ instance Default GeneralConfig where
     gcLogFile = "hcheckers.log",
     gcLogLevel = info_level,
     gcInitialBoardsDirectory = Nothing,
+    gcTimingOptionsFile = Nothing,
     gcAiConfig = def,
     gcBattleServerConfig = def
   }
@@ -899,9 +937,12 @@ data Error =
   | UserNameAlreadyUsed
   | InvalidGameStatus GameStatus GameStatus -- ^ Expected, actual
   | TimeExhaused
+  | PlayerTimeExhausted
   | UnknownRules
   | InvalidBoard String
   | CustomAiSettingsDisabled
+  | NoSuchTimingConfig
+  | InvalidTimingConfig String
   | Unhandled String
   deriving (Eq, Show, Typeable, Generic)
 
@@ -917,6 +958,9 @@ instance MonadFail Checkers where
   fail msg = throwError (Unhandled msg)
 
 type Rest a = ActionT Error Checkers a
+
+-- | A monad to track game's state
+type GameM a = ExceptT Error (State Game) a
 
 runCheckersT :: Checkers a -> CheckersState -> IO (Either Error a)
 runCheckersT actions st = runReaderT (runExceptT $ runCheckers actions) st

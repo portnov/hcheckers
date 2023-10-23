@@ -13,7 +13,7 @@ import System.Log.Heavy
 import Core.Types
 import Core.Version
 import Core.Logging
-import Core.Supervisor
+import Rest.Types
 import Formats.Types hiding (Parser)
 
 instance ToJSON PlayerDirection where
@@ -132,6 +132,7 @@ instance FromJSON NewGameRq where
   parseJSON o = (withObject "NewGame" $ \v -> NewGameRq
     <$> v .: "rules"
     <*> v .:? "params" .!= Null
+    <*> v .:? "timing"
     <*> parseJSON o) o
 
 instance FromJSON AttachAiRq where
@@ -169,6 +170,8 @@ instance ToJSON Notify where
     object ["to_side" .= to, "from_side" .= from, "draw_accepted" .= accepted]
   toJSON (LogNotify to level src text) =
     object ["to_side" .= to, "source" .= src, "level" .= level, "message" .= text]
+  toJSON (TimeLeftNotify to firstLeft secondLeft) =
+    object ["to_side" .= to, "time_left" .= [firstLeft, secondLeft]]
 
 instance ToJSON RsPayload where
   toJSON (NewGameRs id side) = object ["id" .= id, "turn" .= side]
@@ -240,6 +243,35 @@ instance FromJSON BattleServerConfig where
     <*> v .:? "host" .!= bsHost def
     <*> v .:? "port" .!= bsPort def
 
+instance FromJSON BaseTimingConfig where
+  parseJSON = withObject "BaseTiming" $ \v ->
+        (TotalTime <$> v .: "seconds_per_game")
+    <|> (TwoPartsTime
+         <$> v .: "initial_seconds"
+         <*> v .: "initial_moves"
+         <*> v .: "additional_seconds"
+        )
+
+instance ToJSON BaseTimingConfig where
+  toJSON (TotalTime seconds) = object ["seconds_per_game" .= seconds]
+  toJSON (TwoPartsTime initSeconds initMoves addSeconds) =
+    object ["initial_seconds" .= initSeconds, "initial_moves" .= initMoves, "additional_seconds" .= addSeconds]
+
+instance FromJSON TimingConfig where
+  parseJSON o = (withObject "TimingConfig" $ \v -> TimingConfig
+    <$> v .: "name"
+    <*> parseJSON o
+    <*> v .:? "seconds_per_move" .!= 0) o
+
+mergeValue :: Value -> Value -> Value
+mergeValue (Object o1) (Object o2) = Object (KM.union o1 o2)
+mergeValue _ _ = error "invalid values to be merged"
+
+instance ToJSON TimingConfig where
+  toJSON c =
+      object ["name" .= tcName c, "seconds_per_move" .= tcTimePerMove c]
+    `mergeValue` toJSON (tcBaseTime c)
+
 instance FromJSON GeneralConfig where
   parseJSON = withObject "GeneralConfig" $ \v -> GeneralConfig
     <$> v .:? "host" .!= (gcHost def)
@@ -250,6 +282,7 @@ instance FromJSON GeneralConfig where
     <*> v .:? "log_path" .!= (gcLogFile def)
     <*> v .:? "log_level" .!= (gcLogLevel def)
     <*> v .:? "initial_boards_directory" .!= (gcInitialBoardsDirectory def)
+    <*> v .:? "timing" .!= (gcTimingOptionsFile def)
     <*> v .:? "ai" .!= (gcAiConfig def)
     <*> v .:? "battle_server" .!= (gcBattleServerConfig def)
 

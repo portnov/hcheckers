@@ -24,6 +24,7 @@ import           Core.Json                      ( ) -- import instances only
 import           Formats.Types
 import           Formats.Fen
 import           Formats.Pdn
+import Rest.Types
 import Rest.Common
 
 boardRq :: SupervisorState -> SomeRules -> NewGameRq -> Rest (Maybe Side, [HistoryRecord], Maybe BoardRep)
@@ -76,7 +77,7 @@ restServer shutdownVar = do
                  liftIO $ atomically $ readTVar sup
         (mbFirstSide, history, board) <- boardRq rnd rules rq
         let firstSide = fromMaybe First mbFirstSide
-        gameId <- liftCheckers_ $ newGame rules firstSide board
+        gameId <- liftCheckers_ $ newGame rules firstSide board (rqTimingControl rq)
         liftCheckers_ $ setHistory gameId history
         liftCheckers gameId $ $info
           "Created new game #{}; First turn: {}; initial board: {}"
@@ -241,10 +242,31 @@ restServer shutdownVar = do
       Just personality -> json personality
       Nothing -> status status404
 
+  get "/timing" $ do
+    options <- liftCheckers_ getTimingOptions
+    json options
+
+  get "/timing/:slug" $ do
+    slug <- param "slug"
+    config <- liftCheckers_ $ getTimingConfig slug
+    json config
+
   get "/poll/:name" $ do
     name     <- param "name"
     messages <- liftCheckers_ $ getMessages name
-    json $ Response (PollRs messages) []
+    mbGame <- liftCheckers_ $ getGameByUser' name Running
+    timeMessages <- case mbGame of
+                      Nothing -> return []
+                      Just game -> do
+                        let gameId = getGameId game
+                        mbTiming <- liftCheckers gameId $ getTimeLeft gameId
+                        case mbTiming of
+                          Just (firstLeft, secondLeft) -> do
+                            side <- liftCheckers gameId $ getSideByUser gameId name
+                            return [TimeLeftNotify side firstLeft secondLeft]
+                          Nothing -> return []
+    let messages' = messages ++ timeMessages
+    json $ Response (PollRs messages') []
 
   get "/poll/move/:name/:id" $ do
     sessionId <- param "id"

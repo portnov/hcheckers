@@ -27,9 +27,9 @@ import qualified Data.ByteString as B
 import Data.Text.Format.Heavy
 import Data.Default
 import Data.Aeson hiding (Error)
+import Data.Yaml
 import Data.Dynamic
 import Data.Store
-import GHC.Generics
 import System.Random hiding (uniform, uniformR)
 import System.Log.Heavy
 import System.Log.Heavy.TH
@@ -40,11 +40,16 @@ import System.Environment
 import System.FilePath
 import System.Directory
 import System.FilePath.Glob (glob)
+import System.Clock
 
 import Core.Types
 import Core.Board
 import Core.BoardMap
 import Core.Game
+import Core.Json () -- import instances only
+import Core.Config
+import qualified Core.Timing as Timing
+import Rest.Types
 import AI.AlphaBeta () -- import instances only
 import AI.AlphaBeta.Types
 import Formats.Types
@@ -62,71 +67,6 @@ import Rules.Diagonal
 import Rules.Czech
 import Rules.Turkish
 import Rules.Armenian
-
-data BoardRq =
-    DefaultBoard
-  | ExplicitBoard BoardRep
-  | FenBoard T.Text
-  | PdnBoard T.Text
-  | PrevGameBoard GameId
-  | RandomPreset
-  deriving (Eq, Show, Generic)
-
--- | Request for new game creation
-data NewGameRq = NewGameRq {
-    rqRules :: String         -- ^ Rules identifier
-  , rqRulesParams :: Value    -- ^ Rules parameters (no rules support parameters atm)
-  , rqBoard :: BoardRq
-  }
-  deriving (Eq, Show, Generic)
-
--- | Request for attaching AI to the game.
--- Parameter is identifier of AI implementation.
--- Currently there is only one, named 'default'.
-data AttachAiRq = AttachAiRq {
-    airqImplementation :: T.Text
-  , airqPlayerName :: UserName
-  , airqParamsFromServer :: Bool
-  , airqParams :: Value
-  }
-  deriving (Eq, Show, Generic)
-
-data PdnInfoRq = PdnInfoRq String T.Text
-  deriving (Eq, Show, Generic)
-
--- | Response to the client.
--- Contains payload and list of notification messages.
-data Response = Response RsPayload [Notify]
-  deriving (Eq, Show, Generic)
-
--- | Response payload
-data RsPayload =
-    NewGameRs GameId Side
-  | RegisterUserRs
-  | AttachAiRs
-  | AttachSpectatorRs
-  | RunGameRs
-  | RunGameLoopRs
-  | PollRs [Notify]
-  | LobbyRs [Game]
-  | NotationRs BoardSize BoardOrientation [(Label, Notation)] SideNotation
-  | TopologyRs BoardTopology
-  | StateRs BoardRep GameStatus Side
-  | PdnInfoRs PdnInfo
-  | HistoryRs [HistoryRecordRep]
-  | HistoryBoardRs BoardRep
-  | HistoryMoveRs MoveRep BoardRep BoardRep
-  | PossibleMovesRs [MoveRep]
-  | MoveRs BoardRep (Maybe AiSessionId)
-  | PollMoveRs AiSessionStatus
-  | AiHintRs Int AiSessionId
-  | StopAiRs
-  | UndoRs Int BoardRep
-  | CapitulateRs
-  | DrawRqRs (Maybe AiSessionId)
-  | DrawAcceptRs Bool
-  | ShutdownRs
-  deriving (Eq, Show, Generic)
 
 newRandomTable :: IO RandomTable
 newRandomTable = do
@@ -199,6 +139,7 @@ selectRules' :: String -> Maybe SomeRules
 selectRules' name = selectRules $ NewGameRq {
     rqRules = name,
     rqRulesParams = Null,
+    rqTimingControl = Nothing,
     rqBoard = DefaultBoard
   }
 
@@ -262,18 +203,31 @@ initAiStorage (SomeRules rules) (SomeAi ai) = do
 --           st {ssAiStorages = M.insert key (toDyn storage) (ssAiStorages st)}
 --   return ()
 
+getTimingConfig :: T.Text -> Checkers TimingConfig
+getTimingConfig name = do
+  configs <- getTimingOptions
+  case M.lookup name configs of
+    Just config -> return config
+    Nothing -> throwError NoSuchTimingConfig
+
 -- | Create a game in the New state
-newGame :: SomeRules -> Side -> Maybe BoardRep -> Checkers GameId
-newGame r@(SomeRules rules) firstSide mbBoardRep = do
+newGame :: SomeRules -> Side -> Maybe BoardRep -> Maybe T.Text -> Checkers GameId
+newGame r@(SomeRules rules) firstSide mbBoardRep mbTimingConfigName = do
   var <- askSupervisor
-  liftIO $ atomically $ do
+  mbTcfg <- case mbTimingConfigName of
+              Nothing -> return Nothing
+              Just name -> Just <$> getTimingConfig name
+  r <- liftIO $ atomically $ do
     st <- readTVar var
     let gameId = ssLastGameId st + 1
     let st' = st {ssLastGameId = gameId}
     writeTVar var st'
-    game <- mkGame st' rules gameId firstSide mbBoardRep
+    game <- mkGame st' rules gameId firstSide mbBoardRep mbTcfg
     modifyTVar var $ \st -> st {ssGames = M.insert (show gameId) game (ssGames st)}
     return $ show gameId
+  now <- liftIO $ getTime Monotonic
+  withGame r $ \_ -> Timing.onStartGame now
+  return r
 
 setHistory :: GameId -> [HistoryRecord] -> Checkers ()
 setHistory gameId history = 
@@ -299,6 +253,46 @@ getInitialBoardsDirectory = do
   case mbConfigPath of
     Just path -> return (Just path)
     Nothing -> liftIO locateDefaultInitialBoardsDirectory
+
+locateDefaultTimingOptionsFile :: IO (Maybe FilePath)
+locateDefaultTimingOptionsFile = do
+  home <- getEnv "HOME"
+  let homePath = home </> ".config" </> "hcheckers" </> "timing.yaml"
+  ex <- doesFileExist homePath
+  if ex
+    then return $ Just homePath
+    else do
+      let etcPath = "/etc" </> "hcheckers" </> "timing.yaml"
+      ex <- doesFileExist etcPath
+      if ex
+        then return $ Just etcPath
+        else return Nothing
+
+getTimingOptionsFile :: Checkers (Maybe FilePath)
+getTimingOptionsFile = do
+  mbConfigPath <- asks (gcTimingOptionsFile . csConfig)
+  case mbConfigPath of
+    Just path -> do
+      if isAbsolute path
+        then return (Just path)
+        else do
+          mbCfgPath <- liftIO locateConfig
+          case mbCfgPath of
+            Nothing -> return (Just path)
+            Just cfgPath -> return $ Just $ takeDirectory cfgPath </> path
+    Nothing -> liftIO locateDefaultTimingOptionsFile
+
+getTimingOptions :: Checkers (M.Map T.Text TimingConfig)
+getTimingOptions = do
+  mbPath <- getTimingOptionsFile
+  case mbPath of
+    Nothing -> return M.empty
+    Just path -> do
+      $debug "Using timing options from file: {}" (Single path)
+      r <- liftIO $ decodeFileEither path
+      case r of
+        Left err -> throwError $ InvalidTimingConfig (show err)
+        Right cfg -> return cfg
 
 getInitialBoards :: SomeRules -> Checkers [FilePath]
 getInitialBoards (SomeRules rules) = do
@@ -516,6 +510,23 @@ getGameByUser name = do
     [game] -> return (Just game)
     _ -> return Nothing
 
+-- | Find a game by participating user name.
+-- Returns Just game if there is exactly one such game.
+getGameByUser' :: UserName -> GameStatus -> Checkers (Maybe Game)
+getGameByUser' name status = do
+  var <- askSupervisor
+  st <- liftIO $ atomically $ readTVar var
+  case filter (\g -> isJust (sideByUser' g name) && gStatus g == status) (M.elems $ ssGames st) of
+    [game] -> return (Just game)
+    _ -> return Nothing
+
+getGameByUser_ :: UserName -> Checkers Game
+getGameByUser_ name = do
+  mbGame <- getGameByUser name
+  case mbGame of
+    Just game -> return game
+    Nothing -> throwError NoSuchUserInGame
+
 -- | Get all messages pending for specified user.
 -- Remove that messages from mailboxes.
 getMessages :: UserName -> Checkers [Notify]
@@ -540,6 +551,17 @@ getMessages name = do
         Nothing -> M.lookup name (gSpectatorsMsgBox game)
         Just First -> Just $ gMsgbox1 game
         Just Second -> Just $ gMsgbox2 game
+
+getTimeLeft :: GameId -> Checkers (Maybe (Seconds, Seconds))
+getTimeLeft gameId = do
+  enabled <- withGame gameId $ \_ -> Timing.isTimingEnabled
+  if enabled
+    then do
+      now <- liftIO $ getTime Monotonic
+      first <- withGame gameId $ \_ -> Timing.getTimeLeft First now
+      second <- withGame gameId $ \_ -> Timing.getTimeLeft Second now
+      return $ Just (first, second)
+    else return Nothing
     
 -- | Get moves that are possible currently
 -- in the specified game for specified side.
@@ -554,12 +576,28 @@ getPossibleMoves gameId side =
           moves <- gamePossibleMoves
           return $ map (moveRep rules side) moves
 
+afterMove :: GameId -> Side -> Checkers ()
+afterMove gameId side = do
+  now <- liftIO $ getTime Monotonic
+  timeOk <- withGame gameId $ \_ -> Timing.afterMove side now
+  when (not timeOk) $ do
+    $info "Player #{} ran out of time" (Single $ show side)
+    let result = if side == First then SecondWin else FirstWin
+    withGame gameId $ \_ -> setGameResult result
+    let messages = [
+          ResultNotify (opposite side) side result,
+          ResultNotify side side result
+          ]
+    queueNotifications gameId messages
+  return ()
+
 -- | Execute specified move in specified game and return a new board.
 doMove :: GameId -> UserName -> MoveRep -> Checkers RsPayload
 doMove gameId name moveRq = do
   game <- getGame gameId
   side <- sideByUser game name
   GMoveRs board' messages <- withGame gameId $ \_ -> doMoveRepRq side moveRq
+  afterMove gameId side
   queueNotifications gameId messages
   sessionId <- letAiMove True gameId (opposite side) (Just board')
   return $ MoveRs (boardRep board') sessionId
@@ -672,40 +710,42 @@ getAiSessionStatus sessionId = do
 -- | Let AI make it's turn.
 letAiMove :: Bool -> GameId -> Side -> Maybe Board -> Checkers (Maybe AiSessionId)
 letAiMove separateThread gameId side mbBoard = do
-  board <- case mbBoard of
-             Just b -> return b
-             Nothing -> do
-               (_, _, b) <- withGame gameId $ \_ -> gameState
-               return b
+      board <- case mbBoard of
+                 Just b -> return b
+                 Nothing -> do
+                   (_, _, b) <- withGame gameId $ \_ -> gameState
+                   return b
 
-  game <- getGame gameId
-  case getPlayer game side of
-    AI _ ai -> do
+      game <- getGame gameId
+      case getPlayer game side of
+        AI _ ai -> do
 
-      let inThread = if separateThread
-                       then \a -> (void $ forkCheckers a)
-                       else \a -> (void a)
+          let inThread = if separateThread
+                           then \a -> (void $ forkCheckers a)
+                           else \a -> (void a)
 
-      rules <- getRules gameId
-      withAiStorage rules ai $ \storage -> do
-          (sessionId, aiSession) <- newAiSession
-          inThread $ do
-            (dt, aiMoves) <- timing $ chooseMove ai storage gameId side aiSession board
-            if null aiMoves
-              then do
-                $info "AI failed to move." ()
+          rules <- getRules gameId
+          withAiStorage rules ai $ \storage -> do
+              (sessionId, aiSession) <- newAiSession
+              inThread $ do
+                (dt, aiMoves) <- timing $ chooseMove ai storage gameId side aiSession board
+                if null aiMoves
+                  then do
+                    $info "AI failed to move." ()
+                    return ()
+                  else do
+                    i <- liftIO $ randomRIO (0, length aiMoves - 1)
+                    let aiMove = aiMoves !! i
+                    $info "AI returned {} move(s) in {}s, selected: {}" (length aiMoves, showTimeDiff dt, show aiMove)
+                    GMoveRs board' messages <- withGame gameId $ \_ -> doMoveRq side (pmMove aiMove)
+                    $debug "Messages: {}" (Single $ show messages)
+                    queueNotifications (getGameId game) messages
+                    liftIO $ putMVar (aiResult aiSession) board'
+                afterMove gameId side
                 return ()
-              else do
-                i <- liftIO $ randomRIO (0, length aiMoves - 1)
-                let aiMove = aiMoves !! i
-                $info "AI returned {} move(s) in {}s, selected: {}" (length aiMoves, showTimeDiff dt, show aiMove)
-                GMoveRs board' messages <- withGame gameId $ \_ -> doMoveRq side (pmMove aiMove)
-                $debug "Messages: {}" (Single $ show messages)
-                queueNotifications (getGameId game) messages
-                liftIO $ putMVar (aiResult aiSession) board'
-          return (Just sessionId)
+              return (Just sessionId)
 
-    _ -> return Nothing
+        _ -> return Nothing
 
 askAiMove :: GameId -> Side -> Checkers (AiSessionId, Int)
 askAiMove gameId side = do

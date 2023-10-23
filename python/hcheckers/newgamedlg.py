@@ -24,6 +24,8 @@ LOAD_PDN = 4
 PREVIOUS_BOARD = 5
 RANDOM_PRESET = 6
 
+NO_TIMING = "NO_TIMING"
+
 FEN_MASK = "FEN notation (*.fen)"
 PDN_MASK = "Portable Draughts Notation (*.pdn)"
 
@@ -111,6 +113,13 @@ class NewGameDialog(DialogBase):
         rules_help.clicked.connect(self._on_rules_help)
         rules_box.addWidget(rules_help)
         layout.addRow(_("Rules"), rules_box)
+
+        self.timing = QComboBox()
+        self.timing.addItem(_("Do not use"), NO_TIMING)
+        if self.client is not None:
+            for slug, title in client.get_timing_options():
+                self.timing.addItem(title, slug)
+        layout.addRow(_("Time control"), self.timing)
 
         self.user_name = MandatoryField(_("User name"), QLineEdit(self))
         self.user_name.widget.setText(getpass.getuser())
@@ -317,6 +326,7 @@ class NewGameDialog(DialogBase):
     def _on_accept(self):
         self.settings.setValue("ai", self.ai.currentText())
         self.settings.setValue("rules", self.rules.currentData())
+        self.settings.setValue("timing", self.timing.currentData())
         self.settings.setValue("user_side", self.user_side.currentIndex())
         self.accept()
 
@@ -324,6 +334,10 @@ class NewGameDialog(DialogBase):
         game = GameSettings()
         game.user_name = self.user_name.widget.text()
         game.rules = self.rules.currentData()
+        timing = self.timing.currentData()
+        if timing == NO_TIMING:
+            timing = None
+        game.timing = timing
         action = self.game_type.currentData()
         game.run_now = action != START_HUMAN_GAME
         side = self.user_side.currentData()

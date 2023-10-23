@@ -9,14 +9,14 @@ import shlex
 import time
 import webbrowser
 
-from PyQt5.QtGui import QPainter, QPixmap, QIcon
+from PyQt5.QtGui import QPainter, QPixmap, QIcon, QFont
 from PyQt5.Qt import QStyle
 from PyQt5.QtCore import QRect, QSize, Qt, QObject, QTimer, pyqtSignal, QSettings
 from PyQt5.QtWidgets import (
         QApplication, QWidget, QToolBar, QMainWindow, QDialog,
         QVBoxLayout, QAction, QActionGroup, QLabel, QFileDialog,
         QFrame, QDockWidget, QMessageBox, QListWidget, QListWidgetItem,
-        QMenu, QSplashScreen, QPushButton
+        QMenu, QSplashScreen, QPushButton, QFrame
     )
 
 from hcheckers.field import Field
@@ -31,6 +31,26 @@ from hcheckers.logutils import *
 
 WAITING_MOVE_MESSAGE_DELAY = 3 # in seconds
 
+class TimerLabel(QLabel):
+    def __init__(self, parent):
+        QLabel.__init__(self, parent)
+        font = QFont("Monospace")
+        font.setPointSizeF(font.pointSizeF()*1.2)
+        font.setStyleHint(QFont.TypeWriter)
+        self.setFont(font)
+        self.setFrameStyle(QFrame.Sunken)
+        self.setFrameShape(QFrame.Box)
+
+class TimersBox(QFrame):
+    def __init__(self, parent):
+        QWidget.__init__(self, parent)
+        layout = QHBoxLayout()
+        self.timer1 = TimerLabel(self)
+        layout.addWidget(self.timer1)
+        self.timer2 = TimerLabel(self)
+        layout.addWidget(self.timer2)
+        self.setLayout(layout)
+
 class CountsWidget(QWidget):
     def __init__(self, parent):
         QWidget.__init__(self, parent)
@@ -39,8 +59,11 @@ class CountsWidget(QWidget):
 
         self.first_men_icon, self.first_men = self._label(layout, MAN, FIRST)
         self.first_kings_icon, self.first_kings = self._label(layout, KING, FIRST)
+        self.timers = TimersBox(self)
+        layout.addWidget(self.timers)
         self.second_men_icon, self.second_men = self._label(layout, MAN, SECOND)
         self.second_kings_icon, self.second_kings = self._label(layout, KING, SECOND)
+        self.set_timers(None, None)
 
         self.setLayout(layout)
 
@@ -60,6 +83,21 @@ class CountsWidget(QWidget):
         layout.addWidget(text_label)
 
         return icon_label, text_label
+
+    def _format_time(self, seconds):
+        if seconds is None:
+            return "--:--"
+        if seconds < 0:
+            return "XX:XX"
+        minutes = seconds // 60
+        seconds = seconds % 60
+        return "{:02}:{:02}".format(minutes, seconds)
+
+    def set_timers(self, first, second):
+        first_text = self._format_time(first)
+        second_text = self._format_time(second)
+        self.timers.timer1.setText(first_text)
+        self.timers.timer2.setText(second_text)
 
     def update_icons(self):
         self.first_men_icon.setPixmap(self._get_piece(MAN, FIRST))
@@ -413,7 +451,7 @@ class Checkers(QMainWindow):
         for action in self.setup_actions.actions():
             action.setChecked(False)
         board = self.board.json()
-        self.game.start_new_game(self.game_settings.user_name, rules=self.game_settings.rules, user_turn_first=self.game_settings.user_turn_first, ai=self.game_settings.ai, board=board)
+        self.game.start_new_game(self.game_settings.user_name, rules=self.game_settings.rules, timing=self.game_settings.timing, user_turn_first=self.game_settings.user_turn_first, ai=self.game_settings.ai, board=board)
         self.board.hide_text_message()
         self.board.fields_setup()
 
@@ -511,6 +549,7 @@ class Checkers(QMainWindow):
             else:
                 self.game.start_new_game(game.user_name,
                             rules=game.rules,
+                            timing=game.timing,
                             user_turn_first=game.user_turn_first,
                             ai=game.ai,
                             fen_path=game.fen_path,
@@ -524,7 +563,7 @@ class Checkers(QMainWindow):
                 self.opponent_info.setText(_("AI: {}").format(game.ai.title))
                 self.status_info.setText("")
         elif game.action == START_HUMAN_GAME:
-            game_id = self.game.new_game(game.rules)
+            game_id = self.game.new_game(rules=game.rules, timing=game.timing)
             logging.info(_("New game ID: {}").format(game_id))
             if game.user_turn_first:
                 self.game.register_user(game.user_name, FIRST)
@@ -987,6 +1026,8 @@ class Checkers(QMainWindow):
             self.board.process_message(message)
             if "move" in message:
                 self.my_turn = True
+            if "time_left" in message:
+                self.count_status.set_timers(*message["time_left"])
         if self.setup_fields_on_poll:
             self.board.fields_setup(board)
 

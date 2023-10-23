@@ -141,7 +141,7 @@ learnPdn ai@(AlphaBeta params rules eval) path = do
       then do
         -- liftIO $ print pdn
         $info "Processing game {}/{}..." (i :: Int, n)
-        gameId <- newGame (SomeRules rules) First Nothing
+        gameId <- newGame (SomeRules rules) First Nothing Nothing
         doLearn rules eval cache params gameId gameRec
         saveAiStorage ai cache
         return ()

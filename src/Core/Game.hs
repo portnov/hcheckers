@@ -21,12 +21,9 @@ import Data.Default
 import Core.Types
 import Core.Board
 
--- | A monad to track game's state
-type GameM a = ExceptT Error (State Game) a
-
 -- | Initialize Game instance
-mkGame :: GameRules rules => SupervisorState -> rules -> Int -> Side -> Maybe BoardRep -> STM Game
-mkGame supervisor rules id firstSide mbBoardRep = do
+mkGame :: GameRules rules => SupervisorState -> rules -> Int -> Side -> Maybe BoardRep -> Maybe TimingConfig -> STM Game
+mkGame supervisor rules id firstSide mbBoardRep mbTcfg = do
     let board = case mbBoardRep of
                   Nothing -> initBoard supervisor rules
                   Just rep -> parseBoardRep supervisor rules rep
@@ -45,6 +42,9 @@ mkGame supervisor rules id firstSide mbBoardRep = do
           gMsgbox2 = msgbox2,
           gStats1 = def,
           gStats2 = def,
+          gTimingConfig = mbTcfg,
+          gTiming1 = def,
+          gTiming2 = def,
           gSpectatorsMsgBox = M.empty
         }
 
@@ -149,6 +149,10 @@ gameMoveNumber g =
 
 -- | Move result. Contains resulting board and a list of notification messages.
 data GMoveRs = GMoveRs Board [Notify]
+
+setGameResult :: GameResult -> GameM ()
+setGameResult result =
+  modify $ \game -> game {gStatus = Ended result}
 
 -- | Perform specified move
 doMoveRq :: Side -> Move -> GameM GMoveRs

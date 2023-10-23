@@ -34,6 +34,16 @@ class MoveRequest(Thread):
         finally:
             self.owner.move_lock.release()
 
+def get_title_from_json(json_data):
+    titles = json_data["name"]
+    lang = get_current_language()
+    if lang not in titles:
+        lang = "en"
+    if lang in titles:
+        return titles[lang]
+    else:
+        return json_data["slug"]
+
 class AI(object):
     def __init__(self, **kwargs):
         self.title = "Default AI"
@@ -78,17 +88,6 @@ class AI(object):
         ai.load_json(json_data)
         ai.title = self.title
         return ai
-
-    @staticmethod
-    def get_title_from_json(json_data):
-        titles = json_data["name"]
-        lang = get_current_language()
-        if lang not in titles:
-            lang = "en"
-        if lang in titles:
-            return titles[lang]
-        else:
-            return json_data["slug"]
 
     @classmethod
     def from_json(cls, name, json_data):
@@ -257,6 +256,7 @@ class GameSettings(object):
         self.user_name = None
         self.ai = None
         self.rules = None
+        self.timing = None
         self.run_now = False
         self.url = None
         self.user_turn_first = True
@@ -281,6 +281,7 @@ class Game(object):
         self.ai_side = None
         self.last_move_result = None
         self.rules = None
+        self.timing = None
         self.move_thread = None
         self.move_lock = Lock()
         self.move_exception = None
@@ -368,10 +369,24 @@ class Game(object):
             rs = self.get(url)
             result = []
             for item in rs.json():
-                ai = AI.from_json(AI.get_title_from_json(item), item["settings"])
+                ai = AI.from_json(get_title_from_json(item), item["settings"])
                 ai.from_server = True
                 ai.slug = item["slug"]
                 result.append(ai)
+            return result
+        except requests.exceptions.ConnectionError as e:
+            return []
+        except RequestError:
+            return []
+
+    def get_timing_options(self):
+        url = join(self.base_url, "timing")
+        try:
+            rs = self.get(url)
+            result = []
+            for slug, cfg in rs.json().items():
+                title = get_title_from_json(cfg)
+                result.append((slug, title))
             return result
         except requests.exceptions.ConnectionError as e:
             return []
@@ -387,7 +402,7 @@ class Game(object):
         result = rs.json()["response"]
         return result
 
-    def new_game(self, rules, board=None, fen_path=None, pdn_path=None, previous_board_game = None, use_random_board_preset = False):
+    def new_game(self, rules, timing=None, board=None, fen_path=None, pdn_path=None, previous_board_game = None, use_random_board_preset = False):
         url = join(self.base_url, "game", "new")
         rq = {"rules": rules}
         if board is not None:
@@ -402,6 +417,8 @@ class Game(object):
         elif pdn_path is not None:
             pdn_text = open(pdn_path).read()
             rq["pdn"] = pdn_text
+        self.timing = timing
+        rq["timing"] = self.timing
         rs = self.post(url, json=rq)
         result = rs.json()
         self.game_id = result["response"]["id"]
@@ -514,10 +531,10 @@ class Game(object):
         result = rs.json()
         return result
 
-    def start_new_game(self, user_name, rules="russian", board=None, fen_path=None, pdn_path=None, previous_board_game = None, use_random_board_preset=False, user_turn_first=True, ai=None):
+    def start_new_game(self, user_name, rules="russian", timing=None, board=None, fen_path=None, pdn_path=None, previous_board_game = None, use_random_board_preset=False, user_turn_first=True, ai=None):
         if ai is None:
             ai = AI()
-        game_id, first_side = self.new_game(rules, board=board, fen_path=fen_path, pdn_path=pdn_path, previous_board_game = previous_board_game, use_random_board_preset=use_random_board_preset)
+        game_id, first_side = self.new_game(rules, timing=timing, board=board, fen_path=fen_path, pdn_path=pdn_path, previous_board_game = previous_board_game, use_random_board_preset=use_random_board_preset)
         if user_turn_first:
             self.register_user(user_name, FIRST)
             self.attach_ai(SECOND, ai)

@@ -36,6 +36,7 @@ import Core.Json () -- instances only
 import Core.Supervisor
 import Core.Parallel
 import Core.Monitoring
+import Rest.Types
 import Rest.Common
 import AI.AlphaBeta.Types
 import AI
@@ -259,7 +260,7 @@ runBattleLocal :: BattleRunner
 runBattleLocal rules (i,ai1) (j,ai2) path = do
   initAiStorage rules ai1
   let firstSide = First
-  gameId <- newGame rules firstSide Nothing
+  gameId <- newGame rules firstSide Nothing Nothing
   registerUser gameId First "AI1"
   registerUser gameId Second "AI2"
   attachAi gameId First "AI1" ai1
