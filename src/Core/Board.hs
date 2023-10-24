@@ -19,6 +19,7 @@ import Text.Printf
 
 import Core.Types
 import Core.BoardMap
+import qualified Core.Rope as R
 
 showAddress :: Address -> String
 showAddress a =
@@ -717,7 +718,7 @@ parseMoveRep rules side board (ShortMoveRep from to) =
   let moves = possibleMoves rules side board
       suits pm = aLabel (pmBegin pm) == from &&
                 aLabel (pmEnd pm) == to
-  in  case filter suits moves of
+  in  case R.toList $ R.filter suits moves of
         [pm] -> Parsed $ pmMove pm
         [] -> NoSuchMove
         ms -> AmbigousMove ms
@@ -753,8 +754,8 @@ parseBoardRep rnd rules (BoardRep list) = foldr set (buildBoard rnd rules orient
 -- This can not, however, recognize draws.
 genericGameResult :: GameRules rules => rules -> GameState -> Board -> Side -> Maybe GameResult
 genericGameResult rules st board side
-  | side == First && null (possibleMoves rules First board) = Just SecondWin
-  | side == Second && null (possibleMoves rules Second board) = Just FirstWin
+  | side == First && R.null (possibleMoves rules First board) = Just SecondWin
+  | side == Second && R.null (possibleMoves rules Second board) = Just FirstWin
   | detectRepeatedPosition 3 (gsHistory st) board = Just Draw
   | detectStalemate (gsHistory st) board = Just Draw
   | otherwise = Nothing

@@ -20,6 +20,7 @@ import Data.Default
 
 import Core.Types
 import Core.Board
+import qualified Core.Rope as R
 
 -- | Initialize Game instance
 mkGame :: GameRules rules => SupervisorState -> rules -> Int -> Side -> Maybe BoardRep -> Maybe TimingConfig -> STM Game
@@ -79,7 +80,7 @@ gamePossibleMoves = do
   SomeRules rules <- gets gRules
   board <- gets (gsCurrentBoard . gState)
   currentSide <- gets (gsSide . gState)
-  return $ map pmMove $ possibleMoves rules currentSide board
+  return $ R.toList $ fmap pmMove $ possibleMoves rules currentSide board
 
 -- | get current state of the game
 gameState :: GameM (Side, GameStatus, Board)
@@ -161,7 +162,7 @@ doMoveRq side move = do
   checkCurrentSide side
   SomeRules rules <- gets gRules
   board <- gets (gsCurrentBoard . gState)
-  if move `notElem` (map pmMove $ possibleMoves rules side board)
+  if move `R.notElem` (fmap pmMove $ possibleMoves rules side board)
      then throwError NotAllowedMove
      else do
           st <- gets gState

@@ -49,6 +49,7 @@ import Foreign.Ptr (castPtr)
 import Core.Types
 import qualified Core.AdaptiveMap as AM
 import Core.Parallel
+import qualified Core.Rope as R
 
 -- | Alpha-beta prunning AI engine.
 -- It is parametrized by game rules, evaluator
@@ -307,7 +308,7 @@ data ScoreInput = ScoreInput {
   , siAlpha :: Score
   , siBeta :: Score
   , siBoard :: Board
-  , siPossibleMoves :: Maybe [PossibleMove]
+  , siPossibleMoves :: Maybe (R.Rope PossibleMove)
   , siPrevMove :: Maybe PossibleMove
   }
 
@@ -342,13 +343,13 @@ instance HasLogContext (StateT (ScoreState rules eval) Checkers) where
 
 data DepthIterationInput = DepthIterationInput {
     diiParams :: AlphaBetaParams,
-    diiMoves :: [PossibleMove],
+    diiMoves :: R.Rope PossibleMove,
     diiSortKeys :: Maybe [Score],
     diiPrevResult :: Maybe DepthIterationOutput
   }
 
-type DepthIterationOutput = [MoveAndScore]
-type AiOutput = ([PossibleMove], Score)
+type DepthIterationOutput = R.Rope MoveAndScore
+type AiOutput = (R.Rope PossibleMove, Score)
 
 runStorage :: (GameRules rules, Evaluator eval) => AICacheHandle rules eval -> Storage a -> Checkers a
 runStorage handle actions = do

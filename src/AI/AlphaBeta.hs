@@ -42,6 +42,7 @@ import Core.BoardMap
 import Core.Game
 import Core.Parallel
 import Core.Logging
+import qualified Core.Rope as R
 import qualified Core.Monitoring as Monitoring
 import AI.AlphaBeta.Types
 import AI.AlphaBeta.Cache
@@ -246,7 +247,7 @@ getLastScoreShift handle gameId = liftIO $ atomically $ do
   shifts <- readTVar (aichLastMoveScoreShift handle)
   return $ M.lookup gameId shifts
 
-getPossibleMoves :: GameRules rules => AICacheHandle rules eval -> Side -> Board -> Checkers [PossibleMove]
+getPossibleMoves :: GameRules rules => AICacheHandle rules eval -> Side -> Board -> Checkers (R.Rope PossibleMove)
 getPossibleMoves handle side board = Monitoring.timed "ai.possible_moves.duration" $ do
     let rules = aichRules handle
     Monitoring.increment "ai.possible_moves.calls"
@@ -363,16 +364,19 @@ sortMoves :: (EvalMoveMonad m, GameRules rules, VectorEvaluator eval)
           -> Side
           -> Board
           -> Maybe PossibleMove
-          -> [PossibleMove]
-          -> m [PossibleMove]
+          -> R.Rope PossibleMove
+          -> m (R.Rope PossibleMove)
 sortMoves eval params var side board mbPrevMove moves = do
 --   if length moves >= 4
 --     then do
       let rules = aichRules var
           attacked = boardAttacked side board
-      interest <- mapM (evalMove var eval side board mbPrevMove attacked) moves
-      if any (/= 0) interest
-        then return $ map fst $ sortOn (negate . snd) $ zip moves interest
+      movesAndInterest <- R.mapM (\m -> do
+                                    i <- evalMove var eval side board mbPrevMove attacked m
+                                    return (m, i)
+                                 ) moves
+      if R.any (\(m,i) -> i /= 0) movesAndInterest
+        then return $ fmap fst $ R.sortOnApprox (negate . snd) movesAndInterest
         else return moves
 --     else return moves
 
@@ -454,7 +458,7 @@ runAI :: (GameRules rules, VectorEvaluator eval)
 runAI ai@(AlphaBeta params rules eval) handle gameId side aiSession board = do
     options <- depthDriver =<< getPossibleMoves handle side board
     if null options
-      then return ([], if maximize then loose else win)
+      then return (R.empty, if maximize then loose else win)
       else do
         output <- select options
         let bestScore = sNumeric $ snd output
@@ -488,7 +492,7 @@ runAI ai@(AlphaBeta params rules eval) handle gameId side aiSession board = do
 --       $debug "Pre-selected options: {}" (Single $ show result)
 --       return result
 
-    preselect :: Depth -> [PossibleMove] -> Checkers [Score]
+    preselect :: Depth -> R.Rope PossibleMove -> Checkers (R.Rope Score)
     preselect depth moves = do
       let simple = DepthParams {
                     dpInitialTarget = depth
@@ -505,14 +509,14 @@ runAI ai@(AlphaBeta params rules eval) handle gameId side aiSession board = do
       let key = if maximize
                   then negate . rScore
                   else rScore
-      return $ map key options
+      return $ fmap key options
 --       let sorted = sortOn key options
 --           bestOptions = take (abMovesHighBound params) sorted
 --       let result = map fst sorted
 --       $debug "Pre-selected options: {}" (Single $ show result)
 --       return result
 
-    depthDriver :: [PossibleMove] -> Checkers DepthIterationOutput
+    depthDriver :: R.Rope PossibleMove -> Checkers DepthIterationOutput
     depthDriver moves =
       case abBaseTime params of
           Nothing -> do
@@ -520,7 +524,7 @@ runAI ai@(AlphaBeta params rules eval) handle gameId side aiSession board = do
             let target = abDepth params
                 depthStep = abDepthStep params
                 preselectDepth =
-                  if target <= depthStep || length moves < nThreads
+                  if target <= depthStep || R.lengthLessThan moves nThreads
                     then target
                     else let m = target `mod` depthStep
                          in  head $ filter (>= 2) [m, m + depthStep .. target]
@@ -553,7 +557,9 @@ runAI ai@(AlphaBeta params rules eval) handle gameId side aiSession board = do
         Left TimeExhaused ->
           case diiPrevResult input of
             Just result -> return (result, Nothing)
-            Nothing -> return ([MoveAndScore move 0 | move <- diiMoves input], Nothing)
+            Nothing -> do
+              let moves = fmap (\move -> MoveAndScore move 0) (diiMoves input)
+              return (moves, Nothing)
         Left err -> throwError err
 
     goIterative :: Depth -> DepthIterationInput -> Checkers DepthIterationOutput
@@ -581,7 +587,8 @@ runAI ai@(AlphaBeta params rules eval) handle gameId side aiSession board = do
       if length diiMoves <= 1 -- Just one move possible
         then do
           $info "There is only one move possible; just do it." ()
-          return ([MoveAndScore move score0 | move <- diiMoves], Nothing)
+          let ms = fmap (\move -> MoveAndScore move score0) diiMoves
+          return (ms, Nothing)
                                                              
         else do
           let var = aichData handle
@@ -601,8 +608,8 @@ runAI ai@(AlphaBeta params rules eval) handle gameId side aiSession board = do
                   $info "Sort moves (init): {} => {}" (show diiMoves, show moves')
                   return moves'
                 Just keys -> do
-                  let moves' = map snd $ sortOn fst $ zip keys diiMoves
-                  $info "Sort moves (by prev.iteration): {} => {}" (show $ zip keys diiMoves, show moves')
+                  let moves' = R.rope $ map snd $ sortOn fst $ zip keys (R.toList diiMoves)
+                  $info "Sort moves (by prev.iteration): {} => {}" (show $ zip keys (R.toList diiMoves), show moves')
                   return moves'
 
           result <- widthController True True diiPrevResult sortedMoves dp' =<< mkInitInterval depth (isQuiescene diiMoves)
@@ -621,14 +628,14 @@ runAI ai@(AlphaBeta params rules eval) handle gameId side aiSession board = do
     deeper depth step prevOutput input =
       let start' = fmap (+step) (abStartDepth params)
           params' = params {abDepth = depth + step, abStartDepth = start'}
-          keys = map rScore prevOutput
-          moves' = map rMove prevOutput
-          signedKeys = if maximize then map negate keys else keys
+          keys = fmap rScore prevOutput
+          moves' = fmap rMove prevOutput
+          signedKeys = if maximize then fmap negate keys else keys
       in  input {
                   diiParams = params',
                   diiPrevResult = Just prevOutput,
                   diiMoves = moves',
-                  diiSortKeys = Just signedKeys
+                  diiSortKeys = Just (R.toList signedKeys)
                 }
 
     score0 = evalBoard eval First board
@@ -718,7 +725,7 @@ runAI ai@(AlphaBeta params rules eval) handle gameId side aiSession board = do
     widthController :: Bool -- ^ Allow to shift (alpha,beta) segment to bigger values?
                     -> Bool -- ^ Allow to shift (alpha,beta) segment to lesser values?
                     -> Maybe DepthIterationOutput -- ^ Results of previous depth iteration
-                    -> [PossibleMove]
+                    -> R.Rope PossibleMove
                     -> DepthParams
                     -> (Score, Score) -- ^ (Alpha, Beta)
                     -> Checkers DepthIterationOutput
@@ -726,11 +733,11 @@ runAI ai@(AlphaBeta params rules eval) handle gameId side aiSession board = do
       if alpha == beta
         then do
           $info "Empty scores interval: [{}]. We have to think that all moves have this score." (Single alpha)
-          return [MoveAndScore move alpha | move <- moves]
+          return $ fmap (\move -> MoveAndScore move alpha) moves
         else do
             results <- widthIteration prevResult moves dp interval
             let (bestResults, badScore, badMoves) = selectBestEdge interval moves results
-                bestMoves = map rMove bestResults
+                bestMoves = fmap rMove bestResults
             if length badMoves == length moves
               then
                 if allowPrev
@@ -738,18 +745,18 @@ runAI ai@(AlphaBeta params rules eval) handle gameId side aiSession board = do
                     if (maximize && alpha <= loose) || (minimize && beta >= win)
                       then do
                         $info "All moves are `too bad'; but there is no worse interval, return all what we have" ()
-                        return [MoveAndScore move badScore | move <- moves]
+                        return $ fmap (\move -> MoveAndScore move badScore) moves
                       else do
                         let interval' = prevInterval (isAlmostLoose side) interval
                         $info "All moves are `too bad'; consider worse scores interval: [{} - {}]" interval'
                         widthController False True prevResult badMoves dp interval'
                   else do
                     $info "All moves are `too bad' ({}), but we have already checked worse interval; so this is the real score." (Single badScore)
-                    return [MoveAndScore move badScore | move <- moves]
+                    return $ fmap (\move -> MoveAndScore move badScore) moves
               else
-                case bestResults of
-                  [] -> return results
-                  [_] -> do
+                case R.uncons bestResults of
+                  Nothing -> return results
+                  Just (_, rest) | R.null rest -> do
                     $info "Exactly one move is `too good'; do that move." ()
                     return bestResults
                   _ ->
@@ -757,14 +764,14 @@ runAI ai@(AlphaBeta params rules eval) handle gameId side aiSession board = do
                       then
                         if (maximize && beta >= win) || (minimize && alpha <= loose)
                           then do
-                            $info "Some moves ({} of them) are `too good'; but there is no better interval, return all of them." (Single $ length bestMoves)
+                            $info "Some moves ({} of them) are `too good'; but there is no better interval, return all of them." (Single $ R.length bestMoves)
                             return bestResults
                           else do
                             let interval'@(alpha',beta') = nextInterval (isAlmostLoose (opposite side)) interval
-                            $info "Some moves ({} of them) are `too good'; consider better scores interval: [{} - {}]" (length bestMoves, alpha', beta')
+                            $info "Some moves ({} of them) are `too good'; consider better scores interval: [{} - {}]" (R.length bestMoves, alpha', beta')
                             widthController True False prevResult bestMoves dp interval'
                           else do
-                            $info  "Some moves ({} of them) are `too good'; but we have already checked better interval; so this is the real score" (Single $ length bestMoves)
+                            $info  "Some moves ({} of them) are `too good'; but we have already checked better interval; so this is the real score" (Single $ R.length bestMoves)
                             return bestResults
 
     getJobIndicies :: Int -> Checkers [Int]
@@ -774,7 +781,7 @@ runAI ai@(AlphaBeta params rules eval) handle gameId side aiSession board = do
         writeTVar (aichJobIndex handle) nextIndex
         return [lastIndex+1 .. nextIndex]
 
-    scoreMoves :: Bool -> [PossibleMove] -> DepthParams -> (Score, Score) -> Checkers [Either Error MoveAndScore]
+    scoreMoves :: Bool -> R.Rope PossibleMove -> DepthParams -> (Score, Score) -> Checkers (R.Rope (Either Error MoveAndScore))
     scoreMoves byOne moves dp (alpha, beta) = do
       nThreads <- asks (aiThreads . gcAiConfig . csConfig)
       let var = aichData handle
@@ -797,33 +804,33 @@ runAI ai@(AlphaBeta params rules eval) handle gameId side aiSession board = do
               smiAlpha = alpha,
               smiBeta = beta,
               smiBest = bestVar
-            } | (move, index) <- zip moves indicies ]
+            } | (move, index) <- zip (R.toList moves) indicies ]
 
           groups = [[input] | input <- inputs]
             -- | otherwise = transpose $ chunksOf nThreads inputs
 
       results <- process' processor groups
-      return $ concatE (map length groups) results
+      return $ R.rope $ concatE (map length groups) results
 
-    scoreMoves' :: Bool -> [PossibleMove] -> DepthParams -> (Score, Score) -> Checkers DepthIterationOutput
+    scoreMoves' :: Bool -> R.Rope PossibleMove -> DepthParams -> (Score, Score) -> Checkers DepthIterationOutput
     scoreMoves' byOne moves dp (alpha, beta) = do
       results <- scoreMoves byOne moves dp (alpha, beta)
       case sequence results of
         Right result -> return result
         Left err -> throwError err
 
-    widthIteration :: Maybe DepthIterationOutput -> [PossibleMove] -> DepthParams -> (Score, Score) -> Checkers DepthIterationOutput
+    widthIteration :: Maybe DepthIterationOutput -> R.Rope PossibleMove -> DepthParams -> (Score, Score) -> Checkers DepthIterationOutput
     widthIteration prevResult moves dp (alpha, beta) = do
       $info "`- Considering scores interval: [{} - {}], depth = {}, number of moves = {}" (alpha, beta, dpTarget dp, length moves)
       results <- scoreMoves False moves dp (alpha, beta)
       joinResults prevResult results
 
-    joinResults :: Maybe DepthIterationOutput -> [Either Error MoveAndScore] -> Checkers DepthIterationOutput
+    joinResults :: Maybe DepthIterationOutput -> R.Rope (Either Error MoveAndScore) -> Checkers DepthIterationOutput
     joinResults Nothing results =
       case sequence results of
         Right result -> return result
         Left err -> throwError err
-    joinResults (Just prevResults) results = zipWithM joinResult prevResults results
+    joinResults (Just prevResults) results = R.rope <$> zipWithM joinResult (R.toList prevResults) (R.toList results)
 
     joinResult :: MoveAndScore -> Either Error MoveAndScore -> Checkers MoveAndScore
     joinResult prev@(MoveAndScore move score) (Left TimeExhaused) = do
@@ -832,18 +839,18 @@ runAI ai@(AlphaBeta params rules eval) handle gameId side aiSession board = do
     joinResult _ (Left err) = throwError err
     joinResult _ (Right result) = return result
 
-    selectBestEdge :: (Score, Score) -> [PossibleMove] -> [MoveAndScore] ->
-                      ([MoveAndScore], Score, [PossibleMove])
+    selectBestEdge :: (Score, Score) -> R.Rope PossibleMove -> R.Rope MoveAndScore ->
+                      (R.Rope MoveAndScore, Score, R.Rope PossibleMove)
     selectBestEdge (alpha, beta) moves results =
       let (good, bad) = if maximize then (beta, alpha) else (alpha, beta)
-          goodResults = [result | result <- results, not (rScore result `worseThan` good)]
-          badResults = [rMove result | result <- results, not (rScore result `betterThan` bad)]
+          goodResults = R.filter (\result -> not (rScore result `worseThan` good)) results
+          badResults = fmap rMove $ R.filter (\result -> not (rScore result `betterThan` bad)) results
       in  (goodResults, bad, badResults)
 
     select :: DepthIterationOutput -> Checkers AiOutput
     select pairs = do
       let best = if maximize then maximum else minimum
-          maxScore = best $ map rScore pairs
+          maxScore = best $ fmap rScore pairs
       game <- getGame gameId
       let halfMoves = gameMoveNumber game
           moveNumber = halfMoves `div` 2
@@ -852,11 +859,11 @@ runAI ai@(AlphaBeta params rules eval) handle gameId side aiSession board = do
                        else 1
       if nOptions == 1
         then do
-          let goodMoves = [rMove result | result <- pairs, rScore result == maxScore]
+          let goodMoves = fmap rMove $ R.filter (\result -> rScore result == maxScore) pairs
           return (goodMoves, maxScore)
         else do
           let srt = if maximize then sortOn (negate . rScore) else sortOn rScore
-              goodMoves = map rMove $ take nOptions $ srt pairs
+              goodMoves = R.rope $ map rMove $ take nOptions $ srt $ R.toList pairs
           return (goodMoves, maxScore)
 
 -- | Calculate score of the board
@@ -974,7 +981,7 @@ isTargetDepth dp = dpCurrent dp >= dpTarget dp
 --
 -- Otherwise, this just increases dpCurrent by 1.
 --
-updateDepth :: (Monad m, HasLogging m, MonadIO m) => AlphaBetaParams -> [PossibleMove] -> DepthParams -> m DepthParams
+updateDepth :: (Monad m, HasLogging m, MonadIO m) => AlphaBetaParams -> R.Rope PossibleMove -> DepthParams -> m DepthParams
 updateDepth params moves dp
     | deepen = do
                   let delta = fromIntegral nMoves - 1
@@ -1007,8 +1014,8 @@ updateDepth params moves dp
                dpForcedMode dp &&
                not (dpReductedMode dp)
 
-isQuiescene :: [PossibleMove] -> Bool
-isQuiescene moves = not (any isCapture moves || any isPromotion moves)
+isQuiescene :: R.Rope PossibleMove -> Bool
+isQuiescene moves = not $ R.any (\m -> isCapture m || isPromotion m) moves
 
 -- | Check if timeout is exhaused.
 isTimeExhaused :: ScoreM rules eval Bool
@@ -1095,7 +1102,7 @@ scoreAB var eval params input
                   moves' <- sortMoves eval params var side board prevMove moves
 --                   let depths = correspondingDepths (length moves') score0 quiescene dp'
                   let depths = repeat dp'
-                  out <- iterateMoves $ zip3 [1..] moves' depths
+                  out <- iterateMoves $ zip3 [1..] (R.toList moves') depths
                   pop
                   return out
 
@@ -1195,7 +1202,7 @@ scoreAB var eval params input
       $verbose "{}| {} for depth {} : {} => {}" (indent, bestStr, dpCurrent dp, show oldBest, show best)
       modify $ \st -> st {ssBestScores = best : tail (ssBestScores st)}
 
-    opponentMoves :: ScoreM rules eval [PossibleMove]
+    opponentMoves :: ScoreM rules eval (R.Rope PossibleMove)
     opponentMoves = do
       rules <- gets ssRules
       lift $ getPossibleMoves var (opposite side) board
@@ -1236,7 +1243,7 @@ scoreAB var eval params input
             else return out
 
 
-    iterateMoves :: [(Int,PossibleMove, DepthParams)] -> ScoreM rules eval ScoreOutput
+    iterateMoves :: [(Int, PossibleMove, DepthParams)] -> ScoreM rules eval ScoreOutput
     iterateMoves [] = do
       best <- getBest
       $verbose "{}`—All moves considered at this level, return best = {}" (indent, show best)

@@ -49,6 +49,7 @@ import GHC.Exts (Constraint)
 import Debug.Trace (traceEventIO)
 
 import qualified Core.HTable as HT
+import qualified Core.Rope as R
 
 -- | Label is a coordinate of field on the board.
 data Label = Label {
@@ -467,10 +468,10 @@ class (Typeable g, Show g, HasBoardOrientation g, HasSideNotation g, HasTopology
   boardNotation :: g -> Label -> Notation
   parseNotation :: g -> Notation -> Either String Label
 
-  possibleMoves :: g -> Side -> Board -> [PossibleMove]
+  possibleMoves :: g -> Side -> Board -> R.Rope PossibleMove
 
   mobilityScore :: g -> Side -> Board -> Int
-  mobilityScore g side board = length $ possibleMoves g side board
+  mobilityScore g side board = R.length $ possibleMoves g side board
 
   updateRules :: g -> Value -> g
   getGameResult :: g -> GameState -> Board -> Side -> Maybe GameResult
@@ -619,7 +620,7 @@ class (Show ai, Typeable (AiStorage ai), ToJSON ai) => GameAi ai where
   
   updateAi :: ai -> Value -> ai
 
-  chooseMove :: ai -> AiStorage ai -> GameId -> Side -> AiSession -> Board -> Checkers [PossibleMove]
+  chooseMove :: ai -> AiStorage ai -> GameId -> Side -> AiSession -> Board -> Checkers (R.Rope PossibleMove)
 
   -- | Answer for a draw request.
   -- Default implementation always accepts the draw.
