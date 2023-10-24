@@ -368,10 +368,10 @@ class Game(object):
         try:
             rs = self.get(url)
             result = []
-            for item in rs.json():
+            for slug, item in rs.json().items():
                 ai = AI.from_json(get_title_from_json(item), item["settings"])
                 ai.from_server = True
-                ai.slug = item["slug"]
+                ai.slug = slug
                 result.append(ai)
             return result
         except requests.exceptions.ConnectionError as e:

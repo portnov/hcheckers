@@ -648,6 +648,9 @@ data AiPersonality = AiPersonality {
   }
   deriving (Eq, Show)
 
+newtype AiPersonalities = AiPersonalities [AiPersonality]
+  deriving (Eq, Show)
+
 type GameId = String
 
 type UserName = T.Text

@@ -27,6 +27,9 @@ import qualified Data.ByteString as B
 import Data.Text.Format.Heavy
 import Data.Default
 import Data.Aeson hiding (Error)
+import qualified Data.Aeson.KeyMap as KM
+import qualified Data.Aeson.Key as K
+import qualified Data.Aeson.Types as AT
 import Data.Yaml
 import Data.Dynamic
 import Data.Store
@@ -340,11 +343,24 @@ getAiSettingsDirectory = do
     Just path -> return (Just path)
     Nothing -> liftIO locateDefaultAiSettingsDirectory
 
+parseAiPersonality :: K.Key -> Data.Aeson.Object -> AT.Parser AiPersonality
+parseAiPersonality slug v = do
+    value <- v .: slug
+    withObject "AI settings" (\s -> do
+        name <- s .: "name"
+        settings <- s .: "settings"
+        return $ AiPersonality (K.toText slug) name settings
+      ) value
+
 instance FromJSON AiPersonality where
-  parseJSON = withObject "AI" $ \v -> AiPersonality
-      <$> v .: "slug"
-      <*> v .: "name"
-      <*> v .: "settings"
+  parseJSON = withObject "AI" $ \v -> do
+    case KM.keys v of
+      [slug] -> parseAiPersonality slug v
+      _ -> fail $ "Invalid AI settings: too many keys or no keys"
+
+instance FromJSON AiPersonalities where
+  parseJSON = withObject "AIs" $ \v -> AiPersonalities <$> do
+    forM (KM.keys v) $ \slug -> parseAiPersonality slug v
 
 listAiSettings :: T.Text -> Checkers [AiPersonality]
 listAiSettings impl = do
@@ -352,23 +368,22 @@ listAiSettings impl = do
     case mbSettingsPath of
       Nothing -> return []
       Just rootPath -> do
-        let implPath = rootPath </> T.unpack impl
-        ex <- liftIO $ doesDirectoryExist implPath
+        let implPath = rootPath </> T.unpack impl ++ ".yaml"
+        ex <- liftIO $ doesFileExist implPath
         if ex
           then do
-            paths <- liftIO $ glob (implPath </> "*.json")
-            personalities <- forM paths loadAiSettings
-            return $ catMaybes personalities
+            personalities <- loadAiSettings implPath
+            return personalities
           else return []
   where
-    loadAiSettings :: FilePath -> Checkers (Maybe AiPersonality)
+    loadAiSettings :: FilePath -> Checkers [AiPersonality]
     loadAiSettings path = do
-      res <- liftIO $ eitherDecodeFileStrict path
+      res <- liftIO $ Data.Yaml.decodeFileEither path
       case res of
         Left err -> do
-          $reportError "Can't parse AI settings file: {}: {}" (path, err)
-          return Nothing
-        Right value -> return $ Just value
+          $reportError "Can't parse AI settings file: {}: {}" (path, show err)
+          return []
+        Right (AiPersonalities value) -> return value
 
 loadAiSetting :: T.Text -> T.Text -> Checkers (Maybe AiPersonality)
 loadAiSetting impl slug = do

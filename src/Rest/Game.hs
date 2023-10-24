@@ -232,7 +232,7 @@ restServer shutdownVar = do
   get "/ai/:impl" $ do
     impl <- param "impl"
     personalities <- liftCheckers_ $ listAiSettings impl
-    json personalities
+    json (AiPersonalities personalities)
 
   get "/ai/:impl/:slug" $ do
     impl <- param "impl"

@@ -6,6 +6,7 @@ import Control.Applicative ((<|>))
 import Data.Aeson
 import Data.Aeson.Types
 import qualified Data.Aeson.KeyMap as KM
+import qualified Data.Aeson.Key as K
 import qualified Data.Text as T
 import Data.Default
 import System.Log.Heavy
@@ -213,13 +214,18 @@ instance ToJSON SideNotation where
 instance ToJSON Response where
   toJSON (Response payload messages) = object ["response" .= payload, "messages" .= messages]
 
+aiPersonalityToJson :: AiPersonality -> Pair
+aiPersonalityToJson (AiPersonality slug names value) =
+    K.fromText slug .= object [
+              "name" .= names,
+              "settings" .= value
+            ]
+
 instance ToJSON AiPersonality where
-  toJSON (AiPersonality slug names value) =
-    object [
-      "slug" .= slug,
-      "name" .= names,
-      "settings" .= value
-    ]
+  toJSON ai = object [ aiPersonalityToJson ai ]
+
+instance ToJSON AiPersonalities where
+  toJSON (AiPersonalities ais) = object $ map aiPersonalityToJson ais
 
 instance FromJSON AiConfig where
   parseJSON = withObject "AiConfig" $ \v -> AiConfig
