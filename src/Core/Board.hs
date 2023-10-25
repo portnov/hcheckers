@@ -1,5 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE ViewPatterns #-}
 module Core.Board where
 
 import Control.Monad
@@ -425,7 +426,7 @@ applyMoveAction (MarkCaptured a) b =
 applyMoveActions' :: [MoveAction] -> Board -> Either String Board
 applyMoveActions' actions board = do
   board' <- foldM (flip applyMoveAction) board actions
-  let board'' = foldr removePiece' board' (labelSetToList $ bCaptured board')
+  let board'' = IS.foldr (\k b -> removePiece' (unpackIndex k) b) board' (bCaptured board')
   return $ board'' {bCaptured = emptyLabelSet}
 
 applyMoveActions :: [MoveAction] -> Board -> Board
@@ -475,7 +476,7 @@ firstMoveDirection :: Move -> PlayerDirection
 firstMoveDirection move = sDirection $ head $ moveSteps move
 
 calcBoardHash :: Board -> BoardHash
-calcBoardHash board = foldr update 0 (boardAssocs board)
+calcBoardHash board = boardFoldr update xor 0 board
   where
     update (label, piece) hash = updateBoardHash' table hash label piece
     table = randomTable board
@@ -739,6 +740,14 @@ boardAssocs board =
     [(label, Piece King First) | label <- labelSetToList (bFirstKings board)] ++
     [(label, Piece King Second) | label <- labelSetToList (bSecondKings board)]
 
+boardFoldr :: ((Label,Piece) -> a -> a) -> (a -> a -> a) -> a -> Board -> a
+boardFoldr op join dflt board =
+  let firstMen    = IS.foldr (\l a -> (unpackIndex l, Piece Man First)   `op` a) dflt (bFirstMen board)
+      secondMen   = IS.foldr (\l a -> (unpackIndex l, Piece Man Second)  `op` a) dflt (bSecondMen board)
+      firstKings  = IS.foldr (\l a -> (unpackIndex l, Piece King First)  `op` a) dflt (bFirstKings board)
+      secondKings = IS.foldr (\l a -> (unpackIndex l, Piece King Second) `op` a) dflt (bSecondKings board)
+  in firstMen `join` (secondMen `join` (firstKings `join` secondKings))
+
 boardRep :: Board -> BoardRep
 boardRep board = BoardRep $ boardAssocs board
 
@@ -885,11 +894,11 @@ flipBoard :: Board -> Board
 flipBoard b = b' {boardHash = hash}
   where
     b' = b {
-      bFirstMen = labelSetFromList $ map flipLabel (labelSetToList $ bSecondMen b),
-      bSecondMen = labelSetFromList $ map flipLabel (labelSetToList $ bFirstMen b),
-      bFirstKings = labelSetFromList $ map flipLabel (labelSetToList $ bSecondKings b),
-      bSecondKings = labelSetFromList $ map flipLabel (labelSetToList $ bFirstKings b),
-      bOccupied =  labelSetFromList $ map flipLabel (labelSetToList $ bOccupied b)
+      bFirstMen = IS.map flipLabel (bSecondMen b),
+      bSecondMen = IS.map flipLabel (bFirstMen b),
+      bFirstKings = IS.map flipLabel (bSecondKings b),
+      bSecondKings = IS.map flipLabel (bFirstKings b),
+      bOccupied =  IS.map flipLabel (bOccupied b)
       -- boardCounts = flipBoardCounts (boardCounts b)
     }
 
@@ -897,7 +906,7 @@ flipBoard b = b' {boardHash = hash}
 
     (nrows, ncols) = bSize b
 
-    flipLabel (Label col row) = Label (ncols - col - 1) (nrows - row - 1)
+    flipLabel (unpackIndex -> Label col row) = labelIndex $ Label (ncols - col - 1) (nrows - row - 1)
 
 boardAttacked :: Side -> Board -> LabelSet
 boardAttacked First = bFirstAttacked
