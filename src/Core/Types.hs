@@ -435,6 +435,7 @@ data BoardTopology =
     Diagonal
   | Orthogonal
   | DiagonalAndOrthogonal
+  | FrisianTopology
   deriving (Eq, Show, Typeable, Generic)
 
 class HasTopology a where

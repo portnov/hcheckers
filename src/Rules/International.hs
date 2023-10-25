@@ -3,7 +3,7 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeFamilies #-}
-module Rules.International (International, international, internationalBase) where
+module Rules.International (International, international, internationalBase, manCaptures) where
 
 import Data.Typeable
 

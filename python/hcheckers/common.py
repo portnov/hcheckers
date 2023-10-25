@@ -296,7 +296,8 @@ supported_rules = [
         ("diagonal", _("Diagonal draughts"), _("https://github.com/portnov/hcheckers/wiki/Rules")),
         ("czech", _("Czech draughts"), _("https://en.wikipedia.org/wiki/Czech_draughts")),
         ("turkish", _("Turkish draughts"), _("https://en.wikipedia.org/wiki/Turkish_draughts")),
-        ("armenian", _("Armeinan draughts (Tama)"), _("https://en.wikipedia.org/wiki/Armenian_draughts"))
+        ("armenian", _("Armeinan draughts (Tama)"), _("https://en.wikipedia.org/wiki/Armenian_draughts")),
+        ("frisian", _("Frisian draughts"), "")
     ]
 
 rules_dict = dict([(name, title) for (name, title, link) in supported_rules])

@@ -494,18 +494,22 @@ buildBoard rnd rules orient bsize@(nrows, ncols) =
   let mkAddress p = Address {
                         aLabel = label p
                       , aPromotionSide = promote p
-                      , aUpLeft = upLeft p
-                      , aUpRight = upRight p
-                      , aDownLeft = downLeft p
-                      , aDownRight = downRight p
-                      , aUp = up p
-                      , aRight = right p
-                      , aDown = down p
-                      , aLeft = left p
+                      , aUpLeft = if useDiagonals then upLeft p else Nothing
+                      , aUpRight = if useDiagonals then upRight p else Nothing
+                      , aDownLeft = if useDiagonals then downLeft p else Nothing
+                      , aDownRight = if useDiagonals then downRight p else Nothing
+                      , aUp = up skipOrthogonals p
+                      , aRight = right skipOrthogonals p
+                      , aDown = down skipOrthogonals p
+                      , aLeft = left skipOrthogonals p
                     }
       label (r,c) = Label (c-1) (r-1)
+      unLabel (Label r c) = (c+1, r+1)
 
-      diagonal = boardTopology rules == Diagonal
+      useDiagonals = boardTopology rules `elem` [Diagonal, DiagonalAndOrthogonal, FrisianTopology]
+      useDirectOrthogonals = boardTopology rules `elem` [Orthogonal, DiagonalAndOrthogonal]
+      skipOrthogonals = if boardTopology rules == FrisianTopology then 2 else 1
+      blackSquaresOnly = boardTopology rules `elem` [Diagonal, FrisianTopology]
 
       promote (r,_)
         | r == 1 = Just $ playerSide orient Top
@@ -528,21 +532,21 @@ buildBoard rnd rules orient bsize@(nrows, ncols) =
         | r-1 < 1 || c+1 > ncols = Nothing
         | otherwise = M.lookup (r-1, c+1) addresses
 
-      up (r,c)
-        | r+1 > nrows = Nothing
-        | otherwise = M.lookup (r+1, c) addresses
+      up k (r,c)
+        | r+k > nrows = Nothing
+        | otherwise = M.lookup (r+k, c) addresses
 
-      down (r,c)
-        | r-1 < 1 = Nothing
-        | otherwise = M.lookup (r-1, c) addresses
+      down k (r,c)
+        | r-k < 1 = Nothing
+        | otherwise = M.lookup (r-k, c) addresses
 
-      right (r,c)
-        | c+1 > ncols = Nothing
-        | otherwise = M.lookup (r, c+1) addresses
+      right k (r,c)
+        | c+k > ncols = Nothing
+        | otherwise = M.lookup (r, c+k) addresses
 
-      left (r,c)
-        | c-1 < 1 = Nothing
-        | otherwise = M.lookup (r, c-1) addresses
+      left k (r,c)
+        | c-k < 1 = Nothing
+        | otherwise = M.lookup (r, c-k) addresses
 
       addresses = M.fromList [(p, mkAddress p) | p <- coordinates]
 
@@ -550,7 +554,7 @@ buildBoard rnd rules orient bsize@(nrows, ncols) =
       evens n = [2, 4 .. n]
 
       coordinates
-        | diagonal = [(r, c) | r <- odds nrows, c <- odds ncols] ++ [(r, c) | r <- evens nrows, c <- evens ncols]
+        | blackSquaresOnly = [(r, c) | r <- odds nrows, c <- odds ncols] ++ [(r, c) | r <- evens nrows, c <- evens ncols]
         | otherwise = [(r, c) | r <- [1..nrows], c <- [1..ncols]]
 
       addressByLabel = buildLabelMap nrows ncols [(label p, address) | (p, address) <- M.assocs addresses]
