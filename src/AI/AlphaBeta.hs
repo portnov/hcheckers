@@ -978,7 +978,7 @@ updateDepth :: (Monad m, HasLogging m, MonadIO m) => AlphaBetaParams -> [Possibl
 updateDepth params moves dp
     | deepen = do
                   let delta = fromIntegral nMoves - 1
-                  let target = min (dpTarget dp + 1) (dpMax dp - delta)
+                  let target = min (dpTarget dp + 1) $ max (dpTarget dp) (dpMax dp - delta)
                   let indent = replicate (fromIntegral $ 2*dpCurrent dp) ' '
                   let static = dpCurrent dp > dpInitialTarget dp + abDynamicDepth params
                   $verbose "{}| there is only one move, increase target depth to {}"
