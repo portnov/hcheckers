@@ -65,6 +65,7 @@ class AI(object):
         self.mobility_weight = 30
         self.backyard_weight = 14
         self.center_weight = 16
+        self.border_weight = -16
         self.opposite_side_weight = 32
         self.backed_weight = 24
         self.asymetry_weight = -12
@@ -127,6 +128,7 @@ class AI(object):
         ai.mobility_weight = settings.value("mobility_weight", ai.mobility_weight, type=int)
         ai.backyard_weight = settings.value("backyard_weight", ai.backyard_weight, type=int)
         ai.center_weight = settings.value("center_weight", ai.center_weight, type=int)
+        ai.border_weight = settings.value("border_weight", ai.border_weight, type=int)
         ai.opposite_side_weight = settings.value("opposite_side_weight", ai.opposite_side_weight, type=int)
         ai.backed_weight = settings.value("backed_weight", ai.backed_weight, type=int)
         ai.asymetry_weight = settings.value("asymetry_weight", ai.asymetry_weight, type=int)
@@ -189,6 +191,7 @@ class AI(object):
         settings.setValue("mobility_weight", self.mobility_weight)
         settings.setValue("backyard_weight", self.backyard_weight)
         settings.setValue("center_weight", self.center_weight)
+        settings.setValue("border_weight", self.border_weight)
         settings.setValue("opposite_side_weight", self.opposite_side_weight)
         settings.setValue("backed_weight", self.backed_weight)
         settings.setValue("asymetry_weight", self.asymetry_weight)
@@ -219,6 +222,7 @@ class AI(object):
             "mobility_weight": self.mobility_weight,
             "backyard_weight": self.backyard_weight,
             "center_weight": self.center_weight,
+            "border_weight": self.border_weight,
             "opposite_side_weight": self.opposite_side_weight,
             "backed_weight": self.backed_weight,
             "asymetry_weight": self.asymetry_weight,
