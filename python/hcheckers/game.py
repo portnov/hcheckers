@@ -71,6 +71,7 @@ class AI(object):
         self.asymetry_weight = -12
         self.pre_king_weight = 28
         self.king_coef = 3
+        self.positional_king_weight = 0
         self.attacked_man_coef = -40
         self.attacked_king_coef = -80
 
@@ -134,6 +135,7 @@ class AI(object):
         ai.asymetry_weight = settings.value("asymetry_weight", ai.asymetry_weight, type=int)
         ai.pre_king_weight = settings.value("pre_king_weight", ai.pre_king_weight, type=int)
         ai.king_coef = settings.value("king_coef", ai.king_coef, type=int)
+        ai.positional_king_weight = settings.value("positional_king_weight", ai.positional_king_weight, type=int)
         ai.attacked_man_coef = settings.value("attacked_man_coef", ai.attacked_man_coef, type=int)
         ai.attacked_king_coef = settings.value("attacked_king_coef", ai.attacked_king_coef, type=int)
 
@@ -197,6 +199,7 @@ class AI(object):
         settings.setValue("asymetry_weight", self.asymetry_weight)
         settings.setValue("pre_king_weight", self.pre_king_weight)
         settings.setValue("king_coef", self.king_coef)
+        settings.setValue("positional_king_weight", self.positional_king_weight)
         settings.setValue("attacked_man_coef", self.attacked_man_coef)
         settings.setValue("attacked_king_coef", self.attacked_king_coef)
 
@@ -226,6 +229,8 @@ class AI(object):
             "opposite_side_weight": self.opposite_side_weight,
             "backed_weight": self.backed_weight,
             "asymetry_weight": self.asymetry_weight,
+            "king_coef": self.king_coef,
+            "positional_king_weight": self.positional_king_weight,
             "pre_king_weight": self.pre_king_weight,
             "attacked_man_coef": self.attacked_man_coef,
             "attacked_king_coef": self.attacked_king_coef,

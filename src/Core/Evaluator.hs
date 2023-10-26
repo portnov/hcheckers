@@ -47,6 +47,7 @@ data SimpleEvaluator = SimpleEvaluator {
     seAsymetryWeight :: ScoreBase,
     sePreKingWeight :: ScoreBase,
     seKingCoef :: ScoreBase,
+    sePositionalKingWeight :: ScoreBase,
     seHelpedKingCoef :: ScoreBase,
     seThreatWeight :: ScoreBase,
     seAttackedManCoef :: ScoreBase,
@@ -68,6 +69,7 @@ defaultEvaluator rules = SimpleEvaluator
     , seAsymetryWeight     = -12
     , sePreKingWeight      = 28
     , seKingCoef           = 3
+    , sePositionalKingWeight = 0
     , seHelpedKingCoef     = 5
     , seThreatWeight       = 10
     , seAttackedManCoef = -40
@@ -90,6 +92,7 @@ parseEvaluator def = withObject "Evaluator" $ \v -> SimpleEvaluator
     <*> v .:? "asymetry_weight" .!= seAsymetryWeight def
     <*> v .:? "pre_king_weight" .!= sePreKingWeight def
     <*> v .:? "king_coef" .!= seKingCoef def
+    <*> v .:? "positional_king_weight" .!= sePositionalKingWeight def
     <*> v .:? "helped_king_coef" .!= seHelpedKingCoef def
     <*> v .:? "threat_weight" .!= seThreatWeight def
     <*> v .:? "attacked_man_coef" .!= seAttackedManCoef def
@@ -108,6 +111,7 @@ instance ToJSON SimpleEvaluator where
       "asymetry_weight" .= seAsymetryWeight p,
       "pre_king_weight" .= sePreKingWeight p,
       "king_coef" .= seKingCoef p,
+      "positional_king_weight" .= sePositionalKingWeight p,
       "helped_king_coef" .= seHelpedKingCoef p,
       "threat_weight" .= seThreatWeight p,
       "attacked_man_coef" .= seAttackedManCoef p,
@@ -124,6 +128,7 @@ data PreScore = PreScore {
     , psBacked :: ScoreBase
     , psAsymetry :: ScoreBase
     , psPreKing :: ScoreBase
+    , psPosKing :: ScoreBase
     , psAttackedMen :: ScoreBase
     , psAttackedKings :: ScoreBase
     , psThreats :: ScoreBase
@@ -140,6 +145,7 @@ sub ps1 ps2 = PreScore
   , psBacked   = psBacked ps1 - psBacked ps2
   , psAsymetry = psAsymetry ps1 - psAsymetry ps2
   , psPreKing  = psPreKing ps1 - psPreKing ps2
+  , psPosKing  = psPosKing ps1 - psPosKing ps2
   , psAttackedMen = psAttackedMen ps1 - psAttackedMen ps2
   , psAttackedKings = psAttackedKings ps1 - psAttackedKings ps2
   , psThreats = psThreats ps1 - psThreats ps2
@@ -156,6 +162,7 @@ instance Default PreScore where
           , psBacked = 0
           , psAsymetry = 0
           , psPreKing = 0
+          , psPosKing = 0
           , psAttackedMen = 0
           , psAttackedKings = 0
           , psThreats = 0
@@ -205,9 +212,10 @@ preEval (SimpleEvaluator { seRules = iface@(SomeRules rules), ..}) side board =
 --       let (men, _) = myCounts side board
 --       in  if men > 3 then seHelpedKingCoef else seKingCoef
 
-    numericScore =
+    (numericScore, positionalKingScore) =
       let (myMen, myKings) = myCounts side board
-      in  kingCoef * fromIntegral myKings + fromIntegral myMen
+      in  (kingCoef * fromIntegral myKings + fromIntegral myMen,
+           sePositionalKingWeight * fromIntegral myKings)
 
     (nrows, ncols) = bSize board
     crow           = nrows `div` 2
@@ -304,6 +312,7 @@ preEval (SimpleEvaluator { seRules = iface@(SomeRules rules), ..}) side board =
       , psBacked   = fromIntegral backedScore
       , psAsymetry = fromIntegral asymetry
       , psPreKing  = fromIntegral preKings
+      , psPosKing  = fromIntegral positionalKingScore
       , psAttackedMen = fromIntegral attackedMen
       , psAttackedKings = fromIntegral attackedKings
       , psThreats = fromIntegral threatsCount
@@ -353,6 +362,7 @@ instance Evaluator SimpleEvaluator where
               seBackedWeight * psBacked ps +
               asymetryWeight * psAsymetry ps +
               sePreKingWeight * psPreKing ps +
+              sePositionalKingWeight * psPosKing ps +
               seAttackedManCoef * psAttackedMen ps +
               seAttackedKingCoef * psAttackedKings ps +
               seThreatWeight * psThreats ps
@@ -377,7 +387,7 @@ instance VectorEvaluator SimpleEvaluator where
         seCenterWeight, seOppositeSideWeight,
         seBackedWeight,
         seAsymetryWeight, sePreKingWeight,
-        seKingCoef, seAttackedManCoef,
+        seKingCoef, sePositionalKingWeight, seAttackedManCoef,
         seAttackedKingCoef, seBorderManWeight,
         seThreatWeight]
 
@@ -392,11 +402,12 @@ instance VectorEvaluator SimpleEvaluator where
         , seAsymetryWeight = round (v V.! 5)
         , sePreKingWeight = round (v V.! 6)
         , seKingCoef = round (v V.! 7)
+        , sePositionalKingWeight = round (v V.! 8)
         , seHelpedKingCoef = round (v V.! 7)
-        , seAttackedManCoef = round (v V.! 8)
-        , seAttackedKingCoef = round (v V.! 9)
-        , seBorderManWeight = round (v V.! 10)
-        , seThreatWeight = round (v V.! 11)
+        , seAttackedManCoef = round (v V.! 9)
+        , seAttackedKingCoef = round (v V.! 10)
+        , seBorderManWeight = round (v V.! 11)
+        , seThreatWeight = round (v V.! 12)
         , seCache = buildCache iface
       }
     where

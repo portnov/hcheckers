@@ -152,6 +152,7 @@ class AiEditorWidget(QWidget):
         self.asymetry_weight = make_spinbox(_("Asymetry"), -100, 100, evaluator)
         self.pre_king_weight = make_spinbox(_("Pre-king"), 1, 100, evaluator)
         self.king_coef = make_spinbox(_("King"), 1, 100, evaluator)
+        self.positional_king_weight = make_spinbox(_("King positional weight"), 0, 1000, evaluator)
         self.attacked_man_coef = make_spinbox(_("Attacked man"), -300, 300, evaluator)
         self.attacked_king_coef = make_spinbox(_("Attacked king"), -300, 300, evaluator)
 
@@ -248,6 +249,7 @@ class AiEditorWidget(QWidget):
         self.asymetry_weight.setValue(ai.asymetry_weight)
         self.pre_king_weight.setValue(ai.pre_king_weight)
         self.king_coef.setValue(ai.king_coef)
+        self.positional_king_weight.setValue(ai.positional_king_weight)
         self.attacked_man_coef.setValue(- ai.attacked_man_coef)
         self.attacked_king_coef.setValue(- ai.attacked_king_coef)
 
@@ -283,6 +285,7 @@ class AiEditorWidget(QWidget):
         ai.asymetry_weight = self.asymetry_weight.value()
         ai.pre_king_weight = self.pre_king_weight.value()
         ai.king_coef = self.king_coef.value()
+        ai.positional_king_weight = self.positional_king_weight.value()
         ai.attacked_man_coef = - self.attacked_man_coef.value()
         ai.attacked_king_coef = - self.attacked_king_coef.value()
 
