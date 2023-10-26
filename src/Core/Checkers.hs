@@ -21,7 +21,7 @@ isGameMessage :: LogMessage -> Bool
 isGameMessage msg = 
   isJust $ gameIdFromLogMsg msg
 
-withCheckersLog :: (CmdLineCommand c, IsLogBackend b) => CmdLine c -> (Chan LogMessage -> LogBackendSettings b) -> Checkers a -> IO a
+withCheckersLog :: (CmdLineCommand c, IsLogBackend b) => CmdLine c -> (GeneralConfig -> Chan LogMessage -> LogBackendSettings b) -> Checkers a -> IO a
 withCheckersLog cmd logSettings actions = do
   supervisor <- mkSupervisor
   cfg <- loadConfig cmd
@@ -32,7 +32,7 @@ withCheckersLog cmd logSettings actions = do
     EKG.registerGcMetrics store
     EKG.forkServerWith store (TE.encodeUtf8 $ gcHost cfg) (gcMetricsPort cfg)
     return ()
-  withLoggingB (logSettings logChan) $ \backend -> do
+  withLoggingB (logSettings cfg logChan) $ \backend -> do
     let logger = makeLogger backend
         logging = LoggingTState logger (AnyLogBackend backend) []
         cs = CheckersState logging supervisor metrics cfg
@@ -54,7 +54,6 @@ dfltLoggingSettings cfg logChan =
 
 withCheckers :: CmdLineCommand c => CmdLine c -> Checkers a -> IO a
 withCheckers cmd actions = do
-  cfg <- loadConfig cmd
-  let logSettings logChan = ParallelLogSettings $ dfltLoggingSettings cfg logChan
+  let logSettings cfg logChan = ParallelLogSettings $ dfltLoggingSettings cfg logChan
   withCheckersLog cmd logSettings actions
 

@@ -20,7 +20,6 @@ import Core.Checkers
 import Core.CmdLine
 import Core.Supervisor (withRules)
 import Core.Monitoring
-import Core.Config (loadConfig)
 
 import Learn
 import Battle
@@ -65,10 +64,9 @@ special cmd =
             printCurrentMetrics (Just "learn.")
 
     Openings rulesName aiPath depth -> do
-      cfg <- loadConfig cmd
       withRules rulesName $ \rules -> do
         ai <- loadAi "default" rules aiPath
-        withCheckersLog cmd (learnLogging cfg) $ do
+        withCheckersLog cmd learnLogging $ do
             dumpConfig cmd
             withLogContext (LogContextFrame [] (include defaultLogFilter)) $
               analyzeOpenings ai depth

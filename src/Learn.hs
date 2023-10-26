@@ -176,20 +176,26 @@ analyzeOpenings ai@(AlphaBeta params rules eval) depth = do
     let board = initBoard supervisor rules
     gameId <- newGame (SomeRules rules) First Nothing Nothing
 
-    let analyzeBoard side b = do
+    let analyzeBoard side b prevBoards = do
           let moves = possibleMoves rules side b
           forM_ moves $ \pm -> do
-            processMove rules eval cache params gameId side (pmMove pm) b
+            let (board', _, _) = applyMove rules side (pmMove pm) b
+            (_, score) <- processMove rules eval cache params gameId side (pmMove pm) board'
+            return ()
+            -- forM_ (zip [1..] prevBoards) $ \(i, prevBoard) -> do
+            --   let key = mkCacheKey eval prevBoard
+            --   updateAiCache key (\v -> v {itemDepth = itemDepth v + i, itemScore = score}) cache
           return moves
 
-        go side b 0 = return ()
-        go side b i = do
-          moves <- analyzeBoard side b
+        go _ _ _ _ 0 = return ()
+        go side b prevMoves prevBoards i = do
+          $info "Checking moves sequence: {}" (Single $ show $ reverse $ prevMoves)
+          moves <- analyzeBoard side b prevBoards
           forM_ moves $ \pm -> do
             let (board1, _, _) = applyMove rules side (pmMove pm) b
-            go (opposite side) board1 (i-1)
+            go (opposite side) board1 (pm : prevMoves) (b : prevBoards) (i-1)
 
-    go First board (2*depth)
+    go First board [] [] (2*depth)
     saveAiStorage ai cache
     return ()
 

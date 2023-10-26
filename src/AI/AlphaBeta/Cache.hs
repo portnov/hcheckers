@@ -12,6 +12,7 @@ module AI.AlphaBeta.Cache
     lookupAiCache, lookupAiCacheS,
     lookupAiCacheS', lookupAiCacheC,
     putAiCache, putAiCacheS,
+    updateAiCache,
     resetAiCache,
     mkCacheKey
   ) where
@@ -185,6 +186,13 @@ putAiCacheS key@(_,board) newItem cache = lift $ do
   Monitoring.timed "cache.put.memory" $ do
     Monitoring.increment "cache.records.put"
     liftIO $ putBoardMapWith cache (<>) board newItem
+
+updateAiCache :: GameRules rules => CacheKey -> (CacheValue -> CacheValue) -> AICacheHandle rules eval -> Checkers ()
+updateAiCache key upd handle = do
+  mbItem <- lookupAiCacheC key handle
+  case mbItem of
+    Nothing -> return ()
+    Just item -> putAiCache key (upd item) handle
 
 resetAiCache :: AICacheHandle rules eval -> Checkers ()
 resetAiCache handle = do
