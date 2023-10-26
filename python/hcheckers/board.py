@@ -256,6 +256,7 @@ class Board(QWidget):
         self._selected_field = None
         self._valid_target_fields = None
         self._moveable_fields = None
+        self._last_left_field = None
         self._last_moved_field = None
         self._board = dict()
         self._new_board = None
@@ -335,6 +336,19 @@ class Board(QWidget):
 
     last_moved = property(get_last_moved, set_last_moved)
 
+    def get_last_left(self):
+        return self._last_left_field
+
+    def set_last_left(self, value):
+        self._last_left_field = value
+
+        for idx in self.fields:
+            self.fields[idx].last_left = (idx == value)
+
+        self.invalidate()
+
+    last_left = property(get_last_left, set_last_left)
+
     def reset_moveable(self):
         self._moveable_fields = None
         for (row, col) in self.fields:
@@ -345,6 +359,7 @@ class Board(QWidget):
 
     def reset_last_moved(self):
         self.last_moved = None
+        self.last_left = None
         self.repaint()
 
     def get_theme(self):
@@ -885,6 +900,7 @@ class Board(QWidget):
                 self.game.begin_move(src_field, dst_field)
                 self.my_turn = False
                 self.message.emit(WaitingMove())
+                self.last_left = self.index_by_label[field.label]
                 self.last_moved = (row,col)
 
                 self.hint_moves = None
@@ -974,6 +990,7 @@ class Board(QWidget):
         elif self._new_board is not None:
             self._board = self._new_board
             self._new_board = None
+        self.last_left = self.move_animation.start_field
         self.last_moved = self.move_animation.end_field
         self.fields_setup(self._board)
         self.repaint()
