@@ -483,6 +483,9 @@ class (Typeable g, Show g, HasBoardOrientation g, HasSideNotation g, HasTopology
   getForwardDirections :: g -> [PlayerDirection]
   getForwardDirections _ = [ForwardLeft, ForwardRight]
 
+  getManSimpleMoveDirections :: g -> [PlayerDirection]
+  getManSimpleMoveDirections = getForwardDirections
+
   getAllAddresses :: g -> [Address]
 
 fieldsCount :: GameRules rules => rules -> Line

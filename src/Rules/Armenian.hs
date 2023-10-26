@@ -66,6 +66,7 @@ instance GameRules Armenian where
 
   getBackDirections _ = [Backward]
   getForwardDirections _ = [ForwardLeft, Forward, ForwardRight]
+  getManSimpleMoveDirections (Armenian r) = gManSimpleMoveDirections r
   getAllAddresses r = addresses8 r
 
 armenianBase :: GenericRules -> GenericRules

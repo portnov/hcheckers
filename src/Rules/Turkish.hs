@@ -58,6 +58,7 @@ instance GameRules Turkish where
   pdnId _ = "43"
 
   getBackDirections _ = [Backward]
+  getManSimpleMoveDirections (Turkish r) = gManSimpleMoveDirections r
   getAllAddresses r = addresses8 r
 
 turkishBase :: GenericRules -> GenericRules

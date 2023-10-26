@@ -173,7 +173,7 @@ waveRho (SomeRules rules) side isGood addr best = go addr
               case myNeighbour rules side dir addr of
                 Nothing -> 0
                 Just dst -> max 0 $ go dst - 1
-        in  maximum $ map check $ getForwardDirections rules
+        in  maximum $ map check $ getManSimpleMoveDirections rules
 
 buildCache :: SomeRules -> M.Map Address SimpleEvaluatorData
 buildCache iface@(SomeRules rules) = M.fromList [(addr, labelData addr) | addr <- getAllAddresses rules]
@@ -275,7 +275,7 @@ preEval (SimpleEvaluator { seRules = iface@(SomeRules rules), ..}) side board =
 
     threatsCount = sum $ map threatsBy $ myMenA side board
 
-    isPreKing board src = any check $ getForwardDirections rules
+    isPreKing board src = any check $ getManSimpleMoveDirections rules
       where
         check dir =
           case myNeighbour rules side dir src of
