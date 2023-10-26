@@ -165,3 +165,31 @@ learnPdnOrDir ai path = do
     else
       fail "Specified path not found"
 
+analyzeOpenings :: (GameRules rules, VectorEvaluator eval, ToJSON eval)
+    => AlphaBeta rules eval
+    -> Int
+    -> Checkers ()
+analyzeOpenings ai@(AlphaBeta params rules eval) depth = do
+    cache <- loadAiCache scoreMoveGroup ai
+    sup <- askSupervisor
+    supervisor <- liftIO $ atomically $ readTVar sup
+    let board = initBoard supervisor rules
+    gameId <- newGame (SomeRules rules) First Nothing Nothing
+
+    let analyzeBoard side b = do
+          let moves = possibleMoves rules side b
+          forM_ moves $ \pm -> do
+            processMove rules eval cache params gameId side (pmMove pm) b
+          return moves
+
+        go side b 0 = return ()
+        go side b i = do
+          moves <- analyzeBoard side b
+          forM_ moves $ \pm -> do
+            let (board1, _, _) = applyMove rules side (pmMove pm) b
+            go (opposite side) board1 (i-1)
+
+    go First board (2*depth)
+    saveAiStorage ai cache
+    return ()
+

@@ -20,10 +20,16 @@ import Core.Checkers
 import Core.CmdLine
 import Core.Supervisor (withRules)
 import Core.Monitoring
+import Core.Config (loadConfig)
 
 import Learn
 import Battle
 import Rules.Russian
+
+learnLogging cfg logChan =
+  let dfltBackends = dfltLoggingSettings cfg logChan
+      stdout = LoggingSettings $ Filtering (\m -> lmSource m == ["Learn"]) defStdoutSettings
+  in  ParallelLogSettings $ dfltBackends ++ [stdout]
 
 parserInfo :: ParserInfo (CmdLine SpecialCommand)
 parserInfo = info (cmdline parseSpecialCommand <**> helper)
@@ -57,6 +63,15 @@ special cmd =
               learnPdnOrDir ai pdnPath
             printCurrentMetrics (Just "ai.")
             printCurrentMetrics (Just "learn.")
+
+    Openings rulesName aiPath depth -> do
+      cfg <- loadConfig cmd
+      withRules rulesName $ \rules -> do
+        ai <- loadAi "default" rules aiPath
+        withCheckersLog cmd (learnLogging cfg) $ do
+            dumpConfig cmd
+            withLogContext (LogContextFrame [] (include defaultLogFilter)) $
+              analyzeOpenings ai depth
 
     Bench rulesName path n -> do
       withRules rulesName $ \rules -> do

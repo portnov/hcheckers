@@ -21,8 +21,8 @@ isGameMessage :: LogMessage -> Bool
 isGameMessage msg = 
   isJust $ gameIdFromLogMsg msg
 
-withCheckers :: CmdLineCommand c => CmdLine c -> Checkers a -> IO a
-withCheckers cmd actions = do
+withCheckersLog :: (CmdLineCommand c, IsLogBackend b) => CmdLine c -> (Chan LogMessage -> LogBackendSettings b) -> Checkers a -> IO a
+withCheckersLog cmd logSettings actions = do
   supervisor <- mkSupervisor
   cfg <- loadConfig cmd
   logChan <- newChan
@@ -32,12 +32,7 @@ withCheckers cmd actions = do
     EKG.registerGcMetrics store
     EKG.forkServerWith store (TE.encodeUtf8 $ gcHost cfg) (gcMetricsPort cfg)
     return ()
-  let file = (defFileSettings (gcLogFile cfg)) {
-                lsFormat = "{time} [{level}] {source} [{game}|{thread}]: {message}\n"
-             }
-      game = Filtering isGameMessage $ ChanLoggerSettings logChan
-      logSettings = ParallelLogSettings [LoggingSettings game, LoggingSettings file]
-  withLoggingB logSettings $ \backend -> do
+  withLoggingB (logSettings logChan) $ \backend -> do
     let logger = makeLogger backend
         logging = LoggingTState logger (AnyLogBackend backend) []
         cs = CheckersState logging supervisor metrics cfg
@@ -48,4 +43,18 @@ withCheckers cmd actions = do
     case res of
       Right result -> return result
       Left err -> fail $ show err
+
+dfltLoggingSettings :: GeneralConfig -> Chan LogMessage -> [LoggingSettings]
+dfltLoggingSettings cfg logChan =
+  let file = (defFileSettings (gcLogFile cfg)) {
+                lsFormat = "{time} [{level}] {source} [{game}|{thread}]: {message}\n"
+             }
+      game = Filtering isGameMessage $ ChanLoggerSettings logChan
+  in  [LoggingSettings file, LoggingSettings game]
+
+withCheckers :: CmdLineCommand c => CmdLine c -> Checkers a -> IO a
+withCheckers cmd actions = do
+  cfg <- loadConfig cmd
+  let logSettings logChan = ParallelLogSettings $ dfltLoggingSettings cfg logChan
+  withCheckersLog cmd logSettings actions
 

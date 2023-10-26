@@ -15,6 +15,11 @@ data SpecialCommand =
         , scAiPath :: FilePath
         , scPdnPath :: FilePath
       }
+    | Openings {
+          scRulesName :: String
+        , scAiPath :: FilePath
+        , scDepth :: Int
+      }
     | Bench {
           scRulesName :: String
         , scAiPath :: FilePath
@@ -115,6 +120,7 @@ parseServerCommand =
 parseSpecialCommand :: Parser SpecialCommand
 parseSpecialCommand = hsubparser (
        cmd "learn" learn "learn"
+    <> cmd "openings" openings "Generate openings data"
     <> cmd "bench" bench "benchmark"
     <> cmd "battle" battle "run battle"
     <> cmd "remote-battle" remoteBattle "run battle on a remote host"
@@ -136,6 +142,12 @@ parseSpecialCommand = hsubparser (
       <$> parseRules
       <*> parseAiPath
       <*> strArgument (metavar "FILE.PDN" <> help "Path to PDN file")
+
+    openings :: Parser SpecialCommand
+    openings = Openings
+      <$> parseRules
+      <*> parseAiPath
+      <*> argument auto (metavar "DEPTH" <> help "Openings depth")
 
     bench :: Parser SpecialCommand
     bench = Bench
