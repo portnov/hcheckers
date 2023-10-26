@@ -26,6 +26,7 @@ import Rules.Canadian
 import Rules.Russian
 import Rules.Simple
 import Rules.Spancirety
+import Rules.Frisian
 import Formats.Types
 import Formats.Fen
 
@@ -170,6 +171,7 @@ pGameType = do
     "41" -> return $ SomeRules spancirety
     "42" -> return $ SomeRules diagonal
     "43" -> return $ SomeRules simple
+    "40" -> return $ SomeRules frisian
     _ -> fail $ "Unsupported rules: " ++ n
 
 titleFromTags :: [Tag] -> Maybe T.Text
