@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: 0.1.0.0\n"
-"POT-Creation-Date: 2023-10-23 12:32+0500\n"
+"POT-Creation-Date: 2023-10-27 09:21+0500\n"
 "PO-Revision-Date: 2018-11-07 22:30+5\n"
 "Last-Translator: Ilya Portnov <portnov84@rambler.ru>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -15,23 +15,23 @@ msgstr ""
 "Content-Transfer-Encoding: utf-8\n"
 "Generated-By: pygettext.py 1.5\n"
 
-#: board.py:868
+#: board.py:883
 msgid "Piece at {} does not have moves"
 msgstr "Фишка на {} не имеет ходов"
 
-#: board.py:875
+#: board.py:890
 msgid "Possible target fields: {}"
 msgstr "Возможные целевые поля: {}"
 
-#: board.py:903
+#: board.py:919
 msgid "Piece at {} cannot be moved to {}"
 msgstr "Фишка на {} не может быть передвинута на {}"
 
-#: board.py:907
+#: board.py:923
 msgid "Field {} does not belong to you"
 msgstr "Поле {} не принадлежит вам"
 
-#: board.py:995
+#: board.py:1012
 msgid "Another side have offered a draw. You have to accept or decline it."
 msgstr "Соперник предложил ничью. Вам нужно согласиться или отказаться."
 
@@ -159,43 +159,52 @@ msgstr ""
 "https://ru.wikipedia.org/wiki/%D0%90%D1%80%D0%BC%D1%8F%D0%BD%D1%81%D0%BA"
 "%D0%B8%D0%B5_%D1%88%D0%B0%D1%88%D0%BA%D0%B8"
 
-#: game.py:160
+#: common.py:300
+msgid "Frisian draughts (Alpha)"
+msgstr "Фризские шашки (Альфа)"
+
+#: common.py:300
+msgid "https://en.wikipedia.org/wiki/Frisian_draughts"
+msgstr ""
+"https://ru.wikipedia.org/wiki/%D0%A4%D1%80%D0%B8%D0%B7%D1%81%D0%BA%D0%B8%D0%B5_%D1%88%D0%B0%D1%88%D0%BA%D0%B8"
+
+#: game.py:164
 msgid "Beginner"
 msgstr "Начинающий"
 
-#: game.py:161
+#: game.py:165
 msgid "Novice"
 msgstr "Новичок"
 
-#: game.py:162
+#: game.py:166
 msgid "Average"
 msgstr "Средний"
 
-#: game.py:163
+#: game.py:167
 msgid "Good"
 msgstr "Хороший"
 
-#: game.py:164
+#: game.py:168
 msgid "Master"
 msgstr "Мастер"
 
-#: game.py:430 game.py:486 game.py:488 lobby.py:37 newgamedlg.py:131
+#: game.py:439 game.py:495 game.py:497 lobby.py:37 newgamedlg.py:138
 msgid "White"
 msgstr "Белые"
 
-#: game.py:432 game.py:486 game.py:488 lobby.py:37 newgamedlg.py:132
+#: game.py:441 game.py:495 game.py:497 lobby.py:37 newgamedlg.py:139
 msgid "Black"
 msgstr "Черные"
 
-#: game.py:434
+#: game.py:443
 msgid "Newly created game ID: {}. First side to move: {}."
 msgstr "ID созданной игры: {}. Первыми ходят: {}."
 
-#: game.py:503
+#: game.py:512
 msgid "AI settings on server: {}"
 msgstr "Настройки ИИ на сервере: {}"
 
-#: game.py:507
+#: game.py:516
 msgid ""
 "AI parameters:\n"
 "{}"
@@ -203,27 +212,27 @@ msgstr ""
 "Параметры ИИ:\n"
 "{}"
 
-#: game.py:642
+#: game.py:651
 msgid "Offer for a draw posted."
 msgstr "Предложение ничьей послано."
 
-#: game.py:657
+#: game.py:666
 msgid "You accepted draw."
 msgstr "Вы согласились на ничью."
 
-#: game.py:659
+#: game.py:668
 msgid "You declined draw."
 msgstr "Вы отказались от ничьей."
 
-#: game.py:669
+#: game.py:678
 msgid "Game #{}: you capitulated."
 msgstr "Игра #{}: вы сдались."
 
-#: game.py:675
+#: game.py:684
 msgid "Server shutdown requested."
 msgstr "Запрошена остановка сервера."
 
-#: game.py:717
+#: game.py:726
 msgid "Requested AI to stop thinking"
 msgstr "Послан запрос ИИ прекратить обдумывание"
 
@@ -299,79 +308,79 @@ msgstr "Нажмите, чтобы открыть описание выбран�
 msgid "Do not use"
 msgstr "Не использовать"
 
-#: newgamedlg.py:122
+#: newgamedlg.py:129
 msgid "Time control"
 msgstr "Контроль времени"
 
-#: newgamedlg.py:124
+#: newgamedlg.py:131
 msgid "User name"
 msgstr "Имя пользователя"
 
-#: newgamedlg.py:133
+#: newgamedlg.py:140
 msgid "User plays"
 msgstr "Пользователь играет"
 
-#: newgamedlg.py:139
+#: newgamedlg.py:146
 msgid "Use default initial position"
 msgstr "Использовать начальную расстановку по умолчанию"
 
-#: newgamedlg.py:140
+#: newgamedlg.py:147
 msgid "Manual initial position setup"
 msgstr "Ручная начальная расстановка"
 
-#: newgamedlg.py:141
+#: newgamedlg.py:148
 msgid "Use initial board of previous game"
 msgstr "Использовать начальную расстановку предыдущей игры"
 
-#: newgamedlg.py:142
+#: newgamedlg.py:149
 msgid "Load initial board from FEN file"
 msgstr "Загрузить начальную расстановку из файла FEN"
 
-#: newgamedlg.py:143
+#: newgamedlg.py:150
 msgid "Load initial board from PDN file"
 msgstr "Загрузить начальную расстановку из файла PDN"
 
-#: newgamedlg.py:144
+#: newgamedlg.py:151
 msgid "Use random initial board preset"
 msgstr "Использовать случайную заготовку начальной расстановки"
 
-#: newgamedlg.py:145
+#: newgamedlg.py:152
 msgid "Initial board type"
 msgstr "Вид начальной расстановки"
 
-#: newgamedlg.py:150
+#: newgamedlg.py:157
 msgid "Select file"
 msgstr "Выберите файл"
 
-#: newgamedlg.py:167
+#: newgamedlg.py:174
 msgid "Start a new game"
 msgstr "Начать новую игру"
 
-#: newgamedlg.py:169
+#: newgamedlg.py:176
 msgid "Close this dialog without starting a new game"
 msgstr "Закрыть этот диалог, не начиная новой игры"
 
-#: newgamedlg.py:173
+#: newgamedlg.py:180
 msgid "AI"
 msgstr "ИИ"
 
-#: newgamedlg.py:182
+#: newgamedlg.py:189
 msgid "Refresh"
 msgstr "Обновить"
 
-#: newgamedlg.py:200
+#: newgamedlg.py:207
 msgid "Open settings dialog"
 msgstr "Открыть диалог настроек"
 
-#: newgamedlg.py:209 toplevel.py:400
+#: newgamedlg.py:216 toplevel.py:400
 msgid "E&xit"
 msgstr "&Выход"
 
-#: newgamedlg.py:211
+#: newgamedlg.py:218
 msgid "Close this dialog and exit the program"
 msgstr "Закрыть этот диалог и выйти из программы"
 
-#: newgamedlg.py:272 toplevel.py:898
+#: newgamedlg.py:279 toplevel.py:898
 msgid "Settings have been updated."
 msgstr "Настройки были обновлены."
 
@@ -456,7 +465,7 @@ msgstr "Соглашаться если ИИ проигрывает"
 msgid "Accept draws"
 msgstr "Соглашаться на ничьи"
 
-#: settingsdlg.py:140 settingsdlg.py:511
+#: settingsdlg.py:140 settingsdlg.py:517
 msgid "General"
 msgstr "Общее"
 
@@ -473,178 +482,186 @@ msgid "Center"
 msgstr "Центр"
 
 #: settingsdlg.py:149
+msgid "Border"
+msgstr "Край доски"
+
+#: settingsdlg.py:150
 msgid "Opposite side"
 msgstr "Противоположная сторона"
 
-#: settingsdlg.py:150
+#: settingsdlg.py:151
 msgid "Backed"
 msgstr "Прикрытие"
 
-#: settingsdlg.py:151
+#: settingsdlg.py:152
 msgid "Asymetry"
 msgstr "Асимметрия"
 
-#: settingsdlg.py:152
+#: settingsdlg.py:153
 msgid "Pre-king"
 msgstr "Почти-дамка"
 
-#: settingsdlg.py:153
+#: settingsdlg.py:154
 msgid "King"
 msgstr "Дамка"
 
-#: settingsdlg.py:154
+#: settingsdlg.py:155
+msgid "King positional weight"
+msgstr "Позиционный вес дамки"
+
+#: settingsdlg.py:156
 msgid "Attacked man"
 msgstr "Атакованая шашка"
 
-#: settingsdlg.py:155
+#: settingsdlg.py:157
 msgid "Attacked king"
 msgstr "Атакованая дамка"
 
-#: settingsdlg.py:157
+#: settingsdlg.py:159
 msgid "Board evaluation"
 msgstr "Оценка доски"
 
-#: settingsdlg.py:166
+#: settingsdlg.py:168
 msgid "Extra options"
 msgstr "Дополнительные опции"
 
-#: settingsdlg.py:173
+#: settingsdlg.py:175
 msgid "Save..."
 msgstr "Сохранить..."
 
-#: settingsdlg.py:175
+#: settingsdlg.py:177
 msgid "Save AI settings to JSON file"
 msgstr "Сохранить настройки ИИ в файл JSON"
 
-#: settingsdlg.py:179
+#: settingsdlg.py:181
 msgid "Load..."
 msgstr "Загрузить..."
 
-#: settingsdlg.py:181
+#: settingsdlg.py:183
 msgid "Load AI settings from JSON file"
 msgstr "Загрузить настройки ИИ из файла JSON"
 
-#: settingsdlg.py:194 toplevel.py:641 toplevel.py:654 toplevel.py:867
+#: settingsdlg.py:196 toplevel.py:641 toplevel.py:654 toplevel.py:867
 msgid "Save file"
 msgstr "Сохранить файл"
 
-#: settingsdlg.py:202
+#: settingsdlg.py:204
 msgid "Load file"
 msgstr "Загрузить файл"
 
-#: settingsdlg.py:301
+#: settingsdlg.py:307
 msgid "Add AI preset"
 msgstr "Добавить настройку ИИ"
 
-#: settingsdlg.py:306
+#: settingsdlg.py:312
 msgid "Duplicate AI preset"
 msgstr "Дублировать настройку ИИ"
 
-#: settingsdlg.py:311
+#: settingsdlg.py:317
 msgid "Delete AI preset"
 msgstr "Удалить настройку ИИ"
 
-#: settingsdlg.py:350
+#: settingsdlg.py:356
 msgid "Copy of {}"
 msgstr "Копия {}"
 
-#: settingsdlg.py:362
+#: settingsdlg.py:368
 msgid "Show fields notation on the board"
 msgstr "Показывать нотацию полей на доске"
 
-#: settingsdlg.py:364
+#: settingsdlg.py:370
 msgid "Show board borders with notation"
 msgstr "Показывать края доски с нотацией"
 
-#: settingsdlg.py:366
+#: settingsdlg.py:372
 msgid "Show possible moves"
 msgstr "Показывать возможные ходы"
 
-#: settingsdlg.py:369
+#: settingsdlg.py:375
 msgid "Higlight when another piece is clicked"
 msgstr "Подсвечивать при щелчке по другой шашке"
 
-#: settingsdlg.py:370
+#: settingsdlg.py:376
 msgid "Always highlight"
 msgstr "Всегда подсвечивать"
 
-#: settingsdlg.py:371
+#: settingsdlg.py:377
 msgid "Never highlight"
 msgstr "Никогда не подсвечивать"
 
-#: settingsdlg.py:372
+#: settingsdlg.py:378
 msgid "Highlight possible captures"
 msgstr "Подсвечивать возможные взятия"
 
-#: settingsdlg.py:379
+#: settingsdlg.py:385
 msgid "Theme"
 msgstr "Тема"
 
-#: settingsdlg.py:382
+#: settingsdlg.py:388
 msgid "Enable sounds"
 msgstr "Включить звуки"
 
-#: settingsdlg.py:430
+#: settingsdlg.py:436
 msgid "Server URL"
 msgstr "URL сервера"
 
-#: settingsdlg.py:434
+#: settingsdlg.py:440
 msgid "Use local server"
 msgstr "Использовать локальный сервер"
 
-#: settingsdlg.py:436
+#: settingsdlg.py:442
 msgid "Local server start command"
 msgstr "Команда запуска локального сервера"
 
-#: settingsdlg.py:442
+#: settingsdlg.py:448
 msgid "Use system settings"
 msgstr "Использовать системные настройки"
 
-#: settingsdlg.py:443
+#: settingsdlg.py:449
 msgid "Do not use proxy"
 msgstr "Не использовать прокси"
 
-#: settingsdlg.py:444
+#: settingsdlg.py:450
 msgid "Manual configuration"
 msgstr "Ручная настройка"
 
-#: settingsdlg.py:445
+#: settingsdlg.py:451
 msgid "Proxy usage"
 msgstr "Использование прокси"
 
-#: settingsdlg.py:449
+#: settingsdlg.py:455
 msgid "Proxy"
 msgstr "Прокси"
 
-#: settingsdlg.py:453
+#: settingsdlg.py:459
 msgid "Debug"
 msgstr "Отладка"
 
-#: settingsdlg.py:454
+#: settingsdlg.py:460
 msgid "Information"
 msgstr "Информация"
 
-#: settingsdlg.py:455
+#: settingsdlg.py:461
 msgid "Warning"
 msgstr "Предупреждения"
 
-#: settingsdlg.py:456
+#: settingsdlg.py:462
 msgid "Error"
 msgstr "Ошибки"
 
-#: settingsdlg.py:458
+#: settingsdlg.py:464
 msgid "Logging level"
 msgstr "Уровень журналирования"
 
-#: settingsdlg.py:513
+#: settingsdlg.py:519
 msgid "View Settings"
 msgstr "Настройки внешнего вида"
 
-#: settingsdlg.py:515
+#: settingsdlg.py:521
 msgid "AI Presets"
 msgstr "Настройки ИИ"
 
-#: settingsdlg.py:528
+#: settingsdlg.py:534
 msgid "HCheckers settings"
 msgstr "Настройки HCheckers"
 

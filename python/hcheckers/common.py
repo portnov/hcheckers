@@ -297,7 +297,7 @@ supported_rules = [
         ("czech", _("Czech draughts"), _("https://en.wikipedia.org/wiki/Czech_draughts")),
         ("turkish", _("Turkish draughts"), _("https://en.wikipedia.org/wiki/Turkish_draughts")),
         ("armenian", _("Armeinan draughts (Tama)"), _("https://en.wikipedia.org/wiki/Armenian_draughts")),
-        ("frisian", _("Frisian draughts"), "")
+        ("frisian", _("Frisian draughts (Alpha)"), _("https://en.wikipedia.org/wiki/Frisian_draughts"))
     ]
 
 rules_dict = dict([(name, title) for (name, title, link) in supported_rules])
