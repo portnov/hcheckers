@@ -36,6 +36,8 @@ NEVER_SHOW = 'never'
 
 def get_current_language():
     lang = locale.getlocale()[0]
+    if lang is None:
+        return "en"
     return lang.split('_')[0]
 
 class Piece(object):
