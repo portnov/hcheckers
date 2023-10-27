@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2023-10-27 09:21+0500\n"
+"POT-Creation-Date: 2023-10-27 18:22+0500\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -75,7 +75,7 @@ msgstr ""
 msgid "Simple draughts"
 msgstr ""
 
-#: common.py:290 common.py:295 common.py:296
+#: common.py:290 common.py:295 common.py:296 common.py:301
 msgid "https://github.com/portnov/hcheckers/wiki/Rules"
 msgstr ""
 
@@ -149,6 +149,10 @@ msgstr ""
 
 #: common.py:300
 msgid "https://en.wikipedia.org/wiki/Frisian_draughts"
+msgstr ""
+
+#: common.py:301
+msgid "Killer draughts"
 msgstr ""
 
 #: game.py:164
