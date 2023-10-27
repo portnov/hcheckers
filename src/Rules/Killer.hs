@@ -62,7 +62,7 @@ instance GameRules Killer where
   possibleMoves (Killer rules) side board = gPossibleMoves rules side board
   mobilityScore (Killer rules) side board = gMobilityScore rules side board
 
-  pdnId _ = "44"
+  pdnId _ = "45"
   getAllAddresses r = addresses10 r
 
 
