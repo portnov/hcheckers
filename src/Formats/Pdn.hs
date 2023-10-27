@@ -358,6 +358,10 @@ moveToInstructions n move =
 movesToInstructions :: [MoveRec] -> [Instruction]
 movesToInstructions moves = concat $ zipWith moveToInstructions [1..] moves
 
+captureLabels :: MoveRep -> [Label]
+captureLabels (FullMoveRep from steps) =
+  from : (map srField $ filter (not . srCapture) steps)
+
 gameToPdn :: SupervisorState -> Game -> GameRecord
 gameToPdn rnd game =
     GameRecord {
@@ -398,12 +402,16 @@ gameToPdn rnd game =
       in  rec : translate some board2 rest
 
     translateMove :: SomeRules -> Side -> Board -> Move -> SemiMoveRec
-    translateMove (SomeRules rules) side board move = 
-      ShortSemiMoveRec {
-          smrFrom = aLabel (moveBegin move)
-        , smrTo = aLabel (moveEnd rules side board move)
-        , smrCapture = isCaptureM move
-        }
+    translateMove (SomeRules rules) side board move
+      | isCaptureM move =
+          let rep = moveRep rules side move
+          in  FullSemiMoveRec $ captureLabels rep
+      | otherwise =
+          ShortSemiMoveRec {
+              smrFrom = aLabel (moveBegin move)
+            , smrTo = aLabel (moveEnd rules side board move)
+            , smrCapture = False
+            }
 
 showPdn :: SomeRules -> GameRecord -> T.Text
 showPdn (SomeRules rules) gr =
@@ -423,6 +431,8 @@ showPdn (SomeRules rules) gr =
       boardNotation rules from <> "-" <> boardNotation rules to
     showSemiMove (ShortSemiMoveRec from to True) =
       boardNotation rules from <> "x" <> boardNotation rules to
+    showSemiMove (FullSemiMoveRec labels) =
+      T.intercalate "x" $ map (boardNotation rules) labels
 
     showTag (Event text) = T.pack (printf "[Event \"%s\"]" text)
     showTag (Site text) = T.pack (printf "[Site \"%s\"]" text)
