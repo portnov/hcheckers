@@ -68,7 +68,7 @@ instance GameRules Frisian where
 
   getAllAddresses r = addresses10 r
 
-  getBackDirections _ = [PLeft, ForwardLeft, Backward, ForwardRight, PRight]
+  getBackDirections _ = [PLeft, BackwardLeft, Backward, BackwardRight, PRight]
   getForwardDirections _ = [ForwardLeft, Forward, ForwardRight]
   getManSimpleMoveDirections (Frisian r) = gManSimpleMoveDirections r
 
