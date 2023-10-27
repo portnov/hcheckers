@@ -71,6 +71,7 @@ import Rules.Czech
 import Rules.Turkish
 import Rules.Armenian
 import Rules.Frisian
+import Rules.Killer
 
 newRandomTable :: IO RandomTable
 newRandomTable = do
@@ -116,7 +117,8 @@ supportedRules =
    ("czech", SomeRules czech),
    ("turkish",  SomeRules turkish),
    ("armenian",  SomeRules armenian),
-   ("frisian", SomeRules frisian)
+   ("frisian", SomeRules frisian),
+   ("killer", SomeRules killer)
    ]
 
 -- | Select rules by client request.
