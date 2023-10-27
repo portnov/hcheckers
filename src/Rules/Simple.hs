@@ -29,6 +29,7 @@ instance GameRules Simple where
   type EvaluatorForRules Simple = SimpleEvaluator
   initBoard rnd _ = initBoard rnd Russian.russian
   boardSize _ = boardSize Russian.russian
+  kingKeyFields _ = mainDiagonal 8
   initPiecesCount _ = 24
 
   boardNotation _ = boardNotation Russian.russian

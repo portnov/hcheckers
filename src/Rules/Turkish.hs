@@ -40,6 +40,7 @@ instance GameRules Turkish where
   initPiecesCount _ = 32
 
   boardSize _ = (8, 8)
+  kingKeyFields _ = emptyLabelSet
 
   dfltEvaluator r = (defaultEvaluator r) {seKingCoef = 5, seHelpedKingCoef = 6, seBorderManWeight = 0}
 

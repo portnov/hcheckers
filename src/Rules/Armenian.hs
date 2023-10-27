@@ -40,6 +40,7 @@ instance GameRules Armenian where
   initPiecesCount _ = 32
 
   boardSize _ = (8, 8)
+  kingKeyFields _ = mainDiagonal 8
 
   dfltEvaluator r = (defaultEvaluator r) {
                                  seKingCoef = 4,

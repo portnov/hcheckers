@@ -43,6 +43,7 @@ instance GameRules DiagonalRussian where
     in  setManyPieces' labels1 (Piece Man First) $ setManyPieces' labels2 (Piece Man Second) board
 
   boardSize _ = (8, 8)
+  kingKeyFields _ = mainDiagonal 8
 
   initPiecesCount _ = 24
 

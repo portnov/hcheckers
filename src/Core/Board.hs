@@ -256,6 +256,11 @@ allMyLabels side board = myMen side board ++ myKings side board
 myMen :: Side -> Board -> [Label]
 myMen First board = labelSetToList $ bFirstMen board
 myMen Second board = labelSetToList $ bSecondMen board
+
+myMenS :: Side -> Board -> LabelSet
+myMenS First board = bFirstMen board
+myMenS Second board = bSecondMen board
+
 -- myMen side board = 
 --     [unpackIndex i | (i, p) <- A.assocs (bPieces board), check (boxPiece p)]
 --   where
@@ -275,6 +280,10 @@ myKings Second board = labelSetToList $ bSecondKings board
 --     check (Just (Piece King s)) = s == side
 --     check _ = False
 
+myKingsS :: Side -> Board -> LabelSet
+myKingsS First board = bFirstKings board
+myKingsS Second board = bSecondKings board
+
 myKingsA :: Side -> Board -> [Address]
 myKingsA side board =
   map (\l -> resolve l board) $ myKings side board
@@ -290,13 +299,16 @@ allMyPieces side board =
 
 myLabelsCount :: Side -> Board -> (Label -> Bool) -> (Int, Int)
 myLabelsCount side board p =
-  (length $ filter p $ myMen side board,
-   length $ filter p $ myKings side board)
+  let p' idx = p (unpackIndex idx)
+  in  (IS.size $ IS.filter p' $ myMenS side board,
+       IS.size $ IS.filter p' $ myKingsS side board)
 
-myLabelsCount' :: Integral i => Side -> Board -> (Label -> i) -> (i, i)
+myLabelsCount' :: (Integral i, Num i) => Side -> Board -> (Label -> i) -> (i, i)
 myLabelsCount' side board w =
-  (sum $ map w $ myMen side board,
-   sum $ map w $ myKings side board)
+  let w' idx = fromIntegral $ w (unpackIndex idx)
+      plus x y = fromIntegral x + fromIntegral y
+  in  (IS.foldr plus 0 $ IS.map w' $ myMenS side board,
+       IS.foldr plus 0 $ IS.map w' $ myKingsS side board)
 
 myAddressesCount' :: Integral i => Side -> Board -> (Address -> i) -> (i, i)
 myAddressesCount' side board w =
@@ -310,11 +322,7 @@ myCounts side board =
         Second -> (IS.size (bSecondMen board), IS.size (bSecondKings board))
 
 totalCount :: Board -> Int
-totalCount b =
-    IS.size (bFirstMen b) +
-    IS.size (bSecondMen b) +
-    IS.size (bFirstKings b) +
-    IS.size (bSecondKings b)
+totalCount b = IS.size (bOccupied b)
 
 catMoves :: Move -> Move -> Move
 catMoves m1 m2 =

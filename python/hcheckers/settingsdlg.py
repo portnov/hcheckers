@@ -155,6 +155,7 @@ class AiEditorWidget(QWidget):
         self.positional_king_weight = make_spinbox(_("King positional weight"), 0, 1000, evaluator)
         self.attacked_man_coef = make_spinbox(_("Attacked man"), -300, 300, evaluator)
         self.attacked_king_coef = make_spinbox(_("Attacked king"), -300, 300, evaluator)
+        self.king_on_key_field_weight = make_spinbox(_("King on key field"), 0, 500, evaluator)
 
         self.tabs.addTab(evaluator, _("Board evaluation"))
 
@@ -252,6 +253,7 @@ class AiEditorWidget(QWidget):
         self.positional_king_weight.setValue(ai.positional_king_weight)
         self.attacked_man_coef.setValue(- ai.attacked_man_coef)
         self.attacked_king_coef.setValue(- ai.attacked_king_coef)
+        self.king_on_key_field_weight.setValue(ai.king_on_key_field_weight)
 
         policy = ai.accept_draw
         policy_idx = self.accept_draw.findData(policy)
@@ -288,6 +290,7 @@ class AiEditorWidget(QWidget):
         ai.positional_king_weight = self.positional_king_weight.value()
         ai.attacked_man_coef = - self.attacked_man_coef.value()
         ai.attacked_king_coef = - self.attacked_king_coef.value()
+        ai.king_on_key_field_weight = self.king_on_key_field_weight.value()
 
         ai.accept_draw = self.accept_draw.currentData()
 

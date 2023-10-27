@@ -16,6 +16,7 @@ import           Data.Aeson.Types as AT
 import           Data.Default
 import qualified Data.Vector as V
 import qualified Data.Map as M
+import qualified Data.IntSet as IS
 
 import           Core.Types
 import           Core.Board
@@ -52,6 +53,7 @@ data SimpleEvaluator = SimpleEvaluator {
     seThreatWeight :: ScoreBase,
     seAttackedManCoef :: ScoreBase,
     seAttackedKingCoef :: ScoreBase,
+    seKingOnKeyFieldWeight :: ScoreBase,
     seCache :: M.Map Address SimpleEvaluatorData
   }
   deriving (Show)
@@ -74,6 +76,7 @@ defaultEvaluator rules = SimpleEvaluator
     , seThreatWeight       = 10
     , seAttackedManCoef = -40
     , seAttackedKingCoef = -80
+    , seKingOnKeyFieldWeight = 10
     , seCache = buildCache iface
     }
   where
@@ -97,6 +100,7 @@ parseEvaluator def = withObject "Evaluator" $ \v -> SimpleEvaluator
     <*> v .:? "threat_weight" .!= seThreatWeight def
     <*> v .:? "attacked_man_coef" .!= seAttackedManCoef def
     <*> v .:? "attacked_king_coef" .!= seAttackedKingCoef def
+    <*> v .:? "king_on_key_field_weight" .!= seKingOnKeyFieldWeight def
     <*> pure (seCache def)
 
 instance ToJSON SimpleEvaluator where
@@ -115,7 +119,8 @@ instance ToJSON SimpleEvaluator where
       "helped_king_coef" .= seHelpedKingCoef p,
       "threat_weight" .= seThreatWeight p,
       "attacked_man_coef" .= seAttackedManCoef p,
-      "attacked_king_coef" .= seAttackedKingCoef p
+      "attacked_king_coef" .= seAttackedKingCoef p,
+      "king_on_key_field_weight" .= seKingOnKeyFieldWeight p
     ]
 
 data PreScore = PreScore {
@@ -132,6 +137,7 @@ data PreScore = PreScore {
     , psAttackedMen :: ScoreBase
     , psAttackedKings :: ScoreBase
     , psThreats :: ScoreBase
+    , psKingsOnKeyFields :: ScoreBase
   }
 
 sub :: PreScore -> PreScore -> PreScore
@@ -149,6 +155,7 @@ sub ps1 ps2 = PreScore
   , psAttackedMen = psAttackedMen ps1 - psAttackedMen ps2
   , psAttackedKings = psAttackedKings ps1 - psAttackedKings ps2
   , psThreats = psThreats ps1 - psThreats ps2
+  , psKingsOnKeyFields = psKingsOnKeyFields ps1 - psKingsOnKeyFields ps2
   }
 
 instance Default PreScore where
@@ -166,6 +173,7 @@ instance Default PreScore where
           , psAttackedMen = 0
           , psAttackedKings = 0
           , psThreats = 0
+          , psKingsOnKeyFields = 0
         }
 
 waveRho :: SomeRules -> Side -> (Address -> Bool) -> Address -> ScoreBase -> ScoreBase
@@ -301,6 +309,19 @@ preEval (SimpleEvaluator { seRules = iface@(SomeRules rules), ..}) side board =
 
     centerScore =
       let (men, kings) = myAddressesCount' side board centerNumber in men + kings
+
+    keyFields = kingKeyFields rules
+    keyFieldsCnt = fromIntegral $ IS.size keyFields
+    
+    occupiedKeyFields =
+      let otherPieces = IS.difference (bOccupied board) (myKingsS side board)
+      in  fromIntegral $ IS.size $ IS.intersection otherPieces keyFields
+
+    kingsAtKeyFields =
+      fromIntegral $ IS.size $ IS.intersection (myKingsS side board) keyFields
+
+    kingsKeyFieldsScore = kingsAtKeyFields * keyFieldsCnt `div` (occupiedKeyFields + 1)
+
   in
     PreScore
       { psNumeric  = numericScore
@@ -316,6 +337,7 @@ preEval (SimpleEvaluator { seRules = iface@(SomeRules rules), ..}) side board =
       , psAttackedMen = fromIntegral attackedMen
       , psAttackedKings = fromIntegral attackedKings
       , psThreats = fromIntegral threatsCount
+      , psKingsOnKeyFields = fromIntegral kingsKeyFieldsScore
       }
 
 preEvalBoth :: SimpleEvaluator -> Board -> PreScore
@@ -365,7 +387,8 @@ instance Evaluator SimpleEvaluator where
               sePositionalKingWeight * psPosKing ps +
               seAttackedManCoef * psAttackedMen ps +
               seAttackedKingCoef * psAttackedKings ps +
-              seThreatWeight * psThreats ps
+              seThreatWeight * psThreats ps +
+              seKingOnKeyFieldWeight * psKingsOnKeyFields ps
             else 0
 
         myNumeric = psNumeric ps1
@@ -408,6 +431,7 @@ instance VectorEvaluator SimpleEvaluator where
         , seAttackedKingCoef = round (v V.! 10)
         , seBorderManWeight = round (v V.! 11)
         , seThreatWeight = round (v V.! 12)
+        , seKingOnKeyFieldWeight = round (v V.! 13)
         , seCache = buildCache iface
       }
     where

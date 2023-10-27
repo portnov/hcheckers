@@ -30,6 +30,7 @@ instance HasSideNotation International where
 instance GameRules International where
   type EvaluatorForRules International = SimpleEvaluator
   boardSize _ = (10, 10)
+  kingKeyFields _ = mainDiagonal 10
 
   initBoard rnd r =
     let board = buildBoard rnd r (boardOrientation r) (10, 10)

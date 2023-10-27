@@ -74,6 +74,7 @@ class AI(object):
         self.positional_king_weight = 0
         self.attacked_man_coef = -40
         self.attacked_king_coef = -80
+        self.king_on_key_field_weight = 10
 
         self.accept_draw = ALWAYS_ACCEPT
 
@@ -138,6 +139,7 @@ class AI(object):
         ai.positional_king_weight = settings.value("positional_king_weight", ai.positional_king_weight, type=int)
         ai.attacked_man_coef = settings.value("attacked_man_coef", ai.attacked_man_coef, type=int)
         ai.attacked_king_coef = settings.value("attacked_king_coef", ai.attacked_king_coef, type=int)
+        ai.king_on_key_field_weight = settings.value("king_on_key_field_weight", ai.king_on_key_field_weight, type=int)
 
         ai.accept_draw = settings.value("accept_draw", ai.accept_draw)
 
@@ -202,6 +204,7 @@ class AI(object):
         settings.setValue("positional_king_weight", self.positional_king_weight)
         settings.setValue("attacked_man_coef", self.attacked_man_coef)
         settings.setValue("attacked_king_coef", self.attacked_king_coef)
+        settings.setValue("king_on_key_field_weight", self.king_on_key_field_weight)
 
         settings.setValue("accept_draw", self.accept_draw)
 
@@ -234,6 +237,7 @@ class AI(object):
             "pre_king_weight": self.pre_king_weight,
             "attacked_man_coef": self.attacked_man_coef,
             "attacked_king_coef": self.attacked_king_coef,
+            "king_on_key_field_weight": self.king_on_key_field_weight,
 
             "accept_draw": self.accept_draw
         }

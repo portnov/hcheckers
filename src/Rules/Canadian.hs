@@ -28,6 +28,7 @@ instance GameRules Canadian where
   type EvaluatorForRules Canadian = SimpleEvaluator
 
   boardSize _ = (12, 12)
+  kingKeyFields _ = mainDiagonal 12
 
   initBoard rnd r =
     let board = buildBoard rnd r (boardOrientation r) (12, 12)

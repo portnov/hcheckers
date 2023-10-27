@@ -31,6 +31,7 @@ instance GameRules Frisian where
   type EvaluatorForRules Frisian = SimpleEvaluator
 
   boardSize _ = (10, 10)
+  kingKeyFields _ = mainDiagonal 10
 
   initBoard rnd r =
     let board = buildBoard rnd r (boardOrientation r) (10, 10)

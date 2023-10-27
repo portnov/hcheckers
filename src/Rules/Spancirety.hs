@@ -6,6 +6,7 @@ module Rules.Spancirety (Spancirety, spancirety) where
 
 import Data.Typeable
 import qualified Data.IntMap as IM
+import qualified Data.IntSet as IS
 
 import Core.Types
 import Core.Board
@@ -40,6 +41,7 @@ instance GameRules Spancirety where
   initPiecesCount _ = 30
 
   boardSize _ = (8, 10)
+  kingKeyFields _ = IS.empty
 
   boardNotation _ = boardNotation russian
 

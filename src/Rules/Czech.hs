@@ -30,6 +30,7 @@ instance GameRules Czech where
   rulesName _ = "czech"
 
   boardSize _ = (8, 8)
+  kingKeyFields _ = mainDiagonal 8
 
   initBoard rnd _ = initBoard rnd Russian.russian
 

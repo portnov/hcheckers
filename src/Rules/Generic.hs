@@ -103,6 +103,9 @@ translateCapture piece@(Piece _ side) capture =
                then RemoveCaptured
                else MarkCaptured
 
+mainDiagonal :: Line -> LabelSet
+mainDiagonal sz = labelSetFromList [Label k k | k <- [0 .. sz-1]]
+
 freeFields :: HasBoardOrientation rules
            => rules
            -> Side

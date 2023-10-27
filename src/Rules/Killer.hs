@@ -30,6 +30,7 @@ instance HasSideNotation Killer where
 instance GameRules Killer where
   type EvaluatorForRules Killer = SimpleEvaluator
   boardSize _ = (10, 10)
+  kingKeyFields _ = mainDiagonal 10
 
   initBoard rnd r =
     let board = buildBoard rnd r (boardOrientation r) (10, 10)

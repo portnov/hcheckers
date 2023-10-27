@@ -32,6 +32,7 @@ instance GameRules Russian where
   initBoard rnd r = board8 rnd r
 
   boardSize _ = (8, 8)
+  kingKeyFields _ = mainDiagonal 8
 
   initPiecesCount _ = 24
 
