@@ -256,12 +256,18 @@ instance FromJSON BaseTimingConfig where
          <$> v .: "initial_seconds"
          <*> v .: "initial_moves"
          <*> v .: "additional_seconds"
+         <*> v .:? "keep_initial_time_leftover" .!= True
         )
 
 instance ToJSON BaseTimingConfig where
   toJSON (TotalTime seconds) = object ["seconds_per_game" .= seconds]
-  toJSON (TwoPartsTime initSeconds initMoves addSeconds) =
-    object ["initial_seconds" .= initSeconds, "initial_moves" .= initMoves, "additional_seconds" .= addSeconds]
+  toJSON (TwoPartsTime initSeconds initMoves addSeconds keep) =
+    object [
+        "initial_seconds" .= initSeconds,
+        "initial_moves" .= initMoves,
+        "additional_seconds" .= addSeconds,
+        "keep_initial_time_leftover" .= keep
+      ]
 
 instance FromJSON TimingConfig where
   parseJSON o = (withObject "TimingConfig" $ \v -> TimingConfig

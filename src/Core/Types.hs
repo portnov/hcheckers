@@ -882,6 +882,7 @@ data BaseTimingConfig =
         tptInitTime :: Seconds         -- ^ Some time for first N moves in the game
       , tptInitMoves :: Int            -- ^ Number of first moves to which previous field refers
       , tptAdditionalTime :: Seconds   -- ^ Time for the rest of the game after first N moves
+      , tptKeepInitTime :: Bool
     }
   deriving (Eq, Show)
 

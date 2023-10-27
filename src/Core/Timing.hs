@@ -63,9 +63,14 @@ updateTimeLeft :: TimingConfig -> TimingState -> TimeSpec -> Seconds
 updateTimeLeft config@(TimingConfig {tcBaseTime = (TotalTime {})}) st delta =
     tsTimeLeft st - sec delta + tcTimePerMove config
 updateTimeLeft config st delta =
-    if tsMovesDone st == tptInitMoves (tcBaseTime config)
-      then tptAdditionalTime (tcBaseTime config) - sec delta
-      else tsTimeLeft st - sec delta + tcTimePerMove config
+    let base = tcBaseTime config
+        addTime = tptAdditionalTime base
+        newTime = addTime - sec delta
+    in  if tsMovesDone st == tptInitMoves base
+          then if tptKeepInitTime base
+                 then tsTimeLeft st + newTime
+                 else newTime
+          else tsTimeLeft st - sec delta + tcTimePerMove config
 
 afterMove :: Side -> TimeSpec -> GameM Bool
 afterMove side now = withTimingConfig' True $ \config -> do
