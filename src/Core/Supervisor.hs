@@ -122,33 +122,48 @@ supportedRules =
    ]
 
 -- | Select rules by client request.
-selectRules :: NewGameRq -> Maybe SomeRules
-selectRules (NewGameRq {rqRules=name, rqRulesParams=params, rqBoard = (PdnBoard pdnText)}) =
+selectRulesEither :: NewGameRq -> Either String SomeRules
+selectRulesEither (NewGameRq {rqRules=name, rqRulesParams=params, rqBoard = (PdnBoard pdnText)}) =
     fromPdn pdnText
   where
     -- extract rules (GameType tag) from PDN
-    fromPdn :: T.Text -> Maybe SomeRules
+    fromPdn :: T.Text -> Either String SomeRules
     fromPdn text =
       case parsePdn Nothing text of
-        Left _ -> Nothing
-        Right gr -> rulesFromTags (grTags gr)
-selectRules (NewGameRq {rqRules=name, rqRulesParams=params}) = 
+        Left err -> Left err
+        Right gr ->
+          case rulesFromTags (grTags gr) of
+            Nothing -> Left "unsupported rules"
+            Just rules -> Right rules
+selectRulesEither (NewGameRq {rqRules=name, rqRulesParams=params}) = 
     go supportedRules
   where
     -- extract rules from client request field
-    go :: [(String, SomeRules)] -> Maybe SomeRules
-    go [] = Nothing
+    go :: [(String, SomeRules)] -> Either String SomeRules
+    go [] = Left "unsupported rules"
     go ((key, (SomeRules rules)) : other)
-      | key == name = Just $ SomeRules $ updateRules rules params
+      | key == name = Right $ SomeRules $ updateRules rules params
       | otherwise = go other
 
-selectRules' :: String -> Maybe SomeRules
-selectRules' name = selectRules $ NewGameRq {
+selectRules :: NewGameRq -> Maybe SomeRules
+selectRules rq =
+  case selectRulesEither rq of
+    Left _ -> Nothing
+    Right rules -> Just rules
+
+selectRulesEither' :: String -> Either String SomeRules
+selectRulesEither' name = selectRulesEither $ NewGameRq {
     rqRules = name,
     rqRulesParams = Null,
     rqTimingControl = Nothing,
     rqBoard = DefaultBoard
   }
+
+selectRules' :: String -> Maybe SomeRules
+selectRules' name =
+  case selectRulesEither' name of
+    Left _ -> Nothing
+    Right rules -> Just rules
 
 withRules :: String -> (forall rules. GameRules rules => rules -> a) -> a
 withRules name fn =

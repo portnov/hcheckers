@@ -24,7 +24,7 @@ withRulesR :: String -> (forall rules. GameRules rules => rules -> Rest a) -> Re
 withRulesR rname fn =
   case selectRules' rname of
     Just (SomeRules rules) -> fn rules
-    Nothing -> raise UnknownRules
+    Nothing -> raise $ UnknownRules "unknown rules"
 
 restServer :: MVar () -> ScottyT Error Checkers ()
 restServer shutdownVar = do

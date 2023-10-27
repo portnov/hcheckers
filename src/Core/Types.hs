@@ -949,7 +949,7 @@ data Error =
   | InvalidGameStatus GameStatus GameStatus -- ^ Expected, actual
   | TimeExhaused
   | PlayerTimeExhausted
-  | UnknownRules
+  | UnknownRules String
   | InvalidBoard String
   | CustomAiSettingsDisabled
   | NoSuchTimingConfig

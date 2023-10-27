@@ -52,9 +52,9 @@ boardRq _ _ (NewGameRq { rqBoard = DefaultBoard }) =
 
 parsePdnInfo :: PdnInfoRq -> Rest PdnInfo
 parsePdnInfo (PdnInfoRq rname text) = do
-  case selectRules' rname of
-    Nothing -> raise UnknownRules
-    Just rules ->
+  case selectRulesEither' rname of
+    Left err -> raise $ UnknownRules err
+    Right rules ->
       case parsePdn (Just rules) text of
         Left err -> raise $ InvalidBoard err
         Right gr -> return $ pdnInfo gr
@@ -69,9 +69,9 @@ restServer shutdownVar = do
 
   post "/game/new" $ do
     rq <- jsonData
-    case selectRules rq of
-      Nothing    -> error400 "invalid game rules"
-      Just rules -> do
+    case selectRulesEither rq of
+      Left err    -> raise $ UnknownRules err
+      Right rules -> do
         rnd <- liftCheckers_ $ do
                  sup <- askSupervisor
                  liftIO $ atomically $ readTVar sup
