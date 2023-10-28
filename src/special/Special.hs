@@ -56,7 +56,7 @@ special cmd =
     Learn rulesName aiPath pdnPath -> do
       withRules rulesName $ \rules -> do
         ai <- loadAi "default" rules aiPath
-        withCheckers cmd $ do
+        withCheckersLog cmd learnLogging $ do
             dumpConfig cmd
             withLogContext (LogContextFrame [] (include defaultLogFilter)) $
               learnPdnOrDir ai pdnPath

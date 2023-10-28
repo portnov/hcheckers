@@ -9,6 +9,8 @@ import Control.Monad.State
 import Control.Monad.Except
 import Control.Concurrent.STM
 import qualified Control.Monad.Metrics as Metrics
+import Data.Maybe (fromMaybe)
+import qualified Data.IntMap.Strict as IM
 import Data.Aeson
 import Data.Text.Format.Heavy
 import System.Log.Heavy
@@ -16,9 +18,11 @@ import System.Log.Heavy.TH
 import System.Directory
 import System.FilePath ((</>))
 import System.FilePath.Glob (glob)
+import Text.Printf
 
 import Core.Types
 import Core.Board
+import Core.BoardMap
 import Core.Supervisor (newAiSession, newGame)
 import AI.AlphaBeta
 import AI.AlphaBeta.Types
@@ -67,24 +71,96 @@ parseMoveRecM rules side board rec =
     Right move -> return move
     Left err -> throwError err
 
+data BoardCounters = BoardCounters {
+    bcFirst :: LabelMap (Int, Int)
+  , bcSecond :: LabelMap (Int, Int)
+  , bcFirstWins :: Int
+  , bcSecondWins :: Int
+  }
+  deriving (Show)
+
+printCounters :: BoardCounters -> IO ()
+printCounters bc = do
+    printf "First wins: %d; Second wins: %d\n" (bcFirstWins bc) (bcSecondWins bc)
+    putStrLn "First:"
+    put (bcFirst bc)
+    putStrLn "Second:"
+    put (bcSecond bc)
+  where
+    put :: LabelMap (Int, Int) -> IO ()
+    put cs = do
+      forM_ (IM.toList cs) $ \(idx, (plus, minus)) ->
+               printf "%s: +%d -%d\n" (show $ unpackIndex idx) plus minus
+
+updateBoardCounters1 :: Maybe GameResult -> Board -> BoardCounters -> BoardCounters
+updateBoardCounters1 res board bc =
+    bc {
+        bcFirst = update First win (bcFirst bc),
+        bcSecond = update Second loose (bcSecond bc)
+      }
+  where
+    zero = (0, 0)
+    updateLabel d side l cs = IM.alter (\mbP -> Just $ d side (fromMaybe zero mbP)) (labelIndex l) cs
+    update side d cs = foldr (updateLabel d side) cs (allMyLabels side board)
+
+    isWin First (Just FirstWin) = True
+    isWin Second (Just SecondWin) = True
+    isWin _ _ = False
+
+    isLoose First (Just SecondWin) = True
+    isLoose Second (Just FirstWin) = True
+    isLoose _ _ = False
+    
+    win side (wins, looses)
+      | isWin side res = (wins+1, looses)
+      | otherwise = (wins, looses)
+
+    loose side (wins, looses)
+      | isLoose side res = (wins, looses+1)
+      | otherwise = (wins, looses)
+
+updateBoardCounters :: Maybe GameResult -> [Board] -> BoardCounters -> BoardCounters
+updateBoardCounters res boards bc =
+  let bc' = foldr (updateBoardCounters1 res) bc boards
+      (deltaFirst, deltaSecond) =
+        case res of
+          Just FirstWin -> (1, 0)
+          Just SecondWin -> (0, 1)
+          _ -> (0, 0)
+  in  bc' {
+           bcFirstWins = bcFirstWins bc' + deltaFirst,
+           bcSecondWins = bcSecondWins bc' + deltaSecond
+          }
+
 doLearn :: (GameRules rules, VectorEvaluator eval)
         => rules
         -> eval
         -> AICacheHandle rules eval
         -> AlphaBetaParams
+        -> BoardCounters
         -> GameId
         -> GameRecord
-        -> Checkers ()
-doLearn rules eval var params gameId gameRec = do
+        -> Checkers BoardCounters
+doLearn rules eval var params counters gameId gameRec = do
     sup <- askSupervisor
     supervisor <- liftIO $ atomically $ readTVar sup
     let startBoard = initBoardFromTags supervisor (SomeRules rules) (grTags gameRec)
     $info "Initial board: {}; tags: {}" (show startBoard, show $ grTags gameRec)
-    forM_ (instructionsToMoves $ grMoves gameRec) $ \moves -> do
-      (endScore, allBoards) <- go (0, []) startBoard [] moves
-      $info "End score: {}" (Single endScore)
+    (lastBoards, score) <-
+        loop (instructionsToMoves $ grMoves gameRec) $ \moves -> do
+                    (endScore, allBoards) <- go (0, []) startBoard [] moves
+                    $info "End score: {}" (Single endScore)
+                    return (allBoards, endScore)
+    liftIO $ print $ "N boards:" ++ show (length lastBoards)
+    return $ updateBoardCounters (grResult gameRec) lastBoards counters
 
   where
+    loop [] _ = fail "empty games list"
+    loop [m] actions = actions m
+    loop (m:ms) actions = do
+      actions m
+      loop ms actions
+
     go (score, boards) lastBoard _ [] = return (score, lastBoard : boards)
     go (score0, boards) board0 predicted (moveRec : rest) = do
       (board1, predict2, score2) <- do
@@ -132,22 +208,30 @@ doRulesMatch (Just (SomeRules pdnRules)) (SomeRules myRules) = rulesName pdnRule
 
 learnPdn :: (GameRules rules, VectorEvaluator eval, ToJSON eval) => AlphaBeta rules eval -> FilePath -> Checkers ()
 learnPdn ai@(AlphaBeta params rules eval) path = do
-  cache <- loadAiCache scoreMoveGroup ai
-  pdn <- liftIO $ parsePdnFile (Just $ SomeRules rules) path
-  let n = length pdn
-  forM_ (zip [1.. ] pdn) $ \(i, gameRec) -> do
-    let mbPdnRules = rulesFromPdn gameRec
-    if doRulesMatch mbPdnRules (SomeRules rules)
-      then do
-        -- liftIO $ print pdn
-        $info "Processing game {}/{}..." (i :: Int, n)
-        gameId <- newGame (SomeRules rules) First Nothing Nothing
-        doLearn rules eval cache params gameId gameRec
-        saveAiStorage ai cache
-        return ()
-      else do
-        $info "Game {}/{} - skip: unmatching rules" (i :: Int, n)
-        return ()
+    cache <- loadAiCache scoreMoveGroup ai
+    pdn <- liftIO $ parsePdnFile (Just $ SomeRules rules) path
+    let n = length pdn
+        counters = BoardCounters IM.empty IM.empty 0 0
+    counters' <- loop counters (zip [1.. ] pdn) $ \(i, gameRec, cs) -> do
+                    let mbPdnRules = rulesFromPdn gameRec
+                    if doRulesMatch mbPdnRules (SomeRules rules)
+                      then do
+                        -- liftIO $ print pdn
+                        $info "Processing game {}/{}..." (i :: Int, n)
+                        gameId <- newGame (SomeRules rules) First Nothing Nothing
+                        cs' <- doLearn rules eval cache params cs gameId gameRec
+                        saveAiStorage ai cache
+                        return cs'
+                      else do
+                        $info "Game {}/{} - skip: unmatching rules" (i :: Int, n)
+                        return cs
+    liftIO $ printCounters counters'
+  where
+    loop :: BoardCounters -> [(a,b)] -> ((a,b, BoardCounters) -> Checkers BoardCounters) -> Checkers BoardCounters
+    loop counters [] _ = return counters
+    loop counters ((i, gameRec):rest) actions = do
+      counters' <- actions (i, gameRec, counters)
+      loop counters' rest actions
 
 learnPdnOrDir :: (GameRules rules, VectorEvaluator eval, ToJSON eval) => AlphaBeta rules eval -> FilePath -> Checkers ()
 learnPdnOrDir ai path = do
