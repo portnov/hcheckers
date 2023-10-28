@@ -143,6 +143,7 @@ class Checkers(QMainWindow):
     def __init__(self, share_dir):
         QMainWindow.__init__(self)
         self.share_dir = share_dir
+        self.setObjectName("HCheckersMainWindow")
         self.setWindowTitle(_("HCheckers client"))
         self.setWindowIcon(self._icon("hcheckers.svg"))
         self.resize(1024, 1024)
@@ -174,6 +175,7 @@ class Checkers(QMainWindow):
 
     def set_board_setup_mode(self,mode):
         self._board_setup_mode = mode
+        self.setup_toolbar.setVisible(mode)
         self._enable_action(self.run_action, mode)
         self._enable_action(self.put_first_action, mode)
         self._enable_action(self.put_second_action, mode)
@@ -270,6 +272,7 @@ class Checkers(QMainWindow):
     @handling_error
     def _gui_setup(self):
         widget = QWidget(self)
+        widget.setObjectName("Q")
         layout = QVBoxLayout()
         self.board = Board(self.theme, self.settings, self.game, self)
         self.board.message.connect(self._on_board_message)
@@ -277,6 +280,8 @@ class Checkers(QMainWindow):
         self.board.field_clicked.connect(self._on_field_clicked)
         #self.board.show()
         self.toolbar = QToolBar(self)
+        self.setup_toolbar = QToolBar(self)
+        self.setup_toolbar.setOrientation(Qt.Vertical)
 
         topbox = QHBoxLayout()
         self.message = QLabel(self)
@@ -288,7 +293,12 @@ class Checkers(QMainWindow):
 
         layout.addWidget(self.toolbar)
         layout.addLayout(topbox)
-        layout.addWidget(self.board, stretch=1)
+        board_box = QWidget(self)
+        board_layout = QHBoxLayout(board_box)
+        board_layout.addWidget(self.setup_toolbar)
+        board_layout.addWidget(self.board, stretch=1)
+        board_box.setLayout(board_layout)
+        layout.addWidget(board_box, stretch=1)
         widget.setLayout(layout)
         self.setCentralWidget(widget)
 
@@ -356,8 +366,10 @@ class Checkers(QMainWindow):
             action.setShortcut(key)
         if toggle:
             action.setCheckable(True)
-        if toolbar:
+        if toolbar == True:
             self.toolbar.addAction(action)
+        elif (toolbar is not None) and (toolbar is not False):
+            toolbar.addAction(action)
         menu.addAction(action)
         if handler:
             action.triggered.connect(handler)
@@ -393,7 +405,7 @@ class Checkers(QMainWindow):
         menu.addSeparator()
         self.toolbar.addSeparator()
 
-        self.run_action = self._create_action(QIcon.fromTheme("media-playback-start"), _("Start &Game"), menu, self._on_run_game, key="Ctrl+R")
+        self.run_action = self._create_action(QIcon.fromTheme("media-playback-start"), _("Start &Game"), menu, self._on_run_game, key="Ctrl+R", toolbar=False)
         menu.addSeparator()
         self._create_action(QIcon.fromTheme("preferences-system"), _("Se&ttings"), menu, self._on_settings, toolbar=False)
         menu.addSeparator()
@@ -402,12 +414,17 @@ class Checkers(QMainWindow):
         menu = self.menuBar().addMenu(_("&Position"))
         self.setup_actions = setup = QActionGroup(self)
         setup.setExclusive(True)
-        self.put_first_action = self._create_action(self._icon("manwhite.svg"), _("Put &white piece"), menu, group=setup, toggle=True)
-        self.put_second_action = self._create_action(self._icon("manblack.svg"), _("Put &black piece"), menu, group=setup, toggle=True)
-        self.erase_action = self._create_action(QIcon.fromTheme("list-remove"), _("&Remove piece"), menu, group=setup, toggle=True)
+        self.put_first_action = self._create_action(self._icon("manwhite.svg"), _("Put &white piece"), menu, group=setup, toggle=True, toolbar=False)
+        self.put_second_action = self._create_action(self._icon("manblack.svg"), _("Put &black piece"), menu, group=setup, toggle=True, toolbar=False)
+        self.erase_action = self._create_action(QIcon.fromTheme("list-remove"), _("&Remove piece"), menu, group=setup, toggle=True, toolbar=False)
         self.board_setup_mode = False
         menu.addSeparator()
-        self.toolbar.addSeparator()
+
+        self.setup_toolbar.addAction(self.put_first_action)
+        self.setup_toolbar.addAction(self.put_second_action)
+        self.setup_toolbar.addAction(self.erase_action)
+        self.setup_toolbar.addSeparator()
+        self.setup_toolbar.addAction(self.run_action)
 
         menu = self.menuBar().addMenu(_("&View"))
         self.flip_action = self._create_action(QIcon.fromTheme("object-flip-vertical"), _("&Flip board"), menu, self._on_flip_board, toggle=True, key="Ctrl+T")
@@ -445,11 +462,14 @@ class Checkers(QMainWindow):
         for action in self._file_actions():
             action.setEnabled(enable)
 
+    def _enable_setup_actions(self, enable):
+        for action in self.setup_actions.actions():
+            action.setChecked(enable)
+
     @handling_error
     def _on_run_game(self, checked=None):
         self.board_setup_mode = False
-        for action in self.setup_actions.actions():
-            action.setChecked(False)
+        self._enable_setup_actions(False)
         board = self.board.json()
         self.game.start_new_game(self.game_settings.user_name, rules=self.game_settings.rules, timing=self.game_settings.timing, user_turn_first=self.game_settings.user_turn_first, ai=self.game_settings.ai, board=board)
         self.board.hide_text_message()
