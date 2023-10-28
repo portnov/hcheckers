@@ -575,7 +575,7 @@ class Board(QWidget):
         else:
             x = col * sz.cell_size
             y = (self.n_rows-1-row) * sz.cell_size
-        field.draw(painter, QRect(sz.init_x + x, sz.init_y + y, sz.cell_size, sz.cell_size))
+        field.draw(painter, QRectF(sz.init_x + x, sz.init_y + y, sz.cell_size, sz.cell_size))
         if hide:
             field.hide_piece = prev_hide_piece
         field.possible_piece = prev_possible_piece

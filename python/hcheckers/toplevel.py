@@ -479,7 +479,7 @@ class Checkers(QMainWindow):
         return screen_size / 2
 
     def _show_splashcreen(self, message=None):
-        splash_size = self._splashscreen_size()
+        splash_size = int(self._splashscreen_size())
         splash_pix = self._icon("splashscreen.svg").pixmap(QSize(splash_size, splash_size))
         self.splashscreen = QSplashScreen(splash_pix, Qt.WindowStaysOnTopHint)
         self.splashscreen.show()
