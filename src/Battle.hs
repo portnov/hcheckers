@@ -42,7 +42,9 @@ import Core.Parallel
 import Core.Monitoring
 import Rest.Types
 import Rest.Common
+import AI.AlphaBeta.Cache (loadAiCache, resetAiCache)
 import AI.AlphaBeta.Types
+import AI.AlphaBeta (scoreMoveGroup)
 import AI
 
 type AB rules = AlphaBeta rules (EvaluatorForRules rules)
@@ -157,7 +159,7 @@ mkRemoteRunner processor nGames rules idxPairs ais = do
     $info "Match: AI#{}: {}, AI#{}: {}, Draws(?): {}" (i, first, j, second, draw)
   return totals
 
-runGenetics :: (GameRules rules, VectorEvaluator (EvaluatorForRules rules))
+runGenetics :: forall rules. (GameRules rules, VectorEvaluator (EvaluatorForRules rules))
             => MatchRunner
             -> rules
             -> Int           -- ^ Number of generations
@@ -172,6 +174,8 @@ runGenetics runMatches rules nGenerations generationSize nOld nBest nGames ais =
       run 1 generation0
   where
       run n generation = do
+        cache <- loadAiCache scoreMoveGroup rules
+        resetAiCache (cache :: AICacheHandle rules (EvaluatorForRules rules))
         $info "Generation #{}" (Single n)
         withLogVariable "generation" n $ do
           best <- selectBest generation

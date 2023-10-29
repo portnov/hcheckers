@@ -73,9 +73,9 @@ allocateCache handle eval = do
 -- This also contains Processor instance with several threads.
 loadAiCache :: (GameRules rules, Evaluator eval)
             => ([ScoreMoveInput rules eval] -> Checkers [MoveAndScore])
-            -> AlphaBeta rules eval
+            -> rules
             -> Checkers (AICacheHandle rules eval)
-loadAiCache scoreMove (AlphaBeta params rules eval) = do
+loadAiCache scoreMove rules = do
   let getKey inputs = map smiIndex inputs
   aiCfg <- asks (gcAiConfig . csConfig)
   processor <- runProcessor (aiThreads aiCfg) getKey scoreMove

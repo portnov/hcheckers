@@ -120,8 +120,8 @@ instance (GameRules rules, VectorEvaluator eval, ToJSON eval) => GameAi (AlphaBe
 
   type AiStorage (AlphaBeta rules eval) = AICacheHandle rules eval
 
-  createAiStorage ai = do
-    cache <- loadAiCache scoreMoveGroup ai
+  createAiStorage ai@(AlphaBeta params rules eval) = do
+    cache <- loadAiCache scoreMoveGroup rules
     return cache
 
   saveAiStorage (AlphaBeta params rules _) handle = do

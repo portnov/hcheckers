@@ -208,7 +208,7 @@ doRulesMatch (Just (SomeRules pdnRules)) (SomeRules myRules) = rulesName pdnRule
 
 learnPdn :: (GameRules rules, VectorEvaluator eval, ToJSON eval) => AlphaBeta rules eval -> FilePath -> Checkers ()
 learnPdn ai@(AlphaBeta params rules eval) path = do
-    cache <- loadAiCache scoreMoveGroup ai
+    cache <- loadAiCache scoreMoveGroup rules
     pdn <- liftIO $ parsePdnFile (Just $ SomeRules rules) path
     let n = length pdn
         counters = BoardCounters IM.empty IM.empty 0 0
@@ -254,7 +254,7 @@ analyzeOpenings :: (GameRules rules, VectorEvaluator eval, ToJSON eval)
     -> Int
     -> Checkers ()
 analyzeOpenings ai@(AlphaBeta params rules eval) depth = do
-    cache <- loadAiCache scoreMoveGroup ai
+    cache <- loadAiCache scoreMoveGroup rules
     sup <- askSupervisor
     supervisor <- liftIO $ atomically $ readTVar sup
     let board = initBoard supervisor rules
