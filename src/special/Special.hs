@@ -1,15 +1,19 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ViewPatterns #-}
+{-# LANGUAGE TemplateHaskell #-}
 module Main (main) where
 
 import Control.Monad
 import Control.Monad.Reader
 import qualified Data.Map as M
 import qualified Data.Text as T
+import Data.Text.Format.Heavy
 import qualified Data.ByteString.Lazy.Char8 as C8
 import qualified Data.Aeson as Aeson
 import System.Log.Heavy
-import Options.Applicative
+import System.Log.Heavy.TH
+import qualified Options.Applicative as O
+import Options.Applicative ((<**>))
 import Text.Printf
 
 import Core.Types hiding (timed)
@@ -33,16 +37,16 @@ moduleToStdout mod cfg logChan =
       filteredStdout = LoggingSettings $ Filtering (\m -> lmSource m == [mod]) stdout
   in  ParallelLogSettings $ dfltBackends ++ [filteredStdout]
 
-parserInfo :: ParserInfo (CmdLine SpecialCommand)
-parserInfo = info (cmdline parseSpecialCommand <**> helper)
-  ( fullDesc
-    <> progDesc "HCheckers special utility application"
-    <> header "Execute specialized commands"
-    <> footer "Use `+RTS options' after all HCheckers parameters to specify options for GHC Runtime, such as amount of heap to be used; for example, `hcheckersd --local=on +RTS -H1G'. Use `hcheckersd +RTS -?' to display help about Runtime options.")
+parserInfo :: O.ParserInfo (CmdLine SpecialCommand)
+parserInfo = O.info (cmdline parseSpecialCommand <**> O.helper)
+  ( O.fullDesc
+    <> O.progDesc "HCheckers special utility application"
+    <> O.header "Execute specialized commands"
+    <> O.footer "Use `+RTS options' after all HCheckers parameters to specify options for GHC Runtime, such as amount of heap to be used; for example, `hcheckersd --local=on +RTS -H1G'. Use `hcheckersd +RTS -?' to display help about Runtime options.")
 
 main :: IO ()
 main = do
-  cmd <- execParser parserInfo
+  cmd <- O.execParser parserInfo
   case cmd of
     CmdVersion -> V.printVersion
     _ -> special cmd
@@ -128,6 +132,16 @@ special cmd =
           withLogContext (LogContextFrame [] (include defaultLogFilter)) $ do
             runTournamentDumb (dumbMatchRunner runBattleLocal) rules ais nMatches nGames
             return ()
+
+    Olympics rulesName nGames nBest paths -> do
+      withRules rulesName $ \rules -> do
+        ais <- forM paths $ \path -> loadAi "default" rules path
+        withCheckersLog cmd (moduleToStdout "Battle") $ do
+            dumpConfig cmd
+            withLogContext (LogContextFrame [] (include defaultLogFilter)) $ do
+              results <- runTournamentOlympic (dumbMatchRunner runBattleLocal) rules ais nGames nBest
+              $info "Winner idxs are: {}" (Single $ show $ map fst results)
+              return ()
 
     Genetics yamlPath -> do
       withCheckersLog cmd (moduleToStdout "Battle") $ do

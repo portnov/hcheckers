@@ -192,11 +192,10 @@ runGenetics runMatches rules nGenerations generationSize nOld nBest nGames ais =
         forM_ (zip [1..] ais) $ \(i, ai) ->
             liftIO $ Data.Aeson.encodeFile (dirPath </> printf "ai_%d.json" (i::Int)) ai
 
-      nMatches = generationSize
-
       selectBest generation = do
-        results <- runTournamentOlympic runMatches rules generation nMatches nGames nBest
-        return results
+        results <- runTournamentOlympic runMatches rules generation nGames nBest
+        -- $info "Best AIs in this generation are: {}" (show $ map fst results)
+        return $ map snd results
 
 mapP :: Int -> (input -> Checkers output) -> [input] -> Checkers [output]
 mapP 1 fn inputs = mapM fn inputs
@@ -245,9 +244,8 @@ runTournamentOlympic :: forall rules. (GameRules rules, VectorEvaluator (Evaluat
     -> [AB rules]
     -> Int
     -> Int
-    -> Int
-    -> Checkers [AB rules]
-runTournamentOlympic runMatches rules ais0 nMatches nGames nBest = do
+    -> Checkers [(Int, AB rules)]
+runTournamentOlympic runMatches rules ais0 nGames nBest = do
     let nSrcAis = length ais0
         logNSrcAis = log (fromIntegral nSrcAis :: Double) :: Double
         log2 = log 2
@@ -257,7 +255,7 @@ runTournamentOlympic runMatches rules ais0 nMatches nGames nBest = do
         nStages = (floor ((logNSrcAis - logNBest) / log2)) :: Int
         ais = zip [1..] $ take nAis ais0
     res <- runStages nStages ais
-    return $ map snd res
+    return res
   where
     runStages :: Int -> [(Int, AB rules)] -> Checkers [(Int, AB rules)]
     runStages 0 items = return items
@@ -273,6 +271,7 @@ runTournamentOlympic runMatches rules ais0 nMatches nGames nBest = do
         winnerIdxs <- zipWithM detectWinner pairs matchResults
         let winnerOldIdxs = [fromJust $ M.lookup i idxsMap | i <- winnerIdxs]
             winners = [(i, ais !! j) | (i,j) <- zip winnerOldIdxs winnerIdxs]
+        $info "Winner idxs at this stage are: {}" (Single $ show winnerOldIdxs)
         runStages (n-1) winners
 
     makePairs :: [Int] -> Checkers [(Int, Int)]

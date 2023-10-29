@@ -47,6 +47,12 @@ data SpecialCommand =
         , scGamesCount :: Int
         , scAiPaths :: [FilePath]
       }
+    | Olympics {
+          scRulesName :: String
+        , scGamesCount :: Int
+        , scNBest :: Int
+        , scAiPaths :: [FilePath]
+      }
     | Genetics {
           scYamlPath :: FilePath
       }
@@ -125,7 +131,8 @@ parseSpecialCommand = hsubparser (
     <> cmd "battle" battle "run battle"
     <> cmd "remote-battle" remoteBattle "run battle on a remote host"
     <> cmd "match" match "run match"
-    <> cmd "tournament" tournament "run tournament"
+    <> cmd "tournament" tournament "run a tournament by a simple scheme"
+    <> cmd "olympics" olympics "run a tournament based on olympics scheme"
     <> cmd "genetics" genetics "run genetics search"
     <> cmd "generate" generate "generate AI variants for genetic search"
     <> cmd "dump" dump "dump cache file"
@@ -179,6 +186,13 @@ parseSpecialCommand = hsubparser (
     tournament = Tournament
       <$> parseCount "N" "Number of matches in tournament"
       <*> parseCount "M" "Number of games in each match"
+      <*> many parseAiPath
+
+    olympics :: Parser SpecialCommand
+    olympics = Olympics
+      <$> parseRules
+      <*> parseCount "N" "Number of games in each match"
+      <*> parseCount "B" "Number of best AIs to select (expected to be power of 2)"
       <*> many parseAiPath
 
     genetics :: Parser SpecialCommand
