@@ -14,7 +14,6 @@ module Battle where
 import Control.Monad
 import Control.Monad.IO.Class
 import Control.Concurrent
-import Data.List (sortOn)
 import Data.Aeson hiding (json)
 import Data.Aeson.Types
 import qualified Data.Aeson.Key as K
@@ -174,16 +173,17 @@ runGenetics runMatches rules nGenerations generationSize nOld nBest nGames ais =
   where
       run n generation = do
         $info "Generation #{}" (Single n)
-        best <- selectBest generation
-        saveBest n best
-        if n == nGenerations
-          then return best
-          else do
-              generation' <- breed rules generationSize nOld best
-              run (n+1) generation'
+        withLogVariable "generation" n $ do
+          best <- selectBest generation
+          saveBest n best
+          if n == nGenerations
+            then return best
+            else do
+                generation' <- breed rules generationSize nOld best
+                run (n+1) generation'
 
       saveBest n ais = do
-        let dirPath = printf "genetics/#%d" n
+        let dirPath = printf "genetics/%d" n
         liftIO $ createDirectoryIfMissing True dirPath
         forM_ (zip [1..] ais) $ \(i, ai) ->
             liftIO $ Data.Aeson.encodeFile (dirPath </> printf "ai_%d.json" (i::Int)) ai
@@ -191,12 +191,11 @@ runGenetics runMatches rules nGenerations generationSize nOld nBest nGames ais =
       nMatches = generationSize
 
       selectBest generation = do
-        results <- runTournament runMatches rules generation nMatches nGames
-        let best = take nBest $ sortOn (negate . snd) $ M.assocs results
-            idxs = map fst best
-        return [generation !! i | i <- idxs]
+        results <- runTournamentOlympic runMatches rules generation nMatches nGames nBest
+        return results
 
 mapP :: Int -> (input -> Checkers output) -> [input] -> Checkers [output]
+mapP 1 fn inputs = mapM fn inputs
 mapP nThreads fn inputs = do
     let groups = splitBy nThreads inputs
     vars <- replicateM nThreads $ liftIO $ newEmptyMVar
@@ -211,13 +210,15 @@ forMP :: Int -> [input] -> (input -> Checkers output) -> Checkers [output]
 forMP nThreads inputs fn = mapP nThreads fn inputs
 
 dumbMatchRunner :: BattleRunner -> MatchRunner
-dumbMatchRunner runBattle nGames rules idxPairs ais =
-  forMP 4 idxPairs $ \(i,j) ->
-      runMatch runBattle rules (i, ais !! i) (j, ais !! j) nGames
+dumbMatchRunner runBattle nGames rules idxPairs ais = do
+  let nMatches = length idxPairs
+  forMP 1 (zip [1..] idxPairs) $ \(k, (i,j)) -> do
+      withLogVariable "match" (printf "%d/%d" (k::Int) nMatches :: String) $
+          runMatch runBattle rules (i, ais !! i) (j, ais !! j) nGames
 
-runTournament :: (GameRules rules, VectorEvaluator (EvaluatorForRules rules))
+runTournamentDumb :: (GameRules rules, VectorEvaluator (EvaluatorForRules rules))
     => MatchRunner -> rules -> [AlphaBeta rules (EvaluatorForRules rules)] -> Int -> Int -> Checkers (M.Map Int Int)
-runTournament runMatches rules ais nMatches nGames = do
+runTournamentDumb runMatches rules ais nMatches nGames = do
   forM_ ais $ \ai ->
     liftIO $ print $ aiToVector ai
   let n = length ais
@@ -226,19 +227,67 @@ runTournament runMatches rules ais nMatches nGames = do
   idxPairs' <- liftIO $ shuffleM idxPairs
   stats <- runMatches nGames (SomeRules rules) (take nMatches idxPairs') ais'
   $info "Tournament results:" ()
-  -- forM_ (zip idxPairs' stats) $ \((i,j),(first,second,draw)) -> do
-  --     liftIO $ printf "AI#%d vs AI#%d: First %d, Second %d, Draw %d\n" i j first second draw
 
   let results1 = [(i, first - second) | ((i,j), (first,second,draw)) <- zip idxPairs' stats]
       results2 = [(j, second - first) | ((i,j), (first,second,draw)) <- zip idxPairs' stats]
       results = M.fromListWith (+) (results1 ++ results2)
   forM_ (M.toAscList results) $ \(i, value) -> do
       $info "AI#{} => {}" (i, value)
---       let ai = ais !! i
---           vec = map show $ V.toList (aiToVector ai) ++ [fromIntegral value]
---           str = intercalate "," vec
---       liftIO $ putStrLn str
   return results
+
+runTournamentOlympic :: forall rules. (GameRules rules, VectorEvaluator (EvaluatorForRules rules))
+    => MatchRunner
+    -> rules
+    -> [AB rules]
+    -> Int
+    -> Int
+    -> Int
+    -> Checkers [AB rules]
+runTournamentOlympic runMatches rules ais0 nMatches nGames nBest = do
+    let nSrcAis = length ais0
+        logNSrcAis = log (fromIntegral nSrcAis :: Double) :: Double
+        log2 = log 2
+        logNBest = log (fromIntegral nBest :: Double) :: Double
+        nStagesTotal = (floor (logNSrcAis / log2)) :: Int
+        nAis = (floor (2 ** fromIntegral nStagesTotal)) :: Int
+        nStages = (floor ((logNSrcAis - logNBest) / log2)) :: Int
+        ais = zip [1..] $ take nAis ais0
+    res <- runStages nStages ais
+    return $ map snd res
+  where
+    runStages :: Int -> [(Int, AB rules)] -> Checkers [(Int, AB rules)]
+    runStages 0 items = return items
+    runStages n items = do
+      $info "Stage #{}" (Single n)
+      withLogVariable "stage" n $ do
+        let ais = map snd items
+            idxs = map fst items
+            newIdxs = [0 .. length ais - 1]
+            idxsMap = M.fromList $ zip newIdxs idxs
+        pairs <- makePairs newIdxs
+        matchResults <- runMatches nGames (SomeRules rules) pairs (map SomeAi ais)
+        winnerIdxs <- zipWithM detectWinner pairs matchResults
+        let winnerOldIdxs = [fromJust $ M.lookup i idxsMap | i <- winnerIdxs]
+            winners = [(i, ais !! j) | (i,j) <- zip winnerOldIdxs winnerIdxs]
+        runStages (n-1) winners
+
+    makePairs :: [Int] -> Checkers [(Int, Int)]
+    makePairs idxs = do
+      let n = length idxs
+          n2 = n `div` 2
+      shuffled <- liftIO $ shuffleM idxs
+      let firsts = take n2 shuffled
+          seconds = drop n2 shuffled
+      return $ zip firsts seconds
+
+    detectWinner (i,j) (nFirstWins, nSecondWins, nDraws)
+      | nFirstWins > nSecondWins = return i
+      | nSecondWins > nFirstWins = return j
+      | otherwise = do
+          p <- liftIO $ randomRIO (0, 1) :: Checkers Int
+          if p == 0
+            then return i
+            else return j
 
 runMatch :: BattleRunner -> SomeRules -> (Int, SomeAi) -> (Int, SomeAi) -> Int -> Checkers (Int, Int, Int)
 runMatch runBattle rules (i,ai1) (j,ai2) nGames = do
@@ -250,12 +299,13 @@ runMatch runBattle rules (i,ai1) (j,ai2) nGames = do
     go k (first, second, draw)
       | k >= nGames = return (first, second, draw)
       | otherwise = do
-          result <- runBattle rules (i,ai1) (j,ai2) (printf "battle_%d.pdn" k)
-          let stats = case result of
-                        FirstWin -> (first+1, second, draw)
-                        SecondWin -> (first, second+1, draw)
-                        Draw -> (first, second, draw+1)
-          go (k+1) stats
+          withLogVariable "battle" (printf "%d/%d" (k+1) nGames :: String) $ do
+            result <- runBattle rules (i,ai1) (j,ai2) (printf "battle_%d.pdn" k)
+            let stats = case result of
+                          FirstWin -> (first+1, second, draw)
+                          SecondWin -> (first, second+1, draw)
+                          Draw -> (first, second, draw+1)
+            go (k+1) stats
 
 calcMatchStats :: [GameResult] -> (Int, Int, Int)
 calcMatchStats rs = go (0, 0, 0) rs

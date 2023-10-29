@@ -27,8 +27,11 @@ import Rules.Russian
 
 moduleToStdout mod cfg logChan =
   let dfltBackends = dfltLoggingSettings cfg logChan
-      stdout = LoggingSettings $ Filtering (\m -> lmSource m == [mod]) defStdoutSettings
-  in  ParallelLogSettings $ dfltBackends ++ [stdout]
+      stdout = defStdoutSettings {
+                lsFormat = "{time} [G#{generation}; St.{stage}; M.{match}; B.{battle}] {message}\n"
+              }
+      filteredStdout = LoggingSettings $ Filtering (\m -> lmSource m == [mod]) stdout
+  in  ParallelLogSettings $ dfltBackends ++ [filteredStdout]
 
 parserInfo :: ParserInfo (CmdLine SpecialCommand)
 parserInfo = info (cmdline parseSpecialCommand <**> helper)
@@ -110,7 +113,7 @@ special cmd =
         ai2 <- loadAi "default" rules path2
         putStrLn $ "AI1: " ++ show ai1
         putStrLn $ "AI2: " ++ show ai2
-        withCheckers cmd $ do
+        withCheckersLog cmd (moduleToStdout "Battle") $ do
             dumpConfig cmd
             withLogContext (LogContextFrame [] (include defaultLogFilter)) $ do
               runMatch runBattleLocal (SomeRules rules) (1, SomeAi ai1) (2, SomeAi ai2) n
@@ -123,7 +126,7 @@ special cmd =
       withCheckers cmd $ do
           dumpConfig cmd
           withLogContext (LogContextFrame [] (include defaultLogFilter)) $ do
-            runTournament (dumbMatchRunner runBattleLocal) rules ais nMatches nGames
+            runTournamentDumb (dumbMatchRunner runBattleLocal) rules ais nMatches nGames
             return ()
 
     Genetics yamlPath -> do
