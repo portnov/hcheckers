@@ -412,7 +412,7 @@ instance VectorEvaluator SimpleEvaluator where
         seAsymetryWeight, sePreKingWeight,
         seKingCoef, sePositionalKingWeight, seAttackedManCoef,
         seAttackedKingCoef, seBorderManWeight,
-        seThreatWeight]
+        seThreatWeight, seKingOnKeyFieldWeight]
 
   evalFromVector rules v = SimpleEvaluator {
           seRules = iface

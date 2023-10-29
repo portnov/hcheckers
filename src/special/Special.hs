@@ -25,9 +25,9 @@ import Learn
 import Battle
 import Rules.Russian
 
-learnLogging cfg logChan =
+moduleToStdout mod cfg logChan =
   let dfltBackends = dfltLoggingSettings cfg logChan
-      stdout = LoggingSettings $ Filtering (\m -> lmSource m == ["Learn"]) defStdoutSettings
+      stdout = LoggingSettings $ Filtering (\m -> lmSource m == [mod]) defStdoutSettings
   in  ParallelLogSettings $ dfltBackends ++ [stdout]
 
 parserInfo :: ParserInfo (CmdLine SpecialCommand)
@@ -56,7 +56,7 @@ special cmd =
     Learn rulesName aiPath pdnPath -> do
       withRules rulesName $ \rules -> do
         ai <- loadAi "default" rules aiPath
-        withCheckersLog cmd learnLogging $ do
+        withCheckersLog cmd (moduleToStdout "Learn") $ do
             dumpConfig cmd
             withLogContext (LogContextFrame [] (include defaultLogFilter)) $
               learnPdnOrDir ai pdnPath
@@ -66,7 +66,7 @@ special cmd =
     Openings rulesName aiPath depth -> do
       withRules rulesName $ \rules -> do
         ai <- loadAi "default" rules aiPath
-        withCheckersLog cmd learnLogging $ do
+        withCheckersLog cmd (moduleToStdout "Learn") $ do
             dumpConfig cmd
             withLogContext (LogContextFrame [] (include defaultLogFilter)) $
               analyzeOpenings ai depth
@@ -127,7 +127,7 @@ special cmd =
             return ()
 
     Genetics yamlPath -> do
-      withCheckers cmd $ do
+      withCheckersLog cmd (moduleToStdout "Battle") $ do
           dumpConfig cmd
           withLogContext (LogContextFrame [] (include defaultLogFilter)) $ do
             result <- runGeneticsJ yamlPath

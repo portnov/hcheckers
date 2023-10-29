@@ -24,10 +24,15 @@ import Data.Maybe
 import qualified Data.Map as M
 import qualified Data.Vector as V
 import qualified Data.Text as T
+import Data.Text.Format.Heavy
 import Text.Printf
 import System.Random
 import System.Random.Shuffle
+import System.Directory
+import System.FilePath
 import Network.HTTP.Req
+import System.Log.Heavy
+import System.Log.Heavy.TH
 import Text.URI (mkURI)
 
 import Core.Types hiding (timed)
@@ -100,7 +105,7 @@ cross rules (ai1, ai2) = do
   v3 <- if p < 0.7
           then return mid
           else do
-            let delta = 0.05
+            let delta = 0.10
             liftIO $ V.forM mid $ \v -> do
                              let a = abs v
                              randomRIO (v - delta*a, v + delta*a)
@@ -125,7 +130,7 @@ runGeneticsJ cfgPath = do
                     then return $ dumbMatchRunner runBattleLocal
                     else do
                          let process url (gameNr, rules, (i,ai1), (j,ai2), path) = do
-                                liftIO $ printf "Battle AI#%d vs AI#%d on %s\n" i j (T.unpack url)
+                                $info "Battle AI#{} vs AI#{} on {}" (i, j, url)
                                 timed ("battle.duration." <> url) $ do
                                   increment ("battle.count." <> url)
                                   runBattleRemote url rules (i,ai1) (j,ai2) path
@@ -150,7 +155,7 @@ mkRemoteRunner processor nGames rules idxPairs ais = do
       groupedResults = [fromJust $ M.lookup ij byPair | ij <- idxPairs]
       totals = [calcMatchStats results | results <- groupedResults]
   forM_ (zip idxPairs totals) $ \((i,j), (first, second, draw)) -> do
-    liftIO $ printf "Match: AI#%d: %d, AI#%d: %d, Draws(?): %d\n" i first j second draw
+    $info "Match: AI#{}: {}, AI#{}: {}, Draws(?): {}" (i, first, j, second, draw)
   return totals
 
 runGenetics :: (GameRules rules, VectorEvaluator (EvaluatorForRules rules))
@@ -168,13 +173,20 @@ runGenetics runMatches rules nGenerations generationSize nOld nBest nGames ais =
       run 1 generation0
   where
       run n generation = do
-        liftIO $ printf "Generation #%d\n" n
+        $info "Generation #{}" (Single n)
         best <- selectBest generation
+        saveBest n best
         if n == nGenerations
           then return best
           else do
               generation' <- breed rules generationSize nOld best
               run (n+1) generation'
+
+      saveBest n ais = do
+        let dirPath = printf "genetics/#%d" n
+        liftIO $ createDirectoryIfMissing True dirPath
+        forM_ (zip [1..] ais) $ \(i, ai) ->
+            liftIO $ Data.Aeson.encodeFile (dirPath </> printf "ai_%d.json" (i::Int)) ai
 
       nMatches = generationSize
 
@@ -213,7 +225,7 @@ runTournament runMatches rules ais nMatches nGames = do
       ais' = map SomeAi ais
   idxPairs' <- liftIO $ shuffleM idxPairs
   stats <- runMatches nGames (SomeRules rules) (take nMatches idxPairs') ais'
-  liftIO $ putStrLn "Tournament results:"
+  $info "Tournament results:" ()
   -- forM_ (zip idxPairs' stats) $ \((i,j),(first,second,draw)) -> do
   --     liftIO $ printf "AI#%d vs AI#%d: First %d, Second %d, Draw %d\n" i j first second draw
 
@@ -221,7 +233,7 @@ runTournament runMatches rules ais nMatches nGames = do
       results2 = [(j, second - first) | ((i,j), (first,second,draw)) <- zip idxPairs' stats]
       results = M.fromListWith (+) (results1 ++ results2)
   forM_ (M.toAscList results) $ \(i, value) -> do
-      liftIO $ printf "AI#%d => %d\n" i value
+      $info "AI#{} => {}" (i, value)
 --       let ai = ais !! i
 --           vec = map show $ V.toList (aiToVector ai) ++ [fromIntegral value]
 --           str = intercalate "," vec
@@ -231,7 +243,7 @@ runTournament runMatches rules ais nMatches nGames = do
 runMatch :: BattleRunner -> SomeRules -> (Int, SomeAi) -> (Int, SomeAi) -> Int -> Checkers (Int, Int, Int)
 runMatch runBattle rules (i,ai1) (j,ai2) nGames = do
     (nFirst, nSecond, nDraw) <- go 0 (0, 0, 0)
-    liftIO $ printf "Match: AI#%d: %d, AI#%d: %d, Draws(?): %d\n" i nFirst j nSecond nDraw
+    $info "Match: AI#{}: {}, AI#{}: {}, Draws(?): {}" (i, nFirst, j, nSecond, nDraw)
     return (nFirst, nSecond, nDraw)
   where
     go :: Int -> (Int, Int, Int) -> Checkers (Int, Int, Int)
@@ -269,7 +281,7 @@ runBattleLocal rules (i,ai1) (j,ai2) path = do
   -- resetAiStorageG gameId Second
   runGame gameId
   result <- loopGame path gameId (opposite firstSide) 0
-  liftIO $ printf "Battle AI#%d vs AI#%d: %s\n" i j (show result)
+  $info "Battle AI#{} vs AI#{}: {}" (i, j, show result)
   return result
 
 hasKing :: Side -> BoardRep -> Bool
@@ -283,7 +295,7 @@ loopGame path gameId side i = do
   StateRs board status side <- getState gameId
   if (i > 200) || (i > 120 && boardRepLen board <= 8 && hasKing First board && hasKing Second board)
     then do
-      liftIO $ putStrLn "Too long a game, probably a draw"
+      $info "Too long a game, probably a draw" ()
       -- pdn <- getPdn gameId
       -- liftIO $ TIO.writeFile path pdn
       return Draw
@@ -305,7 +317,9 @@ variableParameters :: [T.Text]
 variableParameters = [
     "mobility_weight", "backyard_weight", "center_weight",
     "opposite_side_weight", "backed_weight", "asymetry_weight",
-    "pre_king_weight", "attacked_man_coef", "attacked_king_coef"
+    "pre_king_weight", "attacked_man_coef", "attacked_king_coef",
+    "border_man_weight", "positional_king_weight", "threat_weight",
+    "king_on_key_field_weight"
   ]
 
 nVariableParameters :: Int
