@@ -27,12 +27,7 @@ data SpecialCommand =
       }
     | Battle {
           scRulesName :: String
-        , scAiPath1 :: FilePath
-        , scAiPath2 :: FilePath
-      }
-    | RemoteBattle {
-          scHost :: String
-        , scRulesName :: String
+        , scHost :: Maybe String
         , scAiPath1 :: FilePath
         , scAiPath2 :: FilePath
       }
@@ -165,13 +160,12 @@ parseSpecialCommand = hsubparser (
     battle :: Parser SpecialCommand
     battle = Battle
       <$> parseRules
-      <*> parseAiPath
-      <*> parseAiPath
-
-    remoteBattle :: Parser SpecialCommand
-    remoteBattle = RemoteBattle
-      <$> strArgument (metavar "HTTP://HOST:PORT" <> help "Battle server URL")
-      <*> parseRules
+      <*> optional (strOption
+              (    long "remote"
+                <> metavar "HTTP://HOST:8865"
+                <> help "Battle server URL"
+              )
+            )
       <*> parseAiPath
       <*> parseAiPath
 

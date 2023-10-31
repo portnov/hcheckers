@@ -89,7 +89,7 @@ special cmd =
               return ()
             printCurrentMetrics (Just "ai.")
 
-    Battle rulesName path1 path2 -> do
+    Battle rulesName Nothing path1 path2 -> do
       withRules rulesName $ \rules -> do
         ai1 <- loadAi "default" rules path1
         ai2 <- loadAi "default" rules path2
@@ -100,7 +100,7 @@ special cmd =
               return ()
             printCurrentMetrics Nothing
 
-    RemoteBattle host rulesName path1 path2 -> do
+    Battle rulesName (Just host) path1 path2 -> do
       withRules rulesName $ \rules -> do
         ai1 <- loadAi "default" rules path1
         ai2 <- loadAi "default" rules path2
