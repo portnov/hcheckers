@@ -61,6 +61,7 @@ instance GameRules Killer where
   getGameResult = genericGameResult
 
   possibleMoves (Killer rules) side board = gPossibleMoves rules side board
+  hasCapturesOrPromotions (Killer rules) side board = genericHasCapturesOrPromotions rules side board
   mobilityScore (Killer rules) side board = gMobilityScore rules side board
 
   pdnId _ = "45"

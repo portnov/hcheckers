@@ -43,6 +43,7 @@ instance GameRules Czech where
   parseNotation _ = parseNotation russian
 
   possibleMoves (Czech rules) side board = gPossibleMoves rules side board
+  hasCapturesOrPromotions (Czech rules) side board = genericHasCapturesOrPromotions rules side board
   mobilityScore (Czech rules) side board = gMobilityScore rules side board
 
   updateRules r _ = r

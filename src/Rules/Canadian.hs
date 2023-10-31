@@ -63,6 +63,7 @@ instance GameRules Canadian where
   pdnId _ = "27"
 
   possibleMoves (Canadian rules) side board = gPossibleMoves rules side board
+  hasCapturesOrPromotions (Canadian rules) side board = genericHasCapturesOrPromotions rules side board
   mobilityScore (Canadian rules) side board = gMobilityScore rules side board
   getAllAddresses r = addresses12 r
 

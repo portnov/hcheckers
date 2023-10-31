@@ -45,6 +45,7 @@ instance GameRules Russian where
   rulesName _ = "russian"
 
   possibleMoves (Russian rules) side board = gPossibleMoves rules side board
+  hasCapturesOrPromotions (Russian rules) side board = genericHasCapturesOrPromotions rules side board
   mobilityScore (Russian rules) side board = gMobilityScore rules side board
 
   updateRules r _ = r

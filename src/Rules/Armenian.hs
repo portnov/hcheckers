@@ -58,6 +58,7 @@ instance GameRules Armenian where
   rulesName _ = "armenian"
 
   possibleMoves (Armenian rules) side board = gPossibleMoves rules side board
+  hasCapturesOrPromotions (Armenian rules) side board = genericHasCapturesOrPromotions rules side board
 
   updateRules r _ = r
 

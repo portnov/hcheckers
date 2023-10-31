@@ -61,6 +61,7 @@ instance GameRules International where
   getGameResult = genericGameResult
 
   possibleMoves (International rules) side board = gPossibleMoves rules side board
+  hasCapturesOrPromotions (International rules) side board = genericHasCapturesOrPromotions rules side board
   mobilityScore (International rules) side board = gMobilityScore rules side board
 
   pdnId _ = "20"

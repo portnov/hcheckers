@@ -64,6 +64,7 @@ instance GameRules Frisian where
   getGameResult = genericGameResult
 
   possibleMoves (Frisian rules) side board = gPossibleMoves rules side board
+  hasCapturesOrPromotions (Frisian rules) side board = genericHasCapturesOrPromotions rules side board
   mobilityScore (Frisian rules) side board = gMobilityScore rules side board
 
   getAllAddresses r = addresses10 r

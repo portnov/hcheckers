@@ -56,6 +56,7 @@ instance GameRules DiagonalRussian where
   rulesName _ = "diagonal"
 
   possibleMoves _ = possibleMoves russian
+  hasCapturesOrPromotions _ = hasCapturesOrPromotions russian
   mobilityScore _ = mobilityScore russian
 
   updateRules r _ = r

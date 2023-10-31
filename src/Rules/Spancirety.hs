@@ -52,6 +52,7 @@ instance GameRules Spancirety where
   rulesName _ = "spancirety"
 
   possibleMoves _ = possibleMoves russian
+  hasCapturesOrPromotions _ = hasCapturesOrPromotions russian
   mobilityScore _ = mobilityScore russian
 
   updateRules r _ = r

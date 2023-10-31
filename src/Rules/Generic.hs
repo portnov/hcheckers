@@ -454,6 +454,38 @@ abstractRules =
     }
   in rules
 
+gCaptureDirections :: GenericRules -> PieceKind -> [PlayerDirection]
+gCaptureDirections g Man = gManCaptureDirections g
+gCaptureDirections g King = gKingCaptureDirections g
+
+genericHasCapturesOrPromotions :: GenericRules -> Side -> Board -> Bool
+genericHasCapturesOrPromotions g side board =
+    any check $ allMyPieces side board
+  where
+    check p = hasCapturesBy p || hasPromotionsBy p
+
+    hasCapturesBy (addr, kind) =
+      any (checkCapture addr) $ gCaptureDirections g kind
+
+    checkCapture addr dir = 
+      case myNeighbour g side dir addr of
+        Nothing -> False
+        Just f1 ->
+          if isOpponentAt side f1 board
+            then case myNeighbour g side dir f1 of
+              Nothing -> False
+              Just f2 -> isFree f2 board
+            else False
+
+    hasPromotionsBy (addr, King) = False
+    hasPromotionsBy (addr, Man) =
+      any (checkPromotion addr) $ gManSimpleMoveDirections g
+
+    checkPromotion addr dir =
+      case myNeighbour g side dir addr of
+        Nothing -> False
+        Just f1 -> isLastHorizontal side f1 && isFree f1 board
+
 labels8 :: [Label]
 labels8 = [Label col row | col <- [0..7], row <- [0..7], ((row+col) `mod` 2) == 0]
 

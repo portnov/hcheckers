@@ -49,6 +49,7 @@ instance GameRules English where
   getGameResult = genericGameResult
 
   possibleMoves (English rules) side board = gPossibleMoves rules side board
+  hasCapturesOrPromotions (English rules) side board = genericHasCapturesOrPromotions rules side board
   mobilityScore (English rules) side board = gMobilityScore rules side board
 
   pdnId _ = "21"

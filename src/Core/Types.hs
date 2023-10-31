@@ -470,6 +470,8 @@ class (Typeable g, Show g, HasBoardOrientation g, HasSideNotation g, HasTopology
 
   possibleMoves :: g -> Side -> Board -> [PossibleMove]
 
+  hasCapturesOrPromotions :: g -> Side -> Board -> Bool
+
   mobilityScore :: g -> Side -> Board -> Int
   mobilityScore g side board = length $ possibleMoves g side board
 

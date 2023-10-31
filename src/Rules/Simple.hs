@@ -45,6 +45,7 @@ instance GameRules Simple where
   getGameResult = genericGameResult
 
   possibleMoves (Simple rules) side board = gPossibleMoves rules side board
+  hasCapturesOrPromotions (Simple rules) side board = genericHasCapturesOrPromotions rules side board
   mobilityScore (Simple rules) side board = gMobilityScore rules side board
 
   pdnId _ = "43"

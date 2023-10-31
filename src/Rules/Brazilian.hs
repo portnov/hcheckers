@@ -47,6 +47,7 @@ instance GameRules Brazilian where
   updateRules r _ = r
 
   possibleMoves (Brazilian rules) side board = gPossibleMoves rules side board
+  hasCapturesOrPromotions (Brazilian rules) side board = genericHasCapturesOrPromotions rules side board
   mobilityScore (Brazilian rules) side board = gMobilityScore rules side board
 
   getGameResult = genericGameResult

@@ -51,6 +51,7 @@ instance GameRules Turkish where
   rulesName _ = "turkish"
 
   possibleMoves (Turkish rules) side board = gPossibleMoves rules side board
+  hasCapturesOrPromotions (Turkish rules) side board = genericHasCapturesOrPromotions rules side board
 
   updateRules r _ = r
 

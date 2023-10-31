@@ -134,6 +134,9 @@ instance (GameRules rules, VectorEvaluator eval, ToJSON eval) => GameAi (AlphaBe
   chooseMove ai storage gameId side aiSession board = Monitoring.timed "ai.choose.move" $ do
     (moves, _) <- runAI ai storage gameId side aiSession board
     -- liftIO $ atomically $ writeTVar (aichCurrentCounts storage) $ calcBoardCounts board
+    Monitoring.distribution "ai.chosen.moves.count" $ fromIntegral $ length moves
+    when (length moves > 1) $
+      Monitoring.increment "ai.ambigous.choice"
     return moves
 
   decideDrawRequest ai@(AlphaBeta params rules eval) storage gameId side aiSession board = do
@@ -586,7 +589,8 @@ runAI ai@(AlphaBeta params rules eval) handle gameId side aiSession board = do
         else do
           let var = aichData handle
           $info "Selecting a move. Side = {}, depth = {}, number of possible moves = {}" (show side, depth, length diiMoves)
-          dp <- updateDepth params diiMoves $ mkDepthParams depth diiParams
+          let opponentHasCaptures = hasCapturesOrPromotions rules (opposite side) board
+          dp <- updateDepth params diiMoves opponentHasCaptures $ mkDepthParams depth diiParams
           let needDeeper = abDeeperIfBad params && score0 `worseThan` 0
           let dp'
                 | needDeeper = dp {
@@ -974,8 +978,8 @@ isTargetDepth dp = dpCurrent dp >= dpTarget dp
 --
 -- Otherwise, this just increases dpCurrent by 1.
 --
-updateDepth :: (Monad m, HasLogging m, MonadIO m) => AlphaBetaParams -> [PossibleMove] -> DepthParams -> m DepthParams
-updateDepth params moves dp
+updateDepth :: (Monad m, HasLogging m, MonadIO m) => AlphaBetaParams -> [PossibleMove] -> Bool -> DepthParams -> m DepthParams
+updateDepth params moves opponentHasCaptures dp
     | deepen = do
                   let delta = fromIntegral nMoves - 1
                   let target = min (dpTarget dp + 1) $ max (dpTarget dp) (dpMax dp - delta)
@@ -998,7 +1002,7 @@ updateDepth params moves dp
     | otherwise = return $ dp {dpCurrent = dpCurrent dp + 1}
   where
     nMoves = length moves
-    forced = any isCapture moves || any isPromotion moves
+    forced = any isCapture moves || any isPromotion moves || opponentHasCaptures
     deepen = if dpCurrent dp <= dpInitialTarget dp
                then nMoves <= abMovesLowBound params
                else forced
@@ -1090,7 +1094,8 @@ scoreAB var eval params input
                   push best
                   $verbose "{}V Side: {}, A = {}, B = {}" (indent, show side, show alpha, show beta)
                   rules <- gets ssRules
-                  dp' <- updateDepth params moves dp
+                  let opponentHasCaptures = hasCapturesOrPromotions rules (opposite side) board
+                  dp' <- updateDepth params moves opponentHasCaptures dp
                   let prevMove = siPrevMove input
                   moves' <- sortMoves eval params var side board prevMove moves
 --                   let depths = correspondingDepths (length moves') score0 quiescene dp'
