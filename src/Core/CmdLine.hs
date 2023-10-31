@@ -124,7 +124,7 @@ parseSpecialCommand = hsubparser (
     <> cmd "openings" openings "Generate openings data"
     <> cmd "bench" bench "benchmark"
     <> cmd "battle" battle "run battle"
-    <> cmd "remote-battle" remoteBattle "run battle on a remote host"
+    -- <> cmd "remote-battle" remoteBattle "run battle on a remote host"
     <> cmd "match" match "run match"
     <> cmd "tournament" tournament "run a tournament by a simple scheme"
     <> cmd "olympics" olympics "run a tournament based on olympics scheme"
