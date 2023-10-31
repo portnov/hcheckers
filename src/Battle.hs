@@ -20,6 +20,7 @@ import qualified Data.Aeson.Key as K
 import qualified Data.Aeson.KeyMap as KM
 import Data.Yaml
 import Data.Maybe
+import Data.List (sortOn)
 import qualified Data.Map as M
 import qualified Data.Vector as V
 import qualified Data.Text as T
@@ -88,14 +89,11 @@ norm :: V.Vector Double -> Double
 -- norm v = sqrt $ V.sum $ V.map (\x -> x*x) v
 norm v = (V.sum $ V.map abs v) / fromIntegral (V.length v)
 
-mix :: V.Vector a -> V.Vector a -> IO (V.Vector a)
+mix :: forall a. (Random a, Fractional a) => V.Vector a -> V.Vector a -> IO (V.Vector a)
 mix v1 v2 = do
-  t <- randomRIO (0.0, 1.0) :: IO Double
-  V.forM (V.zip v1 v2) $ \(x1, x2) -> do
-    p <- randomRIO (0.0, 1.0)
-    if p < t
-      then return x1
-      else return x2
+  cs <- V.fromList <$> (replicateM (V.length v1) $ randomRIO (-1.05, 1.05) :: IO [a])
+  V.forM (V.zip3 cs v1 v2) $ \(c, x1, x2) -> do
+    return $ (1.0 - c) * x1 + c * x2
 
 cross :: (GameRules rules, VectorEvaluator (EvaluatorForRules rules)) => rules -> (AB rules, AB rules) -> Checkers (AB rules)
 cross rules (ai1, ai2) = do
@@ -131,10 +129,13 @@ runGeneticsJ cfgPath = do
                     then return $ dumbMatchRunner runBattleLocal
                     else do
                          let process url (gameNr, rules, (i,ai1), (j,ai2), path) = do
-                                $info "Battle AI#{} vs AI#{} on {}" (i, j, url)
-                                timed ("battle.duration." <> url) $ do
-                                  increment ("battle.count." <> url)
-                                  runBattleRemote url rules (i,ai1) (j,ai2) path
+                                withLogVariable "battle" gameNr $ do
+                                  $info "Battle AI#{} vs AI#{} on {}" (i, j, url)
+                                  timed ("battle.duration." <> url) $ do
+                                    increment ("battle.count." <> url)
+                                    res <- runBattleRemote url rules (i,ai1) (j,ai2) path
+                                    $info "Remote battle AI#{} vs AI#{} on {} => {}" (i, j, url, show res)
+                                    return res
                          processor <- runProcessor' (gsUrls cfg) getJobKey process
                          return $ mkRemoteRunner processor
   withRules (gsRules cfg) $ \rules -> do
@@ -219,6 +220,12 @@ dumbMatchRunner runBattle nGames rules idxPairs ais = do
       withLogVariable "match" (printf "%d/%d" (k::Int) nMatches :: String) $
           runMatch runBattle rules (i, ais !! i) (j, ais !! j) nGames
 
+calcTournamentResults :: [(Int, Int)] -> [(Int, Int, Int)] -> M.Map Int Int
+calcTournamentResults idxPairs matchStats =
+  let results1 = [(i, first - second) | ((i,j), (first,second,draw)) <- zip idxPairs matchStats]
+      results2 = [(j, second - first) | ((i,j), (first,second,draw)) <- zip idxPairs matchStats]
+  in  M.fromListWith (+) (results1 ++ results2)
+
 runTournamentDumb :: (GameRules rules, VectorEvaluator (EvaluatorForRules rules))
     => MatchRunner -> rules -> [AlphaBeta rules (EvaluatorForRules rules)] -> Int -> Int -> Checkers (M.Map Int Int)
 runTournamentDumb runMatches rules ais nMatches nGames = do
@@ -231,9 +238,7 @@ runTournamentDumb runMatches rules ais nMatches nGames = do
   stats <- runMatches nGames (SomeRules rules) (take nMatches idxPairs') ais'
   $info "Tournament results:" ()
 
-  let results1 = [(i, first - second) | ((i,j), (first,second,draw)) <- zip idxPairs' stats]
-      results2 = [(j, second - first) | ((i,j), (first,second,draw)) <- zip idxPairs' stats]
-      results = M.fromListWith (+) (results1 ++ results2)
+  let results = calcTournamentResults idxPairs' stats
   forM_ (M.toAscList results) $ \(i, value) -> do
       $info "AI#{} => {}" (i, value)
   return results
@@ -253,34 +258,40 @@ runTournamentOlympic runMatches rules ais0 nGames nBest = do
         nStagesTotal = (floor (logNSrcAis / log2)) :: Int
         nAis = (floor (2 ** fromIntegral nStagesTotal)) :: Int
         nStages = (floor ((logNSrcAis - logNBest) / log2)) :: Int
-        ais = zip [1..] $ take nAis ais0
-    res <- runStages nStages ais
-    return res
+        ais = zip3 [1..] (repeat 0) $ take nAis ais0
+    res <- runStages nStages nStages ais
+    let sortedRes = sortOn (\(_, rating, _) -> negate rating) res
+    return [(i, ai) | (i, _, ai) <- sortedRes]
   where
-    runStages :: Int -> [(Int, AB rules)] -> Checkers [(Int, AB rules)]
-    runStages 0 items = return items
-    runStages n items = do
+    runStages :: Int -> Int -> [(Int, Int, AB rules)] -> Checkers [(Int, Int, AB rules)]
+    runStages _ 0 items = return items
+    runStages nStages n items = do
       $info "Stage #{}" (Single n)
       withLogVariable "stage" n $ do
-        let ais = map snd items
-            idxs = map fst items
+        let ais = [ai | (_, _, ai) <- items]
+            idxs = [idx | (idx, _, _) <- items]
+            ratings = [rating | (_, rating, _) <- items]
             newIdxs = [0 .. length ais - 1]
             idxsMap = M.fromList $ zip newIdxs idxs
-        pairs <- makePairs newIdxs
+        pairs <- makePairs (nStages /= n) ratings newIdxs
         matchResults <- runMatches nGames (SomeRules rules) pairs (map SomeAi ais)
         winnerIdxs <- zipWithM detectWinner pairs matchResults
-        let winnerOldIdxs = [fromJust $ M.lookup i idxsMap | i <- winnerIdxs]
-            winners = [(i, ais !! j) | (i,j) <- zip winnerOldIdxs winnerIdxs]
-        $info "Winner idxs at this stage are: {}" (Single $ show winnerOldIdxs)
-        runStages (n-1) winners
+        let stageResults = calcTournamentResults pairs matchResults
+            ratings = [fromJust $ M.lookup i stageResults | i <- winnerIdxs]
+            winnerOldIdxs = [fromJust $ M.lookup i idxsMap | i <- winnerIdxs]
+            winners = [(i, rating, ais !! j) | (i,j, rating) <- zip3 winnerOldIdxs winnerIdxs ratings]
+        $info "Winner idxs at this stage are: {}; ratings: {}" (show winnerOldIdxs, show ratings)
+        runStages nStages (n-1) winners
 
-    makePairs :: [Int] -> Checkers [(Int, Int)]
-    makePairs idxs = do
+    makePairs :: Bool -> [Int] -> [Int] -> Checkers [(Int, Int)]
+    makePairs doSort ratings idxs = do
       let n = length idxs
           n2 = n `div` 2
-      shuffled <- liftIO $ shuffleM idxs
-      let firsts = take n2 shuffled
-          seconds = drop n2 shuffled
+          orderedIdxs
+            | doSort = map snd $ sortOn (negate . fst) $ zip ratings idxs
+            | otherwise = idxs
+      let firsts = take n2 orderedIdxs
+          seconds = drop n2 orderedIdxs
       return $ zip firsts seconds
 
     detectWinner (i,j) (nFirstWins, nSecondWins, nDraws)
