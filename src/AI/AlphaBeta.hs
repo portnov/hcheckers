@@ -590,7 +590,8 @@ runAI ai@(AlphaBeta params rules eval) handle gameId side aiSession board = do
                                      diiMoves = goodMoves,
                                      diiSortKeys = Nothing
                                    }
-                  if nGoodMoves > 1
+                      isCritical = (maxScore == win) || (maxScore == loose)
+                  if not isCritical && nGoodMoves > 1
                     then do
                       $info "There are several good moves ({}), re-think deeper up to {}" (nGoodMoves, maxDepth)
                       goIterative maxDepth Nothing nextInput'
