@@ -109,6 +109,14 @@ class AiEditorWidget(QWidget):
         self.deeper_if_bad.stateChanged.connect(self.edited)
         layout.addRow(_("Think better if situation seem bad"), self.deeper_if_bad)
 
+        self.deeper_if_ambigous = QCheckBox(general)
+        self.deeper_if_ambigous.stateChanged.connect(self.edited)
+        self.deeper_if_ambigous.stateChanged.connect(self._on_deeper_if_ambigous)
+        layout.addRow(_("Think better if choice is ambigous"), self.deeper_if_ambigous)
+
+        self.depth_if_ambigous = make_spinbox(_("Maximum depth"), 2, 24, general)
+        self.depth_if_ambigous.setEnabled(False)
+
         self.moves_bound_low = make_spinbox(_("`Few moves' mode bound"), 1, 5, general)
         self.moves_bound_high = make_spinbox(_("`Too many moves' mode bound"), 5, 50, general)
 
@@ -193,6 +201,10 @@ class AiEditorWidget(QWidget):
         use = self.use_timeout.checkState() == Qt.Checked
         self.timeout.setEnabled(use)
 
+    def _on_deeper_if_ambigous(self):
+        use = self.deeper_if_ambigous.checkState() == Qt.Checked
+        self.depth_if_ambigous.setEnabled(use)
+
     def _on_save(self):
         path, mask = QFileDialog.getSaveFileName(self, _("Save file"), ".", JSON_MASK)
         if path:
@@ -233,6 +245,8 @@ class AiEditorWidget(QWidget):
         self.max_combination_depth.setValue(ai.max_combination_depth)
         self.dynamic_depth.setValue(ai.dynamic_depth)
         self.deeper_if_bad.setCheckState(Qt.Checked if ai.deeper_if_bad else Qt.Unchecked)
+        self.deeper_if_ambigous.setCheckState(Qt.Checked if ai.deeper_if_ambigous else Qt.Unchecked)
+        self.depth_if_ambigous.setValue(ai.depth_if_ambigous or 10)
         self.moves_bound_low.setValue(ai.moves_bound_low)
         self.moves_bound_high.setValue(ai.moves_bound_high)
         self.use_positional_score.setCheckState(Qt.Checked if ai.use_positional_score else Qt.Unchecked)
@@ -270,6 +284,8 @@ class AiEditorWidget(QWidget):
         ai.max_combination_depth = self.max_combination_depth.value()
         ai.dynamic_depth = self.dynamic_depth.value()
         ai.deeper_if_bad = self.deeper_if_bad.checkState() == Qt.Checked
+        ai.deeper_if_ambigous = self.deeper_if_ambigous.checkState() == Qt.Checked
+        ai.depth_if_ambigous = self.depth_if_ambigous.value()
         ai.moves_bound_low = self.moves_bound_low.value()
         ai.moves_bound_high = self.moves_bound_high.value()
         ai.use_positional_score = self.use_positional_score.checkState() == Qt.Checked

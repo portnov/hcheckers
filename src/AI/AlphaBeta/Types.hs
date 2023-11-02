@@ -71,6 +71,7 @@ data AlphaBetaParams = AlphaBetaParams {
   , abDynamicDepth :: Depth
   , abDepthStep :: Depth
   , abDeeperIfBad :: Bool
+  , abDeeperIfAmbigous :: Maybe Depth
   , abMovesLowBound :: Int
   , abMovesHighBound :: Int
   , abInitWindowWidth :: Int
@@ -89,6 +90,7 @@ instance Default AlphaBetaParams where
         , abDynamicDepth = 8
         , abDepthStep = 3
         , abDeeperIfBad = False
+        , abDeeperIfAmbigous = Nothing
         , abMovesLowBound = 4
         , abMovesHighBound = 8
         , abInitWindowWidth = 0

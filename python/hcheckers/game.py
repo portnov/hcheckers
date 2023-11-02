@@ -53,6 +53,8 @@ class AI(object):
         self.max_combination_depth = 6
         self.dynamic_depth = 6
         self.deeper_if_bad = False
+        self.deeper_if_ambigous = False
+        self.depth_if_ambigous = 10
         self.moves_bound_low = 4
         self.moves_bound_high = 8
         self.start_depth = None
@@ -119,6 +121,8 @@ class AI(object):
         ai.dynamic_depth = settings.value("dynamic_depth", type=int)
         ai.start_depth = settings.value("start_depth", type=int)
         ai.deeper_if_bad = settings.value("deeper_if_bad", type=bool)
+        ai.deeper_if_ambigous = settings.value("deeper_if_ambigous", type=bool)
+        ai.depth_if_ambigous = settings.value("depth_if_ambigous", type=int)
         ai.moves_bound_low = settings.value("moves_bound_low", type=int)
         ai.moves_bound_high = settings.value("moves_bound_high", type=int)
         ai.use_positional_score = settings.value("use_positional_score", type=bool)
@@ -184,6 +188,8 @@ class AI(object):
         settings.setValue("dynamic_depth", self.dynamic_depth)
         settings.setValue("start_depth", self.start_depth)
         settings.setValue("deeper_if_bad", self.deeper_if_bad)
+        settings.setValue("deeper_if_ambigous", self.deeper_if_ambigous)
+        settings.setValue("depth_if_ambigous", self.depth_if_ambigous)
         settings.setValue("moves_bound_low", self.moves_bound_low)
         settings.setValue("moves_bound_high", self.moves_bound_high)
         settings.setValue("use_positional_score", self.use_positional_score)
@@ -218,6 +224,7 @@ class AI(object):
             "max_combination_depth": self.max_combination_depth,
             "dynamic_depth": self.dynamic_depth,
             "deeper_if_bad": self.deeper_if_bad,
+            "depth_if_ambigous": self.depth_if_ambigous if self.deeper_if_ambigous else None,
             "moves_bound_low": self.moves_bound_low,
             "moves_bound_high": self.moves_bound_high,
             "use_positional_score": self.use_positional_score,
@@ -258,6 +265,8 @@ class AI(object):
                 setattr(self, key, settings[key])
             else:
                 extra[key] = settings[key]
+
+        self.deeper_if_ambigous = (self.depth_if_ambigous is not None)
 
         if extra:
             self.extra = json.dumps(extra)

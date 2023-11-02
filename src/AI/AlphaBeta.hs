@@ -73,6 +73,7 @@ instance FromJSON AlphaBetaParams where
       <*> v .:? "dynamic_depth" .!= abDynamicDepth def
       <*> v .:? "depth_step" .!= abDepthStep def
       <*> v .:? "deeper_if_bad" .!= False
+      <*> v .:? "depth_if_ambigous"
       <*> v .:? "moves_bound_low" .!= 4
       <*> v .:? "moves_bound_high" .!= 8
       <*> v .:? "init_window_width" .!= abInitWindowWidth def
@@ -89,6 +90,7 @@ instance ToJSON AlphaBetaParams where
               "dynamic_depth" .= abDynamicDepth p,
               "depth_step" .= abDepthStep p,
               "deeper_if_bad" .= abDeeperIfBad p,
+              "depth_if_ambigous" .= abDeeperIfAmbigous p,
               "moves_bound_low" .= abMovesLowBound p,
               "moves_bound_high" .= abMovesHighBound p,
               "init_window_depth" .= abInitWindowWidth p,
@@ -180,6 +182,7 @@ instance (GameRules rules, VectorEvaluator eval, ToJSON eval) => VectorAi (Alpha
                 , abDynamicDepth = round (v V.! 2)
                 , abDepthStep = abDepthStep def
                 , abDeeperIfBad = False
+                , abDeeperIfAmbigous = Nothing
                 , abMovesLowBound = abMovesLowBound def
                 , abMovesHighBound = abMovesHighBound def
                 , abInitWindowWidth = abInitWindowWidth def
@@ -536,7 +539,7 @@ runAI ai@(AlphaBeta params rules eval) handle gameId side aiSession board = do
                           diiPrevResult = Nothing,
                           diiSortKeys = Nothing
                         }
-            goIterative target input
+            goIterative target (abDeeperIfAmbigous params) input
           Just time -> do
             let input =  DepthIterationInput {
                            diiParams = params,
@@ -559,8 +562,8 @@ runAI ai@(AlphaBeta params rules eval) handle gameId side aiSession board = do
             Nothing -> return ([MoveAndScore move 0 | move <- diiMoves input], Nothing)
         Left err -> throwError err
 
-    goIterative :: Depth -> DepthIterationInput -> Checkers DepthIterationOutput
-    goIterative target input = do
+    goIterative :: Depth -> Maybe Depth -> DepthIterationInput -> Checkers DepthIterationOutput
+    goIterative target mbAmbigousTarget input = do
       (output, mbNextInput) <- go input
       case mbNextInput of
         Nothing -> do
@@ -572,10 +575,26 @@ runAI ai@(AlphaBeta params rules eval) handle gameId side aiSession board = do
                  (output', _) <- go nextInput
                  return output'
             else return output
-        Just nextInput ->
+        Just nextInput -> do
           if abDepth (diiParams nextInput) <= target
-            then goIterative target nextInput
-            else return output
+            then goIterative target mbAmbigousTarget nextInput
+            else do
+              case mbAmbigousTarget of
+                Nothing -> return output
+                Just maxDepth -> do
+                  let best = if maximize then maximum else minimum
+                      maxScore = best $ map rScore output
+                      goodMoves = [rMove result | result <- output, rScore result == maxScore]
+                      nGoodMoves = length goodMoves
+                      nextInput' = nextInput {
+                                     diiMoves = goodMoves,
+                                     diiSortKeys = Nothing
+                                   }
+                  if nGoodMoves > 1
+                    then do
+                      $info "There are several good moves ({}), re-think deeper up to {}" (nGoodMoves, maxDepth)
+                      goIterative maxDepth Nothing nextInput'
+                    else return output
 
     go :: DepthIterationInput
             -> Checkers (DepthIterationOutput, Maybe DepthIterationInput)
