@@ -46,6 +46,7 @@ data SimpleEvaluator = SimpleEvaluator {
     seBorderManWeight :: ScoreBase,
     seBackedWeight :: ScoreBase,
     seAsymetryWeight :: ScoreBase,
+    seTempAsymetryWeight :: ScoreBase,
     sePreKingWeight :: ScoreBase,
     seKingCoef :: ScoreBase,
     sePositionalKingWeight :: ScoreBase,
@@ -69,6 +70,7 @@ defaultEvaluator rules = SimpleEvaluator
     , seBorderManWeight    = -16
     , seBackedWeight       = 24
     , seAsymetryWeight     = -12
+    , seTempAsymetryWeight = -12
     , sePreKingWeight      = 28
     , seKingCoef           = 3
     , sePositionalKingWeight = 0
@@ -93,6 +95,7 @@ parseEvaluator def = withObject "Evaluator" $ \v -> SimpleEvaluator
     <*> v .:? "border_man_weight" .!= seBorderManWeight def
     <*> v .:? "backed_weight" .!= seBackedWeight def
     <*> v .:? "asymetry_weight" .!= seAsymetryWeight def
+    <*> v .:? "temp_asymetry_weight" .!= seTempAsymetryWeight def
     <*> v .:? "pre_king_weight" .!= sePreKingWeight def
     <*> v .:? "king_coef" .!= seKingCoef def
     <*> v .:? "positional_king_weight" .!= sePositionalKingWeight def
@@ -113,6 +116,7 @@ instance ToJSON SimpleEvaluator where
       "border_man_weight" .= seBorderManWeight p,
       "backed_weight" .= seBackedWeight p,
       "asymetry_weight" .= seAsymetryWeight p,
+      "temp_asymetry_weight" .= seTempAsymetryWeight p,
       "pre_king_weight" .= sePreKingWeight p,
       "king_coef" .= seKingCoef p,
       "positional_king_weight" .= sePositionalKingWeight p,
@@ -132,6 +136,7 @@ data PreScore = PreScore {
     , psBorder :: ScoreBase
     , psBacked :: ScoreBase
     , psAsymetry :: ScoreBase
+    , psTempAsymetry :: ScoreBase
     , psPreKing :: ScoreBase
     , psPosKing :: ScoreBase
     , psAttackedMen :: ScoreBase
@@ -150,6 +155,7 @@ sub ps1 ps2 = PreScore
   , psBorder   = psBorder ps1 - psBorder ps2
   , psBacked   = psBacked ps1 - psBacked ps2
   , psAsymetry = psAsymetry ps1 - psAsymetry ps2
+  , psTempAsymetry = psTempAsymetry ps1 - psTempAsymetry ps2
   , psPreKing  = psPreKing ps1 - psPreKing ps2
   , psPosKing  = psPosKing ps1 - psPosKing ps2
   , psAttackedMen = psAttackedMen ps1 - psAttackedMen ps2
@@ -168,6 +174,7 @@ instance Default PreScore where
           , psBorder = 0
           , psBacked = 0
           , psAsymetry = 0
+          , psTempAsymetry = 0
           , psPreKing = 0
           , psPosKing = 0
           , psAttackedMen = 0
@@ -237,6 +244,12 @@ preEval (SimpleEvaluator { seRules = iface@(SomeRules rules), ..}) side board =
       let (leftMen , leftKings ) = myLabelsCount side board isLeftHalf
           (rightMen, rightKings) = myLabelsCount side board (not . isLeftHalf)
       in  abs $ (leftMen + leftKings) - (rightMen + rightKings)
+
+    tempAsymetry =
+      let tempNumber' label
+            | isLeftHalf label = tempNumber label
+            | otherwise = negate (tempNumber label)
+      in  abs $ fst $ myLabelsCount' side board tempNumber'
 
     isBackedAt addr dir =
       case myNeighbour rules side dir addr of
@@ -332,6 +345,7 @@ preEval (SimpleEvaluator { seRules = iface@(SomeRules rules), ..}) side board =
       , psBorder   = fromIntegral borderNumber
       , psBacked   = fromIntegral backedScore
       , psAsymetry = fromIntegral asymetry
+      , psTempAsymetry = fromIntegral tempAsymetry
       , psPreKing  = fromIntegral preKings
       , psPosKing  = fromIntegral positionalKingScore
       , psAttackedMen = fromIntegral attackedMen
@@ -368,10 +382,11 @@ instance Evaluator SimpleEvaluator where
           | count <= endgameCount = from
           | otherwise = (from - to) * fromIntegral (count - openingCount) `div` fromIntegral (endgameCount - openingCount) + to
 
-        backyardWeight = crescentAdjustment seBackyardWeight 0
-        centerWeight = crescentAdjustment seCenterWeight (seCenterWeight `div` 2)
+        backyardWeight = crescentAdjustment seBackyardWeight (seBackyardWeight `div` 2)
+        centerWeight = seCenterWeight -- crescentAdjustment seCenterWeight (seCenterWeight `div` 2)
         tempWeight = crescentAdjustment (seOppositeSideWeight * 2) seOppositeSideWeight 
         asymetryWeight = crescentAdjustment 0 seAsymetryWeight
+        tempAsymetryWeight = crescentAdjustment 0 seTempAsymetryWeight
 
         positionalScore ps =
           if seUsePositionalScore
@@ -383,6 +398,7 @@ instance Evaluator SimpleEvaluator where
               seMobilityWeight * psMobility ps +
               seBackedWeight * psBacked ps +
               asymetryWeight * psAsymetry ps +
+              tempAsymetryWeight * psTempAsymetry ps +
               sePreKingWeight * psPreKing ps +
               sePositionalKingWeight * psPosKing ps +
               seAttackedManCoef * psAttackedMen ps +
@@ -409,7 +425,7 @@ instance VectorEvaluator SimpleEvaluator where
         seMobilityWeight, seBackyardWeight,
         seCenterWeight, seOppositeSideWeight,
         seBackedWeight,
-        seAsymetryWeight, sePreKingWeight,
+        seAsymetryWeight, seTempAsymetryWeight, sePreKingWeight,
         seKingCoef, sePositionalKingWeight, seAttackedManCoef,
         seAttackedKingCoef, seBorderManWeight,
         seThreatWeight, seKingOnKeyFieldWeight]
@@ -423,15 +439,16 @@ instance VectorEvaluator SimpleEvaluator where
         , seOppositeSideWeight = round (v V.! 3)
         , seBackedWeight = round (v V.! 4)
         , seAsymetryWeight = round (v V.! 5)
-        , sePreKingWeight = round (v V.! 6)
-        , seKingCoef = round (v V.! 7)
-        , sePositionalKingWeight = round (v V.! 8)
-        , seHelpedKingCoef = round (v V.! 7)
-        , seAttackedManCoef = round (v V.! 9)
-        , seAttackedKingCoef = round (v V.! 10)
-        , seBorderManWeight = round (v V.! 11)
-        , seThreatWeight = round (v V.! 12)
-        , seKingOnKeyFieldWeight = round (v V.! 13)
+        , seTempAsymetryWeight = round (v V.! 6)
+        , sePreKingWeight = round (v V.! 7)
+        , seKingCoef = round (v V.! 8)
+        , sePositionalKingWeight = round (v V.! 9)
+        , seHelpedKingCoef = round (v V.! 8)
+        , seAttackedManCoef = round (v V.! 10)
+        , seAttackedKingCoef = round (v V.! 11)
+        , seBorderManWeight = round (v V.! 12)
+        , seThreatWeight = round (v V.! 13)
+        , seKingOnKeyFieldWeight = round (v V.! 14)
         , seCache = buildCache iface
       }
     where
