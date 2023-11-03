@@ -27,6 +27,7 @@ import Core.Supervisor (withRules)
 import Core.Monitoring
 import Core.Evaluator (preEval, defaultEvaluator)
 import Formats.Fen (parseFen)
+import Formats.Pdn (parseSemiMove')
 import Rules.Russian
 import AI
 import AI.AlphaBeta.Persistent (loadAiData')
@@ -63,6 +64,12 @@ dumpConfig cmd =
         cfg <- asks csConfig
         liftIO $ print cfg
 
+parseSide :: Maybe Int -> Side
+parseSide (Just 1) = First
+parseSide (Just 2) = Second
+parseSide (Just _) = error "impossible"
+parseSide Nothing = First
+
 special :: CmdLine SpecialCommand -> IO ()
 special cmd =
   case cmdCommand cmd of
@@ -79,11 +86,7 @@ special cmd =
     EvalBoard rulesName mbAiPath mbSideNr fenPath -> do
       fenText <- TIO.readFile fenPath
       withRules rulesName $ \rules -> do
-        let side = case mbSideNr of
-                     Just 1 -> First
-                     Just 2 -> Second
-                     Just _ -> error "impossible"
-                     Nothing -> First
+        let side = parseSide mbSideNr
             isForSide = isJust mbSideNr
         case parseFen (SomeRules rules) fenText of
           Left err -> fail err
@@ -104,6 +107,24 @@ special cmd =
                     fail "Can't use arbitrary AI for one-sided board evaluation"
                   else do
                     liftIO $ print $ evalBoard eval First board
+
+    EvalMove rulesName aiPath mbSideNr fenPath moveStr -> do
+      fenText <- TIO.readFile fenPath
+      withRules rulesName $ \rules -> do
+        let side = parseSide mbSideNr
+        case parseFen (SomeRules rules) fenText of
+          Left err -> fail err
+          Right (_,brep) -> do
+            let board = parseBoardRep DummyRandomTableProvider rules brep
+            case parseSemiMove' (SomeRules rules) side board (T.pack moveStr) of
+              Left err -> fail $ show err
+              Right pm -> do
+                ai <- loadAi "default" rules aiPath
+                withCheckersLog cmd (moduleToStdout "Learn") $ do
+                  dumpConfig cmd
+                  withLogContext (LogContextFrame [] (include defaultLogFilter)) $ do
+                    result <- scoreMove' ai side board pm
+                    liftIO $ print result
 
     Openings rulesName aiPath depth -> do
       withRules rulesName $ \rules -> do

@@ -202,6 +202,18 @@ pGame dfltRules = do
       result <- pResult
       return $ GameRecord tags moves result
 
+parseSemiMove :: SomeRules -> T.Text -> Either String SemiMoveRec
+parseSemiMove rules text =
+  case evalState (runParserT (pSemiMove rules) "<MOVE>" text) (Just rules) of
+    Left err -> Left $ errorBundlePretty err
+    Right rec -> Right rec
+
+parseSemiMove' :: SomeRules -> Side -> Board -> T.Text -> Either Error PossibleMove
+parseSemiMove' rules@(SomeRules g) side board text =
+  case parseSemiMove rules text of
+    Left err -> Left $ Unhandled err
+    Right rec -> unambigousMove (T.unpack text) g side board (parseMoveRec' g side board rec)
+
 parsePdn :: Maybe SomeRules -> T.Text -> Either String GameRecord
 parsePdn dfltRules text =
   case evalState (runParserT (pGame dfltRules) "<PDN>" text) dfltRules of
@@ -215,8 +227,8 @@ parsePdnFile dfltRules path = do
     Left err -> fail $ errorBundlePretty err
     Right pdn -> return pdn
 
-parseMoveRec :: GameRules rules => rules -> Side -> Board -> SemiMoveRec -> Either Error Move
-parseMoveRec rules side board rec =
+parseMoveRec' :: GameRules rules => rules -> Side -> Board -> SemiMoveRec -> [PossibleMove]
+parseMoveRec' rules side board rec =
   let moves = possibleMoves rules side board
       passedFields m = nonCaptureLabels rules side board (pmMove m) 
       suits m =
@@ -228,10 +240,20 @@ parseMoveRec rules side board rec =
           FullSemiMoveRec {..} ->
                 (not $ null $ pmVictims m) &&
                 smrLabels `isSubsequenceOf` passedFields m
-  in case filter suits moves of
-    [m] -> return $ pmMove m
-    [] -> Left $ NoSuchMoveExt (show rec) side (boardRep board) (map (moveRep rules side . pmMove) moves)
-    ms -> Left $ AmbigousPdnMove (show rec) (show ms) (boardRep board)
+  in filter suits moves
+
+unambigousMove :: GameRules rules => String -> rules -> Side -> Board -> [PossibleMove] -> Either Error PossibleMove
+unambigousMove msg rules side board moves =
+  case moves of
+    [m] -> return m
+    [] -> Left $ NoSuchMoveExt msg side (boardRep board) (map (moveRep rules side . pmMove) moves)
+    ms -> Left $ AmbigousPdnMove msg (show ms) (boardRep board)
+
+parseMoveRec :: GameRules rules => rules -> Side -> Board -> SemiMoveRec -> Either Error Move
+parseMoveRec rules side board rec =
+  case unambigousMove (show rec) rules side board (parseMoveRec' rules side board rec) of
+    Right pm -> Right (pmMove pm)
+    Left err -> Left err
 
 fenFromTags :: [Tag] -> Maybe Fen
 fenFromTags [] = Nothing

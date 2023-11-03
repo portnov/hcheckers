@@ -13,7 +13,7 @@
  -}
 
 module AI.AlphaBeta
-  ( runAI, scoreMove, scoreMoveGroup
+  ( runAI, scoreMove, scoreMoveGroup, mkDepthParams
   ) where
 
 import Control.Monad

@@ -21,6 +21,13 @@ data SpecialCommand =
         , scSide :: Maybe Int
         , scFenPath :: FilePath
       }
+    | EvalMove {
+          scRulesName :: String
+        , scAiPath :: FilePath
+        , scSide :: Maybe Int
+        , scFenPath :: FilePath
+        , scMove :: String
+      }
     | Openings {
           scRulesName :: String
         , scAiPath :: FilePath
@@ -135,6 +142,7 @@ parseSpecialCommand :: Parser SpecialCommand
 parseSpecialCommand = hsubparser (
        cmd "learn" learn "learn"
     <> cmd "eval-board" evalBoard "Evaluate a board"
+    <> cmd "eval-move" evalMove "Evaluate a move"
     <> cmd "openings" openings "Generate openings data"
     <> cmd "bench" bench "benchmark"
     <> cmd "battle" battle "run battle"
@@ -171,6 +179,17 @@ parseSpecialCommand = hsubparser (
              <> metavar "1|2"
              <> help "From which point of view to evaluate the board"))
       <*> strArgument (metavar "FILE.FEN" <> help "Path to FEN file with board to analyze")
+
+    evalMove :: Parser SpecialCommand
+    evalMove = EvalMove
+      <$> parseRules
+      <*> parseAiPath
+      <*> optional (option sideR (
+                long "side"
+             <> metavar "1|2"
+             <> help "From which point of view to evaluate the move"))
+      <*> strArgument (metavar "FILE.FEN" <> help "Path to FEN file with board to analyze")
+      <*> strArgument (metavar "A1-B2" <> help "Move to be evaluated, in PDN notation")
 
     openings :: Parser SpecialCommand
     openings = Openings

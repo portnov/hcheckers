@@ -249,6 +249,36 @@ learnPdnOrDir ai path = do
     else
       fail "Specified path not found"
 
+scoreMove' :: (GameRules rules, VectorEvaluator eval, ToJSON eval)
+    => AlphaBeta rules eval
+    -> Side
+    -> Board
+    -> PossibleMove
+    -> Checkers Score
+scoreMove' ai@(AlphaBeta params rules eval) aiSide board pm = do
+  let (alpha, beta) = (loose, win)
+  bestVar <- liftIO $ atomically $ newTVar alpha
+  cache <- loadAiCache scoreMoveGroup rules
+  gameId <- newGame (SomeRules rules) aiSide (Just $ boardRep board) Nothing
+  (sessionId, aiSession) <- newAiSession
+  let depth = mkDepthParams (abDepth params) params
+      input = ScoreMoveInput {
+                smiAi = ai,
+                smiCache = cache,
+                smiGameId = gameId,
+                smiSide = aiSide,
+                smiAiSession = aiSession,
+                smiIndex = 0,
+                smiDepth = depth,
+                smiBoard = board,
+                smiMove = pm,
+                smiAlpha = alpha,
+                smiBeta = beta,
+                smiBest = bestVar
+              }
+  result <- scoreMove input
+  return $ rScore result
+
 analyzeOpenings :: (GameRules rules, VectorEvaluator eval, ToJSON eval)
     => AlphaBeta rules eval
     -> Int
