@@ -8,7 +8,8 @@ module Core.Evaluator
   ( SimpleEvaluator (..),
     SimpleEvaluatorData (..),
     weightForSide,
-    defaultEvaluator
+    defaultEvaluator,
+    preEval
   ) where
 
 import           Data.Aeson
@@ -144,6 +145,7 @@ data PreScore = PreScore {
     , psThreats :: ScoreBase
     , psKingsOnKeyFields :: ScoreBase
   }
+  deriving (Show)
 
 sub :: PreScore -> PreScore -> PreScore
 sub ps1 ps2 = PreScore

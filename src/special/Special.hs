@@ -5,8 +5,10 @@ module Main (main) where
 
 import Control.Monad
 import Control.Monad.Reader
+import Data.Maybe (isJust)
 import qualified Data.Map as M
 import qualified Data.Text as T
+import qualified Data.Text.IO as TIO
 import Data.Text.Format.Heavy
 import qualified Data.ByteString.Lazy.Char8 as C8
 import qualified Data.Aeson as Aeson
@@ -18,16 +20,20 @@ import Text.Printf
 
 import Core.Types hiding (timed)
 import qualified Core.Version as V
-import AI
-import AI.AlphaBeta.Persistent (loadAiData')
+import Core.Board (parseBoardRep)
 import Core.Checkers
 import Core.CmdLine
 import Core.Supervisor (withRules)
 import Core.Monitoring
+import Core.Evaluator (preEval, defaultEvaluator)
+import Formats.Fen (parseFen)
+import Rules.Russian
+import AI
+import AI.AlphaBeta.Persistent (loadAiData')
+import AI.AlphaBeta.Types
 
 import Learn
 import Battle
-import Rules.Russian
 
 moduleToStdout mod cfg logChan =
   let dfltBackends = dfltLoggingSettings cfg logChan
@@ -69,6 +75,35 @@ special cmd =
               learnPdnOrDir ai pdnPath
             printCurrentMetrics (Just "ai.")
             printCurrentMetrics (Just "learn.")
+
+    EvalBoard rulesName mbAiPath mbSideNr fenPath -> do
+      fenText <- TIO.readFile fenPath
+      withRules rulesName $ \rules -> do
+        let side = case mbSideNr of
+                     Just 1 -> First
+                     Just 2 -> Second
+                     Just _ -> error "impossible"
+                     Nothing -> First
+            isForSide = isJust mbSideNr
+        case parseFen (SomeRules rules) fenText of
+          Left err -> fail err
+          Right (_,brep) -> do
+            let board = parseBoardRep DummyRandomTableProvider rules brep
+            case mbAiPath of
+              Nothing -> do
+                let eval = defaultEvaluator rules
+                if isForSide
+                  then do
+                    liftIO $ print $ preEval eval side board
+                  else do
+                    liftIO $ print $ evalBoard eval First board
+              Just aiPath -> do
+                (AlphaBeta _ _ eval) <- loadAi "default" rules aiPath
+                if isForSide
+                  then do
+                    fail "Can't use arbitrary AI for one-sided board evaluation"
+                  else do
+                    liftIO $ print $ evalBoard eval First board
 
     Openings rulesName aiPath depth -> do
       withRules rulesName $ \rules -> do

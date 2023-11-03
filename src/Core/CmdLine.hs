@@ -15,6 +15,12 @@ data SpecialCommand =
         , scAiPath :: FilePath
         , scPdnPath :: FilePath
       }
+    | EvalBoard {
+          scRulesName :: String
+        , scMbAiPath :: Maybe FilePath
+        , scSide :: Maybe Int
+        , scFenPath :: FilePath
+      }
     | Openings {
           scRulesName :: String
         , scAiPath :: FilePath
@@ -79,6 +85,13 @@ bool = eitherReader $ \str ->
     "false" -> Right False
     _ -> Left $ "Unknown boolean value: " ++ str
 
+sideR :: ReadM Int
+sideR = eitherReader $ \str ->
+  case str of
+    "1" -> Right 1
+    "2" -> Right 2
+    _ -> Left $ "Unknown side: " ++ str
+
 cmdline :: Parser c -> Parser (CmdLine c)
 cmdline command =
     (CmdLine
@@ -121,6 +134,7 @@ parseServerCommand =
 parseSpecialCommand :: Parser SpecialCommand
 parseSpecialCommand = hsubparser (
        cmd "learn" learn "learn"
+    <> cmd "eval-board" evalBoard "Evaluate a board"
     <> cmd "openings" openings "Generate openings data"
     <> cmd "bench" bench "benchmark"
     <> cmd "battle" battle "run battle"
@@ -144,6 +158,19 @@ parseSpecialCommand = hsubparser (
       <$> parseRules
       <*> parseAiPath
       <*> strArgument (metavar "FILE.PDN" <> help "Path to PDN file")
+
+    evalBoard :: Parser SpecialCommand
+    evalBoard = EvalBoard
+      <$> parseRules
+      <*> optional (strOption (
+                long "ai"
+             <> metavar "FILE.JSON"
+             <> help "Path to AI settings"))
+      <*> optional (option sideR (
+                long "side"
+             <> metavar "1|2"
+             <> help "From which point of view to evaluate the board"))
+      <*> strArgument (metavar "FILE.FEN" <> help "Path to FEN file with board to analyze")
 
     openings :: Parser SpecialCommand
     openings = Openings
