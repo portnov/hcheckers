@@ -389,6 +389,7 @@ variableParameters :: [T.Text]
 variableParameters = [
     "mobility_weight", "backyard_weight", "center_weight",
     "opposite_side_weight", "backed_weight", "asymetry_weight",
+    "temp_asymetry_weight",
     "pre_king_weight", "attacked_man_coef", "attacked_king_coef",
     "border_man_weight", "positional_king_weight", "threat_weight",
     "king_on_key_field_weight"
@@ -415,20 +416,34 @@ modifyObject pairs (Object v) = Object $ go pairs v
     modify (Number v1) (Number v2) = Number (v1+v2)
     modify _ _ = error "invalid value in modify"
 
-generateVariation :: ScoreBase -> Value -> IO Value
-generateVariation dv params = do
+generateVariationBased :: ScoreBase -> Value -> IO Value
+generateVariationBased dv params = do
     deltas <- replicateM nVariableParameters $ randomRIO (-dv, dv)
     let pairs = [(key, delta) | (key, delta) <- zip variableParameters deltas]
     return $ modifyObject pairs params
 
-generateAiVariations :: Int -> ScoreBase -> FilePath -> IO ()
-generateAiVariations n dv path = do
+generateAiVariationsBased :: Int -> ScoreBase -> FilePath -> IO ()
+generateAiVariationsBased n dv path = do
   r <- decodeFileStrict path
   case r of
     Nothing -> fail "Cannot load initial AI"
     Just initValue -> forM_ [1..n] $ \i -> do
-                        value <- generateVariation dv initValue
+                        value <- generateVariationBased dv initValue
                         Data.Aeson.encodeFile (printf "ai_variation_%d.json" i) value
+
+generateAiVariationsFromZero :: ScoreBase -> FilePath -> IO ()
+generateAiVariationsFromZero maxValue path = do
+  r <- decodeFileStrict path
+  let n = length variableParameters
+      mkPair i key
+        | key == variableParameters !! i = (key, maxValue)
+        | otherwise = (key, 0)
+  case r of
+    Nothing -> fail "Cannot load initial AI"
+    Just initValue -> forM_ [0..n-1] $ \i -> do
+                        let pairs = map (mkPair i) variableParameters
+                            value' = modifyObject pairs initValue
+                        Data.Aeson.encodeFile (printf "ai_variation_%d.json" i) value'
 
 decodeJsonFile :: FromJSON a => FilePath -> IO a
 decodeJsonFile path = do

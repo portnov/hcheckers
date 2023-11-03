@@ -207,8 +207,11 @@ special cmd =
             forM_ result $ \(SomeAi ai) -> liftIO $ C8.putStrLn $ Aeson.encode ai
             return ()
 
-    Generate n delta path -> do
-      generateAiVariations n (fromIntegral delta) path
+    GenerateBased path n delta -> do
+      generateAiVariationsBased n (fromIntegral delta) path
+
+    GenerateFromZero path maxValue -> do
+      generateAiVariationsFromZero (fromIntegral maxValue) path
 
     Dump path -> do
       withCheckers cmd $ do

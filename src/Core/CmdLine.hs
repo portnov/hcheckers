@@ -64,10 +64,14 @@ data SpecialCommand =
     | Genetics {
           scYamlPath :: FilePath
       }
-    | Generate {
-          scCount :: Int
+    | GenerateBased {
+          scAiPath :: FilePath
+        , scCount :: Int
         , scDelta :: Int
-        , scAiPath :: FilePath
+      }
+    | GenerateFromZero {
+          scAiPath :: FilePath
+        , scMaxValue :: Int
       }
     | Dump {
           scDataPath :: FilePath
@@ -240,10 +244,38 @@ parseSpecialCommand = hsubparser (
       <$> strArgument (metavar "SETTINGS.YAML" <> help "Settings for genetics algorithm")
 
     generate :: Parser SpecialCommand
-    generate = Generate
-      <$> parseCount "N" "Number of AI configurations to generate"
-      <*> parseCount "DELTA" "Variation value"
-      <*> parseAiPath
+    generate = generateBased <|> generateFromZero
+
+    generateBased :: Parser SpecialCommand
+    generateBased = GenerateBased
+      <$> strOption (
+                 long "base"
+              <> metavar "FILE.JSON"
+              <> help "AI settings to be used as a base"
+            )
+      <*> option auto (
+                 long "count"
+              <> metavar "N"
+              <> help "Number of AI configurations to generate"
+            )
+      <*> option auto (
+                 long "delta"
+              <> metavar "DELTA"
+              <> help "Variation value"
+            )
+
+    generateFromZero :: Parser SpecialCommand
+    generateFromZero = GenerateFromZero
+      <$> strOption (
+                 long "zero"
+              <> metavar "FILE.JSON"
+              <> help "AI settings to be used as a base"
+            )
+      <*> option auto (
+                 long "max"
+              <> metavar "M"
+              <> help "Maximum weight value"
+            )
 
     dump :: Parser SpecialCommand
     dump = Dump
