@@ -305,21 +305,29 @@ runTournamentOlympic runMatches rules ais0 nGames nBest = do
 
 runMatch :: BattleRunner -> SomeRules -> (Int, SomeAi) -> (Int, SomeAi) -> Int -> Checkers (Int, Int, Int)
 runMatch runBattle rules (i,ai1) (j,ai2) nGames = do
-    (nFirst, nSecond, nDraw) <- go 0 (0, 0, 0)
+    (nFirst, nSecond, nDraw) <- go False 0 (0, 0, 0)
     $info "Match: AI#{}: {}, AI#{}: {}, Draws(?): {}" (i, nFirst, j, nSecond, nDraw)
     return (nFirst, nSecond, nDraw)
   where
-    go :: Int -> (Int, Int, Int) -> Checkers (Int, Int, Int)
-    go k (first, second, draw)
+    invertIfNeeded False result = result
+    invertIfNeeded True FirstWin = SecondWin
+    invertIfNeeded True SecondWin = FirstWin
+    invertIfNeeded True Draw = Draw
+
+    go :: Bool -> Int -> (Int, Int, Int) -> Checkers (Int, Int, Int)
+    go swap k (first, second, draw)
       | k >= nGames = return (first, second, draw)
       | otherwise = do
           withLogVariable "battle" (printf "%d/%d" (k+1) nGames :: String) $ do
-            result <- runBattle rules (i,ai1) (j,ai2) (printf "battle_%d.pdn" k)
-            let stats = case result of
+            let (pair1, pair2)
+                  | swap      = ((j, ai2), (i, ai1))
+                  | otherwise = ((i, ai1), (j, ai2))
+            result <- runBattle rules pair1 pair2 (printf "battle_%d.pdn" k)
+            let stats = case invertIfNeeded swap result of
                           FirstWin -> (first+1, second, draw)
                           SecondWin -> (first, second+1, draw)
                           Draw -> (first, second, draw+1)
-            go (k+1) stats
+            go (not swap) (k+1) stats
 
 calcMatchStats :: [GameResult] -> (Int, Int, Int)
 calcMatchStats rs = go (0, 0, 0) rs
