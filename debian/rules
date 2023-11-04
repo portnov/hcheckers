@@ -11,7 +11,7 @@ check:
 build-arch: build
 
 build:
-	stack upgrade
+	stack upgrade --allow-different-user
 	stack build --allow-different-user
 
 override_dh_auto_build:
