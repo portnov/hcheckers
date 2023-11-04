@@ -18,6 +18,7 @@ import Data.Aeson hiding (json)
 import Data.Aeson.Types
 import qualified Data.Aeson.Key as K
 import qualified Data.Aeson.KeyMap as KM
+import Data.Scientific (fromFloatDigits, toRealFloat)
 import Data.Yaml
 import Data.Maybe
 import Data.List (sortOn)
@@ -49,6 +50,16 @@ import AI.AlphaBeta (scoreMoveGroup)
 import AI
 
 type AB rules = AlphaBeta rules (EvaluatorForRules rules)
+
+data Candidate rules = Candidate {
+    cAI :: AB rules
+  , cIndexInGeneration :: Int
+  , cName :: String
+  , cRating :: Int
+  }
+
+instance Show (Candidate rules) where
+  show c = cName c ++ "[#" ++ show (cIndexInGeneration c) ++ "]"
 
 type BattleRunner = SomeRules -> (Int,SomeAi) -> (Int,SomeAi) -> FilePath -> Checkers GameResult
 
@@ -91,14 +102,15 @@ norm v = (V.sum $ V.map abs v) / fromIntegral (V.length v)
 
 mix :: forall a. (Random a, Fractional a) => V.Vector a -> V.Vector a -> IO (V.Vector a)
 mix v1 v2 = do
-  cs <- V.fromList <$> (replicateM (V.length v1) $ randomRIO (-1.05, 1.05) :: IO [a])
-  V.forM (V.zip3 cs v1 v2) $ \(c, x1, x2) -> do
+  c <- randomRIO (-1.05, 1.05) :: IO a
+  -- cs <- V.fromList <$> (replicateM (V.length v1) $ randomRIO (-1.05, 1.05) :: IO [a])
+  V.forM (V.zip v1 v2) $ \(x1, x2) -> do
     return $ (1.0 - c) * x1 + c * x2
 
-cross :: (GameRules rules, VectorEvaluator (EvaluatorForRules rules)) => rules -> (AB rules, AB rules) -> Checkers (AB rules)
-cross rules (ai1, ai2) = do
-  let v1 = aiToVector ai1
-      v2 = aiToVector ai2
+cross :: (GameRules rules, VectorEvaluator (EvaluatorForRules rules)) => rules -> (Candidate rules, Candidate rules) -> Checkers (Candidate rules)
+cross rules (cai1, cai2) = do
+  let v1 = aiToVector (cAI cai1)
+      v2 = aiToVector (cAI cai2)
   mid <- liftIO $ mix v1 v2
   p <- liftIO $ randomRIO (0.0, 1.0) :: Checkers Double
   v3 <- if p < 0.7
@@ -109,18 +121,21 @@ cross rules (ai1, ai2) = do
                              let a = abs v
                              randomRIO (v - delta*a, v + delta*a)
   let v3' = V.take 3 v1 V.++ V.drop 3 v3
-  return $ aiFromVector rules v3'
+      ai = aiFromVector rules v3'
+  return $ Candidate ai 0 (printf "(%s+%s)" (cName cai1) (cName cai2)) 0
 
-breed :: (GameRules rules, VectorEvaluator (EvaluatorForRules rules)) => rules -> Int -> Int -> [AB rules] -> Checkers [AB rules]
-breed rules nNew nOld ais = do
-  let n = length ais
-      idxPairs = [(i,j) | i <- [0..n-1], j <- [i+1 .. n-1]]
+breed :: (GameRules rules, VectorEvaluator (EvaluatorForRules rules)) => rules -> Int -> Int -> [Candidate rules] -> Checkers [Candidate rules]
+breed rules nNew nOld cais = do
+  let replicatedCais = [c {cName = show i ++ "#" ++ cName c} | c <- cais, i <- [1 .. cRating c]]
+      n = length replicatedCais
+      idxPairs = [(i,j) | i <- [0..n-1], j <- [i+1 .. n-1], cName (replicatedCais !! i) /= cName (replicatedCais !! j)]
       nNew' = nNew - nOld
   idxPairs' <- liftIO $ shuffleM idxPairs
-  let ais' = [(ais !! i, ais !! j) | (i,j) <- idxPairs']
-  new <- mapM (cross rules) $ take nNew' $ cycle ais'
-  let old = take nOld ais
-  return $ old ++ new
+  let cais' = [(replicatedCais !! i, replicatedCais !! j) | (i,j) <- idxPairs']
+  new <- mapM (cross rules) $ take nNew' $ cycle cais'
+  let old = take nOld cais
+      result = old ++ new
+  return [c {cIndexInGeneration = i} | (i, c) <- zip [0..] result]
 
 runGeneticsJ :: FilePath -> Checkers [SomeAi]
 runGeneticsJ cfgPath = do
@@ -160,6 +175,9 @@ mkRemoteRunner processor nGames rules idxPairs ais = do
     $info "Match: AI#{}: {}, AI#{}: {}, Draws(?): {}" (i, first, j, second, draw)
   return totals
 
+prepareCandidates :: [AB rules] -> [Candidate rules]
+prepareCandidates ais = [Candidate ai i (show i) 1 | (i, ai) <- zip [0..] ais]
+
 runGenetics :: forall rules. (GameRules rules, VectorEvaluator (EvaluatorForRules rules))
             => MatchRunner
             -> rules
@@ -171,8 +189,10 @@ runGenetics :: forall rules. (GameRules rules, VectorEvaluator (EvaluatorForRule
             -> [AB rules]
             -> Checkers [AB rules]
 runGenetics runMatches rules nGenerations generationSize nOld nBest nGames ais = do
-      generation0 <- breed rules generationSize nOld ais
-      run 1 generation0
+      let cais = prepareCandidates ais
+      generation0 <- breed rules generationSize nOld cais
+      result <- run 1 generation0
+      return $ map cAI result
   where
       run n generation = do
         cache <- loadAiCache scoreMoveGroup rules
@@ -187,16 +207,14 @@ runGenetics runMatches rules nGenerations generationSize nOld nBest nGames ais =
                 generation' <- breed rules generationSize nOld best
                 run (n+1) generation'
 
-      saveBest n ais = do
+      saveBest n cais = do
         let dirPath = printf "genetics/%d" n
         liftIO $ createDirectoryIfMissing True dirPath
-        forM_ (zip [1..] ais) $ \(i, ai) ->
-            liftIO $ Data.Aeson.encodeFile (dirPath </> printf "ai_%d.json" (i::Int)) ai
+        forM_ cais $ \cai ->
+          liftIO $ Data.Aeson.encodeFile (dirPath </> printf "ai_%s_%d.json" (cName cai) (cRating cai)) (cAI cai)
 
       selectBest generation = do
-        results <- runTournamentOlympic runMatches rules generation nGames nBest
-        -- $info "Best AIs in this generation are: {}" (show $ map fst results)
-        return $ map snd results
+        runTournamentOlympic runMatches rules generation nGames nBest
 
 mapP :: Int -> (input -> Checkers output) -> [input] -> Checkers [output]
 mapP 1 fn inputs = mapM fn inputs
@@ -246,31 +264,31 @@ runTournamentDumb runMatches rules ais nMatches nGames = do
 runTournamentOlympic :: forall rules. (GameRules rules, VectorEvaluator (EvaluatorForRules rules))
     => MatchRunner
     -> rules
-    -> [AB rules]
+    -> [Candidate rules]
     -> Int
     -> Int
-    -> Checkers [(Int, AB rules)]
-runTournamentOlympic runMatches rules ais0 nGames nBest = do
-    let nSrcAis = length ais0
+    -> Checkers [Candidate rules]
+runTournamentOlympic runMatches rules cais0 nGames nBest = do
+    let nSrcAis = length cais0
         logNSrcAis = log (fromIntegral nSrcAis :: Double) :: Double
         log2 = log 2
         logNBest = log (fromIntegral nBest :: Double) :: Double
         nStagesTotal = (floor (logNSrcAis / log2)) :: Int
         nAis = (floor (2 ** fromIntegral nStagesTotal)) :: Int
         nStages = (floor ((logNSrcAis - logNBest) / log2)) :: Int
-        ais = zip3 [1..] (repeat 0) $ take nAis ais0
-    res <- runStages nStages nStages ais
-    let sortedRes = sortOn (\(_, rating, _) -> negate rating) res
-    return [(i, ai) | (i, _, ai) <- sortedRes]
+        cais = [c {cRating = 0} | c <- take nAis cais0]
+    res <- runStages nStages nStages cais
+    let sortedRes = sortOn (\cai -> negate (cRating cai)) res
+    return sortedRes
   where
-    runStages :: Int -> Int -> [(Int, Int, AB rules)] -> Checkers [(Int, Int, AB rules)]
+    runStages :: Int -> Int -> [Candidate rules] -> Checkers [Candidate rules]
     runStages _ 0 items = return items
     runStages nStages n items = do
       $info "Stage #{}" (Single n)
       withLogVariable "stage" n $ do
-        let ais = [ai | (_, _, ai) <- items]
-            idxs = [idx | (idx, _, _) <- items]
-            ratings = [rating | (_, rating, _) <- items]
+        let ais = map cAI items
+            idxs = map cIndexInGeneration items
+            ratings = map cRating items
             newIdxs = [0 .. length ais - 1]
             idxsMap = M.fromList $ zip newIdxs idxs
         pairs <- makePairs (nStages /= n) ratings newIdxs
@@ -279,8 +297,9 @@ runTournamentOlympic runMatches rules ais0 nGames nBest = do
         let stageResults = calcTournamentResults pairs matchResults
             ratings = [fromJust $ M.lookup i stageResults | i <- winnerIdxs]
             winnerOldIdxs = [fromJust $ M.lookup i idxsMap | i <- winnerIdxs]
-            winners = [(i, rating, ais !! j) | (i,j, rating) <- zip3 winnerOldIdxs winnerIdxs ratings]
-        $info "Winner idxs at this stage are: {}; ratings: {}" (show winnerOldIdxs, show ratings)
+            winners = [(items !! j) {cRating = rating} | (j, rating) <- zip winnerIdxs ratings]
+        let winnerInfo c = (printf "%s (rating %d)" (show c) (cRating c)) :: String
+        $info "Winners at this stage are: {}" (Single $ show $ map winnerInfo winners)
         runStages nStages (n-1) winners
 
     makePairs :: Bool -> [Int] -> [Int] -> Checkers [(Int, Int)]
@@ -405,24 +424,28 @@ updateObject pairs (Object v) = Object $ go pairs v
     go ((key, value):pairs) v = go pairs (KM.insert key value v)
 updateObject _ _ = error "invalid object"
 
-modifyObject :: [(T.Text, ScoreBase)] -> Value -> Value
-modifyObject pairs (Object v) = Object $ go pairs v
+modifyObject :: (Double -> Double -> Double) -> [(T.Text, Double)] -> Value -> Value
+modifyObject plus pairs (Object v) = Object $ go pairs v
   where
     go [] v = v
     go ((key, delta):pairs) v =
-      let v' = KM.insertWith modify (K.fromText key) (Number (fromIntegral delta)) v
-      in  go pairs v'
+      let v' = KM.insertWith modify (K.fromText key) (Number (fromFloatDigits delta)) v
+          v'' = KM.map roundV v'
+      in  go pairs v''
     
-    modify (Number v1) (Number v2) = Number (v1+v2)
+    modify (Number v1) (Number v2) = Number $ fromIntegral $ round $ toRealFloat v1 `plus` toRealFloat v2
     modify _ _ = error "invalid value in modify"
 
-generateVariationBased :: ScoreBase -> Value -> IO Value
-generateVariationBased dv params = do
-    deltas <- replicateM nVariableParameters $ randomRIO (-dv, dv)
-    let pairs = [(key, delta) | (key, delta) <- zip variableParameters deltas]
-    return $ modifyObject pairs params
+    roundV (Number v) = Number $ fromIntegral $ round v
+    roundV x = x
 
-generateAiVariationsBased :: Int -> ScoreBase -> FilePath -> IO ()
+generateVariationBased :: Double -> Value -> IO Value
+generateVariationBased dv params = do
+    coefs <- replicateM nVariableParameters $ randomRIO (0, dv)
+    let pairs = [(key, delta) | (key, delta) <- zip variableParameters coefs]
+    return $ modifyObject (*) pairs params
+
+generateAiVariationsBased :: Int -> Double -> FilePath -> IO ()
 generateAiVariationsBased n dv path = do
   r <- decodeFileStrict path
   case r of
@@ -436,13 +459,13 @@ generateAiVariationsFromZero maxValue path = do
   r <- decodeFileStrict path
   let n = length variableParameters
       mkPair i key
-        | key == variableParameters !! i = (key, maxValue)
-        | otherwise = (key, 0)
+        | key == variableParameters !! i = (key, fromIntegral maxValue)
+        | otherwise = (key, 0.0)
   case r of
     Nothing -> fail "Cannot load initial AI"
     Just initValue -> forM_ [0..n-1] $ \i -> do
                         let pairs = map (mkPair i) variableParameters
-                            value' = modifyObject pairs initValue
+                            value' = modifyObject (+) pairs initValue
                         Data.Aeson.encodeFile (printf "ai_variation_%d.json" i) value'
 
 decodeJsonFile :: FromJSON a => FilePath -> IO a
