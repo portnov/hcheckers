@@ -11,6 +11,7 @@ LOCAL_INSTALL_ROOT=$(realpath --relative-to=$PWD $LOCAL_INSTALL_ROOT)
 echo "$LOCAL_INSTALL_ROOT/bin/hcheckersd usr/bin" > debian/hcheckersd.install
 echo "initial_positions usr/share/hcheckers" >> debian/hcheckersd.install
 echo "ai_settings/* etc/hcheckers/ai" >> debian/hcheckersd.install
+echo "timing.yaml etc/hcheckers" >> debian/hcheckersd.install
 
 debuild -uc -us
 
