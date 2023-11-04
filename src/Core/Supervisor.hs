@@ -350,7 +350,7 @@ locateDefaultAiSettingsDirectory = do
   if ex
     then return $ Just homePath
     else do
-      let etcPath = "/usr" </> "share" </> "hcheckers" </> "ai"
+      let etcPath = "/etc" </> "hcheckers" </> "ai"
       ex <- doesDirectoryExist etcPath
       if ex
         then return $ Just etcPath
