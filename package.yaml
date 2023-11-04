@@ -29,6 +29,7 @@ dependencies:
 - concurrent-extra
 - psqueues
 - aeson
+- scientific
 - yaml
 - stm
 - exceptions
