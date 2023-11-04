@@ -195,8 +195,9 @@ special cmd =
         withCheckersLog cmd (moduleToStdout "Battle") $ do
             dumpConfig cmd
             withLogContext (LogContextFrame [] (include defaultLogFilter)) $ do
-              results <- runTournamentOlympic (dumbMatchRunner runBattleLocal) rules ais nGames nBest
-              $info "Winner idxs are: {}" (Single $ show $ map fst results)
+              let cais = prepareCandidates ais
+              results <- runTournamentOlympic (dumbMatchRunner runBattleLocal) rules cais nGames nBest
+              $info "Winners are: {}" (Single $ show $ map cName results)
               return ()
 
     Genetics yamlPath -> do
@@ -208,7 +209,7 @@ special cmd =
             return ()
 
     GenerateBased path n delta -> do
-      generateAiVariationsBased n (fromIntegral delta) path
+      generateAiVariationsBased n delta path
 
     GenerateFromZero path maxValue -> do
       generateAiVariationsFromZero (fromIntegral maxValue) path
