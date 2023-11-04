@@ -264,7 +264,7 @@ locateDefaultInitialBoardsDirectory = do
   if ex
     then return $ Just homePath
     else do
-      let etcPath = "/etc" </> "hcheckers" </> "initial_positions"
+      let etcPath = "/usr" </> "share" </> "hcheckers" </> "initial_positions"
       ex <- doesDirectoryExist etcPath
       if ex
         then return $ Just etcPath
