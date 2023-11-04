@@ -6,7 +6,6 @@ import Control.Applicative ((<|>))
 import Data.Aeson
 import Data.Aeson.Types
 import qualified Data.Aeson.KeyMap as KM
-import qualified Data.Aeson.Key as K
 import qualified Data.Text as T
 import Data.Default
 import System.Log.Heavy
@@ -214,18 +213,16 @@ instance ToJSON SideNotation where
 instance ToJSON Response where
   toJSON (Response payload messages) = object ["response" .= payload, "messages" .= messages]
 
-aiPersonalityToJson :: AiPersonality -> Pair
-aiPersonalityToJson (AiPersonality slug names value) =
-    K.fromText slug .= object [
-              "name" .= names,
-              "settings" .= value
-            ]
+instance ToJSON AiPersonalitySettings where
+  toJSON (InplaceAi v) = v
+  toJSON (ReferenceAi path) = String (T.pack path)
 
 instance ToJSON AiPersonality where
-  toJSON ai = object [ aiPersonalityToJson ai ]
+  toJSON (AiPersonality slug names value) =
+    object ["slug" .= slug, "title" .= names, "settings" .= value]
 
 instance ToJSON AiPersonalities where
-  toJSON (AiPersonalities ais) = object $ map aiPersonalityToJson ais
+  toJSON (AiPersonalities ais) = toJSON ais
 
 instance FromJSON AiConfig where
   parseJSON = withObject "AiConfig" $ \v -> AiConfig
@@ -271,7 +268,7 @@ instance ToJSON BaseTimingConfig where
 
 instance FromJSON TimingConfig where
   parseJSON o = (withObject "TimingConfig" $ \v -> TimingConfig
-    <$> v .: "name"
+    <$> v .: "title"
     <*> parseJSON o
     <*> v .:? "seconds_per_move" .!= 0) o
 
@@ -281,7 +278,7 @@ mergeValue _ _ = error "invalid values to be merged"
 
 instance ToJSON TimingConfig where
   toJSON c =
-      object ["name" .= tcName c, "seconds_per_move" .= tcTimePerMove c]
+      object ["title" .= tcName c, "seconds_per_move" .= tcTimePerMove c]
     `mergeValue` toJSON (tcBaseTime c)
 
 instance FromJSON GeneralConfig where

@@ -35,7 +35,7 @@ class MoveRequest(Thread):
             self.owner.move_lock.release()
 
 def get_title_from_json(json_data):
-    titles = json_data["name"]
+    titles = json_data["title"]
     lang = get_current_language()
     if lang not in titles:
         lang = "en"
@@ -401,10 +401,10 @@ class Game(object):
         try:
             rs = self.get(url)
             result = []
-            for slug, item in rs.json().items():
+            for item in rs.json():
                 ai = AI.from_json(get_title_from_json(item), item["settings"])
                 ai.from_server = True
-                ai.slug = slug
+                ai.slug = item['slug']
                 result.append(ai)
             return result
         except requests.exceptions.ConnectionError as e:

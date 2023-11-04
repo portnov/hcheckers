@@ -27,8 +27,6 @@ import qualified Data.ByteString as B
 import Data.Text.Format.Heavy
 import Data.Default
 import Data.Aeson hiding (Error)
-import qualified Data.Aeson.KeyMap as KM
-import qualified Data.Aeson.Key as K
 import qualified Data.Aeson.Types as AT
 import Data.Yaml
 import Data.Dynamic
@@ -181,12 +179,15 @@ isCustomAiSettingsEnabled = asks (aiEnableCustomSettings . gcAiConfig . csConfig
 -- | Select AI implementation by client request
 selectAi :: AttachAiRq -> SomeRules -> Checkers (Maybe (SomeAi, UserName))
 selectAi (AttachAiRq impl name useServerParams params) rules =
-    if useServerParams
+  if useServerParams
     then do
+      $info "Using AI parameters from server, implementation {}, slug {}" (impl, name)
       mbSettings <- loadAiSetting impl name
       case mbSettings of
         Nothing -> return Nothing
-        Just personality -> return $ go (aipSettings personality) supportedAis
+        Just personality -> do
+          let InplaceAi settings = aipSettings personality
+          return $ go settings supportedAis
     else do
       enableCustomSetings <- isCustomAiSettingsEnabled
       if enableCustomSetings
@@ -349,7 +350,7 @@ locateDefaultAiSettingsDirectory = do
   if ex
     then return $ Just homePath
     else do
-      let etcPath = "/etc" </> "hcheckers" </> "ai"
+      let etcPath = "/usr" </> "share" </> "hcheckers" </> "ai"
       ex <- doesDirectoryExist etcPath
       if ex
         then return $ Just etcPath
@@ -362,24 +363,36 @@ getAiSettingsDirectory = do
     Just path -> return (Just path)
     Nothing -> liftIO locateDefaultAiSettingsDirectory
 
-parseAiPersonality :: K.Key -> Data.Aeson.Object -> AT.Parser AiPersonality
-parseAiPersonality slug v = do
-    value <- v .: slug
-    withObject "AI settings" (\s -> do
-        name <- s .: "name"
-        settings <- s .: "settings"
-        return $ AiPersonality (K.toText slug) name settings
-      ) value
+instance FromJSON AiPersonalitySettings where
+  parseJSON v@(AT.Object _) = return $ InplaceAi v
+  parseJSON (AT.String path) = return $ ReferenceAi $ T.unpack path
+  parseJSON x = AT.unexpected x
 
 instance FromJSON AiPersonality where
-  parseJSON = withObject "AI" $ \v -> do
-    case KM.keys v of
-      [slug] -> parseAiPersonality slug v
-      _ -> fail $ "Invalid AI settings: too many keys or no keys"
+  parseJSON = withObject "AI settings" $ \v -> AiPersonality
+    <$> v .: "slug"
+    <*> v .: "title"
+    <*> v .: "settings"
 
 instance FromJSON AiPersonalities where
-  parseJSON = withObject "AIs" $ \v -> AiPersonalities <$> do
-    forM (KM.keys v) $ \slug -> parseAiPersonality slug v
+  parseJSON x = AiPersonalities <$> parseJSON x
+
+resolveAiSettingsReference :: AiPersonality -> Checkers (Maybe AiPersonality)
+resolveAiSettingsReference personality = do
+    case aipSettings personality of
+      InplaceAi _ -> return (Just personality)
+      ReferenceAi path -> do
+        mbSettingsPath <- getAiSettingsDirectory
+        let settingsPath = fromMaybe "." mbSettingsPath
+            aiPath = if isAbsolute path
+                       then path
+                       else settingsPath </> path
+        res <- liftIO $ Data.Yaml.decodeFileEither aiPath
+        case res of
+          Left err -> do
+            $reportError "Can't parse AI settings file for preset `{}' - {}: {}" (aipSlug personality, path, show err)
+            return Nothing
+          Right value -> return $ Just $ personality {aipSettings = InplaceAi value}
 
 listAiSettings :: T.Text -> Checkers [AiPersonality]
 listAiSettings impl = do
@@ -402,12 +415,16 @@ listAiSettings impl = do
         Left err -> do
           $reportError "Can't parse AI settings file: {}: {}" (path, show err)
           return []
-        Right (AiPersonalities value) -> return value
+        Right (AiPersonalities personalities) -> do
+          res <- mapM resolveAiSettingsReference personalities
+          return $ catMaybes res
 
 loadAiSetting :: T.Text -> T.Text -> Checkers (Maybe AiPersonality)
 loadAiSetting impl slug = do
     personalities <- listAiSettings impl
-    return $ search personalities
+    case search personalities of
+      Nothing -> return Nothing
+      Just personality -> resolveAiSettingsReference personality
   where
     search [] = Nothing
     search (p : ps)

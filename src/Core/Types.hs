@@ -653,10 +653,15 @@ instance Show SomeAi where
 updateSomeAi :: SomeAi -> Value -> SomeAi
 updateSomeAi (SomeAi ai) params = SomeAi (updateAi ai params)
 
+data AiPersonalitySettings =
+    InplaceAi Value
+  | ReferenceAi FilePath
+  deriving (Eq, Show)
+
 data AiPersonality = AiPersonality {
     aipSlug :: T.Text
   , aipName :: M.Map T.Text T.Text
-  , aipSettings :: Value
+  , aipSettings :: AiPersonalitySettings
   }
   deriving (Eq, Show)
 
