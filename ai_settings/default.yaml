@@ -1,0 +1,25 @@
+- slug: beginner
+  title:
+    ru: Начинающий
+    en: Beginner
+  settings: 1-beginner.json
+- slug: easy
+  title:
+    ru: Лёгкий
+    en: Easy
+  settings: 2-easy.json
+- slug: standard
+  title:
+    ru: Стандартный
+    en: Standard
+  settings: 3-standard.json
+- slug: advanced
+  title:
+    ru: Продвинутый
+    en: Advanced
+  settings: 4-advanced.json
+- slug: professional
+  title:
+    ru: Профессионал
+    en: Professional
+  settings: 5-professional.json
