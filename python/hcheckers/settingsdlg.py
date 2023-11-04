@@ -100,6 +100,10 @@ class AiEditorWidget(QWidget):
         self.title.add_to_form(layout)
         self.title.widget.editingFinished.connect(self.edited)
 
+        self.notes = QLineEdit(general)
+        self.notes.editingFinished.connect(self.edited)
+        layout.addRow(_("Notes"), self.notes)
+
         self.depth = make_spinbox(_("Default depth (half-steps)"), 0, 20, general)
         self.start_depth = make_spinbox(_("Minimum depth"), 0, 20, general)
         self.max_combination_depth = make_spinbox(_("Forced mode depth"), 0, 24, general)
@@ -241,6 +245,7 @@ class AiEditorWidget(QWidget):
     def set_ai(self, ai):
         self.enable_editor(not ai.from_server)
         self.title.widget.setText(ai.title)
+        self.notes.setText(ai.notes)
         self.depth.setValue(ai.depth)
         if ai.start_depth is not None:
             self.start_depth.setValue(ai.start_depth)
@@ -283,6 +288,7 @@ class AiEditorWidget(QWidget):
         ai = AI()
         ai.from_server = not self.is_editor_enabled()
         ai.title = self.title.widget.text()
+        ai.notes = self.notes.text()
         ai.depth = self.depth.value()
         ai.start_depth = self.start_depth.value()
         ai.max_combination_depth = self.max_combination_depth.value()

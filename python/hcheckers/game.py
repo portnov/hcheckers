@@ -47,6 +47,7 @@ def get_title_from_json(json_data):
 class AI(object):
     def __init__(self, **kwargs):
         self.title = "Default AI"
+        self.notes = ""
         self.from_server = False
         self.slug = None
         self.depth = 2
@@ -118,6 +119,7 @@ class AI(object):
         ai = AI()
         ai.from_server = False
         ai.title = settings.value("title")
+        ai.notes = settings.value("notes")
         ai.depth = settings.value("depth", type=int)
         ai.max_combination_depth = settings.value("max_combination_depth", type=int)
         ai.dynamic_depth = settings.value("dynamic_depth", type=int)
@@ -187,6 +189,7 @@ class AI(object):
 
     def to_settings(self, settings):
         settings.setValue("title", self.title)
+        settings.setValue("notes", self.notes)
         settings.setValue("depth", self.depth)
         settings.setValue("max_combination_depth", self.max_combination_depth)
         settings.setValue("dynamic_depth", self.dynamic_depth)
