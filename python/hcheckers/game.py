@@ -71,12 +71,14 @@ class AI(object):
         self.opposite_side_weight = 32
         self.backed_weight = 24
         self.asymetry_weight = -12
+        self.temp_asymetry_weight = -12
         self.pre_king_weight = 28
         self.king_coef = 3
         self.positional_king_weight = 0
         self.attacked_man_coef = -40
         self.attacked_king_coef = -80
         self.king_on_key_field_weight = 10
+        self.man_blocked_by_king_weight = -20
 
         self.accept_draw = ALWAYS_ACCEPT
 
@@ -138,12 +140,14 @@ class AI(object):
         ai.opposite_side_weight = settings.value("opposite_side_weight", ai.opposite_side_weight, type=int)
         ai.backed_weight = settings.value("backed_weight", ai.backed_weight, type=int)
         ai.asymetry_weight = settings.value("asymetry_weight", ai.asymetry_weight, type=int)
+        ai.temp_asymetry_weight = settings.value("temp_asymetry_weight", ai.temp_asymetry_weight, type=int)
         ai.pre_king_weight = settings.value("pre_king_weight", ai.pre_king_weight, type=int)
         ai.king_coef = settings.value("king_coef", ai.king_coef, type=int)
         ai.positional_king_weight = settings.value("positional_king_weight", ai.positional_king_weight, type=int)
         ai.attacked_man_coef = settings.value("attacked_man_coef", ai.attacked_man_coef, type=int)
         ai.attacked_king_coef = settings.value("attacked_king_coef", ai.attacked_king_coef, type=int)
         ai.king_on_key_field_weight = settings.value("king_on_key_field_weight", ai.king_on_key_field_weight, type=int)
+        ai.man_blocked_by_king_weight = settings.value("man_blocked_by_king_weight", ai.man_blocked_by_king_weight, type=int)
 
         ai.accept_draw = settings.value("accept_draw", ai.accept_draw)
 
@@ -205,12 +209,14 @@ class AI(object):
         settings.setValue("opposite_side_weight", self.opposite_side_weight)
         settings.setValue("backed_weight", self.backed_weight)
         settings.setValue("asymetry_weight", self.asymetry_weight)
+        settings.setValue("temp_asymetry_weight", self.temp_asymetry_weight)
         settings.setValue("pre_king_weight", self.pre_king_weight)
         settings.setValue("king_coef", self.king_coef)
         settings.setValue("positional_king_weight", self.positional_king_weight)
         settings.setValue("attacked_man_coef", self.attacked_man_coef)
         settings.setValue("attacked_king_coef", self.attacked_king_coef)
         settings.setValue("king_on_key_field_weight", self.king_on_key_field_weight)
+        settings.setValue("man_blocked_by_king_weight", self.man_blocked_by_king_weight)
 
         settings.setValue("accept_draw", self.accept_draw)
 
@@ -239,12 +245,14 @@ class AI(object):
             "opposite_side_weight": self.opposite_side_weight,
             "backed_weight": self.backed_weight,
             "asymetry_weight": self.asymetry_weight,
+            "temp_asymetry_weight": self.temp_asymetry_weight,
             "king_coef": self.king_coef,
             "positional_king_weight": self.positional_king_weight,
             "pre_king_weight": self.pre_king_weight,
             "attacked_man_coef": self.attacked_man_coef,
             "attacked_king_coef": self.attacked_king_coef,
             "king_on_key_field_weight": self.king_on_key_field_weight,
+            "man_blocked_by_king_weight": self.man_blocked_by_king_weight,
 
             "accept_draw": self.accept_draw
         }
