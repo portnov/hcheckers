@@ -16,14 +16,15 @@ import           System.Log.Heavy
 import           System.Log.Heavy.TH
 import Network.HTTP.Types.Status
 
-import           Core.Types
-import           Core.Board
-import           Core.Supervisor
+import Core.Types
+import Core.Board
+import Core.Supervisor
 import Core.Version
-import           Core.Json                      ( ) -- import instances only
-import           Formats.Types
-import           Formats.Fen
-import           Formats.Pdn
+import Core.Json                      ( ) -- import instances only
+import AI.Session
+import Formats.Types
+import Formats.Fen
+import Formats.Pdn
 import Rest.Types
 import Rest.Common
 

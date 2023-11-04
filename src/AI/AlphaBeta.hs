@@ -22,7 +22,6 @@ import Control.Monad.Reader
 import Control.Monad.Except
 import Control.Concurrent
 import Control.Concurrent.STM
-import qualified Data.Text as T
 import qualified Data.Map as M
 import qualified Data.Vector as V
 import Data.Maybe
@@ -30,8 +29,6 @@ import Data.Default
 import Data.List (sortOn)
 import Data.Text.Format.Heavy
 import Data.Aeson
-import Data.Aeson.Types (unexpected)
-import qualified Data.Aeson.KeyMap as KM
 import System.Log.Heavy
 import System.Log.Heavy.TH
 import System.Clock
@@ -43,7 +40,9 @@ import Core.Game
 import Core.Parallel
 import Core.Logging
 import qualified Core.Monitoring as Monitoring
+import AI.Session
 import AI.AlphaBeta.Types
+import AI.AlphaBeta.Instances () -- import instances only
 import AI.AlphaBeta.Cache
 import AI.AlphaBeta.Persistent
 
@@ -51,59 +50,6 @@ concatE :: [Int] -> [Either e [a]] -> [Either e a]
 concatE _ [] = []
 concatE (n : ns) (Left e : rest) = replicate n (Left e) ++ concatE ns rest
 concatE (n : ns) (Right xs : rest) = map Right xs ++ concatE ns rest
-
-instance ToJSON DrawPolicy where
-  toJSON AlwaysAccept = toJSON ("always" :: T.Text)
-  toJSON AlwaysDecline = toJSON ("never" :: T.Text)
-  toJSON AcceptIfLosing = toJSON ("if_losing" :: T.Text)
-
-instance FromJSON DrawPolicy where
-  parseJSON = withText "accept_draw" $ \v ->
-    case v of
-      "always" -> return AlwaysAccept
-      "never" -> return AlwaysDecline
-      "if_losing" -> return AcceptIfLosing
-      _ -> unexpected (String v)
-
-instance FromJSON AlphaBetaParams where
-  parseJSON = withObject "AlphaBetaParams" $ \v -> AlphaBetaParams
-      <$> v .: "depth"
-      <*> v .:? "start_depth"
-      <*> v .:? "max_combination_depth" .!= 8
-      <*> v .:? "dynamic_depth" .!= abDynamicDepth def
-      <*> v .:? "depth_step" .!= abDepthStep def
-      <*> v .:? "deeper_if_bad" .!= False
-      <*> v .:? "depth_if_ambigous"
-      <*> v .:? "moves_bound_low" .!= 4
-      <*> v .:? "moves_bound_high" .!= 8
-      <*> v .:? "init_window_width" .!= abInitWindowWidth def
-      <*> v .:? "time"
-      <*> v .:? "random_opening_depth" .!= abRandomOpeningDepth def
-      <*> v .:? "random_opening_options" .!= abRandomOpeningOptions def
-      <*> v .:? "accept_draw" .!= abDrawPolicy def
-
-instance ToJSON AlphaBetaParams where
-  toJSON p = object [
-              "depth" .= abDepth p,
-              "start_depth" .= abStartDepth p,
-              "max_combination_depth" .= abCombinationDepth p,
-              "dynamic_depth" .= abDynamicDepth p,
-              "depth_step" .= abDepthStep p,
-              "deeper_if_bad" .= abDeeperIfBad p,
-              "depth_if_ambigous" .= abDeeperIfAmbigous p,
-              "moves_bound_low" .= abMovesLowBound p,
-              "moves_bound_high" .= abMovesHighBound p,
-              "init_window_depth" .= abInitWindowWidth p,
-              "time" .= abBaseTime p,
-              "random_opening_depth" .= abRandomOpeningDepth p,
-              "random_opening_options" .= abRandomOpeningOptions p
-            ]
-
-instance ToJSON eval => ToJSON (AlphaBeta rules eval) where
-  toJSON (AlphaBeta params rules eval) =
-    let Object paramsV = toJSON params
-        Object evalV = toJSON eval
-    in  Object $ KM.union paramsV evalV
 
 mkDepthParams :: Depth -> AlphaBetaParams -> DepthParams
 mkDepthParams depth params =
@@ -134,12 +80,30 @@ instance (GameRules rules, VectorEvaluator eval, ToJSON eval) => GameAi (AlphaBe
       resetAiCache cache
 
   chooseMove ai storage gameId side aiSession board = Monitoring.timed "ai.choose.move" $ do
+    mbBgSessionId <- liftIO $ atomically $ readTVar (aichBackgroundSession storage)
+    case mbBgSessionId of
+      Nothing -> return ()
+      Just bgSessionId -> do
+        $info "Send a signal to stop background session" ()
+        signalStopAiSession bgSessionId
     (moves, _) <- runAI ai storage gameId side aiSession board
     -- liftIO $ atomically $ writeTVar (aichCurrentCounts storage) $ calcBoardCounts board
     Monitoring.distribution "ai.chosen.moves.count" $ fromIntegral $ length moves
     when (length moves > 1) $
       Monitoring.increment "ai.ambigous.choice"
     return moves
+
+  afterMoveSelected ai@(AlphaBeta params _ _) storage gameId side board pm = do
+    when (abThinkInBackground params) $ Monitoring.timed "ai.background" $ do
+      let side' = opposite side
+      $info "Start thinking in background for side {}" (Single $ show side')
+      (bgSessionId, bgSession) <- newAiSession
+      liftIO $ atomically $ writeTVar (aichBackgroundSession storage) (Just bgSessionId)
+      forkCheckers $ do
+        (moves, _) <- runAI ai storage gameId side' bgSession board
+        $info "In place of side {}, AI would select moves: {}" (show side', show moves)
+        return ()
+      return ()
 
   decideDrawRequest ai@(AlphaBeta params rules eval) storage gameId side aiSession board = do
     case abDrawPolicy params of
@@ -190,6 +154,7 @@ instance (GameRules rules, VectorEvaluator eval, ToJSON eval) => VectorAi (Alpha
                 , abRandomOpeningDepth = 1
                 , abRandomOpeningOptions = 1
                 , abDrawPolicy = AlwaysAccept
+                , abThinkInBackground = False
               }
 
       v' = V.drop 3 v

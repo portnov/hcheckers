@@ -53,6 +53,7 @@ class AI(object):
         self.depth = 2
         self.max_combination_depth = 6
         self.dynamic_depth = 6
+        self.background_thinking = False
         self.deeper_if_bad = False
         self.deeper_if_ambigous = False
         self.depth_if_ambigous = 10
@@ -123,6 +124,7 @@ class AI(object):
         ai.depth = settings.value("depth", type=int)
         ai.max_combination_depth = settings.value("max_combination_depth", type=int)
         ai.dynamic_depth = settings.value("dynamic_depth", type=int)
+        ai.background_thinking = settings.value("background_thinking", type=bool)
         ai.start_depth = settings.value("start_depth", type=int)
         ai.deeper_if_bad = settings.value("deeper_if_bad", type=bool)
         ai.deeper_if_ambigous = settings.value("deeper_if_ambigous", type=bool)
@@ -193,6 +195,7 @@ class AI(object):
         settings.setValue("depth", self.depth)
         settings.setValue("max_combination_depth", self.max_combination_depth)
         settings.setValue("dynamic_depth", self.dynamic_depth)
+        settings.setValue("background_thinking", self.background_thinking)
         settings.setValue("start_depth", self.start_depth)
         settings.setValue("deeper_if_bad", self.deeper_if_bad)
         settings.setValue("deeper_if_ambigous", self.deeper_if_ambigous)
@@ -231,6 +234,7 @@ class AI(object):
             "depth": self.depth,
             "start_depth": self.start_depth,
             "max_combination_depth": self.max_combination_depth,
+            "background_thinking": self.background_thinking,
             "dynamic_depth": self.dynamic_depth,
             "deeper_if_bad": self.deeper_if_bad,
             "depth_if_ambigous": self.depth_if_ambigous if self.deeper_if_ambigous else None,

@@ -23,7 +23,8 @@ import Text.Printf
 import Core.Types
 import Core.Board
 import Core.BoardMap
-import Core.Supervisor (newAiSession, newGame)
+import Core.Supervisor (newGame)
+import AI.Session (newAiSession)
 import AI.AlphaBeta
 import AI.AlphaBeta.Types
 import AI.AlphaBeta.Cache

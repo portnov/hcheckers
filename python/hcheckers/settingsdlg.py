@@ -121,6 +121,10 @@ class AiEditorWidget(QWidget):
         self.depth_if_ambigous = make_spinbox(_("Maximum depth"), 2, 24, general)
         self.depth_if_ambigous.setEnabled(False)
 
+        self.background_thinking = QCheckBox(general)
+        self.background_thinking.stateChanged.connect(self.edited)
+        layout.addRow(_("Think while user is thinking"), self.background_thinking)
+
         self.moves_bound_low = make_spinbox(_("`Few moves' mode bound"), 1, 5, general)
         self.moves_bound_high = make_spinbox(_("`Too many moves' mode bound"), 5, 50, general)
 
@@ -251,6 +255,7 @@ class AiEditorWidget(QWidget):
             self.start_depth.setValue(ai.start_depth)
         self.max_combination_depth.setValue(ai.max_combination_depth)
         self.dynamic_depth.setValue(ai.dynamic_depth)
+        self.background_thinking.setCheckState(Qt.Checked if ai.background_thinking else Qt.Unchecked)
         self.deeper_if_bad.setCheckState(Qt.Checked if ai.deeper_if_bad else Qt.Unchecked)
         self.deeper_if_ambigous.setCheckState(Qt.Checked if ai.deeper_if_ambigous else Qt.Unchecked)
         self.depth_if_ambigous.setValue(ai.depth_if_ambigous or 10)
@@ -293,6 +298,7 @@ class AiEditorWidget(QWidget):
         ai.start_depth = self.start_depth.value()
         ai.max_combination_depth = self.max_combination_depth.value()
         ai.dynamic_depth = self.dynamic_depth.value()
+        ai.background_thinking = self.background_thinking.checkState() == Qt.Checked
         ai.deeper_if_bad = self.deeper_if_bad.checkState() == Qt.Checked
         ai.deeper_if_ambigous = self.deeper_if_ambigous.checkState() == Qt.Checked
         ai.depth_if_ambigous = self.depth_if_ambigous.value()

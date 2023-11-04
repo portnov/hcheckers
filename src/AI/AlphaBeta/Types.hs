@@ -79,6 +79,7 @@ data AlphaBetaParams = AlphaBetaParams {
   , abRandomOpeningDepth :: Int
   , abRandomOpeningOptions :: Int
   , abDrawPolicy :: DrawPolicy
+  , abThinkInBackground :: Bool
   }
   deriving (Eq, Ord, Show)
 
@@ -98,6 +99,7 @@ instance Default AlphaBetaParams where
         , abRandomOpeningDepth = 1
         , abRandomOpeningOptions = 1
         , abDrawPolicy = AlwaysAccept
+        , abThinkInBackground = False
         }
 
 -- Calculation depth parameters
@@ -248,6 +250,7 @@ data AICacheHandle rules eval = AICacheHandle {
   -- , aichPossibleMoves :: MovesMemo
   , aichLastMoveScoreShift :: TVar (M.Map GameId ScoreBase)
   , aichCurrentCounts :: TVar BoardCounts
+  , aichBackgroundSession :: TVar (Maybe AiSessionId)
   }
 
 -- | State for the Storage monad
