@@ -1,0 +1,40 @@
+classic4515:
+  title:
+    ru: "Классика: 45м на 20 ходов + 15м"
+    en: "Classic: 45m for 20 moves + 15m"
+  initial_seconds: 2700
+  initial_moves: 20
+  additional_seconds: 900
+classic4530:
+  title:
+    ru: "Классика: 45м + 30с за ход"
+    en: "Classic: 45m + 30s for move"
+  seconds_per_game: 2700
+  seconds_per_move: 30
+rapid10:
+  title:
+    ru: "Рапид: 10м"
+    en: "Rapid: 10m"
+  seconds_per_game: 600
+rapid20:
+  title:
+    ru: "Рапид: 20м"
+    en: "Rapid: 20m"
+  seconds_per_game: 1200
+blitz32:
+  title:
+    ru: "Блиц 3м + 2с за ход"
+    en: "Blitz 3m + 2s for move"
+  seconds_per_game: 180
+  seconds_per_move: 2
+bullet1:
+  title:
+    ru: Буллит 1м
+    en: Bullet 1m
+  seconds_per_game: 60
+bullet21:
+  title:
+    ru: Буллит 2м + 1с за ход
+    en: Bullet 2m + 1s for move
+  seconds_per_game: 120
+  seconds_per_move: 1
