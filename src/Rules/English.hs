@@ -26,9 +26,11 @@ instance HasTopology English where
 instance HasSideNotation English where
   sideNotation r = numericSideNotation (boardSize r)
 
+instance HasBoardSize English where
+  boardSize _ = boardSize Russian.russian
+
 instance GameRules English where
   type EvaluatorForRules English = SimpleEvaluator
-  boardSize _ = boardSize Russian.russian
 
   initBoard rnd r = 
     let board = buildBoard rnd r (boardOrientation r) (boardSize r)
@@ -51,6 +53,7 @@ instance GameRules English where
   possibleMoves (English rules) side board = gPossibleMoves rules side board
   hasCapturesOrPromotions (English rules) side board = genericHasCapturesOrPromotions rules side board
   mobilityScore (English rules) side board = gMobilityScore rules side board
+  isManBlockedByKing = genericIsManBlockedByKing
 
   pdnId _ = "21"
   getAllAddresses r = addresses8' r

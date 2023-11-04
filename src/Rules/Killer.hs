@@ -27,9 +27,11 @@ instance HasTopology Killer where
 instance HasSideNotation Killer where
   sideNotation r = numericSideNotation (boardSize r)
 
+instance HasBoardSize Killer where
+  boardSize _ = (10, 10)
+
 instance GameRules Killer where
   type EvaluatorForRules Killer = SimpleEvaluator
-  boardSize _ = (10, 10)
   kingKeyFields _ = mainDiagonal 10
 
   initBoard rnd r =
@@ -63,6 +65,7 @@ instance GameRules Killer where
   possibleMoves (Killer rules) side board = gPossibleMoves rules side board
   hasCapturesOrPromotions (Killer rules) side board = genericHasCapturesOrPromotions rules side board
   mobilityScore (Killer rules) side board = gMobilityScore rules side board
+  isManBlockedByKing = genericIsManBlockedByKing
 
   pdnId _ = "45"
   getAllAddresses r = addresses10 r

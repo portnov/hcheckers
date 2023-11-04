@@ -452,14 +452,16 @@ data SideNotation = SideNotation {
 class HasSideNotation g where
   sideNotation :: g -> SideNotation
 
+class HasBoardSize g where
+  -- | Size of board used
+  boardSize :: g -> BoardSize
+
 -- | Interface of game rules
-class (Typeable g, Show g, HasBoardOrientation g, HasSideNotation g, HasTopology g, VectorEvaluator (EvaluatorForRules g), ToJSON (EvaluatorForRules g)) => GameRules g where
+class (Typeable g, Show g, HasBoardSize g, HasBoardOrientation g, HasSideNotation g, HasTopology g, VectorEvaluator (EvaluatorForRules g), ToJSON (EvaluatorForRules g)) => GameRules g where
   type EvaluatorForRules g
   rulesName :: g -> String
   -- | Initial board with initial pieces position
   initBoard :: SupervisorState -> g -> Board
-  -- | Size of board used
-  boardSize :: g -> BoardSize
 
   initPiecesCount :: g -> Int
 
@@ -474,6 +476,8 @@ class (Typeable g, Show g, HasBoardOrientation g, HasSideNotation g, HasTopology
 
   mobilityScore :: g -> Side -> Board -> Int
   mobilityScore g side board = length $ possibleMoves g side board
+
+  isManBlockedByKing :: g -> Side -> Board -> Label -> Label -> Bool
 
   updateRules :: g -> Value -> g
   getGameResult :: g -> GameState -> Board -> Side -> Maybe GameResult

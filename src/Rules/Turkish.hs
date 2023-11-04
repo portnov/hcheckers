@@ -27,6 +27,9 @@ instance HasTopology Turkish where
 instance HasSideNotation Turkish where
   sideNotation r = chessSideNotation (boardSize r)
 
+instance HasBoardSize Turkish where
+  boardSize _ = (8, 8)
+
 instance GameRules Turkish where
   type EvaluatorForRules Turkish = SimpleEvaluator
   initBoard rnd r =
@@ -39,7 +42,6 @@ instance GameRules Turkish where
 
   initPiecesCount _ = 32
 
-  boardSize _ = (8, 8)
   kingKeyFields _ = emptyLabelSet
 
   dfltEvaluator r = (defaultEvaluator r) {seKingCoef = 5, seHelpedKingCoef = 6, seBorderManWeight = 0}
@@ -62,6 +64,7 @@ instance GameRules Turkish where
   getBackDirections _ = [Backward]
   getManSimpleMoveDirections (Turkish r) = gManSimpleMoveDirections r
   getAllAddresses r = addresses8 r
+  isManBlockedByKing = genericIsManBlockedByKing
 
 turkishBase :: GenericRules -> GenericRules
 turkishBase =

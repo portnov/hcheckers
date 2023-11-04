@@ -24,12 +24,14 @@ instance HasTopology Czech where
 instance HasSideNotation Czech where
   sideNotation r = chessSideNotation (boardSize r)
 
+instance HasBoardSize Czech where
+  boardSize _ = (8, 8)
+
 instance GameRules Czech where
   type EvaluatorForRules Czech = SimpleEvaluator
   pdnId _ = "29"
   rulesName _ = "czech"
 
-  boardSize _ = (8, 8)
   kingKeyFields _ = mainDiagonal 8
 
   initBoard rnd _ = initBoard rnd Russian.russian
@@ -45,6 +47,7 @@ instance GameRules Czech where
   possibleMoves (Czech rules) side board = gPossibleMoves rules side board
   hasCapturesOrPromotions (Czech rules) side board = genericHasCapturesOrPromotions rules side board
   mobilityScore (Czech rules) side board = gMobilityScore rules side board
+  isManBlockedByKing = genericIsManBlockedByKing
 
   updateRules r _ = r
 

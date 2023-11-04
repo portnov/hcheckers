@@ -19,8 +19,9 @@ import qualified Data.Vector as V
 import qualified Data.Map as M
 import qualified Data.IntSet as IS
 
-import           Core.Types
-import           Core.Board
+import Core.Types
+import Core.Board
+import Core.BoardMap
 
 data SimpleEvaluatorWeights = SimpleEvaluatorWeights {
     sewFirst :: {-# UNPACK #-} !ScoreBase
@@ -56,6 +57,7 @@ data SimpleEvaluator = SimpleEvaluator {
     seAttackedManCoef :: ScoreBase,
     seAttackedKingCoef :: ScoreBase,
     seKingOnKeyFieldWeight :: ScoreBase,
+    seManBlockedByKingWeight :: ScoreBase,
     seCache :: M.Map Address SimpleEvaluatorData
   }
   deriving (Show)
@@ -80,6 +82,7 @@ defaultEvaluator rules = SimpleEvaluator
     , seAttackedManCoef = -40
     , seAttackedKingCoef = -80
     , seKingOnKeyFieldWeight = 10
+    , seManBlockedByKingWeight = -20
     , seCache = buildCache iface
     }
   where
@@ -105,6 +108,7 @@ parseEvaluator def = withObject "Evaluator" $ \v -> SimpleEvaluator
     <*> v .:? "attacked_man_coef" .!= seAttackedManCoef def
     <*> v .:? "attacked_king_coef" .!= seAttackedKingCoef def
     <*> v .:? "king_on_key_field_weight" .!= seKingOnKeyFieldWeight def
+    <*> v .:? "man_blocked_by_king_weight" .!= seManBlockedByKingWeight def
     <*> pure (seCache def)
 
 instance ToJSON SimpleEvaluator where
@@ -125,7 +129,8 @@ instance ToJSON SimpleEvaluator where
       "threat_weight" .= seThreatWeight p,
       "attacked_man_coef" .= seAttackedManCoef p,
       "attacked_king_coef" .= seAttackedKingCoef p,
-      "king_on_key_field_weight" .= seKingOnKeyFieldWeight p
+      "king_on_key_field_weight" .= seKingOnKeyFieldWeight p,
+      "man_blocked_by_king_weight" .= seManBlockedByKingWeight p
     ]
 
 data PreScore = PreScore {
@@ -144,6 +149,7 @@ data PreScore = PreScore {
     , psAttackedKings :: ScoreBase
     , psThreats :: ScoreBase
     , psKingsOnKeyFields :: ScoreBase
+    , psMenBlockedByKings :: ScoreBase
   }
   deriving (Show)
 
@@ -164,6 +170,7 @@ sub ps1 ps2 = PreScore
   , psAttackedKings = psAttackedKings ps1 - psAttackedKings ps2
   , psThreats = psThreats ps1 - psThreats ps2
   , psKingsOnKeyFields = psKingsOnKeyFields ps1 - psKingsOnKeyFields ps2
+  , psMenBlockedByKings = psMenBlockedByKings ps1 - psMenBlockedByKings ps2
   }
 
 instance Default PreScore where
@@ -183,6 +190,7 @@ instance Default PreScore where
           , psAttackedKings = 0
           , psThreats = 0
           , psKingsOnKeyFields = 0
+          , psMenBlockedByKings = 0
         }
 
 waveRho :: SomeRules -> Side -> (Address -> Bool) -> Address -> ScoreBase -> ScoreBase
@@ -337,6 +345,12 @@ preEval (SimpleEvaluator { seRules = iface@(SomeRules rules), ..}) side board =
 
     kingsKeyFieldsScore = kingsAtKeyFields * keyFieldsCnt `div` (occupiedKeyFields + 1)
 
+    menBlockedByKings =
+      let opponentKings = myKingsS (opposite side) board
+          men = myMenS side board
+          anyS p set = not $ IS.null $ IS.filter p set
+      in  IS.size $ IS.filter (\manIdx -> anyS (\kingIdx -> isManBlockedByKing rules side board (unpackIndex manIdx) (unpackIndex kingIdx)) opponentKings) men
+
   in
     PreScore
       { psNumeric  = numericScore
@@ -354,6 +368,7 @@ preEval (SimpleEvaluator { seRules = iface@(SomeRules rules), ..}) side board =
       , psAttackedKings = fromIntegral attackedKings
       , psThreats = fromIntegral threatsCount
       , psKingsOnKeyFields = fromIntegral kingsKeyFieldsScore
+      , psMenBlockedByKings = fromIntegral menBlockedByKings
       }
 
 preEvalBoth :: SimpleEvaluator -> Board -> PreScore
@@ -406,7 +421,8 @@ instance Evaluator SimpleEvaluator where
               seAttackedManCoef * psAttackedMen ps +
               seAttackedKingCoef * psAttackedKings ps +
               seThreatWeight * psThreats ps +
-              seKingOnKeyFieldWeight * psKingsOnKeyFields ps
+              seKingOnKeyFieldWeight * psKingsOnKeyFields ps +
+              seManBlockedByKingWeight * psMenBlockedByKings ps
             else 0
 
         myNumeric = psNumeric ps1
@@ -430,7 +446,8 @@ instance VectorEvaluator SimpleEvaluator where
         seAsymetryWeight, seTempAsymetryWeight, sePreKingWeight,
         seKingCoef, sePositionalKingWeight, seAttackedManCoef,
         seAttackedKingCoef, seBorderManWeight,
-        seThreatWeight, seKingOnKeyFieldWeight]
+        seThreatWeight, seKingOnKeyFieldWeight,
+        seManBlockedByKingWeight]
 
   evalFromVector rules v = SimpleEvaluator {
           seRules = iface
@@ -451,6 +468,7 @@ instance VectorEvaluator SimpleEvaluator where
         , seBorderManWeight = round (v V.! 12)
         , seThreatWeight = round (v V.! 13)
         , seKingOnKeyFieldWeight = round (v V.! 14)
+        , seManBlockedByKingWeight = round (v V.! 15)
         , seCache = buildCache iface
       }
     where

@@ -26,6 +26,9 @@ instance HasTopology Spancirety where
 instance HasSideNotation Spancirety where
   sideNotation r = chessSideNotation (boardSize r)
 
+instance HasBoardSize Spancirety where
+  boardSize _ = (8, 10)
+
 instance GameRules Spancirety where
   type EvaluatorForRules Spancirety = SimpleEvaluator
   initBoard rnd r =
@@ -40,7 +43,6 @@ instance GameRules Spancirety where
 
   initPiecesCount _ = 30
 
-  boardSize _ = (8, 10)
   kingKeyFields _ = IS.empty
 
   boardNotation _ = boardNotation russian
@@ -54,6 +56,7 @@ instance GameRules Spancirety where
   possibleMoves _ = possibleMoves russian
   hasCapturesOrPromotions _ = hasCapturesOrPromotions russian
   mobilityScore _ = mobilityScore russian
+  isManBlockedByKing _ = isManBlockedByKing russian
 
   updateRules r _ = r
 

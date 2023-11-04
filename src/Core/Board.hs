@@ -324,6 +324,14 @@ myCounts side board =
 totalCount :: Board -> Int
 totalCount b = IS.size (bOccupied b)
 
+isAllFree :: Board -> (Label -> Bool) -> Bool
+isAllFree b p =
+  let p' idx = p (unpackIndex idx)
+  in  IS.null (IS.filter p' (bFirstMen b)) &&
+      IS.null (IS.filter p' (bFirstKings b)) &&
+      IS.null (IS.filter p' (bSecondMen b)) &&
+      IS.null (IS.filter p' (bSecondKings b))
+
 catMoves :: Move -> Move -> Move
 catMoves m1 m2 =
   Move (moveBegin m1) (moveSteps m1 ++ moveSteps m2)

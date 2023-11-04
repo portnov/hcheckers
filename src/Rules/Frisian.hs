@@ -27,10 +27,12 @@ instance HasTopology Frisian where
 instance HasSideNotation Frisian where
   sideNotation r = numericSideNotation (boardSize r)
 
+instance HasBoardSize Frisian where
+  boardSize _ = (10, 10)
+
 instance GameRules Frisian where
   type EvaluatorForRules Frisian = SimpleEvaluator
 
-  boardSize _ = (10, 10)
   kingKeyFields _ = mainDiagonal 10
 
   initBoard rnd r =
@@ -66,6 +68,7 @@ instance GameRules Frisian where
   possibleMoves (Frisian rules) side board = gPossibleMoves rules side board
   hasCapturesOrPromotions (Frisian rules) side board = genericHasCapturesOrPromotions rules side board
   mobilityScore (Frisian rules) side board = gMobilityScore rules side board
+  isManBlockedByKing = genericIsManBlockedByKing
 
   getAllAddresses r = addresses10 r
 

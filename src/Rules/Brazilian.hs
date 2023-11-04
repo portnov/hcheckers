@@ -25,10 +25,12 @@ instance Show Brazilian where
 instance HasSideNotation Brazilian where
   sideNotation r = numericSideNotation (boardSize r)
 
+instance HasBoardSize Brazilian where
+  boardSize _ = (8, 8)
+
 instance GameRules Brazilian where
   type EvaluatorForRules Brazilian = SimpleEvaluator
 
-  boardSize _ = (8, 8)
   kingKeyFields _ = mainDiagonal 8
 
   initBoard rnd _ = initBoard rnd russian
@@ -49,6 +51,7 @@ instance GameRules Brazilian where
   possibleMoves (Brazilian rules) side board = gPossibleMoves rules side board
   hasCapturesOrPromotions (Brazilian rules) side board = genericHasCapturesOrPromotions rules side board
   mobilityScore (Brazilian rules) side board = gMobilityScore rules side board
+  isManBlockedByKing = genericIsManBlockedByKing
 
   getGameResult = genericGameResult
   getAllAddresses r = addresses8 r

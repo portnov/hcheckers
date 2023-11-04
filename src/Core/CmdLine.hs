@@ -67,7 +67,7 @@ data SpecialCommand =
     | GenerateBased {
           scAiPath :: FilePath
         , scCount :: Int
-        , scDelta :: Int
+        , scDelta :: Double
       }
     | GenerateFromZero {
           scAiPath :: FilePath

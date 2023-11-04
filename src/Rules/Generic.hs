@@ -486,6 +486,31 @@ genericHasCapturesOrPromotions g side board =
         Nothing -> False
         Just f1 -> isLastHorizontal side f1 && isFree f1 board
 
+genericIsManBlockedByKing :: (HasTopology g, HasBoardSize g) => g -> Side -> Board -> Label -> Label -> Bool
+genericIsManBlockedByKing g side board man king
+  | boardTopology g `elem` [Diagonal, DiagonalAndOrthogonal, FrisianTopology] =
+      let diagonal l = labelColumn l - labelRow l
+          coDiagonal l = labelColumn l + labelRow l
+          isDiagonalFree = isAllFree board (\l -> diagonal l == diagonal king)
+          isCoDiagonalFree = isAllFree board (\l -> coDiagonal l == diagonal king)
+          (nrows, ncols) = boardSize g
+          isDiagonalBlocking
+            | side == First = diagonal king > 0
+            | otherwise     = diagonal king < 0
+          isCoDiagonalBlocking
+            | side == First = coDiagonal king < nrows
+            | otherwise     = coDiagonal king >= nrows
+      in  case side of
+            First ->  (isDiagonalBlocking && diagonal man > diagonal king && isDiagonalFree) ||
+                      (isCoDiagonalBlocking && coDiagonal man < coDiagonal king && isCoDiagonalFree)
+            Second -> (isDiagonalBlocking &&  diagonal man < diagonal king && isDiagonalFree) ||
+                      (isCoDiagonalBlocking && coDiagonal man > coDiagonal king && isCoDiagonalFree)
+  | boardTopology g == Orthogonal =
+      let isHorizontalFree = isAllFree board (\l -> labelRow l == labelRow king)
+      in  case side of
+            First  -> labelRow man < labelRow king && isHorizontalFree
+            Second -> labelRow man > labelRow king && isHorizontalFree
+
 labels8 :: [Label]
 labels8 = [Label col row | col <- [0..7], row <- [0..7], ((row+col) `mod` 2) == 0]
 

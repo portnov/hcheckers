@@ -27,9 +27,11 @@ instance HasTopology International where
 instance HasSideNotation International where
   sideNotation r = numericSideNotation (boardSize r)
 
+instance HasBoardSize International where
+  boardSize _ = (10, 10)
+
 instance GameRules International where
   type EvaluatorForRules International = SimpleEvaluator
-  boardSize _ = (10, 10)
   kingKeyFields _ = mainDiagonal 10
 
   initBoard rnd r =
@@ -63,6 +65,7 @@ instance GameRules International where
   possibleMoves (International rules) side board = gPossibleMoves rules side board
   hasCapturesOrPromotions (International rules) side board = genericHasCapturesOrPromotions rules side board
   mobilityScore (International rules) side board = gMobilityScore rules side board
+  isManBlockedByKing = genericIsManBlockedByKing
 
   pdnId _ = "20"
   getAllAddresses r = addresses10 r

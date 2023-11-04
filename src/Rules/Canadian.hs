@@ -24,10 +24,12 @@ instance HasTopology Canadian where
 instance HasSideNotation Canadian where
   sideNotation r = numericSideNotation (boardSize r)
 
+instance HasBoardSize Canadian where
+  boardSize _ = (12, 12)
+
 instance GameRules Canadian where
   type EvaluatorForRules Canadian = SimpleEvaluator
 
-  boardSize _ = (12, 12)
   kingKeyFields _ = mainDiagonal 12
 
   initBoard rnd r =
@@ -65,6 +67,7 @@ instance GameRules Canadian where
   possibleMoves (Canadian rules) side board = gPossibleMoves rules side board
   hasCapturesOrPromotions (Canadian rules) side board = genericHasCapturesOrPromotions rules side board
   mobilityScore (Canadian rules) side board = gMobilityScore rules side board
+  isManBlockedByKing = genericIsManBlockedByKing
   getAllAddresses r = addresses12 r
 
 canadian :: Canadian

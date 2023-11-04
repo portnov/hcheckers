@@ -26,6 +26,9 @@ instance HasTopology Armenian where
 instance HasSideNotation Armenian where
   sideNotation r = chessSideNotation (boardSize r)
 
+instance HasBoardSize Armenian where
+  boardSize _ = (8, 8)
+
 instance GameRules Armenian where
   type EvaluatorForRules Armenian = SimpleEvaluator
 
@@ -39,7 +42,6 @@ instance GameRules Armenian where
 
   initPiecesCount _ = 32
 
-  boardSize _ = (8, 8)
   kingKeyFields _ = mainDiagonal 8
 
   dfltEvaluator r = (defaultEvaluator r) {
@@ -70,6 +72,8 @@ instance GameRules Armenian where
   getForwardDirections _ = [ForwardLeft, Forward, ForwardRight]
   getManSimpleMoveDirections (Armenian r) = gManSimpleMoveDirections r
   getAllAddresses r = addresses8 r
+
+  isManBlockedByKing = genericIsManBlockedByKing
 
 armenianBase :: GenericRules -> GenericRules
 armenianBase =

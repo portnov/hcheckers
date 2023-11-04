@@ -25,10 +25,12 @@ instance HasTopology Simple where
 instance HasSideNotation Simple where
   sideNotation r = chessSideNotation (boardSize r)
 
+instance HasBoardSize Simple where
+  boardSize _ = boardSize Russian.russian
+
 instance GameRules Simple where
   type EvaluatorForRules Simple = SimpleEvaluator
   initBoard rnd _ = initBoard rnd Russian.russian
-  boardSize _ = boardSize Russian.russian
   kingKeyFields _ = mainDiagonal 8
   initPiecesCount _ = 24
 
@@ -47,6 +49,7 @@ instance GameRules Simple where
   possibleMoves (Simple rules) side board = gPossibleMoves rules side board
   hasCapturesOrPromotions (Simple rules) side board = genericHasCapturesOrPromotions rules side board
   mobilityScore (Simple rules) side board = gMobilityScore rules side board
+  isManBlockedByKing = genericIsManBlockedByKing
 
   pdnId _ = "43"
   getAllAddresses r = addresses8 r
