@@ -14,6 +14,7 @@ import qualified Data.ByteString.Lazy.Char8 as C8
 import qualified Data.Aeson as Aeson
 import System.Log.Heavy
 import System.Log.Heavy.TH
+import System.FilePath
 import qualified Options.Applicative as O
 import Options.Applicative ((<**>))
 import Text.Printf
@@ -134,36 +135,40 @@ special cmd =
             withLogContext (LogContextFrame [] (include defaultLogFilter)) $
               analyzeOpenings ai depth
 
-    Bench rulesName path n -> do
+    Bench rulesName path n mbOutPath -> do
+      let mkPath i =
+            case mbOutPath of
+              Nothing -> Nothing
+              Just path -> Just $ path </> printf "battle_%d.pdn" i
       withRules rulesName $ \rules -> do
         ai <- loadAi "default" rules path
         withCheckers cmd $ do
             dumpConfig cmd
             withLogContext (LogContextFrame [] (include defaultLogFilter)) $ do
-              replicateM_ n $
-                  runBattleLocal (SomeRules rules) (1,SomeAi ai) (2,SomeAi ai) "battle.pdn"
+              forM_ [1 .. n] $ \i ->
+                  runBattleLocal (SomeRules rules) (1,SomeAi ai) (2,SomeAi ai) $ mkPath i
               return ()
             printCurrentMetrics (Just "ai.")
 
-    Battle rulesName Nothing path1 path2 -> do
+    Battle rulesName Nothing path1 path2 mbOutPath -> do
       withRules rulesName $ \rules -> do
         ai1 <- loadAi "default" rules path1
         ai2 <- loadAi "default" rules path2
         withCheckers cmd $ do
             dumpConfig cmd
             withLogContext (LogContextFrame [] (include defaultLogFilter)) $ do
-              runBattleLocal (SomeRules rules) (1,SomeAi ai1) (2,SomeAi ai2) "battle.pdn"
+              runBattleLocal (SomeRules rules) (1,SomeAi ai1) (2,SomeAi ai2) mbOutPath
               return ()
             printCurrentMetrics Nothing
 
-    Battle rulesName (Just host) path1 path2 -> do
+    Battle rulesName (Just host) path1 path2 mbOutPath -> do
       withRules rulesName $ \rules -> do
         ai1 <- loadAi "default" rules path1
         ai2 <- loadAi "default" rules path2
         withCheckers cmd $ do
             dumpConfig cmd
             withLogContext (LogContextFrame [] (include defaultLogFilter)) $ do
-              rs <- runBattleRemote (T.pack host) (SomeRules rules) (1,SomeAi ai1) (2,SomeAi ai2) "battle.pdn"
+              rs <- runBattleRemote (T.pack host) (SomeRules rules) (1,SomeAi ai1) (2,SomeAi ai2) mbOutPath
               liftIO $ putStrLn $ "Remote: " ++ show rs
               return ()
 

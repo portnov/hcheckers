@@ -25,6 +25,7 @@ import Data.List (sortOn)
 import qualified Data.Map as M
 import qualified Data.Vector as V
 import qualified Data.Text as T
+import qualified Data.Text.IO as TIO
 import Data.Text.Format.Heavy
 import Text.Printf
 import System.Random
@@ -61,7 +62,7 @@ data Candidate rules = Candidate {
 instance Show (Candidate rules) where
   show c = cName c ++ "[#" ++ show (cIndexInGeneration c) ++ "]"
 
-type BattleRunner = SomeRules -> (Int,SomeAi) -> (Int,SomeAi) -> FilePath -> Checkers GameResult
+type BattleRunner = SomeRules -> (Int,SomeAi) -> (Int,SomeAi) -> Maybe FilePath -> Checkers GameResult
 
 type MatchRunner = Int -> SomeRules -> [(Int,Int)] -> [SomeAi] -> Checkers [(Int, Int, Int)]
 
@@ -143,12 +144,12 @@ runGeneticsJ cfgPath = do
   matchRunner <- if null (gsUrls cfg)
                     then return $ dumbMatchRunner runBattleLocal
                     else do
-                         let process url (gameNr, rules, (i,ai1), (j,ai2), path) = do
+                         let process url (gameNr, rules, (i,ai1), (j,ai2), mbPath) = do
                                 withLogVariable "battle" gameNr $ do
                                   $info "Battle AI#{} vs AI#{} on {}" (i, j, url)
                                   timed ("battle.duration." <> url) $ do
                                     increment ("battle.count." <> url)
-                                    res <- runBattleRemote url rules (i,ai1) (j,ai2) path
+                                    res <- runBattleRemote url rules (i,ai1) (j,ai2) mbPath
                                     $info "Remote battle AI#{} vs AI#{} on {} => {}" (i, j, url, show res)
                                     return res
                          processor <- runProcessor' (gsUrls cfg) getJobKey process
@@ -158,13 +159,13 @@ runGeneticsJ cfgPath = do
       rs <- runGenetics matchRunner rules (gsGenerations cfg) (gsGenerationSize cfg) (gsPrevGeneration cfg) (gsBestCount cfg) (gsGames cfg) ais
       return $ map SomeAi rs
 
-type BattleProcessor = Processor (Int,Int,Int) (Int, SomeRules, (Int,SomeAi), (Int,SomeAi), FilePath) GameResult
+type BattleProcessor = Processor (Int,Int,Int) (Int, SomeRules, (Int,SomeAi), (Int,SomeAi), Maybe FilePath) GameResult
 
 getJobKey (gameNr, rules, (i,ai1), (j,ai2), _) = (gameNr, i,j)
 
 mkRemoteRunner :: BattleProcessor -> MatchRunner
 mkRemoteRunner processor nGames rules idxPairs ais = do
-  let inputs = [(gameNr, rules, (i, ais !! i), (j, ais !! j), "battle.pdn") | (i,j) <- idxPairs, gameNr <- [1..nGames]]
+  let inputs = [(gameNr, rules, (i, ais !! i), (j, ais !! j), Nothing) | (i,j) <- idxPairs, gameNr <- [1..nGames]]
       keys = map getJobKey inputs
   gameResults <- process processor inputs
   let list = [((i,j), result) | (result, (gameNr, i,j)) <- zip gameResults keys]
@@ -341,7 +342,7 @@ runMatch runBattle rules (i,ai1) (j,ai2) nGames = do
             let (pair1, pair2)
                   | swap      = ((j, ai2), (i, ai1))
                   | otherwise = ((i, ai1), (j, ai2))
-            result <- runBattle rules pair1 pair2 (printf "battle_%d.pdn" k)
+            result <- runBattle rules pair1 pair2 Nothing
             let stats = case invertIfNeeded swap result of
                           FirstWin -> (first+1, second, draw)
                           SecondWin -> (first, second+1, draw)
@@ -360,7 +361,7 @@ calcMatchStats rs = go (0, 0, 0) rs
       in go stats rs
 
 runBattleLocal :: BattleRunner
-runBattleLocal rules (i,ai1) (j,ai2) path = do
+runBattleLocal rules (i,ai1) (j,ai2) mbPath = do
   initAiStorage rules ai1
   let firstSide = First
   gameId <- newGame rules firstSide Nothing Nothing
@@ -371,7 +372,7 @@ runBattleLocal rules (i,ai1) (j,ai2) path = do
   -- resetAiStorageG gameId First
   -- resetAiStorageG gameId Second
   runGame gameId
-  result <- loopGame path gameId (opposite firstSide) 0
+  result <- loopGame mbPath gameId (opposite firstSide) 0
   $info "Battle AI#{} vs AI#{}: {}" (i, j, show result)
   return result
 
@@ -381,14 +382,21 @@ hasKing side (BoardRep lst) = any isKing (map snd lst)
     isKing (Piece King s) = s == side
     isKing _ = False
 
-loopGame :: FilePath -> GameId -> Side -> Int -> Checkers GameResult
-loopGame path gameId side i = do
+writePdn :: Maybe FilePath -> GameId -> Checkers ()
+writePdn mbPath gameId = do
+    case mbPath of
+      Nothing -> return ()
+      Just path -> do
+          pdn <- getPdn gameId
+          liftIO $ TIO.writeFile path pdn
+
+loopGame :: Maybe FilePath -> GameId -> Side -> Int -> Checkers GameResult
+loopGame mbPath gameId side i = do
   StateRs board status side <- getState gameId
   if (i > 200) || (i > 120 && boardRepLen board <= 8 && hasKing First board && hasKing Second board)
     then do
       $info "Too long a game, probably a draw" ()
-      -- pdn <- getPdn gameId
-      -- liftIO $ TIO.writeFile path pdn
+      writePdn mbPath gameId
       return Draw
     else do
       history <- getHistory gameId
@@ -397,12 +405,11 @@ loopGame path gameId side i = do
 --         print board
       case status of
         Ended result -> do
-              -- pdn <- getPdn gameId
-              -- liftIO $ TIO.writeFile path pdn
+              writePdn mbPath gameId
               return result
         _ ->  do
               letAiMove False gameId side Nothing
-              loopGame path gameId (opposite side) (i+1)
+              loopGame mbPath gameId (opposite side) (i+1)
 
 variableParameters :: [T.Text]
 variableParameters = [

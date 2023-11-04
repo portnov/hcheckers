@@ -37,12 +37,14 @@ data SpecialCommand =
           scRulesName :: String
         , scAiPath :: FilePath
         , scCount :: Int
+        , scOutFile :: Maybe FilePath
       }
     | Battle {
           scRulesName :: String
         , scHost :: Maybe String
         , scAiPath1 :: FilePath
         , scAiPath2 :: FilePath
+        , scOutFile :: Maybe FilePath
       }
     | Match {
           scRulesName :: String
@@ -164,6 +166,13 @@ parseSpecialCommand = hsubparser (
     parseRules = strArgument (metavar "RULES" <> help "Rules name")
     parseAiPath = strArgument (metavar "FILE.JSON" <> help "Path to AI settings")
     parseCount meta helpText = argument auto (metavar meta <> help helpText)
+    parseOutPath meta helpText =
+      optional $ strOption (
+           short 'o'
+        <> long "output"
+        <> metavar meta
+        <> help helpText
+      )
 
     learn :: Parser SpecialCommand
     learn = Learn
@@ -206,6 +215,7 @@ parseSpecialCommand = hsubparser (
       <$> parseRules
       <*> parseAiPath
       <*> parseCount "COUNT" "count"
+      <*> parseOutPath "DIRECTORY" "Directory where to output PDN files"
 
     battle :: Parser SpecialCommand
     battle = Battle
@@ -218,6 +228,7 @@ parseSpecialCommand = hsubparser (
             )
       <*> parseAiPath
       <*> parseAiPath
+      <*> parseOutPath "OUTPUT.PDN" "Path to output PDN file"
 
     match :: Parser SpecialCommand
     match = Match

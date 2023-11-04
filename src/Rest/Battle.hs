@@ -36,7 +36,7 @@ restServer shutdownVar = do
           ab2 = parseAi rules (brqAi2 rq)
           ai1 = SomeAi ab1
           ai2 = SomeAi ab2
-      result <- liftCheckers_ $ runBattleLocal (SomeRules rules) (1,ai1) (2,ai2) "battle.pdn"
+      result <- liftCheckers_ $ runBattleLocal (SomeRules rules) (1,ai1) (2,ai2) Nothing
       json result
 
   post "/server/shutdown" $ do
