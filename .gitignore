@@ -26,3 +26,4 @@ debian/debhelper-build-stamp
 work/
 csv/
 games/
+debian/.debhelper/generated/hcheckersd/
