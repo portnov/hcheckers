@@ -346,7 +346,8 @@ data DepthIterationInput = DepthIterationInput {
     diiParams :: AlphaBetaParams,
     diiMoves :: [PossibleMove],
     diiSortKeys :: Maybe [Score],
-    diiPrevResult :: Maybe DepthIterationOutput
+    diiPrevResult :: Maybe DepthIterationOutput,
+    diiDecideAmbiguityMode :: Bool
   }
 
 type DepthIterationOutput = [MoveAndScore]

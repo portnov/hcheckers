@@ -537,7 +537,8 @@ runAI ai@(AlphaBeta params rules eval) handle gameId side aiSession board = do
                           diiParams = params {abDepth = preselectDepth, abStartDepth = startDepth},
                           diiMoves = moves,
                           diiPrevResult = Nothing,
-                          diiSortKeys = Nothing
+                          diiSortKeys = Nothing,
+                          diiDecideAmbiguityMode = False
                         }
             goIterative target (abDeeperIfAmbigous params) input
           Just time -> do
@@ -545,7 +546,8 @@ runAI ai@(AlphaBeta params rules eval) handle gameId side aiSession board = do
                            diiParams = params,
                            diiMoves = moves,
                            diiPrevResult = Nothing,
-                           diiSortKeys = Nothing
+                           diiSortKeys = Nothing,
+                           diiDecideAmbiguityMode = False
                         }
             repeatTimed' "runAI" time goTimed input
 
@@ -586,9 +588,12 @@ runAI ai@(AlphaBeta params rules eval) handle gameId side aiSession board = do
                       maxScore = best $ map rScore output
                       goodMoves = [rMove result | result <- output, rScore result == maxScore]
                       nGoodMoves = length goodMoves
+                      params' = (diiParams nextInput) {abDepth = maxDepth, abDepthStep = 1}
                       nextInput' = nextInput {
                                      diiMoves = goodMoves,
-                                     diiSortKeys = Nothing
+                                     diiSortKeys = Nothing,
+                                     diiParams = params',
+                                     diiDecideAmbiguityMode = True
                                    }
                       isCritical = (maxScore == win) || (maxScore == loose)
                   if not isCritical && nGoodMoves > 1
@@ -611,13 +616,13 @@ runAI ai@(AlphaBeta params rules eval) handle gameId side aiSession board = do
           $info "Selecting a move. Side = {}, depth = {}, number of possible moves = {}" (show side, depth, length diiMoves)
           let opponentHasCaptures = hasCapturesOrPromotions rules (opposite side) board
           dp <- updateDepth params diiMoves opponentHasCaptures $ mkDepthParams depth diiParams
-          let needDeeper = abDeeperIfBad params && score0 `worseThan` 0
-          let dp'
-                | needDeeper = dp {
-                                    dpTarget = min (dpMax dp) (dpTarget dp + 1)
-                                  }
+          let needDeeper = abDeeperIfBad params && not diiDecideAmbiguityMode && score0 `worseThan` 0
+              target
+                | diiDecideAmbiguityMode = dpTarget dp
+                | otherwise = min (dpMax dp) (dpTarget dp + 1)
+              dp'
+                | needDeeper = dp {dpTarget = target}
                 | otherwise = dp
-
           sortedMoves <-
               case diiSortKeys of
                 Nothing -> do
