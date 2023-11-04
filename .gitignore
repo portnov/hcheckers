@@ -11,6 +11,9 @@ hcheckers.cabal
 *.mo
 *.log
 *.log.*
+*.hp
+*.prof
+genetics.yaml
 docker/work
 docker/target
 docker/stack
@@ -26,4 +29,7 @@ debian/debhelper-build-stamp
 work/
 csv/
 games/
+genetics/
+pdn_examples/
+ai/
 debian/.debhelper/generated/hcheckersd/
