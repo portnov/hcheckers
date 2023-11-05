@@ -28,10 +28,28 @@ newAiSession = do
                         }
   return (sessionId, newSession)
 
+releaseAiSession :: AiSessionId -> Checkers ()
+releaseAiSession sessionId = do
+  var <- askSupervisor
+  ok <- liftIO $ atomically $ stateTVar var $ \st -> do
+            case M.lookup sessionId (ssAiSessions st) of
+              Nothing -> (False, st)
+              Just session ->
+                let st' = st {
+                            ssAiSessions = M.delete sessionId (ssAiSessions st)
+                          }
+                in (True, st')
+  when (not ok) $
+    throwError NoSuchAiSession
+
+returnBoard :: AiSession -> Board -> Checkers ()
+returnBoard session board =
+    liftIO $ putMVar (aiResult session) board
+      
 signalStopAiSession :: AiSessionId -> Checkers ()
 signalStopAiSession sessionId = do
   var <- askSupervisor
-  st <- liftIO $ atomically $ readTVar var
+  st <- liftIO $ readTVarIO var
   case M.lookup sessionId (ssAiSessions st) of
     Nothing -> throwError NoSuchAiSession
     Just session -> liftIO $ void $ tryPutMVar (aiStopSignal session) ()
@@ -39,7 +57,7 @@ signalStopAiSession sessionId = do
 getAiSessionStatus :: AiSessionId -> Checkers AiSessionStatus
 getAiSessionStatus sessionId = do
   var <- askSupervisor
-  st <- liftIO $ atomically $ readTVar var
+  st <- liftIO $ readTVarIO var
   case M.lookup sessionId (ssAiSessions st) of
     Nothing -> return NoAiHere
     Just state -> do

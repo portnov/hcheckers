@@ -762,7 +762,7 @@ letAiMove separateThread gameId side mbBoard = do
                     $debug "Messages: {}" (Single $ show messages)
                     afterMoveSelected ai storage gameId side board' aiMove
                     queueNotifications (getGameId game) messages
-                    liftIO $ putMVar (aiResult aiSession) board'
+                    returnBoard aiSession board'
                 afterMove gameId side
                 return ()
               return (Just sessionId)
