@@ -500,6 +500,9 @@ class GeneralPage(QWidget):
 
         layout.addRow(_("Logging level"), self.log_level)
 
+        self.confirm_game_close = QCheckBox(self)
+        layout.addRow(_("Request confirmation when closing a game"), self.confirm_game_close)
+
         self.setLayout(layout)
 
     def _on_use_local_server(self):
@@ -527,6 +530,9 @@ class GeneralPage(QWidget):
         level_idx = self.log_level.findData(level)
         self.log_level.setCurrentIndex(level_idx)
 
+        need_confirmation = settings.value("confirm_game_close", True, type=bool)
+        self.confirm_game_close.setCheckState(Qt.Checked if need_confirmation else Qt.Unchecked)
+
         proxy_usage = settings.value("proxy_usage", PROXY_SYSTEM, type=int)
         self.proxy_usage.setCurrentIndex(proxy_usage)
 
@@ -540,6 +546,8 @@ class GeneralPage(QWidget):
         settings.setValue("local_server_path", self.local_server_path.widget.text())
         level = self.log_level.currentData()
         settings.setValue("log_level", level)
+        need_confirmation = self.confirm_game_close.checkState() == Qt.Checked
+        settings.setValue("confirm_game_close", need_confirmation)
         settings.setValue("proxy_usage", self.proxy_usage.currentData())
         settings.setValue("proxy_address", self.proxy_address.text())
 

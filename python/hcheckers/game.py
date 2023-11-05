@@ -312,6 +312,9 @@ class Game(object):
         defined = not (self.base_url is None or self.user_name is None or self.game_id is None)
         return defined and not self.finished
 
+    def is_connected(self):
+        return not (self.base_url is None or self.user_name is None or self.game_id is None)
+
     @staticmethod
     def process_response(rs, action=None):
         if rs is None:

@@ -155,6 +155,7 @@ class Checkers(QMainWindow):
         self._ai_session = None
         self._waiting_ai_hint = False
         self.splashscreen = None
+        self._exit_confirmed = False
         self._show_splashcreen(_("Starting HCheckers..."))
         self.server_url = self.settings.value("server_url", DEFAULT_SERVER_URL)
         self._start_server()
@@ -162,6 +163,21 @@ class Checkers(QMainWindow):
         self._gui_setup()
         self._setup_actions()
         self._default_new_game()
+
+    def close_game_confirmation(self, title):
+        if not self.game.is_connected():
+            return QMessageBox.Discard
+        need_confirm = self.settings.value("confirm_game_close", True, type=bool)
+        if need_confirm:
+            box = QMessageBox(self)
+            box.setWindowTitle(title)
+            box.setText(title)
+            box.setInformativeText(_("This action will discard the current game. Do you wish to continue?"))
+            box.setStandardButtons(QMessageBox.Save | QMessageBox.Discard | QMessageBox.Cancel)
+            ret = box.exec_()
+            return ret
+        else:
+            return QMessageBox.Discard
 
     def get_board_setup_mode(self):
         return self._board_setup_mode
@@ -226,6 +242,11 @@ class Checkers(QMainWindow):
         self.ai_hint_action.setEnabled(self.game_active and not stop_ai_enabled)
         self._enable_game_control_actions(self.game_active and self.my_turn and not is_waiting)
         self._enable_file_actions((self.my_turn or not self.game_active) and not is_waiting)
+
+    def _game_dependencies(self):
+        enable = self.game.is_connected()
+        self.save_game_action.setEnabled(enable)
+        self._enable_game_control_actions(enable)
 
     def _start_server(self):
         self.proxy_usage = self.settings.value("proxy_usage", type=int)
@@ -522,7 +543,7 @@ class Checkers(QMainWindow):
                 mask = None
         else:
             path, mask = None, None
-        self._on_new_game(show_exit=True, open_file=(path,mask))
+        self._on_new_game(show_exit=True, open_file=(path,mask), need_confirmation=False)
 
     @handling_error
     def _on_exit(self, *args):
@@ -622,32 +643,21 @@ class Checkers(QMainWindow):
         self.board.invalidate()
         self.board.repaint()
         self.history.fill()
+        self._game_dependencies()
         self.count_status.update_icons()
 
     @handling_error
-    def _on_new_game(self, checked=None, show_exit=False, open_file=(None,None)):
-        dialog = NewGameDialog(self.settings, self.game, self.share_dir, show_exit, open_file=open_file, parent=self)
-        result = dialog.exec_()
-
-        if result == QDialog.Accepted:
-            self._new_game(dialog)
-
-        if self.splashscreen:
-            self.splashscreen.finish(self)
-
-        self._display_undo_count(None)
-        self._display_hint_count(None)
-
-        if result == EXIT:
-            print("Exit!")
-            #QApplication.quit()
-            QTimer.singleShot(0, lambda: self.close())
-
-    @handling_error
-    def _on_open_game(self, checked=None):
-        path, mask = select_game_file(self)
-        if path:
-            dialog = NewGameDialog(self.settings, self.game, self.share_dir, show_exit=False, open_file=(path,mask), parent=self)
+    def _on_new_game(self, checked=None, show_exit=False, open_file=(None,None), need_confirmation=True):
+        if need_confirmation:
+            check = self.close_game_confirmation(_("Start new game?"))
+        else:
+            check = QMessageBox.Discard
+        if check == QMessageBox.Cancel:
+            return
+        else:
+            if check == QMessageBox.Save:
+                self._on_save_game()
+            dialog = NewGameDialog(self.settings, self.game, self.share_dir, show_exit, open_file=open_file, parent=self)
             result = dialog.exec_()
 
             if result == QDialog.Accepted:
@@ -655,6 +665,36 @@ class Checkers(QMainWindow):
 
             if self.splashscreen:
                 self.splashscreen.finish(self)
+
+            self._display_undo_count(None)
+            self._display_hint_count(None)
+
+            if result == QDialog.Rejected:
+                self._game_dependencies()
+            elif result == EXIT:
+                print("Exit!")
+                #QApplication.quit()
+                self._exit_confirmed = not need_confirmation
+                QTimer.singleShot(0, lambda: self.close())
+
+    @handling_error
+    def _on_open_game(self, checked=None):
+        check = self.close_game_confirmation(_("Open a game?"))
+        if check == QMessageBox.Cancel:
+            return
+        else:
+            if check == QMessageBox.Save:
+                self._on_save_game()
+            path, mask = select_game_file(self)
+            if path:
+                dialog = NewGameDialog(self.settings, self.game, self.share_dir, show_exit=False, open_file=(path,mask), parent=self)
+                result = dialog.exec_()
+
+                if result == QDialog.Accepted:
+                    self._new_game(dialog)
+
+                if self.splashscreen:
+                    self.splashscreen.finish(self)
 
     @handling_error
     def _on_save_game(self, checked=None):
@@ -989,34 +1029,43 @@ class Checkers(QMainWindow):
         self._connection_failed = True
 
     def closeEvent(self, ev):
-        
-        if self.game.is_active():
-            if self.ai_session is not None:
+        if not self._exit_confirmed:
+            check = self.close_game_confirmation(_("Exit HCheckers?"))
+        else:
+            check = QMessageBox.Discard
+        if check == QMessageBox.Discard:
+            if self.game.is_active():
+                if self.ai_session is not None:
+                    try:
+                        self.stop_ai()
+                    except Exception as e:
+                        logging.exception(e)
+                        print(e)
+
                 try:
-                    self.stop_ai()
+                    self.game.capitulate()
                 except Exception as e:
                     logging.exception(e)
                     print(e)
 
-            try:
-                self.game.capitulate()
-            except Exception as e:
-                logging.exception(e)
-                print(e)
+            use_local_server = self.settings.value("use_local_server", True, type=bool)
+            if use_local_server and self.local_server_used:
+                try:
+                    self.game.shutdown()
+                except RequestError as e:
+                    self._handle_game_error(e.rs)
+                except Exception as e:
+                    logging.exception(e)
+                    print(e)
 
-        use_local_server = self.settings.value("use_local_server", True, type=bool)
-        if use_local_server and self.local_server_used:
-            try:
-                self.game.shutdown()
-            except RequestError as e:
-                self._handle_game_error(e.rs)
-            except Exception as e:
-                logging.exception(e)
-                print(e)
-
-        self.settings.setValue("UI/geometry", self.saveGeometry())
-        self.settings.setValue("UI/windowState", self.saveState())
-        QMainWindow.closeEvent(self, ev)
+            self.settings.setValue("UI/geometry", self.saveGeometry())
+            self.settings.setValue("UI/windowState", self.saveState())
+            QMainWindow.closeEvent(self, ev)
+        elif check == QMessageBox.Save:
+            self._on_save_game()
+            QMainWindow.closeEvent(self, ev)
+        elif check == QMessageBox.Cancel:
+            ev.ignore()
 
     @handling_error
     def timerEvent(self, e):
