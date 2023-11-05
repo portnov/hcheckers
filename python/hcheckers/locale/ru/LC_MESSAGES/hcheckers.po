@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: 0.1.0.0\n"
-"POT-Creation-Date: 2023-11-05 10:19+0500\n"
+"POT-Creation-Date: 2023-11-05 13:45+0500\n"
 "PO-Revision-Date: 2018-11-07 22:30+5\n"
 "Last-Translator: Ilya Portnov <portnov84@rambler.ru>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -173,43 +173,23 @@ msgstr ""
 msgid "Killer draughts"
 msgstr "Киллер шашки"
 
-#: game.py:178
-msgid "Beginner"
-msgstr "Начинающий"
-
-#: game.py:179
-msgid "Novice"
-msgstr "Новичок"
-
-#: game.py:180
-msgid "Average"
-msgstr "Средний"
-
-#: game.py:181
-msgid "Good"
-msgstr "Хороший"
-
-#: game.py:182
-msgid "Master"
-msgstr "Мастер"
-
-#: game.py:467 game.py:523 game.py:525 lobby.py:37 newgamedlg.py:138
+#: game.py:450 game.py:506 game.py:508 lobby.py:37 newgamedlg.py:138
 msgid "White"
 msgstr "Белые"
 
-#: game.py:469 game.py:523 game.py:525 lobby.py:37 newgamedlg.py:139
+#: game.py:452 game.py:506 game.py:508 lobby.py:37 newgamedlg.py:139
 msgid "Black"
 msgstr "Черные"
 
-#: game.py:471
+#: game.py:454
 msgid "Newly created game ID: {}. First side to move: {}."
 msgstr "ID созданной игры: {}. Первыми ходят: {}."
 
-#: game.py:540
+#: game.py:523
 msgid "AI settings on server: {}"
 msgstr "Настройки ИИ на сервере: {}"
 
-#: game.py:544
+#: game.py:527
 msgid ""
 "AI parameters:\n"
 "{}"
@@ -217,27 +197,27 @@ msgstr ""
 "Параметры ИИ:\n"
 "{}"
 
-#: game.py:679
+#: game.py:662
 msgid "Offer for a draw posted."
 msgstr "Предложение ничьей послано."
 
-#: game.py:694
+#: game.py:677
 msgid "You accepted draw."
 msgstr "Вы согласились на ничью."
 
-#: game.py:696
+#: game.py:679
 msgid "You declined draw."
 msgstr "Вы отказались от ничьей."
 
-#: game.py:706
+#: game.py:689
 msgid "Game #{}: you capitulated."
 msgstr "Игра #{}: вы сдались."
 
-#: game.py:712
+#: game.py:695
 msgid "Server shutdown requested."
 msgstr "Запрошена остановка сервера."
 
-#: game.py:754
+#: game.py:737
 msgid "Requested AI to stop thinking"
 msgstr "Послан запрос ИИ прекратить обдумывание"
 
@@ -305,7 +285,7 @@ msgstr "Присоединиться к игре против человека"
 msgid "Action"
 msgstr "Действие"
 
-#: newgamedlg.py:111 toplevel.py:309
+#: newgamedlg.py:111 toplevel.py:330
 msgid "Click to open the description of selected rules"
 msgstr "Нажмите, чтобы открыть описание выбранных правил"
 
@@ -377,7 +357,7 @@ msgstr "Обновить"
 msgid "Open settings dialog"
 msgstr "Открыть диалог настроек"
 
-#: newgamedlg.py:216 toplevel.py:412
+#: newgamedlg.py:216 toplevel.py:433
 msgid "E&xit"
 msgstr "&Выход"
 
@@ -385,7 +365,7 @@ msgstr "&Выход"
 msgid "Close this dialog and exit the program"
 msgstr "Закрыть этот диалог и выйти из программы"
 
-#: newgamedlg.py:279 toplevel.py:918
+#: newgamedlg.py:279 toplevel.py:958
 msgid "Settings have been updated."
 msgstr "Настройки были обновлены."
 
@@ -486,7 +466,7 @@ msgstr "Соглашаться если ИИ проигрывает"
 msgid "Accept draws"
 msgstr "Соглашаться на ничьи"
 
-#: settingsdlg.py:156 settingsdlg.py:554
+#: settingsdlg.py:156 settingsdlg.py:562
 msgid "General"
 msgstr "Общее"
 
@@ -574,7 +554,7 @@ msgstr "Загрузить..."
 msgid "Load AI settings from JSON file"
 msgstr "Загрузить настройки ИИ из файла JSON"
 
-#: settingsdlg.py:219 toplevel.py:661 toplevel.py:674 toplevel.py:887
+#: settingsdlg.py:219 toplevel.py:701 toplevel.py:714 toplevel.py:927
 msgid "Save file"
 msgstr "Сохранить файл"
 
@@ -686,15 +666,19 @@ msgstr "Ошибки"
 msgid "Logging level"
 msgstr "Уровень журналирования"
 
-#: settingsdlg.py:556
+#: settingsdlg.py:504
+msgid "Request confirmation when closing a game"
+msgstr "Запрашивать подтверждение при закрытии игры"
+
+#: settingsdlg.py:564
 msgid "View Settings"
 msgstr "Настройки внешнего вида"
 
-#: settingsdlg.py:558
+#: settingsdlg.py:566
 msgid "AI Presets"
 msgstr "Настройки ИИ"
 
-#: settingsdlg.py:571
+#: settingsdlg.py:579
 msgid "HCheckers settings"
 msgstr "Настройки HCheckers"
 
@@ -710,31 +694,35 @@ msgstr ""
 msgid "HCheckers client"
 msgstr "Клиент HCheckers"
 
-#: toplevel.py:158
+#: toplevel.py:159
 msgid "Starting HCheckers..."
 msgstr "Запуск HCheckers..."
 
-#: toplevel.py:192 toplevel.py:841
+#: toplevel.py:175
+msgid "This action will discard the current game. Do you wish to continue?"
+msgstr "Это действие приведёт к потере текущей игры. Вы хотите продолжить?"
+
+#: toplevel.py:208 toplevel.py:881
 msgid "Your turn."
 msgstr "Ваш ход."
 
-#: toplevel.py:196
+#: toplevel.py:212
 msgid "Awaiting a turn from another side."
 msgstr "Ожидаем хода соперника."
 
-#: toplevel.py:239
+#: toplevel.py:260
 msgid "Server appears to be already running, do not start a local server"
 msgstr "Похоже, сервер уже запущен; не запускаю локальный сервер"
 
-#: toplevel.py:242
+#: toplevel.py:263
 msgid "Starting local server..."
 msgstr "Запуск локального сервера..."
 
-#: toplevel.py:245
+#: toplevel.py:266
 msgid "Running local server: {}"
 msgstr "Запускается локальный сервер: {}"
 
-#: toplevel.py:253
+#: toplevel.py:274
 msgid ""
 "Could not start local server; exit code: {}; message:\n"
 "{}"
@@ -742,163 +730,171 @@ msgstr ""
 "Не могу запустить локальный сервер; код выхода: {}\n"
 "{}"
 
-#: toplevel.py:255 toplevel.py:982 toplevel.py:987
+#: toplevel.py:276 toplevel.py:1022 toplevel.py:1027
 msgid "Exception"
 msgstr "Исключение"
 
-#: toplevel.py:322
+#: toplevel.py:343
 msgid "History"
 msgstr "История"
 
-#: toplevel.py:332
+#: toplevel.py:353
 msgid "Log"
 msgstr "Журнал"
 
-#: toplevel.py:379
+#: toplevel.py:400
 msgid "&Game"
 msgstr "&Игра"
 
-#: toplevel.py:380
+#: toplevel.py:401
 msgid "&New Game"
 msgstr "&Новая игра"
 
-#: toplevel.py:381
+#: toplevel.py:402
 msgid "&Open Game..."
 msgstr "&Открыть игру..."
 
-#: toplevel.py:382
+#: toplevel.py:403
 msgid "&Save Position"
 msgstr "&Сохранить позицию"
 
-#: toplevel.py:383
+#: toplevel.py:404
 msgid "Save &Chart as image..."
 msgstr "Сохранить &диаграмму как изображение..."
 
-#: toplevel.py:384
+#: toplevel.py:405
 msgid "&Undo"
 msgstr "&Отменить"
 
-#: toplevel.py:389
+#: toplevel.py:410
 msgid "Ask AI to stop thinking"
 msgstr "Попросить ИИ прекратить обдумывание"
 
-#: toplevel.py:391 toplevel.py:694
+#: toplevel.py:412 toplevel.py:734
 msgid "Ask for AI advice"
 msgstr "Попросить совета ИИ"
 
-#: toplevel.py:396
+#: toplevel.py:417
 msgid "Offer a &draw"
 msgstr "&Предложить ничью"
 
-#: toplevel.py:397
+#: toplevel.py:418
 msgid "Capitulate"
 msgstr "Сдаться"
 
-#: toplevel.py:401
+#: toplevel.py:422
 msgid "&Clear log"
 msgstr "О&чистить журнал"
 
-#: toplevel.py:402
+#: toplevel.py:423
 msgid "Copy selected log record"
 msgstr "Копировать выбранную запись журнала"
 
-#: toplevel.py:403
+#: toplevel.py:424
 msgid "Save &log..."
 msgstr "Сохранить &журнал..."
 
-#: toplevel.py:408
+#: toplevel.py:429
 msgid "Start &Game"
 msgstr "Начать &игру"
 
-#: toplevel.py:410
+#: toplevel.py:431
 msgid "Se&ttings"
 msgstr "Нас&тройки"
 
-#: toplevel.py:414
+#: toplevel.py:435
 msgid "&Position"
 msgstr "&Позиция"
 
-#: toplevel.py:417
+#: toplevel.py:438
 msgid "Put &white piece"
 msgstr "Установить &белую шашку"
 
-#: toplevel.py:418
+#: toplevel.py:439
 msgid "Put &black piece"
 msgstr "Установить &черную шашку"
 
-#: toplevel.py:419
+#: toplevel.py:440
 msgid "&Remove piece"
 msgstr "&Удалить шашку"
 
-#: toplevel.py:429
+#: toplevel.py:450
 msgid "&View"
 msgstr "&Вид"
 
-#: toplevel.py:430
+#: toplevel.py:451
 msgid "&Flip board"
 msgstr "&Перевернуть доску"
 
-#: toplevel.py:443
+#: toplevel.py:464
 msgid "H&istory"
 msgstr "&История"
 
-#: toplevel.py:447
+#: toplevel.py:468
 msgid "&Help"
 msgstr "&Справка"
 
-#: toplevel.py:448
+#: toplevel.py:469
 msgid "&Wiki documentation"
 msgstr "Документация &Wiki"
 
-#: toplevel.py:449
+#: toplevel.py:470
 msgid "&About HCheckers"
 msgstr "&О HCheckers"
 
-#: toplevel.py:551
+#: toplevel.py:572
 msgid "Starting new game..."
 msgstr "Запуск новой игры..."
 
-#: toplevel.py:582 toplevel.py:593 toplevel.py:609
+#: toplevel.py:603 toplevel.py:614 toplevel.py:630
 msgid "Rules: {}"
 msgstr "Правила: {}"
 
-#: toplevel.py:583
+#: toplevel.py:604
 msgid "AI: {}"
 msgstr "ИИ: {}"
 
-#: toplevel.py:587
+#: toplevel.py:608
 msgid "New game ID: {}"
 msgstr "ID новой игры: {}"
 
-#: toplevel.py:597
+#: toplevel.py:618
 msgid "Waiting for another side to join the game."
 msgstr "Ожидаем подключения второй стороны к игре"
 
-#: toplevel.py:683
+#: toplevel.py:652
+msgid "Start new game?"
+msgstr "Начать новую игру?"
+
+#: toplevel.py:682
+msgid "Open a game?"
+msgstr "Открыть игру?"
+
+#: toplevel.py:723
 msgid "Undo"
 msgstr "Отменить"
 
-#: toplevel.py:687
+#: toplevel.py:727
 msgid "Undo (number of previously undone moves: {})"
 msgstr "Отменить (количество ранее отмененных ходов: {})"
 
-#: toplevel.py:698
+#: toplevel.py:738
 msgid "Ask for AI advice (number of previously requested advices: {})"
 msgstr "Попросить совета ИИ (количество ранее запрошенных советов: {})"
 
-#: toplevel.py:712
+#: toplevel.py:752
 msgid "Nothing to undo."
 msgstr "Нечего отменять."
 
-#: toplevel.py:729
+#: toplevel.py:769
 msgid "Waiting for an advice from AI"
 msgstr "Ожидаем совета от ИИ"
 
-#: toplevel.py:736
+#: toplevel.py:776
 msgid "Offer a draw?"
 msgstr "Предложить ничью?"
 
-#: toplevel.py:737
+#: toplevel.py:777
 msgid ""
 "Are you sure you want to offer a draw to the other side? This action can not "
 "be undone."
@@ -906,59 +902,59 @@ msgstr ""
 "Вы уверены, что хотите предложить ничью сопернику? Это действие не может "
 "быть отменено."
 
-#: toplevel.py:747
+#: toplevel.py:787
 msgid "Waiting for a response on draw offer from another side"
 msgstr "Ожидаем от соперника ответа на предложение ничьей"
 
-#: toplevel.py:765
+#: toplevel.py:805
 msgid "Capitulate?"
 msgstr "Сдаться?"
 
-#: toplevel.py:766
+#: toplevel.py:806
 msgid "Are you sure you want to capitulate? This action can not be undone."
 msgstr "Вы уверены, что хотите сдаться? Это действие не может быть отменено."
 
-#: toplevel.py:779 toplevel.py:781
+#: toplevel.py:819 toplevel.py:821
 msgid "{} win"
 msgstr "{} выиграли"
 
-#: toplevel.py:783
+#: toplevel.py:823
 msgid "Draw"
 msgstr "Ничья"
 
-#: toplevel.py:793
+#: toplevel.py:833
 msgid "Game result: {}"
 msgstr "Результат игры: {}"
 
-#: toplevel.py:796
+#: toplevel.py:836
 msgid "Game over."
 msgstr "Игра окончена."
 
-#: toplevel.py:819
+#: toplevel.py:859
 msgid "Accept the draw?"
 msgstr "Согласиться на ничью?"
 
-#: toplevel.py:820
+#: toplevel.py:860
 msgid "Another side have offered you a draw. Do you wish to accept it?"
 msgstr "Соперник предложил вам ничью. Вы хотите согласиться на неё?"
 
-#: toplevel.py:830
+#: toplevel.py:870
 msgid "Response on a draw offer"
 msgstr "Ответ на предложение ничьей"
 
-#: toplevel.py:846
+#: toplevel.py:886
 msgid "AI suggested the following move(s): {}"
 msgstr "ИИ предложил следующие ходы: {}"
 
-#: toplevel.py:881
+#: toplevel.py:921
 msgid "Log has been cleared."
 msgstr "Журнал был очищен."
 
-#: toplevel.py:948
+#: toplevel.py:988
 msgid "About HCheckers"
 msgstr "О HCheckers"
 
-#: toplevel.py:949
+#: toplevel.py:989
 msgid ""
 "This is HCheckers Client application, version {0}.<br>Server version is {1} "
 "({2}).<br>Please report issues at <a href=\"{3}\">{3}</a>."
@@ -966,7 +962,7 @@ msgstr ""
 "Это клиентское приложение HCheckers, версия {0}<br>Версия сервера {1} ({2})."
 "<br>Пожалуйста сообщайте о проблемах на странице <a href=\"{3}\">{3}</a>."
 
-#: toplevel.py:961
+#: toplevel.py:1001
 msgid ""
 "Unexpected response received from the server.\n"
 "Request URL: {}\n"
@@ -978,11 +974,11 @@ msgstr ""
 "Код ответа: {}\n"
 "Сообщение в ответе: {}"
 
-#: toplevel.py:972
+#: toplevel.py:1012
 msgid "No such move: {}"
 msgstr "Нет такого хода: {}"
 
-#: toplevel.py:976
+#: toplevel.py:1016
 msgid ""
 "Status of current game is unsuitable for this operation. Game status is {}; "
 "required status is {}"
@@ -990,11 +986,11 @@ msgstr ""
 "Статус текущей игры не подходит для данной операции. Статус игры {}; нужный "
 "статус {}"
 
-#: toplevel.py:978
+#: toplevel.py:1018
 msgid "Custom AI settings are disabled on server side"
 msgstr "Пользовательские настройки ИИ запрещены на стороне сервера"
 
-#: toplevel.py:986
+#: toplevel.py:1026
 msgid ""
 "An exception occured while connecting to the server.\n"
 "Request URL: {}\n"
@@ -1003,6 +999,25 @@ msgstr ""
 "При подключении к серверу произошло исключение.\n"
 "URL запроса: {}\n"
 "Текст исключения: {}"
+
+#: toplevel.py:1033
+msgid "Exit HCheckers?"
+msgstr "Выйти из HCheckers?"
+
+#~ msgid "Beginner"
+#~ msgstr "Начинающий"
+
+#~ msgid "Novice"
+#~ msgstr "Новичок"
+
+#~ msgid "Average"
+#~ msgstr "Средний"
+
+#~ msgid "Good"
+#~ msgstr "Хороший"
+
+#~ msgid "Master"
+#~ msgstr "Мастер"
 
 #~ msgid "Asymetry"
 #~ msgstr "Асимметрия"
