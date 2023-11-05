@@ -64,6 +64,36 @@ mkDepthParams depth params =
    , dpReductedMode = False
    }
 
+getBgSessionId :: (GameRules rules, VectorEvaluator eval)
+               => AICacheHandle rules eval
+               -> GameId
+               -> Checkers (Maybe AiSessionId)
+getBgSessionId handle gameId = do
+  bgSessions <- liftIO $ atomically $ readTVar (aichBackgroundSession handle)
+  return $ M.lookup gameId bgSessions
+
+stopBgSession :: (GameRules rules, VectorEvaluator eval)
+               => AICacheHandle rules eval
+               -> GameId
+               -> Checkers ()
+stopBgSession handle gameId = do
+  mbBgSessionId <- getBgSessionId handle gameId
+  case mbBgSessionId of
+    Nothing -> return ()
+    Just bgSessionId -> do
+      $info "Send a signal to stop background session" ()
+      signalStopAiSession bgSessionId
+
+newBgSession :: (GameRules rules, VectorEvaluator eval)
+               => AICacheHandle rules eval
+               -> GameId
+               -> Checkers (AiSessionId, AiSession)
+newBgSession handle gameId = do
+  (bgSessionId, bgSession) <- newAiSession
+  liftIO $ atomically $ modifyTVar (aichBackgroundSession handle) $ \sessions ->
+      M.insert gameId bgSessionId sessions
+  return (bgSessionId, bgSession)
+
 instance (GameRules rules, VectorEvaluator eval, ToJSON eval) => GameAi (AlphaBeta rules eval) where
 
   type AiStorage (AlphaBeta rules eval) = AICacheHandle rules eval
@@ -80,12 +110,7 @@ instance (GameRules rules, VectorEvaluator eval, ToJSON eval) => GameAi (AlphaBe
       resetAiCache cache
 
   chooseMove ai storage gameId side aiSession board = Monitoring.timed "ai.choose.move" $ do
-    mbBgSessionId <- liftIO $ atomically $ readTVar (aichBackgroundSession storage)
-    case mbBgSessionId of
-      Nothing -> return ()
-      Just bgSessionId -> do
-        $info "Send a signal to stop background session" ()
-        signalStopAiSession bgSessionId
+    stopBgSession storage gameId
     (moves, _) <- runAI ai storage gameId side aiSession board
     -- liftIO $ atomically $ writeTVar (aichCurrentCounts storage) $ calcBoardCounts board
     Monitoring.distribution "ai.chosen.moves.count" $ fromIntegral $ length moves
@@ -97,8 +122,7 @@ instance (GameRules rules, VectorEvaluator eval, ToJSON eval) => GameAi (AlphaBe
     when (abThinkInBackground params) $ Monitoring.timed "ai.background" $ do
       let side' = opposite side
       $info "Start thinking in background for side {}" (Single $ show side')
-      (bgSessionId, bgSession) <- newAiSession
-      liftIO $ atomically $ writeTVar (aichBackgroundSession storage) (Just bgSessionId)
+      (bgSessionId, bgSession) <- newBgSession storage gameId
       forkCheckers $ do
         let params' = params {abDepth = abDepth params + 1}
             ai' = AlphaBeta params' rules eval

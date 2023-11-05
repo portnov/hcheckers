@@ -85,7 +85,7 @@ loadAiCache scoreMove rules = do
   counts <- liftIO $ atomically $ newTVar $ BoardCounts 50 50 50 50
   scoreShift <- liftIO $ atomically $ newTVar M.empty
   index <- liftIO $ atomically $ newTVar 0
-  bgSession <- liftIO $ atomically $ newTVar Nothing
+  bgSessions <- liftIO $ atomically $ newTVar M.empty
   let handle = AICacheHandle {
       aichRules = rules,
       aichData = cache,
@@ -94,7 +94,7 @@ loadAiCache scoreMove rules = do
       -- aichPossibleMoves = moves,
       aichLastMoveScoreShift = scoreShift,
       aichCurrentCounts = counts,
-      aichBackgroundSession = bgSession
+      aichBackgroundSession = bgSessions
     }
 
   save <- asks (aiStoreCache . gcAiConfig . csConfig)
