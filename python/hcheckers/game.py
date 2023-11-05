@@ -162,32 +162,12 @@ class AI(object):
     def list_from_settings(cls, share_dir, settings):
         result = []
         size = settings.beginReadArray("AI")
-        if size is None or size == 0:
-            result = AI.load_default_ais(share_dir)
-        else:
-            for idx in range(size):
-                settings.setArrayIndex(idx)
-                ai = AI.from_settings(settings)
-                result.append(ai)
+        for idx in range(size):
+            settings.setArrayIndex(idx)
+            ai = AI.from_settings(settings)
+            result.append(ai)
         settings.endArray()
         return result
-
-    @classmethod
-    def load_default_ais(cls, share_dir):
-        ai_names = [
-                (_("Beginner"), "beginner.json"),
-                (_("Novice"), "novice.json"),
-                (_("Average"), "average.json"),
-                (_("Good"), "good.json"),
-                (_("Master"), "master.json")
-            ]
-
-        ais = []
-        for title, json_name in ai_names:
-            ai = AI.from_json_file(join(share_dir, "ai_presets", json_name))
-            ai.title = title
-            ais.append(ai)
-        return ais
 
     def to_settings(self, settings):
         settings.setValue("title", self.title)

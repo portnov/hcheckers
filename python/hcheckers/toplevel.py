@@ -43,7 +43,7 @@ class TimerLabel(QLabel):
 
 class TimersBox(QFrame):
     def __init__(self, parent):
-        QWidget.__init__(self, parent)
+        QFrame.__init__(self, parent)
         layout = QHBoxLayout()
         self.timer1 = TimerLabel(self)
         layout.addWidget(self.timer1)
