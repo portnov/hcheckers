@@ -93,14 +93,16 @@ instance (GameRules rules, VectorEvaluator eval, ToJSON eval) => GameAi (AlphaBe
       Monitoring.increment "ai.ambigous.choice"
     return moves
 
-  afterMoveSelected ai@(AlphaBeta params _ _) storage gameId side board pm = do
+  afterMoveSelected ai@(AlphaBeta params rules eval) storage gameId side board pm = do
     when (abThinkInBackground params) $ Monitoring.timed "ai.background" $ do
       let side' = opposite side
       $info "Start thinking in background for side {}" (Single $ show side')
       (bgSessionId, bgSession) <- newAiSession
       liftIO $ atomically $ writeTVar (aichBackgroundSession storage) (Just bgSessionId)
       forkCheckers $ do
-        (moves, _) <- runAI ai storage gameId side' bgSession board
+        let params' = params {abDepth = abDepth params + 1}
+            ai' = AlphaBeta params' rules eval
+        (moves, _) <- runAI ai' storage gameId side' bgSession board
         $info "In place of side {}, AI would select moves: {}" (show side', show moves)
         return ()
       return ()
