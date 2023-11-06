@@ -654,7 +654,7 @@ class Board(QWidget):
         def draw_label(rect, label):
             text_flags = Qt.AlignHCenter | Qt.AlignVCenter
             font = painter.font()
-            font.setPointSize(sz.cell_size * 0.3)
+            font.setPointSize(int(sz.cell_size * 0.3))
             font.setBold(True)
             painter.setFont(font)
             painter.setPen(self.theme.border_notation_color)

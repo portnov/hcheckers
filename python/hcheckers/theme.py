@@ -30,6 +30,9 @@ class CachedPixmap(object):
         self._pixmap = None
 
     def _get(self, size):
+        if size is not None:
+            w,h = size
+            size = int(w), int(h)
         self.size = size
         if self.is_image:
             if self.path.endswith(".svg"):
