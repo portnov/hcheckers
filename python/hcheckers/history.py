@@ -31,7 +31,7 @@ class HistoryTableWidget(QTableWidget):
         history = self.client.get_history()
         if history is None:
             return
-        self.setRowCount((len(history) / 2) + 2)
+        self.setRowCount(int(len(history) / 2) + 2)
         row = 0
         self.setItem(row, 0, make_item(_("Initial position")))
         self.setItem(row, 1, make_item(_("Initial position")))

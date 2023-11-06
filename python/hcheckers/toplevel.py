@@ -555,7 +555,7 @@ class Checkers(QMainWindow):
 
     def _splashscreen_size(self):
         screen_size = self._screen_size()
-        return screen_size / 2
+        return int(screen_size / 2.0)
 
     def _show_splashcreen(self, message=None):
         splash_size = self._splashscreen_size()

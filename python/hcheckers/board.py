@@ -193,10 +193,10 @@ class PossibleCaptureAnimation(QObject):
             painter.setOpacity(self.opacity)
             if is_captured:
                 cross = self.board.theme.get_captured()
-                painter.drawPixmap(sz.init_x + x, sz.init_y + y, cross)
+                painter.drawPixmap(QPointF(sz.init_x + x, sz.init_y + y), cross)
             if is_attacking:
                 attacking = self.board.theme.get_attacking()
-                painter.drawPixmap(sz.init_x + x, sz.init_y + y, attacking)
+                painter.drawPixmap(QPointF(sz.init_x + x, sz.init_y + y), attacking)
             painter.setOpacity(1.0)
 
 class TextMessage(QObject):
@@ -590,7 +590,7 @@ class Board(QWidget):
         else:
             x = col * sz.cell_size
             y = (self.n_rows-1-row) * sz.cell_size
-        field.draw(painter, QRect(sz.init_x + x, sz.init_y + y, sz.cell_size, sz.cell_size))
+        field.draw(painter, QRectF(sz.init_x + x, sz.init_y + y, sz.cell_size, sz.cell_size))
         if hide:
             field.hide_piece = prev_hide_piece
         field.possible_piece = prev_possible_piece
@@ -630,7 +630,7 @@ class Board(QWidget):
                 x0,y0 = self.move_animation.piece_position
                 x = x0 - w*0.5
                 y = y0 - h*0.5
-                painter.drawPixmap(x, y, piece)
+                painter.drawPixmap(QPointF(x, y), piece)
 
         if self.hint_moves is not None:
             for move in self.hint_moves:
@@ -666,7 +666,7 @@ class Board(QWidget):
         rect = QRectF(sz.init_x, sz.border_init_y, sz.board_width, sz.border_width)
         painter.drawTiledPixmap(rect, self.theme.border_top.get((cell_width, cell_height)))
         for col in range(self.n_cols):
-            rect = QRect(sz.init_x + col*cell_width, sz.border_init_y, cell_width, cell_height)
+            rect = QRectF(sz.init_x + col*cell_width, sz.border_init_y, cell_width, cell_height)
             i = self.n_cols - col - 1 if self.flip else col
             label = self.top_border_labels[i]
             draw_label(rect, label)
@@ -675,7 +675,7 @@ class Board(QWidget):
         rect = QRectF(sz.init_x, sz.init_y + sz.board_height, sz.board_width, sz.border_width)
         painter.drawTiledPixmap(rect, self.theme.border_bottom.get((cell_width, cell_height)))
         for col in range(self.n_cols):
-            rect = QRect(sz.init_x + col*cell_width, sz.init_y + sz.board_height, cell_width, cell_height)
+            rect = QRectF(sz.init_x + col*cell_width, sz.init_y + sz.board_height, cell_width, cell_height)
             i = self.n_cols - col - 1 if self.flip else col
             label = self.bottom_border_labels[i]
             draw_label(rect, label)
@@ -686,7 +686,7 @@ class Board(QWidget):
         rect = QRectF(sz.border_init_x, sz.init_y, sz.border_width, sz.board_height)
         painter.drawTiledPixmap(rect, self.theme.border_left.get((cell_width, cell_height)))
         for row in range(self.n_rows):
-            rect = QRect(sz.border_init_x, sz.init_y + row*cell_height, cell_width, cell_height)
+            rect = QRectF(sz.border_init_x, sz.init_y + row*cell_height, cell_width, cell_height)
             i = row if self.flip else self.n_rows - row - 1
             label = self.left_border_labels[i]
             draw_label(rect, label)
@@ -695,30 +695,30 @@ class Board(QWidget):
         rect = QRectF(sz.init_x + sz.board_width, sz.init_y, sz.border_width, sz.board_height)
         painter.drawTiledPixmap(rect, self.theme.border_right.get((cell_width, cell_height)))
         for row in range(self.n_rows):
-            rect = QRect(sz.init_x + sz.board_width, sz.init_y + row*cell_height, cell_width, cell_height)
+            rect = QRectF(sz.init_x + sz.board_width, sz.init_y + row*cell_height, cell_width, cell_height)
             i = row if self.flip else self.n_rows - row - 1
             label = self.right_border_labels[i]
             draw_label(rect, label)
 
         # top-left
         cell_width = cell_height = sz.border_width
-        rect = QRect(sz.border_init_x, sz.border_init_y, cell_width, cell_height)
+        rect = QRectF(sz.border_init_x, sz.border_init_y, cell_width, cell_height)
         painter.drawPixmap(rect.topLeft(), self.theme.border_tl.get((cell_width, cell_height)))
 
         # top-right
-        rect = QRect(sz.init_x + sz.board_width, sz.border_init_y, cell_width, cell_height)
+        rect = QRectF(sz.init_x + sz.board_width, sz.border_init_y, cell_width, cell_height)
         painter.drawPixmap(rect.topLeft(), self.theme.border_tr.get((cell_width, cell_height)))
 
         # bottom-left
-        rect = QRect(sz.border_init_x, sz.init_y + sz.board_height, cell_width, cell_height)
+        rect = QRectF(sz.border_init_x, sz.init_y + sz.board_height, cell_width, cell_height)
         painter.drawPixmap(rect.topLeft(), self.theme.border_bl.get((cell_width, cell_height)))
 
         # bottom-right
-        rect = QRect(sz.init_x + sz.board_width, sz.init_y + sz.board_height, cell_width, cell_height)
+        rect = QRectF(sz.init_x + sz.board_width, sz.init_y + sz.board_height, cell_width, cell_height)
         painter.drawPixmap(rect.topLeft(), self.theme.border_br.get((cell_width, cell_height)))
 
         if self.theme.border_line_color:
-            rect = QRect(sz.init_x, sz.init_y, sz.board_width, sz.board_height)
+            rect = QRectF(sz.init_x, sz.init_y, sz.board_width, sz.board_height)
             painter.setPen(self.theme.border_line_color)
             painter.drawRect(rect)
 
@@ -746,7 +746,7 @@ class Board(QWidget):
 #         r = min(height_r, width_r)
         font = painter.font()
 #         font.setPointSize(font.pointSize() * r)
-        font.setPointSize(self.theme.size / 2)
+        font.setPointSize(int(self.theme.size / 2))
         font.setBold(True)
         painter.setFont(font)
         painter.setPen(self.theme.message_color)
@@ -793,7 +793,7 @@ class Board(QWidget):
     def get_board_rect(self):
         w, h = self.get_size()
         sz = self.get_size_data()
-        return QRect(sz.init_x, sz.init_y, w, h)
+        return QRectF(sz.init_x, sz.init_y, w, h)
 
     def get_target_field_size(self, size):
         w_max = size.width()

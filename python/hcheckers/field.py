@@ -1,6 +1,6 @@
 
 from PyQt5.QtGui import QPainter, QPixmap
-from PyQt5.QtCore import QRect, Qt
+from PyQt5.QtCore import QRect, Qt, QPointF, QRectF
 from PyQt5.QtWidgets import QApplication, QWidget
 
 from hcheckers import common
@@ -172,7 +172,7 @@ class Field(object):
         if self._pixmap is not None:
             return
         
-        self._pixmap = QPixmap(self._rect.width(), self._rect.height())
+        self._pixmap = QPixmap(int(self._rect.width()), int(self._rect.height()))
         self._pixmap.fill(Qt.white)
         painter = QPainter()
         painter.begin(self._pixmap)
@@ -222,5 +222,5 @@ class Field(object):
     def draw(self, painter, rect):
         self._rect = rect
         self._draw()
-        painter.drawPixmap(rect.x(), rect.y(), self._pixmap)
+        painter.drawPixmap(QPointF(rect.x(), rect.y()), self._pixmap)
 
