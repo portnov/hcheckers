@@ -81,8 +81,8 @@ restServer shutdownVar = do
         gameId <- liftCheckers_ $ newGame rules firstSide board (rqTimingControl rq)
         liftCheckers_ $ setHistory gameId history
         liftCheckers gameId $ $info
-          "Created new game #{}; First turn: {}; initial board: {}"
-          (gameId, show firstSide, show board)
+          "Created new game #{}; First turn: {}; Timing control: {}; initial board: {}"
+          (gameId, show firstSide, rqTimingControl rq, show board)
         json $ Response (NewGameRs gameId firstSide) []
 
   post "/game/:id/attach/ai/:side" $ do
