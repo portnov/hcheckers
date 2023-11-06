@@ -1,0 +1,24 @@
+cradle:
+  multi:
+    - path: "./src/special/Special.hs"
+      config:
+        cradle:
+          none:
+    - path: "./Setup.hs"
+      config:
+        cradle:
+          none:
+    - path: "./test/Spec.hs"
+      config:
+        cradle:
+          none:
+    - path: "./"
+      config:
+        cradle:
+          stack:
+            - path: "./src/server"
+              component: "hcheckers:exe:hcheckersd"
+
+            - path: "./src/"
+              component: "hcheckers:exe:hcheckersd"
+
