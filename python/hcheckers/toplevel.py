@@ -580,6 +580,7 @@ class Checkers(QMainWindow):
 
         self.request_draw_action.setEnabled(True)
         self.capitulate_action.setEnabled(True)
+        self.count_status.set_timers(None, None)
 
         self.game_settings = game = dialog.get_settings()
         if game.action == START_AI_GAME:
