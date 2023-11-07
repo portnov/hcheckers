@@ -121,14 +121,22 @@ instance (GameRules rules, VectorEvaluator eval, ToJSON eval) => GameAi (AlphaBe
   afterMoveSelected ai@(AlphaBeta params rules eval) storage gameId side board pm = do
     when (abThinkInBackground params) $ Monitoring.timed "ai.background" $ do
       let side' = opposite side
-      $info "Start thinking in background for side {}" (Single $ show side')
       (bgSessionId, bgSession) <- newBgSession storage gameId
       forkCheckers $ do
         let params' = params {abDepth = abDepth params + 1}
             ai' = AlphaBeta params' rules eval
-        (moves, _) <- runAI ai' storage gameId side' bgSession board
-        $info "In place of side {}, AI would select moves: {}" (show side', show moves)
-        return ()
+            moves' = possibleMoves rules side' board
+        case moves' of
+          [] -> $debug "Opposite side does not have moves, do not think for it" ()
+          [move] -> do
+            let board' = applyMoveActions (pmResult move) board
+            $info "Opposite side has only one possible move {}. Start thinking in backgrond for side {} after that move" (show move, show side)
+            (moves, _) <- runAI ai' storage gameId side bgSession board'
+            $info "AI will select next moves for side {}: {}" (show side, show moves)
+          _ -> do
+            $info "Start thinking in background for side {}" (Single $ show side')
+            (moves, _) <- runAI ai' storage gameId side' bgSession board
+            $info "In place of side {}, AI would select moves: {}" (show side', show moves)
       return ()
 
   decideDrawRequest ai@(AlphaBeta params rules eval) storage gameId side aiSession board = do
