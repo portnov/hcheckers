@@ -1,16 +1,35 @@
+classic12060n:
+  title:
+    ru: "Классика: 2ч на первые 50 ходов + 1ч на каждые 25 ходов"
+    en: "Classic: 2h for first 50 moves + 1h for each 25 moves"
+  initial_seconds: 7200
+  initial_moves: 50
+  next_moves: 25
+  additional_seconds: 50
+  rules: [international, canadian, frisian, killer]
+classic12060:
+  title:
+    ru: "Классика: 2ч на первые 50 ходов + 1ч"
+    en: "Classic: 2h for first 50 moves + 1h"
+  initial_seconds: 7200
+  initial_moves: 50
+  additional_seconds: 3600
+  rules: [international, canadian, frisian, killer]
 classic4515:
   title:
-    ru: "Классика: 45м на 20 ходов + 15м"
-    en: "Classic: 45m for 20 moves + 15m"
+    ru: "Классика: 45м на первые 20 ходов + 15м"
+    en: "Classic: 45m for first 20 moves + 15m"
   initial_seconds: 2700
   initial_moves: 20
   additional_seconds: 900
+  rules: [russian, brasilian, spancirety]
 classic4530:
   title:
-    ru: "Классика: 45м + 30с за ход"
-    en: "Classic: 45m + 30s for move"
+    ru: "Классика: 45м на партию + 30с за каждый ход"
+    en: "Classic: 45m for game + 30s for each move"
   seconds_per_game: 2700
   seconds_per_move: 30
+  rules: [russian, brasilian, spancirety]
 rapid10:
   title:
     ru: "Рапид: 10м"
