@@ -424,6 +424,11 @@ class ViewSettingsPage(QWidget):
         self.enable_sound = QCheckBox(self)
         layout.addRow(_("Enable sounds"), self.enable_sound)
 
+        self.time_display = QComboBox(self)
+        self.time_display.addItem(_("Remaining time"), "time_left")
+        self.time_display.addItem(_("Passed time"), "time_passed")
+        layout.addRow(_("In game clock show"), self.time_display)
+
         self.setLayout(layout)
 
     def get_theme(self):
@@ -457,6 +462,10 @@ class ViewSettingsPage(QWidget):
         enable_sound = settings.value("enable_sound", True, type=bool)
         self.enable_sound.setCheckState(Qt.Checked if enable_sound else Qt.Unchecked)
 
+        time_display = settings.value("time_display", "time_left")
+        time_display_idx = self.time_display.findData(time_display)
+        self.time_display.setCurrentIndex(time_display_idx)
+
     def save(self, settings):
         settings.setValue("show_notation", self.show_notation.checkState() == Qt.Checked)
         settings.setValue("show_border", self.show_border.checkState() == Qt.Checked)
@@ -464,6 +473,7 @@ class ViewSettingsPage(QWidget):
         settings.setValue("highlight_captures", self.highlight_captures.currentData())
         settings.setValue("theme", self.theme.currentData())
         settings.setValue("enable_sound", self.get_enable_sound())
+        settings.setValue("time_display", self.time_display.currentData())
 
 class GeneralPage(QWidget):
     def __init__(self, parent=None):

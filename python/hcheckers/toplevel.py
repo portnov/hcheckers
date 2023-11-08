@@ -1091,13 +1091,14 @@ class Checkers(QMainWindow):
 
         self._poll_try_number = 0
 
+        timing_key = self.settings.value("time_display", "time_left")
         board, messages = self.game.poll()
         for message in messages:
             self.board.process_message(message)
             if "move" in message:
                 self.my_turn = True
-            if "time_left" in message:
-                self.count_status.set_timers(*message["time_left"])
+            if timing_key in message:
+                self.count_status.set_timers(*message[timing_key])
         if self.setup_fields_on_poll:
             self.board.fields_setup(board)
 
