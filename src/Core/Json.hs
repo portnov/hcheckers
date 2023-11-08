@@ -9,6 +9,7 @@ import qualified Data.Aeson.KeyMap as KM
 import qualified Data.Text as T
 import Data.Default
 import System.Log.Heavy
+import System.Clock (sec)
 
 import Core.Types
 import Core.Version
@@ -170,8 +171,12 @@ instance ToJSON Notify where
     object ["to_side" .= to, "from_side" .= from, "draw_accepted" .= accepted]
   toJSON (LogNotify to level src text) =
     object ["to_side" .= to, "source" .= src, "level" .= level, "message" .= text]
-  toJSON (TimeLeftNotify to firstLeft secondLeft) =
-    object ["to_side" .= to, "time_left" .= [firstLeft, secondLeft]]
+  toJSON (TimingNotify to firstTiming secondTiming) =
+    object [
+        "to_side" .= to,
+        "time_left" .= [sec (tLeft firstTiming), sec (tLeft secondTiming)],
+        "time_passed" .= [sec (tPassed firstTiming), sec (tPassed secondTiming)]
+      ]
 
 instance ToJSON RsPayload where
   toJSON (NewGameRs id side) = object ["id" .= id, "turn" .= side]

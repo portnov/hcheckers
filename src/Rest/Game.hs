@@ -265,11 +265,11 @@ restServer shutdownVar = do
                       Nothing -> return []
                       Just game -> do
                         let gameId = getGameId game
-                        mbTiming <- liftCheckers gameId $ getTimeLeft gameId
+                        mbTiming <- liftCheckers gameId $ getTiming gameId
                         case mbTiming of
                           Just (firstLeft, secondLeft) -> do
                             side <- liftCheckers gameId $ getSideByUser gameId name
-                            return [TimeLeftNotify side firstLeft secondLeft]
+                            return [TimingNotify side firstLeft secondLeft]
                           Nothing -> return []
     let messages' = messages ++ timeMessages
     json $ Response (PollRs messages') []

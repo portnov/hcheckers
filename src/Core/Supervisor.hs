@@ -613,14 +613,14 @@ getMessages name = do
         Just First -> Just $ gMsgbox1 game
         Just Second -> Just $ gMsgbox2 game
 
-getTimeLeft :: GameId -> Checkers (Maybe (Seconds, Seconds))
-getTimeLeft gameId = do
+getTiming :: GameId -> Checkers (Maybe (Timing, Timing))
+getTiming gameId = do
   enabled <- withGame gameId $ \_ -> Timing.isTimingEnabled
   if enabled
     then do
       now <- liftIO $ getTime Monotonic
-      first <- withGame gameId $ \_ -> Timing.getTimeLeft First now
-      second <- withGame gameId $ \_ -> Timing.getTimeLeft Second now
+      first <- withGame gameId $ \_ -> Timing.getTiming First now
+      second <- withGame gameId $ \_ -> Timing.getTiming Second now
       return $ Just (first, second)
     else return Nothing
     

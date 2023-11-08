@@ -703,15 +703,24 @@ instance Default GamePlayerStats where
 
 type Seconds = Int64
 
+data Timing = Timing {
+      tPassed :: !TimeSpec
+    , tLeft :: !TimeSpec
+  }
+  deriving (Eq, Show)
+
+instance Default Timing where
+  def = Timing 0 0
+
 data TimingState = TimingState {
       tsTimerStarted :: !TimeSpec
-    , tsTimeLeft :: !Seconds
-    , tsMovesDone :: Int
+    , tsTiming :: !Timing
+    , tsMovesDone :: !Int
   }
   deriving (Eq, Show)
 
 instance Default TimingState where
-  def = TimingState (TimeSpec 0 0) 0 0
+  def = TimingState (TimeSpec 0 0) def def
 
 data Game = Game {
     getGameId :: GameId
@@ -793,10 +802,10 @@ data Notify =
     , nSource :: Side
     , nAccepted :: Bool
     }
-  | TimeLeftNotify {
+  | TimingNotify {
       nDestination :: Side
-    , nFirstTimeLeft :: Seconds
-    , nSecondTimeLeft :: Seconds
+    , nFirstTiming :: Timing
+    , nSecondTiming :: Timing
     }
   | LogNotify {
       nDestination :: Side
