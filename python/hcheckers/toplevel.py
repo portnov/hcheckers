@@ -284,7 +284,7 @@ class Checkers(QMainWindow):
         self.theme = Theme(join(self.share_dir, "themes", theme_name), None)
         self.theme.enable_sound = self.settings.value("enable_sound", True, type=bool)
         self.game = Game(url = self.server_url, proxy_usage=self.proxy_usage, proxy_address=self.proxy_address)
-        self.poll_timer = self.startTimer(500)
+        self.poll_timer = self.startTimer(1000)
         self.setup_fields_on_poll = False
 
     def _icon(self, name):
