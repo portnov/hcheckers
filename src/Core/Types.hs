@@ -890,16 +890,18 @@ instance Default BattleServerConfig where
 
 data BaseTimingConfig =
     TotalTime Seconds                  -- ^ Total time per whole game, i.e. 45 mins per game
-  | TwoPartsTime {
+  | PartsTime {
         tptInitTime :: Seconds         -- ^ Some time for first N moves in the game
       , tptInitMoves :: Int            -- ^ Number of first moves to which previous field refers
+      , tptNextMoves :: Maybe Int
       , tptAdditionalTime :: Seconds   -- ^ Time for the rest of the game after first N moves
-      , tptKeepInitTime :: Bool
+      , tptKeepPrevTime :: Bool
     }
   deriving (Eq, Show)
 
 data TimingConfig = TimingConfig {
     tcName :: M.Map T.Text T.Text  -- ^ Name translated to different languages
+  , tcRules :: Maybe [String]      -- ^ Compatible rules
   , tcBaseTime :: BaseTimingConfig -- ^ Time given for the game initially
   , tcTimePerMove :: Seconds       -- ^ Time added for each move
   }

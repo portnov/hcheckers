@@ -60,6 +60,10 @@ parsePdnInfo (PdnInfoRq rname text) = do
         Left err -> raise $ InvalidBoard err
         Right gr -> return $ pdnInfo gr
 
+maybeParam :: forall a. Parsable a => TL.Text -> Rest (Maybe a)
+maybeParam name =
+  (Just <$> param name) `rescue` (\_ -> return (Nothing :: Maybe a))
+
 restServer :: MVar () -> ScottyT Error Checkers ()
 restServer shutdownVar = do
 
@@ -244,7 +248,8 @@ restServer shutdownVar = do
       Nothing -> status status404
 
   get "/timing" $ do
-    options <- liftCheckers_ getTimingOptions
+    mbRules <- maybeParam "rules"
+    options <- liftCheckers_ $ getTimingOptions mbRules
     json options
 
   get "/timing/:slug" $ do

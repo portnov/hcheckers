@@ -249,19 +249,21 @@ instance FromJSON BattleServerConfig where
 instance FromJSON BaseTimingConfig where
   parseJSON = withObject "BaseTiming" $ \v ->
         (TotalTime <$> v .: "seconds_per_game")
-    <|> (TwoPartsTime
+    <|> (PartsTime
          <$> v .: "initial_seconds"
          <*> v .: "initial_moves"
+         <*> v .:? "next_moves"
          <*> v .: "additional_seconds"
          <*> v .:? "keep_initial_time_leftover" .!= True
         )
 
 instance ToJSON BaseTimingConfig where
   toJSON (TotalTime seconds) = object ["seconds_per_game" .= seconds]
-  toJSON (TwoPartsTime initSeconds initMoves addSeconds keep) =
+  toJSON (PartsTime initSeconds initMoves nextMoves addSeconds keep) =
     object [
         "initial_seconds" .= initSeconds,
         "initial_moves" .= initMoves,
+        "next_moves" .= nextMoves,
         "additional_seconds" .= addSeconds,
         "keep_initial_time_leftover" .= keep
       ]
@@ -269,6 +271,7 @@ instance ToJSON BaseTimingConfig where
 instance FromJSON TimingConfig where
   parseJSON o = (withObject "TimingConfig" $ \v -> TimingConfig
     <$> v .: "title"
+    <*> v .:? "rules"
     <*> parseJSON o
     <*> v .:? "seconds_per_move" .!= 0) o
 
@@ -278,8 +281,12 @@ mergeValue _ _ = error "invalid values to be merged"
 
 instance ToJSON TimingConfig where
   toJSON c =
-      object ["title" .= tcName c, "seconds_per_move" .= tcTimePerMove c]
-    `mergeValue` toJSON (tcBaseTime c)
+      object [
+          "title" .= tcName c,
+          "rules" .= tcRules c,
+          "seconds_per_move" .= tcTimePerMove c
+        ]
+      `mergeValue` toJSON (tcBaseTime c)
 
 instance FromJSON GeneralConfig where
   parseJSON = withObject "GeneralConfig" $ \v -> GeneralConfig

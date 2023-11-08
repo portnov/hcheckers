@@ -105,6 +105,7 @@ class NewGameDialog(DialogBase):
         if rules is not None:
             idx = self.rules.findData(rules)
             self.rules.setCurrentIndex(idx)
+        self.rules.currentIndexChanged.connect(self._on_select_rules)
         rules_box = QHBoxLayout()
         rules_box.addWidget(self.rules, 1)
         rules_help = QPushButton(self)
@@ -116,11 +117,7 @@ class NewGameDialog(DialogBase):
 
         self.timing = QComboBox()
         self.timing.addItem(_("Do not use"), NO_TIMING)
-        have_timing_options = False
-        if self.client is not None:
-            for slug, title in client.get_timing_options():
-                self.timing.addItem(title, slug)
-                have_timing_options = True
+        have_timing_options = self._fill_timing_options()
         timing = settings.value("timing")
         if timing is not None:
             idx = self.timing.findData(timing)
@@ -325,6 +322,19 @@ class NewGameDialog(DialogBase):
             self.user_name_validator.used_name = used_name
             name = self.user_name.widget.text()
             self.user_name.widget.setText(self.user_name_validator.fixup(name))
+
+    def _fill_timing_options(self):
+        result = False
+        rules = self.rules.currentData()
+        if self.client is not None:
+            self.timing.clear()
+            for slug, title in self.client.get_timing_options(rules):
+                self.timing.addItem(title, slug)
+                result = True
+        return result
+
+    def _on_select_rules(self, event=None):
+        self._fill_timing_options()
 
     def _on_rules_help(self):
         rules = self.rules.currentData()

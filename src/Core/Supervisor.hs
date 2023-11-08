@@ -230,7 +230,7 @@ initAiStorage (SomeRules rules) (SomeAi ai) = do
 
 getTimingConfig :: T.Text -> Checkers TimingConfig
 getTimingConfig name = do
-  configs <- getTimingOptions
+  configs <- getTimingOptions Nothing
   case M.lookup name configs of
     Just config -> return config
     Nothing -> throwError NoSuchTimingConfig
@@ -307,8 +307,8 @@ getTimingOptionsFile = do
             Just cfgPath -> return $ Just $ takeDirectory cfgPath </> path
     Nothing -> liftIO locateDefaultTimingOptionsFile
 
-getTimingOptions :: Checkers (M.Map T.Text TimingConfig)
-getTimingOptions = do
+getTimingOptions :: Maybe String -> Checkers (M.Map T.Text TimingConfig)
+getTimingOptions mbRules = do
   mbPath <- getTimingOptionsFile
   case mbPath of
     Nothing -> return M.empty
@@ -317,7 +317,15 @@ getTimingOptions = do
       r <- liftIO $ decodeFileEither path
       case r of
         Left err -> throwError $ InvalidTimingConfig (show err)
-        Right cfg -> return cfg
+        Right cfg ->
+          case mbRules of
+            Nothing -> return cfg
+            Just rulesName -> do
+              let checkRules tc =
+                    case tcRules tc of
+                      Nothing -> True
+                      Just rulesList -> rulesName `elem` rulesList
+              return $ M.filter checkRules cfg
 
 getInitialBoards :: SomeRules -> Checkers [FilePath]
 getInitialBoards (SomeRules rules) = do

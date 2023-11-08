@@ -55,7 +55,7 @@ onStartGame :: TimeSpec -> GameM ()
 onStartGame now = withTimingConfig $ \config -> do
   let time = case tcBaseTime config of
                TotalTime n -> n
-               TwoPartsTime {tptInitTime = n} -> n
+               PartsTime {tptInitTime = n} -> n
   modifyTiming First $ \st -> st {tsTimeLeft = time, tsTimerStarted = now}
   modifyTiming Second $ \st -> st {tsTimeLeft = time, tsTimerStarted = now}
 
@@ -65,12 +65,16 @@ updateTimeLeft config@(TimingConfig {tcBaseTime = (TotalTime {})}) st delta =
 updateTimeLeft config st delta =
     let base = tcBaseTime config
         addTime = tptAdditionalTime base
-        newTime = addTime - sec delta
-    in  if tsMovesDone st == tptInitMoves base
-          then if tptKeepInitTime base
-                 then tsTimeLeft st + newTime
-                 else newTime
-          else tsTimeLeft st - sec delta + tcTimePerMove config
+        timeLeft = tsTimeLeft st - sec delta
+        moveNr =
+          case tptNextMoves base of
+            Nothing -> tsMovesDone st - tptInitMoves base
+            Just n -> (tsMovesDone st - tptInitMoves base) `mod` n
+    in  if moveNr == 0
+          then if tptKeepPrevTime base
+                 then timeLeft + addTime
+                 else addTime - sec delta
+          else timeLeft + tcTimePerMove config
 
 afterMove :: Side -> TimeSpec -> GameM Bool
 afterMove side now = withTimingConfig' True $ \config -> do

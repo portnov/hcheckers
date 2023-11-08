@@ -399,10 +399,14 @@ class Game(object):
         except RequestError:
             return []
 
-    def get_timing_options(self):
+    def get_timing_options(self, rules=None):
         url = join(self.base_url, "timing")
         try:
-            rs = self.get(url)
+            if rules is None:
+                params = None
+            else:
+                params = {"rules": rules}
+            rs = self.get(url, params=params)
             result = []
             for slug, cfg in rs.json().items():
                 title = get_title_from_json(cfg)
