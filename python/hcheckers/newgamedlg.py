@@ -116,7 +116,6 @@ class NewGameDialog(DialogBase):
         layout.addRow(_("Rules"), rules_box)
 
         self.timing = QComboBox()
-        self.timing.addItem(_("Do not use"), NO_TIMING)
         have_timing_options = self._fill_timing_options()
         timing = settings.value("timing")
         if timing is not None:
@@ -328,6 +327,7 @@ class NewGameDialog(DialogBase):
         rules = self.rules.currentData()
         if self.client is not None:
             self.timing.clear()
+            self.timing.addItem(_("Do not use"), NO_TIMING)
             for slug, title in self.client.get_timing_options(rules):
                 self.timing.addItem(title, slug)
                 result = True
