@@ -35,7 +35,7 @@ class TimerLabel(QLabel):
     def __init__(self, parent):
         QLabel.__init__(self, parent)
         font = QFont("Monospace")
-        font.setPointSizeF(font.pointSizeF()*1.2)
+        font.setPointSizeF(font.pointSizeF()*1.1)
         font.setStyleHint(QFont.TypeWriter)
         self.setFont(font)
         self.setFrameStyle(QFrame.Sunken)
@@ -51,7 +51,7 @@ class TimersBox(QFrame):
         layout.addWidget(self.timer2)
         self.setLayout(layout)
 
-class CountsWidget(QWidget):
+class CountsWidget(QFrame):
     def __init__(self, parent):
         QWidget.__init__(self, parent)
         self.toplevel = parent
@@ -63,9 +63,12 @@ class CountsWidget(QWidget):
         layout.addWidget(self.timers)
         self.second_men_icon, self.second_men = self._label(layout, MAN, SECOND)
         self.second_kings_icon, self.second_kings = self._label(layout, KING, SECOND)
-        self.set_timers(None, None)
+        self.reset_timers()
 
+        layout.setContentsMargins(0, 0, 0, 0)
         self.setLayout(layout)
+        #self.setFrameStyle(QFrame.Sunken)
+        #self.setFrameShape(QFrame.Box)
 
     def _get_piece(self, kind, side):
         icon_size = self.style().pixelMetric(QStyle.PM_ToolBarIconSize)
@@ -93,11 +96,24 @@ class CountsWidget(QWidget):
         seconds = seconds % 60
         return "{:02}:{:02}".format(minutes, seconds)
 
-    def set_timers(self, first, second):
-        first_text = self._format_time(first)
-        second_text = self._format_time(second)
-        self.timers.timer1.setText(first_text)
-        self.timers.timer2.setText(second_text)
+    def set_timers(self, left, passed):
+        time_display = self.toplevel.settings.value("time_display", "time_left")
+        first_left, second_left = left
+        first_left_text, second_left_text = self._format_time(first_left), self._format_time(second_left)
+        first_passed, second_passed = passed
+        first_passed_text, second_passed_text = self._format_time(first_passed), self._format_time(second_passed)
+        if time_display == "time_left":
+            time_first_text, time_second_text = first_left_text, second_left_text
+        else:
+            time_first_text, time_second_text = first_passed_text, second_passed_text
+        self.timers.timer1.setText(time_first_text)
+        self.timers.timer2.setText(time_second_text)
+        first, second = self.toplevel.game.get_colors()
+        self.timers.setToolTip(_("{}: {} remaining, {} passed\n{}: {} remaining, {} passed").format(first, first_left_text, first_passed_text, second, second_left_text, second_passed_text))
+
+    def reset_timers(self):
+        self.timers.timer1.setText(self._format_time(None))
+        self.timers.timer2.setText(self._format_time(None))
 
     def update_icons(self):
         self.first_men_icon.setPixmap(self._get_piece(MAN, FIRST))
@@ -295,6 +311,7 @@ class Checkers(QMainWindow):
         widget = QWidget(self)
         widget.setObjectName("Q")
         layout = QVBoxLayout()
+        layout.setContentsMargins(0, 0, 0, 0)
         self.board = Board(self.theme, self.settings, self.game, self)
         self.board.message.connect(self._on_board_message)
         self.board.on_fields_setup.connect(self._on_board_update)
@@ -305,6 +322,7 @@ class Checkers(QMainWindow):
         self.setup_toolbar.setOrientation(Qt.Vertical)
 
         topbox = QHBoxLayout()
+        topbox.setContentsMargins(0, 0, 0, 0)
         self.message = QLabel(self)
         topbox.addWidget(self.message)
         self.count_status = CountsWidget(self)
@@ -580,7 +598,7 @@ class Checkers(QMainWindow):
 
         self.request_draw_action.setEnabled(True)
         self.capitulate_action.setEnabled(True)
-        self.count_status.set_timers(None, None)
+        self.count_status.reset_timers()
 
         self.game_settings = game = dialog.get_settings()
         if game.action == START_AI_GAME:
@@ -1091,14 +1109,13 @@ class Checkers(QMainWindow):
 
         self._poll_try_number = 0
 
-        timing_key = self.settings.value("time_display", "time_left")
         board, messages = self.game.poll()
         for message in messages:
             self.board.process_message(message)
             if "move" in message:
                 self.my_turn = True
-            if timing_key in message:
-                self.count_status.set_timers(*message[timing_key])
+            if "time_left" in message:
+                self.count_status.set_timers(message["time_left"], message["time_passed"])
         if self.setup_fields_on_poll:
             self.board.fields_setup(board)
 
