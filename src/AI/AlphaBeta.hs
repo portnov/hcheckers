@@ -123,7 +123,7 @@ instance (GameRules rules, VectorEvaluator eval, ToJSON eval) => GameAi (AlphaBe
       let side' = opposite side
       (bgSessionId, bgSession) <- newBgSession storage gameId
       forkCheckers $ do
-        let params' = params {abDepth = abDepth params + 1}
+        let params' = params {abDepth = abDepth params + 1, abBaseTime = Nothing}
             ai' = AlphaBeta params' rules eval
             moves' = possibleMoves rules side' board
         case moves' of
