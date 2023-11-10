@@ -539,7 +539,7 @@ runAI ai@(AlphaBeta params rules eval) handle gameId side aiSession board = do
                           diiSortKeys = Nothing,
                           diiDecideAmbiguityMode = False
                         }
-            goIterative target (abDeeperIfAmbigous params) input
+            iterativeDepthDriver target (abDeeperIfAmbigous params) input
           Just time -> do
             let input =  DepthIterationInput {
                            diiParams = params,
@@ -548,13 +548,13 @@ runAI ai@(AlphaBeta params rules eval) handle gameId side aiSession board = do
                            diiSortKeys = Nothing,
                            diiDecideAmbiguityMode = False
                         }
-            repeatTimed' "runAI" time goTimed input
+            repeatTimed' "runAI" time timedDepthDriver input
 
   
-    goTimed :: DepthIterationInput
+    timedDepthDriver :: DepthIterationInput
             -> Checkers (DepthIterationOutput, Maybe DepthIterationInput)
-    goTimed input = do
-      ret <- tryC $ go input
+    timedDepthDriver input = do
+      ret <- tryC $ doDepthIteration input
       case ret of
         Right result -> return result
         Left TimeExhaused ->
@@ -563,9 +563,9 @@ runAI ai@(AlphaBeta params rules eval) handle gameId side aiSession board = do
             Nothing -> return ([MoveAndScore move 0 | move <- diiMoves input], Nothing)
         Left err -> throwError err
 
-    goIterative :: Depth -> Maybe Depth -> DepthIterationInput -> Checkers DepthIterationOutput
-    goIterative target mbAmbigousTarget input = do
-      (output, mbNextInput) <- go input
+    iterativeDepthDriver :: Depth -> Maybe Depth -> DepthIterationInput -> Checkers DepthIterationOutput
+    iterativeDepthDriver target mbAmbigousTarget input = do
+      (output, mbNextInput) <- doDepthIteration input
       case mbNextInput of
         Nothing -> do
           let bad (MoveAndScore _ score) = (maximize && score <= score0 - 1 && score > loose) || (minimize && score >= score0 + 1 && score < win)
@@ -573,12 +573,12 @@ runAI ai@(AlphaBeta params rules eval) handle gameId side aiSession board = do
             then do
                  let nextInput = deeper (abDepth $ diiParams input) 1 output input
                  $info "All moves seem bad, re-think one step further" ()
-                 (output', _) <- go nextInput
+                 (output', _) <- doDepthIteration nextInput
                  return output'
             else return output
         Just nextInput -> do
           if abDepth (diiParams nextInput) <= target
-            then goIterative target mbAmbigousTarget nextInput
+            then iterativeDepthDriver target mbAmbigousTarget nextInput
             else do
               case mbAmbigousTarget of
                 Nothing -> return output
@@ -598,12 +598,12 @@ runAI ai@(AlphaBeta params rules eval) handle gameId side aiSession board = do
                   if not isCritical && nGoodMoves > 1
                     then do
                       $info "There are several good moves ({}), re-think deeper up to {}" (nGoodMoves, maxDepth)
-                      goIterative maxDepth Nothing nextInput'
+                      iterativeDepthDriver maxDepth Nothing nextInput'
                     else return output
 
-    go :: DepthIterationInput
+    doDepthIteration :: DepthIterationInput
             -> Checkers (DepthIterationOutput, Maybe DepthIterationInput)
-    go input@(DepthIterationInput {..}) = do
+    doDepthIteration input@(DepthIterationInput {..}) = do
       let depth = abDepth diiParams
       if length diiMoves <= 1 -- Just one move possible
         then do
