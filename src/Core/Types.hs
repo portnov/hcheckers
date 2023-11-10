@@ -512,7 +512,7 @@ instance Show SomeRules where
 instance HasBoardOrientation SomeRules where
   boardOrientation (SomeRules rules) = boardOrientation rules
 
-type ScoreBase = Int16
+type ScoreBase = Int32
 
 -- note: if I try to make fields of this structure strict and unpacked,
 -- processing time increases!
@@ -520,14 +520,19 @@ data Score = Score {
       sNumeric :: ScoreBase
     , sPositional :: ScoreBase
     }
-    deriving (Eq, Ord, Generic, Typeable, Bounded)
+    deriving (Eq, Generic, Typeable, Bounded)
+
+instance Ord Score where
+  compare s1 s2 = compare (number s1) (number s2)
+    where
+      number s = sNumeric s * scoreBound + sPositional s
 
 instance Store Score
 
 instance Binary Score
 
 scoreBound :: ScoreBase
-scoreBound = 8*512
+scoreBound = 65536
 
 maxPieces :: ScoreBase
 maxPieces = 16*5
@@ -545,24 +550,24 @@ clampS' :: ScoreBase -> Int32 -> ScoreBase
 clampS' bound x = min bound $ max (-bound) (fromIntegral x)
 
 safePlus :: forall a. (Integral a) => ScoreBase -> ScoreBase -> a -> ScoreBase
-safePlus bound x y =
-  let result = (fromIntegral x + fromIntegral y) :: Int32
-  in  clampS' bound result
+safePlus bound x y = x + fromIntegral y
+--  let result = (fromIntegral x + fromIntegral y) :: Int32
+--  in  clampS' bound result
 
 safeMinus :: forall a. (Integral a) => ScoreBase -> ScoreBase -> a -> ScoreBase
-safeMinus bound x y =
-  let result = (fromIntegral x - fromIntegral y) :: Int32
-  in  clampS' bound result
+safeMinus bound x y = x - fromIntegral y
+--  let result = (fromIntegral x - fromIntegral y) :: Int32
+--  in  clampS' bound result
 
 safeScale :: forall a. (Integral a) => ScoreBase -> ScoreBase -> a -> ScoreBase
-safeScale bound x y =
-  let result = (fromIntegral x * fromIntegral y) :: Int32
-  in  clampS' bound result
+safeScale bound x y = x*fromIntegral y
+--  let result = (fromIntegral x * fromIntegral y) :: Int32
+--  in  clampS' bound result
 
 instance Num Score where
   fromInteger x = Score (fromIntegral x) 0
-  (Score n1 p1) + (Score n2 p2) = Score (safePlus maxPieces n1 n2) (safePlus scoreBound p1 p2)
-  (Score n1 p1) - (Score n2 p2) = Score (safeMinus maxPieces n1 n2) (safeMinus scoreBound p1 p2)
+  (Score n1 p1) + (Score n2 p2) = normalizeScore $ Score (safePlus maxPieces n1 n2) (safePlus scoreBound p1 p2)
+  (Score n1 p1) - (Score n2 p2) = normalizeScore $ Score (safeMinus maxPieces n1 n2) (safeMinus scoreBound p1 p2)
   _ * _ = error "* is not defined for Score"
   abs (Score n p) = Score (abs n) (abs p)
   negate (Score n p) = Score (negate n) (negate p)
@@ -584,6 +589,11 @@ prevScore (Score n p) = Score n (safeMinus scoreBound p 1)
 
 scoreValue :: Score -> ScoreBase
 scoreValue (Score n p) = scoreBound * n + p
+
+normalizeScore :: Score -> Score
+normalizeScore score =
+  let s = scoreValue score
+  in  Score (s `div` scoreBound) (s `mod` scoreBound)
 
 instance Show Score where
   show (Score n p) = show n ++ "/" ++ show p
