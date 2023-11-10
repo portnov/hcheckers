@@ -69,7 +69,7 @@ getBgSessionId :: (GameRules rules, VectorEvaluator eval)
                -> GameId
                -> Checkers (Maybe AiSessionId)
 getBgSessionId handle gameId = do
-  bgSessions <- liftIO $ atomically $ readTVar (aichBackgroundSession handle)
+  bgSessions <- liftIO $ readTVarIO (aichBackgroundSession handle)
   return $ M.lookup gameId bgSessions
 
 stopBgSession :: (GameRules rules, VectorEvaluator eval)
@@ -208,7 +208,7 @@ scoreMove (ScoreMoveInput {..}) = do
                                   )
                 $info "Check: {} ([{} - {}], depth {}) => {}" (show smiMove, show smiAlpha, show smiBeta, dpTarget smiDepth, show score)
                 return score
-     
+
      return $ MoveAndScore smiMove score
 
 scoreMoveGroup :: (GameRules rules, VectorEvaluator eval) => [ScoreMoveInput rules eval] -> Checkers [MoveAndScore]
@@ -224,7 +224,7 @@ scoreMoveGroup inputs = go [] inputs
 
     go acc [] = return acc
     go acc (input : rest) = do
-      best <- liftIO $ atomically $ readTVar bestVar
+      best <- liftIO $ readTVarIO bestVar
       let input'
             | maximize = input {smiAlpha = prevScore best}
             | otherwise = input {smiBeta = nextScore best}
@@ -300,7 +300,7 @@ instance EvalMoveMonad (StateT (ScoreState rules eval) Checkers) where
       lookupAiCacheS' key cache
 
   getKillerMove = getGoodMove
-  
+
 evalMove :: (EvalMoveMonad m, GameRules rules, VectorEvaluator eval)
         => AICacheHandle rules eval
         -> eval
@@ -329,13 +329,13 @@ evalMove var eval side board mbPrevMove attacked move = do
                         Nothing -> 0
                         Just (Piece Man _) -> 1
                         Just (Piece King _) -> 3
-      
+
       isAttackPrevPiece = case mbPrevMove of
                             Nothing -> False
                             Just prevMove -> pmEnd prevMove `elem` victimFields
 
       isAttackKing = any isKing victimFields
-      
+
       isKing a = case getPiece a board of
                    Just (Piece King _) -> True
                    _ -> False
@@ -550,7 +550,7 @@ runAI ai@(AlphaBeta params rules eval) handle gameId side aiSession board = do
                         }
             repeatTimed' "runAI" time timedDepthDriver input
 
-  
+
     timedDepthDriver :: DepthIterationInput
             -> Checkers (DepthIterationOutput, Maybe DepthIterationInput)
     timedDepthDriver input = do
@@ -609,7 +609,7 @@ runAI ai@(AlphaBeta params rules eval) handle gameId side aiSession board = do
         then do
           $info "There is only one move possible; just do it." ()
           return ([MoveAndScore move score0 | move <- diiMoves], Nothing)
-                                                             
+
         else do
           let var = aichData handle
           $info "Selecting a move. Side = {}, depth = {}, number of possible moves = {}" (show side, depth, length diiMoves)
@@ -674,7 +674,7 @@ runAI ai@(AlphaBeta params rules eval) handle gameId side aiSession board = do
                 in  if maximize
                       then (d+1, d)
                       else (d, d+1)
-            | isLastPiece = 
+            | isLastPiece =
                 let d = Score (initWidth+1) 500
                 in  if maximize
                       then (d+3, d)
@@ -810,7 +810,7 @@ runAI ai@(AlphaBeta params rules eval) handle gameId side aiSession board = do
           n = length moves
       indicies <- getJobIndicies n
       let worst = if maximize then alpha else beta
-      bestVar <- liftIO $ atomically $ newTVar worst
+      bestVar <- liftIO $ newTVarIO worst
       let inputs = [
             ScoreMoveInput {
               smiAi = ai,
@@ -906,7 +906,7 @@ doScore rules eval var params gameId side aiSession dp board alpha beta = do
     out <- evalStateT (cachedScoreAB var eval params input) initState
     return $ soScore out
   where
-    input = ScoreInput side dp alpha beta board Nothing Nothing 
+    input = ScoreInput side dp alpha beta board Nothing Nothing
     mkInitState = do
       cache <- allocateCache var eval
       now <- liftIO $ getTime RealtimeCoarse
@@ -1088,7 +1088,7 @@ scoreAB var eval params input
             $verbose "Further search is futile, return current score0 = {}" (Single $ show score0)
             return out
         Nothing -> do
-                
+
           moves <- case siPossibleMoves input of
                      Nothing -> lift $ getPossibleMoves var side board
                      Just ms -> return ms
@@ -1145,7 +1145,7 @@ scoreAB var eval params input
                score0 > alpha &&
                score0 < beta &&
                score0 > -10 &&
-               score0 < 10 
+               score0 < 10
 
     correspondingDepths :: Int -> Score -> Bool -> DepthParams -> [DepthParams]
     correspondingDepths nMoves score0 quiescene depth =
@@ -1212,7 +1212,7 @@ scoreAB var eval params input
     bestStr = if maximize
                 then "Maximum"
                 else "Minimum"
-    
+
     indent = replicate (fromIntegral $ 2*dpCurrent dp) ' '
 
     getBest =
@@ -1232,7 +1232,7 @@ scoreAB var eval params input
     isInteresting move = do
       opMoves <- opponentMoves
       let victims = concatMap pmVictims opMoves
-      return $ {- pmBegin move `elem` victims || -} length (pmVictims move) >= 2 || isPromotion move
+      return $ {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -}  {- pmBegin move `elem` victims || -}  {- pmBegin move `elem` victims || -}  {- pmBegin move `elem` victims || -}  {- pmBegin move `elem` victims || -}  {- pmBegin move `elem` victims || -}  {- pmBegin move `elem` victims || -}  {- pmBegin move `elem` victims || -}  {- pmBegin move `elem` victims || -}  {- pmBegin move `elem` victims || -}  {- pmBegin move `elem` victims || -}  {- pmBegin move `elem` victims || -}  {- pmBegin move `elem` victims || -}  {- pmBegin move `elem` victims || -}  {- pmBegin move `elem` victims || -}  {- pmBegin move `elem` victims || -}  {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -}  {- pmBegin move `elem` victims || -}  {- pmBegin move `elem` victims || -}  {- pmBegin move `elem` victims || -}  {- pmBegin move `elem` victims || -}  {- pmBegin move `elem` victims || -}  {- pmBegin move `elem` victims || -}  {- pmBegin move `elem` victims || -}  {- pmBegin move `elem` victims || -}  {- pmBegin move `elem` victims || -}  {- pmBegin move `elem` victims || -}  {- pmBegin move `elem` victims || -}  {- pmBegin move `elem` victims || -}  {- pmBegin move `elem` victims || -}  {- pmBegin move `elem` victims || -}  {- pmBegin move `elem` victims || -}  {- pmBegin move `elem` victims || -}  {- pmBegin move `elem` victims || -}  {- pmBegin move `elem` victims || -}  {- pmBegin move `elem` victims || -}  {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -}  {- pmBegin move `elem` victims || -}  {- pmBegin move `elem` victims || -}  {- pmBegin move `elem` victims || -}  {- pmBegin move `elem` victims || -}  {- pmBegin move `elem` victims || -}  {- pmBegin move `elem` victims || -}  {- pmBegin move `elem` victims || -}  {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -}  {- pmBegin move `elem` victims || -}  {- pmBegin move `elem` victims || -}  {- pmBegin move `elem` victims || -}  {- pmBegin move `elem` victims || -}  {- pmBegin move `elem` victims || -}  {- pmBegin move `elem` victims || -}  {- pmBegin move `elem` victims || -}  {- pmBegin move `elem` victims || -}  {- pmBegin move `elem` victims || -}  {- pmBegin move `elem` victims || -}  {- pmBegin move `elem` victims || -}  {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -}  {- pmBegin move `elem` victims || -}  {- pmBegin move `elem` victims || -}  {- pmBegin move `elem` victims || -}  {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -}  {- pmBegin move `elem` victims || -}  {- pmBegin move `elem` victims || -}  {- pmBegin move `elem` victims || -}  {- pmBegin move `elem` victims || -}  {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -}  {- pmBegin move `elem` victims || -}  {- pmBegin move `elem` victims || -}  {- pmBegin move `elem` victims || -}  {- pmBegin move `elem` victims || -}  {- pmBegin move `elem` victims || -}  {- pmBegin move `elem` victims || -}  {- pmBegin move `elem` victims || -}  {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -}  {- pmBegin move `elem` victims || -}  {- pmBegin move `elem` victims || -}  {- pmBegin move `elem` victims || -}  {- pmBegin move `elem` victims || -}  {- pmBegin move `elem` victims || -}  {- pmBegin move `elem` victims || -}  {- pmBegin move `elem` victims || -}  {- pmBegin move `elem` victims || -}  {- pmBegin move `elem` victims || -}  {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -}  {- pmBegin move `elem` victims || -}  {- pmBegin move `elem` victims || -}  {- pmBegin move `elem` victims || -}  {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -}  {- pmBegin move `elem` victims || -}  {- pmBegin move `elem` victims || -}  {- pmBegin move `elem` victims || -}  {- pmBegin move `elem` victims || -}  {- pmBegin move `elem` victims || -}  {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -}  {- pmBegin move `elem` victims || -}  {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -}  {- pmBegin move `elem` victims || -}  {- pmBegin move `elem` victims || -}  {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -}  {- pmBegin move `elem` victims || -}  {- pmBegin move `elem` victims || -}  {- pmBegin move `elem` victims || -}  {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -}  {- pmBegin move `elem` victims || -}  {- pmBegin move `elem` victims || -}  {- pmBegin move `elem` victims || -}  {- pmBegin move `elem` victims || -}  {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -}  {- pmBegin move `elem` victims || -}  {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -}  {- pmBegin move `elem` victims || -}  {- pmBegin move `elem` victims || -}  {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -}  {- pmBegin move `elem` victims || -} {- pmBegin move `elem` victims || -}  {- pmBegin move `elem` victims || -} length (pmVictims move) >= 2 || isPromotion move
 
     mkIntervals zero (alpha, beta)
       | maximize =
@@ -1320,11 +1320,11 @@ scoreAB var eval params input
                         quiescene <- checkQuiescene
                         -- $info "@{} Section: {}: [{} - {}] => {}" (dpCurrent dp, show side, alpha, beta, show score)
                         return $ ScoreOutput score quiescene
-                        
+
                    else iterateMoves moves
             else do
                  iterateMoves moves
-        
+
 instance (Evaluator eval, GameRules rules) => Evaluator (AlphaBeta rules eval) where
   evaluatorName (AlphaBeta _ _ eval) = evaluatorName eval
   evalBoard (AlphaBeta params rules eval) whoAsks board =
