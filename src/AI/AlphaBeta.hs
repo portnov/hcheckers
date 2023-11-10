@@ -777,8 +777,8 @@ runAI ai@(AlphaBeta params rules eval) handle gameId side aiSession board = do
               else
                 case bestResults of
                   [] -> return results
-                  [_] -> do
-                    $info "Exactly one move is `too good'; do that move." ()
+                  [r] -> do
+                    $info "Exactly one move ({}) is `too good'; do that move." (Single $ show $ rMove r)
                     return bestResults
                   _ ->
                     if allowNext
