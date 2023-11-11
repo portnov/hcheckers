@@ -525,7 +525,7 @@ runAI ai@(AlphaBeta params rules eval) handle gameId side aiSession board = do
             let target = abDepth params
                 depthStep = abDepthStep params
                 preselectDepth =
-                  if target <= depthStep || length moves < nThreads
+                  if target <= depthStep -- || length moves < nThreads
                     then target
                     else let m = target `mod` depthStep
                          in  head $ filter (>= 2) [m, m + depthStep .. target]
