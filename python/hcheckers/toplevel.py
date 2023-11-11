@@ -513,6 +513,7 @@ class Checkers(QMainWindow):
         self.game.start_new_game(self.game_settings.user_name, rules=self.game_settings.rules, timing=self.game_settings.timing, user_turn_first=self.game_settings.user_turn_first, ai=self.game_settings.ai, board=board)
         self.board.hide_text_message()
         self.board.fields_setup()
+        self._game_dependencies()
 
     @handling_error
     def _on_field_clicked(self, row, col):
