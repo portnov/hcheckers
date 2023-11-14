@@ -237,8 +237,10 @@ preEval (SimpleEvaluator { seRules = iface@(SomeRules rules), ..}) side board =
 --       let (men, _) = myCounts side board
 --       in  if men > 3 then seHelpedKingCoef else seKingCoef
 
-    numericScore = fromIntegral $ length $ possibleMoves rules side board
-    positionalKingScore = fromIntegral $ labelSetSize (myKingsS side board)
+    (numericScore, positionalKingScore) =
+      let (myMen, myKings) = myCounts side board
+      in  (kingCoef * fromIntegral myKings + fromIntegral myMen,
+           sePositionalKingWeight * fromIntegral myKings)
 
     (nrows, ncols) = bSize board
     crow           = nrows `div` 2
