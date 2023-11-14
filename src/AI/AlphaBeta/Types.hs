@@ -75,7 +75,8 @@ data AlphaBetaParams = AlphaBetaParams {
   , abMovesLowBound :: Int
   , abMovesHighBound :: Int
   , abInitWindowWidth :: Int
-  , abBaseTime :: Maybe Int
+  , abTimeout :: Int
+  , abDeepeningWithinTimeout :: Bool
   , abRandomOpeningDepth :: Int
   , abRandomOpeningOptions :: Int
   , abDrawPolicy :: DrawPolicy
@@ -95,7 +96,8 @@ instance Default AlphaBetaParams where
         , abMovesLowBound = 4
         , abMovesHighBound = 8
         , abInitWindowWidth = 0
-        , abBaseTime = Nothing
+        , abTimeout = 10*1000
+        , abDeepeningWithinTimeout = False
         , abRandomOpeningDepth = 1
         , abRandomOpeningOptions = 1
         , abDrawPolicy = AlwaysAccept
@@ -237,6 +239,7 @@ type MovesMemo = TBoardMap (Maybe [PossibleMove], Maybe [PossibleMove])
 data MoveAndScore = MoveAndScore {
     rMove :: {-# UNPACK #-} !PossibleMove
   , rScore :: {-# UNPACK #-} !Score
+  , rInterrupted :: !Bool
   }
   deriving (Eq, Show, Generic, Typeable)
 
@@ -301,8 +304,6 @@ data ScoreState rules eval = ScoreState {
   , ssAiSession :: AiSession
   , ssBestScores :: [Score] -- ^ At each level of depth-first search, there is own "best score"
   , ssBestMoves :: M.Map Int MoveAndScore
-  , ssStartTime :: TimeSpec -- ^ Start time of calculation
-  , ssTimeout :: Maybe TimeSpec -- ^ Nothing for "no timeout"
   }
 
 -- | Input data for scoreAB method.
@@ -319,6 +320,7 @@ data ScoreInput = ScoreInput {
 data ScoreOutput = ScoreOutput {
     soScore :: Score
   , soQuiescene :: Bool
+  , soInterrupted :: Bool
   }
 
 -- | ScoreM monad.
@@ -350,7 +352,7 @@ data DepthIterationInput = DepthIterationInput {
     diiMoves :: [PossibleMove],
     diiSortKeys :: Maybe [Score],
     diiPrevResult :: Maybe DepthIterationOutput,
-    diiDecideAmbiguityMode :: Bool
+    diiAmbigousMovesScore :: Maybe Score
   }
 
 type DepthIterationOutput = [MoveAndScore]

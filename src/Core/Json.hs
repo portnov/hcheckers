@@ -232,6 +232,7 @@ instance ToJSON AiPersonalities where
 instance FromJSON AiConfig where
   parseJSON = withObject "AiConfig" $ \v -> AiConfig
       <$> v .:? "threads" .!= (aiThreads def)
+      <*> v .:? "timeout" .!= aiTimeout def
       <*> v .:? "load" .!= (aiLoadCache def)
       <*> v .:? "store" .!= (aiStoreCache def)
       <*> v .:? "store_period" .!= (aiStoreCachePeriod def)

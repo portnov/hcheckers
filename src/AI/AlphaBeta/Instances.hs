@@ -42,7 +42,8 @@ instance FromJSON AlphaBetaParams where
       <*> v .:? "moves_bound_low" .!= 4
       <*> v .:? "moves_bound_high" .!= 8
       <*> v .:? "init_window_width" .!= abInitWindowWidth def
-      <*> v .:? "time"
+      <*> v .:? "time" .!= abTimeout def
+      <*> v .:? "deeper_within_timeout" .!= abDeepeningWithinTimeout def
       <*> v .:? "random_opening_depth" .!= abRandomOpeningDepth def
       <*> v .:? "random_opening_options" .!= abRandomOpeningOptions def
       <*> v .:? "accept_draw" .!= abDrawPolicy def
@@ -60,7 +61,8 @@ instance ToJSON AlphaBetaParams where
               "moves_bound_low" .= abMovesLowBound p,
               "moves_bound_high" .= abMovesHighBound p,
               "init_window_depth" .= abInitWindowWidth p,
-              "time" .= abBaseTime p,
+              "time" .= abTimeout p,
+              "deeper_within_timeout" .= abDeepeningWithinTimeout p,
               "random_opening_depth" .= abRandomOpeningDepth p,
               "random_opening_options" .= abRandomOpeningOptions p,
               "accept_draw" .= abDrawPolicy p,
