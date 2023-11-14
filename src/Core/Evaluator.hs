@@ -9,7 +9,8 @@ module Core.Evaluator
     SimpleEvaluatorData (..),
     weightForSide,
     defaultEvaluator,
-    preEval
+    preEval,
+    waveRho
   ) where
 
 import           Data.Aeson
@@ -193,31 +194,45 @@ instance Default PreScore where
           , psMenBlockedByKings = 0
         }
 
-waveRho :: SomeRules -> Side -> (Address -> Bool) -> Address -> ScoreBase -> ScoreBase
-waveRho (SomeRules rules) side isGood addr best = go addr
+waveRho :: SomeRules -> Side -> Board -> IS.IntSet -> IM.IntMap ScoreBase
+waveRho (SomeRules rules) side board start = result
   where
-    go :: Address -> ScoreBase
-    go addr
-      | isGood addr = best
-      | otherwise =
-        let check :: PlayerDirection -> ScoreBase
-            check dir =
-              case myNeighbour rules side dir addr of
-                Nothing -> 0
-                Just dst -> max 0 $ go dst - 1
-        in  maximum $ map check $ getManSimpleMoveDirections rules
+    (result, _, _, _) = go 0 IM.empty IS.empty start
+
+    go :: ScoreBase -> IM.IntMap ScoreBase -> IS.IntSet -> IS.IntSet -> (IM.IntMap ScoreBase, ScoreBase, IS.IntSet, IS.IntSet)
+    go best acc passed front =
+        let check :: PlayerDirection -> Label -> IS.IntSet
+            check dir l =
+              case myNeighbour rules side dir (resolve l board) of
+                Nothing -> IS.empty
+                Just dst ->
+                  if aLabel dst `labelSetMember` passed
+                    then IS.empty
+                    else IS.singleton $ labelIndex $ aLabel dst
+            front' = IS.unions [check (oppositeDirection dir) l | dir <- getManSimpleMoveDirections rules, l <- labelSetToList front] `IS.difference` passed
+            passed' = IS.union passed front
+            best' = best + 1
+            acc' = IM.fromList [(i, best) | i <- IS.toList (front `IS.difference` passed)] `IM.union` acc
+        in  if IS.null front'
+              then (acc', 0, passed', front)
+              else go best' acc' passed' front'
 
 buildCache :: SomeRules -> M.Map Address SimpleEvaluatorData
 buildCache iface@(SomeRules rules) = M.fromList [(addr, labelData addr) | addr <- getAllAddresses rules]
   where
+    waveDataFirst = waveRho iface First board center
+    waveDataSecond = waveRho iface Second board center
+
     labelData addr = SimpleEvaluatorData $ SimpleEvaluatorWeights {
-        sewFirst = waveRho iface First (isCenter . aLabel) addr best,
-        sewSecond = waveRho iface Second (isCenter . aLabel) addr best
+        sewFirst = maybe 0 (best -) $ IM.lookup (labelIndex $ aLabel addr) waveDataFirst,
+        sewSecond = maybe 0 (best -) $ IM.lookup (labelIndex $ aLabel addr) waveDataSecond
       }
 
     (nrows, ncols) = boardSize rules
 
-    best = fromIntegral $ nrows `div` 2 - 1
+    board = buildBoard DummyRandomTableProvider rules (boardOrientation rules) (boardSize rules)
+
+    best = fromIntegral nrows
 
     crow           = nrows `div` 2
     ccol           = ncols `div` 2
@@ -227,7 +242,7 @@ buildCache iface@(SomeRules rules) = M.fromList [(addr, labelData addr) | addr <
     isCenter (Label col row) =
       (col >= ccol - halfCol && col < ccol + halfCol)
         && (row >= crow - 1 && row < crow + 1)
-        -- && (row >= crow - halfRow && row < crow + halfRow)
+    center = IS.filter (isCenter . unpackIndex) $ IM.keysSet $ bAddresses board
 
 preEval :: SimpleEvaluator -> Side -> Board -> PreScore
 preEval (SimpleEvaluator { seRules = iface@(SomeRules rules), ..}) side board =
