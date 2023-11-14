@@ -121,24 +121,20 @@ class AiEditorWidget(QWidget):
         self.depth_if_ambigous = make_spinbox(_("Maximum depth"), 2, 24, general)
         self.depth_if_ambigous.setEnabled(False)
 
+        self.deeper_within_timeout = QCheckBox(general)
+        layout.addRow(_("Think deeper while there is time"), self.deeper_within_timeout)
+        self.deeper_within_timeout.stateChanged.connect(self.edited)
+        self.timeout = make_spinbox(_("Timeout (seconds)"), 1, 120, general)
+
         self.background_thinking = QCheckBox(general)
         self.background_thinking.stateChanged.connect(self.edited)
         layout.addRow(_("Think while user is thinking"), self.background_thinking)
 
         self.moves_bound_low = make_spinbox(_("`Few moves' mode bound"), 1, 5, general)
         self.moves_bound_high = make_spinbox(_("`Too many moves' mode bound"), 5, 50, general)
-
         self.use_positional_score = QCheckBox(general)
         layout.addRow(_("Use positional score"), self.use_positional_score)
         self.use_positional_score.stateChanged.connect(self.edited)
-
-        self.use_timeout = QCheckBox(general)
-        layout.addRow(_("Continue thinking while there is time"), self.use_timeout)
-        self.use_timeout.stateChanged.connect(self.edited)
-        self.use_timeout.stateChanged.connect(self._on_use_timeout)
-
-        self.timeout = make_spinbox(_("Timeout (seconds)"), 1, 120, general)
-        self.timeout.setEnabled(False)
 
         self.random_opening_depth = make_spinbox(_("Random opening depth"), 1, 5, general)
         self.random_opening_depth.setToolTip(_("Number of first moves to be considered as opening; during these moves, AI will select it's move randomly from several best options"))
@@ -207,10 +203,6 @@ class AiEditorWidget(QWidget):
 
         self.setLayout(layout)
 
-    def _on_use_timeout(self):
-        use = self.use_timeout.checkState() == Qt.Checked
-        self.timeout.setEnabled(use)
-
     def _on_deeper_if_ambigous(self):
         use = self.deeper_if_ambigous.checkState() == Qt.Checked
         self.depth_if_ambigous.setEnabled(use)
@@ -262,7 +254,7 @@ class AiEditorWidget(QWidget):
         self.moves_bound_low.setValue(ai.moves_bound_low)
         self.moves_bound_high.setValue(ai.moves_bound_high)
         self.use_positional_score.setCheckState(Qt.Checked if ai.use_positional_score else Qt.Unchecked)
-        self.use_timeout.setCheckState(Qt.Checked if ai.use_timeout else Qt.Unchecked)
+        self.deeper_within_timeout.setCheckState(Qt.Checked if ai.deeper_within_timeout else Qt.Unchecked)
         self.timeout.setValue(1 if ai.timeout is None else ai.timeout)
         self.random_opening_depth.setValue(ai.random_opening_depth)
         self.random_opening_options.setValue(ai.random_opening_options)
@@ -305,7 +297,7 @@ class AiEditorWidget(QWidget):
         ai.moves_bound_low = self.moves_bound_low.value()
         ai.moves_bound_high = self.moves_bound_high.value()
         ai.use_positional_score = self.use_positional_score.checkState() == Qt.Checked
-        ai.use_timeout = self.use_timeout.checkState() == Qt.Checked
+        ai.deeper_within_timeout = self.deeper_within_timeout.checkState() == Qt.Checked
         ai.timeout = self.timeout.value()
         ai.random_opening_depth = self.random_opening_depth.value()
         ai.random_opening_options = self.random_opening_options.value()
