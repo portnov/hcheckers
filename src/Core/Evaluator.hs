@@ -17,6 +17,7 @@ import           Data.Aeson.Types as AT
 import           Data.Default
 import qualified Data.Vector as V
 import qualified Data.Map as M
+import qualified Data.IntMap.Strict as IM
 import qualified Data.IntSet as IS
 
 import Core.Types
@@ -237,10 +238,25 @@ preEval (SimpleEvaluator { seRules = iface@(SomeRules rules), ..}) side board =
 --       let (men, _) = myCounts side board
 --       in  if men > 3 then seHelpedKingCoef else seKingCoef
 
-    (numericScore, positionalKingScore) =
-      let (myMen, myKings) = myCounts side board
-      in  (kingCoef * fromIntegral myKings + fromIntegral myMen,
-           sePositionalKingWeight * fromIntegral myKings)
+    myMoves = IM.fromList [(labelIndex (aLabel $ pmBegin m), m) | m <- possibleMoves rules side board]
+
+    dfltManWeight = 100
+
+    manWeight l
+      | isBackyard l = dfltManWeight + 1
+      | isBlockedByKing l = dfltManWeight - 3
+      -- | labelIndex l `IM.notMember` myMoves = dfltManWeight - 2
+      | otherwise = dfltManWeight
+
+    kingWeight l
+      | l `labelSetMember` keyFields = kingCoef * dfltManWeight + 1
+      | otherwise = kingCoef * dfltManWeight
+
+    numericScore =
+      let (men, kings) = myPiecesCount side board manWeight kingWeight
+      in  men + kings
+
+    positionalKingScore = fromIntegral $ snd $ myCounts side board
 
     (nrows, ncols) = bSize board
     crow           = nrows `div` 2
@@ -344,6 +360,12 @@ preEval (SimpleEvaluator { seRules = iface@(SomeRules rules), ..}) side board =
       fromIntegral $ IS.size $ IS.intersection (myKingsS side board) keyFields
 
     kingsKeyFieldsScore = kingsAtKeyFields * keyFieldsCnt `div` (occupiedKeyFields + 1)
+
+    isBlockedByKing l =
+      let opponentKings = myKingsS (opposite side) board
+          manIdx = labelIndex l
+          anyS p set = not $ IS.null $ IS.filter p set
+      in anyS (\kingIdx -> isManBlockedByKing rules side board (unpackIndex manIdx) (unpackIndex kingIdx)) opponentKings
 
     menBlockedByKings =
       let opponentKings = myKingsS (opposite side) board

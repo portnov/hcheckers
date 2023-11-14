@@ -310,6 +310,11 @@ myLabelsCount' side board w =
   in  (IS.foldr plus 0 $ IS.map w' $ myMenS side board,
        IS.foldr plus 0 $ IS.map w' $ myKingsS side board)
 
+myPiecesCount :: (Integral i, Num i) => Side -> Board -> (Label -> i) -> (Label -> i) -> (i, i)
+myPiecesCount side board manW kingW =
+  (sum $ map manW $ myMen side board,
+       sum $ map kingW $ myKings side board)
+
 myAddressesCount' :: Integral i => Side -> Board -> (Address -> i) -> (i, i)
 myAddressesCount' side board w =
   (sum $ map w $ myMenA side board,

@@ -6,6 +6,7 @@ module Formats.Fen where
 
 import Control.Monad.State
 import qualified Data.Text as T
+import qualified Data.Text.IO as TIO
 import Text.Megaparsec hiding (Label)
 import Text.Megaparsec.Char
 
@@ -56,6 +57,15 @@ parseFen rules text =
   case evalState (runParserT (pFen rules) "FEN" text) Nothing of
     Left err -> Left $ errorBundlePretty err
     Right fen -> Right (fenNextMove fen, fenToBoardRep fen)
+
+loadBoardFromFen :: SomeRules -> FilePath -> IO (Side, Board)
+loadBoardFromFen (SomeRules rules) path = do
+  fenText <- TIO.readFile path
+  case parseFen (SomeRules rules) fenText of
+    Left err -> fail err
+    Right (side,brep) -> do
+      let board = parseBoardRep DummyRandomTableProvider rules brep
+      return (side, board)
 
 boardToFen :: Side -> Board -> Fen
 boardToFen side b =

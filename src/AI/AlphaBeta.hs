@@ -111,11 +111,12 @@ instance (GameRules rules, VectorEvaluator eval, ToJSON eval) => GameAi (AlphaBe
 
   chooseMove ai storage gameId side aiSession board = Monitoring.timed "ai.choose.move" $ do
     stopBgSession storage gameId
-    (moves, _) <- runAI ai storage gameId side aiSession board
+    (moves, score) <- runAI ai storage gameId side aiSession board
     -- liftIO $ atomically $ writeTVar (aichCurrentCounts storage) $ calcBoardCounts board
     Monitoring.distribution "ai.chosen.moves.count" $ fromIntegral $ length moves
-    when (length moves > 1) $
+    when (length moves > 1) $ do
       Monitoring.increment "ai.ambigous.choice"
+      $info "AI selected moves {} with equal score {}" (show moves, score)
     return moves
 
   afterMoveSelected ai@(AlphaBeta params rules eval) storage gameId side board pm = do

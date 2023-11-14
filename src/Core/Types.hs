@@ -542,7 +542,7 @@ scoreBound :: ScoreBase
 scoreBound = 8*512
 
 maxPieces :: ScoreBase
-maxPieces = 16*5
+maxPieces = 1600
 
 win :: Score
 win = Score maxPieces scoreBound
