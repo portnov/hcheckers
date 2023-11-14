@@ -26,7 +26,7 @@ import qualified Data.Map as M
 import qualified Data.Vector as V
 import Data.Maybe
 import Data.Default
-import Data.List (sortOn)
+import Data.List (sortOn, transpose)
 import Data.Text.Format.Heavy
 import Data.Aeson
 import System.Log.Heavy
@@ -473,8 +473,8 @@ runAI ai@(AlphaBeta params rules eval) handle gameId side aiSession board = do
         output <- select options
         let bestScore = sNumeric $ snd output
         let shift = bestScore - sNumeric score0
-        unless (any rInterrupted options) $
-          rememberScoreShift handle gameId shift
+        -- unless (any rInterrupted options) $
+        rememberScoreShift handle gameId shift
         return output
   where
     maximize = side == First
@@ -846,7 +846,8 @@ runAI ai@(AlphaBeta params rules eval) handle gameId side aiSession board = do
               smiBest = bestVar
             } | (move, index) <- zip moves indicies ]
 
-          groups = [[input] | input <- inputs]
+          -- groups = [[input] | input <- inputs]
+          groups = transpose $ chunksOf nThreads inputs
             -- | otherwise = transpose $ chunksOf nThreads inputs
 
       results <- process' processor groups

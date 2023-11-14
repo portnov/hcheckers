@@ -238,18 +238,18 @@ preEval (SimpleEvaluator { seRules = iface@(SomeRules rules), ..}) side board =
 --       let (men, _) = myCounts side board
 --       in  if men > 3 then seHelpedKingCoef else seKingCoef
 
-    myMoves = IM.fromList [(labelIndex (aLabel $ pmBegin m), m) | m <- possibleMoves rules side board]
+    myMoves = IS.fromList [labelIndex (aLabel $ pmBegin m) | m <- possibleMoves rules side board]
 
     dfltManWeight = 100
 
     manWeight l
       | isBackyard l = dfltManWeight + 1
-      | isBlockedByKing l = dfltManWeight - 3
-      -- | labelIndex l `IM.notMember` myMoves = dfltManWeight - 2
+      | isBlockedByKing l = dfltManWeight - 20
+      | labelIndex l `IS.notMember` myMoves = dfltManWeight - 2
       | otherwise = dfltManWeight
 
     kingWeight l
-      | l `labelSetMember` keyFields = kingCoef * dfltManWeight + 1
+      | l `labelSetMember` keyFields = kingCoef * dfltManWeight + (dfltManWeight `div` 3)
       | otherwise = kingCoef * dfltManWeight
 
     numericScore =

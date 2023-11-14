@@ -305,10 +305,8 @@ myLabelsCount side board p =
 
 myLabelsCount' :: (Integral i, Num i) => Side -> Board -> (Label -> i) -> (i, i)
 myLabelsCount' side board w =
-  let w' idx = fromIntegral $ w (unpackIndex idx)
-      plus x y = fromIntegral x + fromIntegral y
-  in  (IS.foldr plus 0 $ IS.map w' $ myMenS side board,
-       IS.foldr plus 0 $ IS.map w' $ myKingsS side board)
+  (sum $ map w $ myMen side board,
+       sum $ map w $ myKings side board)
 
 myPiecesCount :: (Integral i, Num i) => Side -> Board -> (Label -> i) -> (Label -> i) -> (i, i)
 myPiecesCount side board manW kingW =
