@@ -19,6 +19,7 @@ import           Data.Default
 import qualified Data.Vector as V
 import qualified Data.Map as M
 import qualified Data.IntSet as IS
+import qualified Data.IntMap.Strict as IM
 
 import Core.Types
 import Core.Board
