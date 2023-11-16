@@ -552,7 +552,11 @@ runAI ai@(AlphaBeta params rules eval) handle gameId side aiSession board = do
                              Nothing -> Nothing
                              Just start -> Just $ max 2 $ preselectDepth + start - target
               input = DepthIterationInput {
-                        diiParams = params {abDepth = preselectDepth, abStartDepth = startDepth},
+                        diiParams = params {
+                                      abDepth = preselectDepth,
+                                      abStartDepth = startDepth,
+                                      abDynamicDepth = min preselectDepth (preselectDepth - abDepth params + abDynamicDepth params)
+                                    },
                         diiMoves = moves,
                         diiPrevResult = Nothing,
                         diiSortKeys = Nothing,
@@ -1025,11 +1029,17 @@ isTargetDepth dp = dpCurrent dp >= dpTarget dp
 --
 updateDepth :: (Monad m, HasLogging m, MonadIO m) => AlphaBetaParams -> [PossibleMove] -> Bool -> DepthParams -> m DepthParams
 updateDepth params moves opponentHasCaptures dp
+    | nMoves == 1 = do
+                  return $ dp {
+                              dpCurrent = dpCurrent dp + 1,
+                              dpMax = dpMax dp + 1,
+                              dpForcedMode = forced || dpForcedMode dp,
+                              dpStaticMode = static
+                            }
     | deepen = do
                   let delta = fromIntegral nMoves - 1
                   let target = min (dpTarget dp + 1) $ max (dpTarget dp) (dpMax dp - delta)
                   let indent = replicate (fromIntegral $ 2*dpCurrent dp) ' '
-                  let static = dpCurrent dp > abDynamicDepth params
                   $verbose "{}| there is only one move, increase target depth to {}"
                           (indent, target)
                   return $ dp {
@@ -1047,6 +1057,7 @@ updateDepth params moves opponentHasCaptures dp
     | otherwise = return $ dp {dpCurrent = dpCurrent dp + 1}
   where
     nMoves = length moves
+    static = dpCurrent dp > abDynamicDepth params
     forced = any isCapture moves || any isPromotion moves || opponentHasCaptures
     deepen = if dpCurrent dp <= dpInitialTarget dp
                then nMoves <= abMovesLowBound params
