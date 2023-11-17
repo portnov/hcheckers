@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: 0.1.0.0\n"
-"POT-Creation-Date: 2023-11-14 10:01+0500\n"
+"POT-Creation-Date: 2023-11-17 15:26+0500\n"
 "PO-Revision-Date: 2018-11-07 22:30+5\n"
 "Last-Translator: Ilya Portnov <portnov84@rambler.ru>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -15,23 +15,23 @@ msgstr ""
 "Content-Transfer-Encoding: utf-8\n"
 "Generated-By: pygettext.py 1.5\n"
 
-#: board.py:883
+#: board.py:898
 msgid "Piece at {} does not have moves"
 msgstr "Фишка на {} не имеет ходов"
 
-#: board.py:890
+#: board.py:905
 msgid "Possible target fields: {}"
 msgstr "Возможные целевые поля: {}"
 
-#: board.py:919
+#: board.py:934
 msgid "Piece at {} cannot be moved to {}"
 msgstr "Фишка на {} не может быть передвинута на {}"
 
-#: board.py:923
+#: board.py:938
 msgid "Field {} does not belong to you"
 msgstr "Поле {} не принадлежит вам"
 
-#: board.py:1012
+#: board.py:1027
 msgid "Another side have offered a draw. You have to accept or decline it."
 msgstr "Соперник предложил ничью. Вам нужно согласиться или отказаться."
 
@@ -361,7 +361,7 @@ msgstr "&Выход"
 msgid "Close this dialog and exit the program"
 msgstr "Закрыть этот диалог и выйти из программы"
 
-#: newgamedlg.py:275 toplevel.py:978
+#: newgamedlg.py:275 toplevel.py:979
 msgid "Settings have been updated."
 msgstr "Настройки были обновлены."
 
@@ -466,7 +466,7 @@ msgstr "Соглашаться если ИИ проигрывает"
 msgid "Accept draws"
 msgstr "Соглашаться на ничьи"
 
-#: settingsdlg.py:152 settingsdlg.py:564
+#: settingsdlg.py:152 settingsdlg.py:570
 msgid "General"
 msgstr "Общее"
 
@@ -587,110 +587,114 @@ msgid "Show board borders with notation"
 msgstr "Показывать края доски с нотацией"
 
 #: settingsdlg.py:401
+msgid "Highlight pieces that can be moved"
+msgstr "Подсвечивать фишки, у которых есть ходы"
+
+#: settingsdlg.py:403
 msgid "Show possible moves"
 msgstr "Показывать возможные ходы"
 
-#: settingsdlg.py:404
+#: settingsdlg.py:406
 msgid "Higlight when another piece is clicked"
 msgstr "Подсвечивать при щелчке по другой шашке"
 
-#: settingsdlg.py:405
+#: settingsdlg.py:407
 msgid "Always highlight"
 msgstr "Всегда подсвечивать"
 
-#: settingsdlg.py:406
+#: settingsdlg.py:408
 msgid "Never highlight"
 msgstr "Никогда не подсвечивать"
 
-#: settingsdlg.py:407
+#: settingsdlg.py:409
 msgid "Highlight possible captures"
 msgstr "Подсвечивать возможные взятия"
 
-#: settingsdlg.py:414
+#: settingsdlg.py:416
 msgid "Theme"
 msgstr "Тема"
 
-#: settingsdlg.py:417
+#: settingsdlg.py:419
 msgid "Enable sounds"
 msgstr "Включить звуки"
 
-#: settingsdlg.py:420
+#: settingsdlg.py:422
 msgid "Remaining time"
 msgstr "Оставшееся время"
 
-#: settingsdlg.py:421
+#: settingsdlg.py:423
 msgid "Passed time"
 msgstr "Прошедшее время"
 
-#: settingsdlg.py:422
+#: settingsdlg.py:424
 msgid "In game clock show"
 msgstr "В игровых часах показывать"
 
-#: settingsdlg.py:475
+#: settingsdlg.py:481
 msgid "Server URL"
 msgstr "URL сервера"
 
-#: settingsdlg.py:479
+#: settingsdlg.py:485
 msgid "Use local server"
 msgstr "Использовать локальный сервер"
 
-#: settingsdlg.py:481
+#: settingsdlg.py:487
 msgid "Local server start command"
 msgstr "Команда запуска локального сервера"
 
-#: settingsdlg.py:487
+#: settingsdlg.py:493
 msgid "Use system settings"
 msgstr "Использовать системные настройки"
 
-#: settingsdlg.py:488
+#: settingsdlg.py:494
 msgid "Do not use proxy"
 msgstr "Не использовать прокси"
 
-#: settingsdlg.py:489
+#: settingsdlg.py:495
 msgid "Manual configuration"
 msgstr "Ручная настройка"
 
-#: settingsdlg.py:490
+#: settingsdlg.py:496
 msgid "Proxy usage"
 msgstr "Использование прокси"
 
-#: settingsdlg.py:494
+#: settingsdlg.py:500
 msgid "Proxy"
 msgstr "Прокси"
 
-#: settingsdlg.py:498
+#: settingsdlg.py:504
 msgid "Debug"
 msgstr "Отладка"
 
-#: settingsdlg.py:499
+#: settingsdlg.py:505
 msgid "Information"
 msgstr "Информация"
 
-#: settingsdlg.py:500
+#: settingsdlg.py:506
 msgid "Warning"
 msgstr "Предупреждения"
 
-#: settingsdlg.py:501
+#: settingsdlg.py:507
 msgid "Error"
 msgstr "Ошибки"
 
-#: settingsdlg.py:503
+#: settingsdlg.py:509
 msgid "Logging level"
 msgstr "Уровень журналирования"
 
-#: settingsdlg.py:506
+#: settingsdlg.py:512
 msgid "Request confirmation when closing a game"
 msgstr "Запрашивать подтверждение при закрытии игры"
 
-#: settingsdlg.py:566
+#: settingsdlg.py:572
 msgid "View Settings"
 msgstr "Настройки внешнего вида"
 
-#: settingsdlg.py:568
+#: settingsdlg.py:574
 msgid "AI Presets"
 msgstr "Настройки ИИ"
 
-#: settingsdlg.py:581
+#: settingsdlg.py:587
 msgid "HCheckers settings"
 msgstr "Настройки HCheckers"
 
@@ -750,7 +754,7 @@ msgstr ""
 "Не могу запустить локальный сервер; код выхода: {}\n"
 "{}"
 
-#: toplevel.py:292 toplevel.py:1042 toplevel.py:1047
+#: toplevel.py:292 toplevel.py:1043 toplevel.py:1048
 msgid "Exception"
 msgstr "Исключение"
 
@@ -970,11 +974,11 @@ msgstr "ИИ предложил следующие ходы: {}"
 msgid "Log has been cleared."
 msgstr "Журнал был очищен."
 
-#: toplevel.py:1008
+#: toplevel.py:1009
 msgid "About HCheckers"
 msgstr "О HCheckers"
 
-#: toplevel.py:1009
+#: toplevel.py:1010
 msgid ""
 "This is HCheckers Client application, version {0}.<br>Server version is {1} "
 "({2}).<br>Please report issues at <a href=\"{3}\">{3}</a>."
@@ -982,7 +986,7 @@ msgstr ""
 "Это клиентское приложение HCheckers, версия {0}<br>Версия сервера {1} ({2})."
 "<br>Пожалуйста сообщайте о проблемах на странице <a href=\"{3}\">{3}</a>."
 
-#: toplevel.py:1021
+#: toplevel.py:1022
 msgid ""
 "Unexpected response received from the server.\n"
 "Request URL: {}\n"
@@ -994,11 +998,11 @@ msgstr ""
 "Код ответа: {}\n"
 "Сообщение в ответе: {}"
 
-#: toplevel.py:1032
+#: toplevel.py:1033
 msgid "No such move: {}"
 msgstr "Нет такого хода: {}"
 
-#: toplevel.py:1036
+#: toplevel.py:1037
 msgid ""
 "Status of current game is unsuitable for this operation. Game status is {}; "
 "required status is {}"
@@ -1006,11 +1010,11 @@ msgstr ""
 "Статус текущей игры не подходит для данной операции. Статус игры {}; нужный "
 "статус {}"
 
-#: toplevel.py:1038
+#: toplevel.py:1039
 msgid "Custom AI settings are disabled on server side"
 msgstr "Пользовательские настройки ИИ запрещены на стороне сервера"
 
-#: toplevel.py:1046
+#: toplevel.py:1047
 msgid ""
 "An exception occured while connecting to the server.\n"
 "Request URL: {}\n"
@@ -1020,7 +1024,7 @@ msgstr ""
 "URL запроса: {}\n"
 "Текст исключения: {}"
 
-#: toplevel.py:1053
+#: toplevel.py:1054
 msgid "Exit HCheckers?"
 msgstr "Выйти из HCheckers?"
 
