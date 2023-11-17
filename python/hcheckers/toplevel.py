@@ -967,6 +967,7 @@ class Checkers(QMainWindow):
         dialog = SettingsDialog(self.settings, self.share_dir, parent=self, client=self.game)
         result = dialog.exec_()
         if result == QDialog.Accepted:
+            self.board.show_moveable = dialog.get_show_moveable()
             self.board.show_possible_moves = dialog.get_show_possible_moves()
             self.board.show_notation = dialog.get_show_notation()
             self.board.show_border = dialog.get_show_border()

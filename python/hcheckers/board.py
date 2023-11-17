@@ -240,6 +240,7 @@ class Board(QWidget):
         self._show_notation = settings.value("show_notation", True, type=bool)
         self._show_border = settings.value("show_border", False, type=bool)
         self.show_possible_moves = settings.value("show_possible_moves", True, type=bool)
+        self._show_moveable = settings.value("show_moveable", True, type=bool)
         self.invert_colors = False
         self._flip = False
         self.topology = 'Diagonal'
@@ -350,12 +351,13 @@ class Board(QWidget):
     last_left = property(get_last_left, set_last_left)
 
     def reset_moveable(self):
-        self._moveable_fields = None
-        for (row, col) in self.fields:
-            field = self.fields[(row, col)]
-            field.moveable = False
-        self.invalidate()
-        self.repaint()
+        if self.show_moveable:
+            self._moveable_fields = None
+            for (row, col) in self.fields:
+                field = self.fields[(row, col)]
+                field.moveable = False
+            self.invalidate()
+            self.repaint()
 
     def reset_last_moved(self):
         self.last_moved = None
@@ -425,6 +427,16 @@ class Board(QWidget):
         self.repaint()
 
     show_border = property(get_show_border, set_show_border)
+
+    def get_show_moveable(self):
+        return self._show_moveable
+
+    def set_show_moveable(self, value):
+        self._show_moveable = value
+        self.invalidate()
+        self.repaint()
+
+    show_moveable = property(get_show_moveable, set_show_moveable)
 
     def get_flip(self):
         return self._flip
@@ -576,9 +588,12 @@ class Board(QWidget):
         if self.show_possible_moves:
             if self._selected_field is not None and self._valid_target_fields is not None and label in self._valid_target_fields:
                 field.possible_piece = self.fields[self._selected_field].piece
+        if self.show_moveable:
             if self._moveable_fields is not None:
                 if not self.locked:
                     field.moveable = label in self._moveable_fields
+        else:
+            field.moveable = False
 
         prev_captured = field.captured
         if self.move_animation.is_active() and label in self.move_animation.captured_fields:

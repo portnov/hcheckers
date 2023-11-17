@@ -397,6 +397,8 @@ class ViewSettingsPage(QWidget):
         layout.addRow(_("Show fields notation on the board"), self.show_notation)
         self.show_border = QCheckBox(self)
         layout.addRow(_("Show board borders with notation"), self.show_border)
+        self.show_moveable = QCheckBox(self)
+        layout.addRow(_("Highlight pieces that can be moved"), self.show_moveable)
         self.show_possible_moves = QCheckBox(self)
         layout.addRow(_("Show possible moves"), self.show_possible_moves)
 
@@ -436,6 +438,9 @@ class ViewSettingsPage(QWidget):
 
         show_border = settings.value("show_border", False, type=bool)
         self.show_border.setCheckState(Qt.Checked if show_border else Qt.Unchecked)
+        
+        show_moveable = settings.value("show_moveable", True, type=bool)
+        self.show_moveable.setCheckState(Qt.Checked if show_moveable else Qt.Unchecked)
 
         show_possible_moves = settings.value("show_possible_moves", True, type=bool)
         self.show_possible_moves.setCheckState(Qt.Checked if show_possible_moves else Qt.Unchecked)
@@ -461,6 +466,7 @@ class ViewSettingsPage(QWidget):
     def save(self, settings):
         settings.setValue("show_notation", self.show_notation.checkState() == Qt.Checked)
         settings.setValue("show_border", self.show_border.checkState() == Qt.Checked)
+        settings.setValue("show_moveable", self.show_moveable.checkState() == Qt.Checked)
         settings.setValue("show_possible_moves", self.show_possible_moves.checkState() == Qt.Checked)
         settings.setValue("highlight_captures", self.highlight_captures.currentData())
         settings.setValue("theme", self.theme.currentData())
@@ -590,6 +596,9 @@ class SettingsDialog(DialogBase):
 
     def get_show_border(self):
         return self.view.show_border.checkState() == Qt.Checked
+    
+    def get_show_moveable(self):
+        return self.view.show_moveable.checkState() == Qt.Checked
 
     def get_show_possible_moves(self):
         return self.view.show_possible_moves.checkState() == Qt.Checked
