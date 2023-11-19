@@ -699,7 +699,7 @@ runAI ai@(AlphaBeta params rules eval) handle gameId side aiSession board = do
       let initWidth = fromIntegral (abInitWindowWidth params) :: ScoreBase
           (deltaPlus, deltaMinus)
             | depth < abDepth params =
-                let d = fromIntegral $ max 1 $ abDepth params - depth
+                let d = fromIntegral $ max initWidth $ fromIntegral $ abDepth params - depth
                 in  (d, d)
             | not quiescene =
                 let d = Score (initWidth+1) 500
