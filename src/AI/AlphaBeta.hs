@@ -351,17 +351,27 @@ evalMove var eval side board mbPrevMove attacked move = do
                             then getPiece' begin board
                             else Nothing
 
+      distance (Label r1 c1) (Label r2 c2) = fromIntegral $ abs (r1 - r2) + abs (c1 - c2)
+
+      rho = case mbPrevMove of
+              Just pm -> distance (aLabel $ pmBegin move) (aLabel $ pmEnd pm)
+              Nothing -> 0
+
+      height
+        | maximize = fromIntegral $ labelRow $ aLabel $ pmEnd move
+        | otherwise = fromIntegral $ negate $ labelRow $ aLabel $ pmEnd move
+
   case prime of
     Nothing -> if isCapture move
                   then if isAttackPrevPiece
                          then return $ 20 + 3*promotion
                          else if isAttackKing
-                                then return $ 10 + 3*promotion
-                                else return $ 5*promotion + 3*pmVictimsCount move
+                                then return $ 10 + 3*promotion - rho
+                                else return $ 5*promotion + 3*pmVictimsCount move - rho
                   else case attackedPiece of
-                         Nothing -> return promotion
-                         Just (Piece King _) -> return 20
-                         Just (Piece Man _) -> return 10
+                         Nothing -> return $ promotion - rho
+                         Just (Piece King _) -> return $ 20 - rho + height
+                         Just (Piece Man _) -> return $ 10 - rho + height
     Just primeData -> do
       let score = scoreValue $ itemScore primeData
           signedScore = if maximize then score else -score
