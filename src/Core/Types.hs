@@ -9,6 +9,7 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ConstraintKinds #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 module Core.Types where
 
 import Control.Monad.Reader
@@ -49,6 +50,7 @@ import GHC.Exts (Constraint)
 import Debug.Trace (traceEventIO)
 
 import qualified Core.HTable as HT
+import Control.Monad.IO.Unlift (MonadUnliftIO(withRunInIO))
 
 -- | Label is a coordinate of field on the board.
 data Label = Label {
@@ -998,20 +1000,24 @@ instance Exception Error
 
 -- | Checkers monad
 newtype Checkers a = Checkers {
-    runCheckers :: ExceptT Error (ReaderT CheckersState IO) a
+    runCheckers :: ReaderT CheckersState IO a
   }
-  deriving (Applicative, Functor, Monad, MonadIO, MonadReader CheckersState, MonadError Error, MonadThrow, MonadCatch, MonadMask)
+  deriving (Applicative, Functor, Monad, MonadIO, MonadReader CheckersState, MonadThrow, MonadCatch, MonadMask, MonadUnliftIO)
 
 instance MonadFail Checkers where
   fail msg = throwError (Unhandled msg)
 
-type Rest a = ActionT Error Checkers a
+instance MonadError Error Checkers where
+  throwError err = throwM err
+  catchError action handler = catch action handler
+
+type Rest a = ActionT Checkers a
 
 -- | A monad to track game's state
 type GameM a = ExceptT Error (State Game) a
 
 runCheckersT :: Checkers a -> CheckersState -> IO (Either Error a)
-runCheckersT actions st = runReaderT (runExceptT $ runCheckers actions) st
+runCheckersT actions st = runReaderT (try $ runCheckers actions) st
 
 forkCheckers :: Checkers () -> Checkers ThreadId
 forkCheckers actions = do
@@ -1048,19 +1054,19 @@ instance HasLogContext Checkers where
   getLogContext = asks (ltsContext . csLogging)
 
   withLogContext frame actions =
-    Checkers $ ExceptT $ ReaderT $ \cs ->
+    Checkers $ ReaderT $ \cs ->
       let logging = csLogging cs
           logging' = logging {ltsContext = frame : ltsContext logging} 
-      in runReaderT (runExceptT $ runCheckers actions) $ cs {csLogging = logging'}
+      in runReaderT (runCheckers actions) $ cs {csLogging = logging'}
 
 instance HasLogger Checkers where
   getLogger = asks (ltsLogger . csLogging)
 
   localLogger logger actions =
-    Checkers $ ExceptT $ ReaderT $ \cs ->
+    Checkers $ ReaderT $ \cs ->
       let logging = csLogging cs
           logging' = logging {ltsLogger = logger}
-      in runReaderT (runExceptT $ runCheckers actions) $ cs {csLogging = logging'}
+      in runReaderT (runCheckers actions) $ cs {csLogging = logging'}
 
 instance MonadMetrics Checkers where
   getMetrics = asks csMetrics

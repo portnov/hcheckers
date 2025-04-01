@@ -18,6 +18,7 @@ module AI.AlphaBeta.Cache
   ) where
 
 import Control.Concurrent
+import Control.Monad (when, void)
 import Control.Monad.State
 import Control.Monad.Reader
 import Control.Concurrent.STM
@@ -37,7 +38,7 @@ mkCacheKey eval board = (evalToVector eval, board)
 
 putAiData :: AIData -> CacheKey -> PerBoardData -> Checkers ()
 putAiData aiData (evalVec, board) item = do
-  perEval <- liftIO $ atomically $ readTVar aiData
+  perEval <- liftIO $ readTVarIO aiData
   case AM.lookup evalVec perEval of
     Just forEval -> liftIO $ putBoardMapWith forEval (<>) board item
     Nothing -> do
@@ -49,7 +50,7 @@ putAiData aiData (evalVec, board) item = do
 
 lookupAiData :: AIData -> CacheKey -> Checkers (Maybe PerBoardData)
 lookupAiData aiData (evalVec, board) = do
-  perEval <- liftIO $ atomically $ readTVar aiData
+  perEval <- liftIO $ readTVarIO aiData
   case AM.lookup evalVec perEval of
     Nothing -> return Nothing
     Just forEval -> liftIO $ lookupBoardMap forEval board
@@ -58,7 +59,7 @@ allocateCache :: VectorEvaluator eval => AICacheHandle rules eval -> eval -> Che
 allocateCache handle eval = do
   let aiData = aichData handle
   let evalVec = evalToVector eval
-  perEval <- liftIO $ atomically $ readTVar aiData
+  perEval <- liftIO $ readTVarIO aiData
   case AM.lookup evalVec perEval of
     Nothing -> do
       htableSize <- asks (aiHtableSize . gcAiConfig . csConfig)
@@ -82,10 +83,10 @@ loadAiCache scoreMove rules = do
   cache <- loadAiData rules
 
   st <- ask
-  counts <- liftIO $ atomically $ newTVar $ BoardCounts 50 50 50 50
-  scoreShift <- liftIO $ atomically $ newTVar M.empty
-  index <- liftIO $ atomically $ newTVar 0
-  bgSessions <- liftIO $ atomically $ newTVar M.empty
+  counts <- liftIO $ newTVarIO (BoardCounts 50 50 50 50)
+  scoreShift <- liftIO $ newTVarIO M.empty
+  index <- liftIO $ newTVarIO 0
+  bgSessions <- liftIO $ newTVarIO M.empty
   let handle = AICacheHandle {
       aichRules = rules,
       aichData = cache,

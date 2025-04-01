@@ -1135,51 +1135,52 @@ scoreAB var eval params input
   | otherwise = do
       evaluator <- gets ssEvaluator
       let score0 = evalBoard' evaluator board
-      futilePrunned <- checkFutility
-      case futilePrunned of
-        Just out -> do
+      quiescene <- checkQuiescene
+      if isFutile score0 && quiescene
+        then do
             $verbose "Further search is futile, return current score0 = {}" (Single $ show score0)
-            return out
-        Nothing -> do
+            return $ ScoreOutput score0 True False
+        else do
+          let (worst, best)
+                | maximize = (alpha, beta)
+                | otherwise = (beta, alpha)
+          if quiescene && ( (maximize && score0 >= beta) || (minimize && score0 <= alpha) )
+            then return $ ScoreOutput best True False
+            else do
+              moves <- case siPossibleMoves input of
+                         Nothing -> lift $ getPossibleMoves var side board
+                         Just ms -> return ms
 
-          moves <- case siPossibleMoves input of
-                     Nothing -> lift $ getPossibleMoves var side board
-                     Just ms -> return ms
-          let quiescene = isQuiescene moves
-          let worst
-                | maximize = alpha
-                | otherwise = beta
-
-          if null moves
-            -- this actually means that corresponding side lost.
-            then do
-              $verbose "{}`—No moves left." (Single indent)
-              return $ ScoreOutput worst True False
-            else
-              if dpStaticMode dp && isQuiescene moves
-                -- In static mode, we are considering forced moves only.
-                -- If we have reached a quiescene, then that's all.
+              if null moves
+                -- this actually means that corresponding side lost.
                 then do
-                  $verbose "Reached quiescene in static mode; return current score0 = {}" (Single $ show score0)
-                  return $ ScoreOutput score0 True False
-                else do
-                  -- first, let "best" be the worse possible value
-                  let best
-                        | dpStaticMode dp = evalBoard' evaluator board
-                        | otherwise = worst
+                  $verbose "{}`—No moves left." (Single indent)
+                  return $ ScoreOutput worst True False
+                else
+                  if dpStaticMode dp && quiescene
+                    -- In static mode, we are considering forced moves only.
+                    -- If we have reached a quiescene, then that's all.
+                    then do
+                      $verbose "Reached quiescene in static mode; return current score0 = {}" (Single $ show score0)
+                      return $ ScoreOutput score0 True False
+                    else do
+                      -- first, let "best" be the worse possible value
+                      let best
+                            | dpStaticMode dp = evalBoard' evaluator board
+                            | otherwise = worst
 
-                  push best
-                  $verbose "{}V Side: {}, A = {}, B = {}" (indent, show side, show alpha, show beta)
-                  rules <- gets ssRules
-                  let opponentHasCaptures = hasCapturesOrPromotions rules (opposite side) board
-                  dp' <- updateDepth params moves opponentHasCaptures dp
-                  let prevMove = siPrevMove input
-                  moves' <- sortMoves eval params var side board prevMove moves
---                   let depths = correspondingDepths (length moves') score0 quiescene dp'
-                  let depths = repeat dp'
-                  out <- iterateMoves $ zip3 [1..] moves' depths
-                  pop
-                  return out
+                      push best
+                      $verbose "{}V Side: {}, A = {}, B = {}" (indent, show side, show alpha, show beta)
+                      rules <- gets ssRules
+                      let opponentHasCaptures = hasCapturesOrPromotions rules (opposite side) board
+                      dp' <- updateDepth params moves opponentHasCaptures dp
+                      let prevMove = siPrevMove input
+                      moves' <- sortMoves eval params var side board prevMove moves
+    --                   let depths = correspondingDepths (length moves') score0 quiescene dp'
+                      let depths = repeat dp'
+                      out <- iterateMoves $ zip3 [1..] moves' depths
+                      pop
+                      return out
 
   where
 
@@ -1210,24 +1211,16 @@ scoreAB var eval params input
                                 }
              in  replicate (abMovesHighBound params) depth ++ repeat reducedDepth
 
-    checkFutility :: ScoreM rules eval (Maybe ScoreOutput)
-    checkFutility = do
-      evaluator <- gets ssEvaluator
-      quiescene <- checkQuiescene
-      let score0 = evalBoard' evaluator board
-          best = if maximize then alpha else beta
-          isBad = if maximize
+    isFutile :: Score -> Bool
+    isFutile score0 = 
+      let isBad = if maximize
                     then score0 <= alpha + 1
                     else score0 >= beta - 1
-
-      if (dpCurrent dp >= dpTarget dp - 1) &&
+      in (dpCurrent dp >= dpTarget dp - 1) &&
           not (dpForcedMode dp) &&
-          quiescene &&
           score0 >= -10 &&
           score0 <= 10 &&
           isBad
-        then return $ Just $ ScoreOutput score0 quiescene False
-        else return Nothing
 
     evalBoard' :: eval -> Board -> Score
     evalBoard' evaluator board = result
@@ -1241,8 +1234,9 @@ scoreAB var eval params input
     checkQuiescene :: ScoreM rules eval Bool
     checkQuiescene = do
       rules <- gets ssRules
-      moves <- lift $ getPossibleMoves var (opposite side) board
-      return $ isQuiescene moves
+      myMoves <- lift $ getPossibleMoves var (opposite side) board
+      hisMoves <- lift $ getPossibleMoves var side board
+      return $ isQuiescene myMoves && isQuiescene hisMoves
 
     push :: Score -> ScoreM rules eval ()
     push score =

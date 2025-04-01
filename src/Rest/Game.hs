@@ -6,6 +6,7 @@ module Rest.Game where
 
 import Control.Monad.Reader
 import Control.Concurrent
+import Control.Exception (SomeException)
 import Control.Concurrent.STM
 import qualified Data.Text                     as T
 import qualified Data.Text.Lazy                as TL
@@ -33,14 +34,14 @@ boardRq _ _ (NewGameRq { rqBoard = ExplicitBoard br }) =
   return $ (Nothing, [], Just br)
 boardRq _ rules (NewGameRq { rqBoard = FenBoard fen }) =
   case parseFen rules fen of
-    Left  err        -> raise $ InvalidBoard err
+    Left  err        -> throw $ InvalidBoard err
     Right (side, br) -> return (Just side, [], Just br)
 boardRq rnd rules (NewGameRq { rqBoard = PdnBoard pdn }) =
   case parsePdn (Just rules) pdn of
-    Left  err -> raise $ InvalidBoard err
+    Left  err -> throw $ InvalidBoard err
     Right gr  ->
       case loadPdn rnd gr of
-        Left err -> raise err
+        Left err -> throw err
         Right (history, board) -> return (Nothing, history, Just $ boardRep board)
 boardRq _ rules (NewGameRq { rqBoard = RandomPreset }) = do
   board <- liftCheckers_ $ getRandomInitialBoard  rules
@@ -54,17 +55,17 @@ boardRq _ _ (NewGameRq { rqBoard = DefaultBoard }) =
 parsePdnInfo :: PdnInfoRq -> Rest PdnInfo
 parsePdnInfo (PdnInfoRq rname text) = do
   case selectRulesEither' rname of
-    Left err -> raise $ UnknownRules err
+    Left err -> throw $ UnknownRules err
     Right rules ->
       case parsePdn (Just rules) text of
-        Left err -> raise $ InvalidBoard err
+        Left err -> throw $ InvalidBoard err
         Right gr -> return $ pdnInfo gr
 
 maybeParam :: forall a. Parsable a => TL.Text -> Rest (Maybe a)
 maybeParam name =
-  (Just <$> param name) `rescue` (\_ -> return (Nothing :: Maybe a))
+  (Just <$> param name) `rescue` (\(e :: SomeException) -> return (Nothing :: Maybe a))
 
-restServer :: MVar () -> ScottyT Error Checkers ()
+restServer :: MVar () -> ScottyT Checkers ()
 restServer shutdownVar = do
 
   defaultHandler transformError
@@ -75,7 +76,7 @@ restServer shutdownVar = do
   post "/game/new" $ do
     rq <- jsonData
     case selectRulesEither rq of
-      Left err    -> raise $ UnknownRules err
+      Left err    -> throw $ UnknownRules err
       Right rules -> do
         rnd <- liftCheckers_ $ do
                  sup <- askSupervisor

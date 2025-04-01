@@ -46,8 +46,9 @@ liftCheckers' mbId actions = do
 
 raise500 :: Error -> Rest a
 raise500 err = do
+  status status500
   text $ TL.pack $ show err
-  raiseStatus status500 err
+  finish
 
 error400 :: T.Text -> Rest ()
 error400 message = do
@@ -59,37 +60,41 @@ error403 message = do
   json $ object ["error" .= message]
   status status403
 
-transformError :: Error -> Rest ()
-transformError (Unhandled err) = do
-  error400 $ T.pack err
-transformError (NoSuchMoveExt move side board possible) = do
-  json $ object [
-      "error" .= ("no such move" :: T.Text),
-      "move" .= move,
-      "side" .= side,
-      "board" .= board,
-      "possible" .= possible
-    ]
-  status status400
-transformError (InvalidGameStatus expected actual) = do
-  json $ object [
-      "error" .= ("invalid game status" :: T.Text),
-      "expected" .= expected,
-      "actual" .= actual
-    ]
-transformError CustomAiSettingsDisabled = do
-  error403 "custom ai settings disabled"
-transformError err = do
-  error400 $ T.pack $ show err
+transformError :: ErrorHandler Checkers
+transformError = Web.Scotty.Trans.Handler handle
+  where
+    handle (Unhandled err) = do
+      error400 $ T.pack err
+    handle (NoSuchMoveExt move side board possible) = do
+      json $ object [
+          "error" .= ("no such move" :: T.Text),
+          "move" .= move,
+          "side" .= side,
+          "board" .= board,
+          "possible" .= possible
+        ]
+      status status400
+    handle (InvalidGameStatus expected actual) = do
+      json $ object [
+          "error" .= ("invalid game status" :: T.Text),
+          "expected" .= expected,
+          "actual" .= actual
+        ]
+    handle CustomAiSettingsDisabled = do
+      error403 "custom ai settings disabled"
+    handle err = do
+      error400 $ T.pack $ show err
 
 instance Parsable Side where
   parseParam "1" = Right First
   parseParam "2" = Right Second
   parseParam text = Left $ "unknown side"
 
+{-
 instance ScottyError Error where
   stringError str = Unhandled str
   showError err = TL.pack $ show err
+-}
 
 restOptions :: String -> Port -> Web.Scotty.Trans.Options
 restOptions host port =
@@ -113,7 +118,7 @@ ioErrorHandler err = liftIO $ do
   putStrLn $ "IO error: " ++ show err
   exitWith (ExitFailure 2)
 
-runRestServer :: String -> Int -> (MVar () -> ScottyT Error Checkers ()) -> Checkers ()
+runRestServer :: String -> Int -> (MVar () -> ScottyT Checkers ()) -> Checkers ()
 runRestServer host port restServer = do
   cs <- ask
   let getResponse m = do

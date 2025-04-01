@@ -7,6 +7,7 @@
 module Rest.Battle where
 
 import Control.Monad.Reader
+--import Control.Exception
 import Control.Concurrent
 import qualified Data.Text as T
 import Data.Aeson hiding ( json )
@@ -24,9 +25,9 @@ withRulesR :: String -> (forall rules. GameRules rules => rules -> Rest a) -> Re
 withRulesR rname fn =
   case selectRules' rname of
     Just (SomeRules rules) -> fn rules
-    Nothing -> raise $ UnknownRules "unknown rules"
+    Nothing -> throw $ UnknownRules "unknown rules"
 
-restServer :: MVar () -> ScottyT Error Checkers ()
+restServer :: MVar () -> ScottyT Checkers ()
 restServer shutdownVar = do
   
   post "/battle/run" $ do

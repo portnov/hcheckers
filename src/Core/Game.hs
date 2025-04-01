@@ -12,6 +12,7 @@
 
 module Core.Game where
 
+import Control.Monad (when)
 import Control.Monad.State
 import Control.Monad.Except
 import Control.Concurrent.STM
@@ -52,7 +53,7 @@ mkGame supervisor rules id firstSide mbBoardRep mbTcfg = do
 getGame :: GameId -> Checkers Game
 getGame gameId = do
   var <- askSupervisor
-  st <- liftIO $ atomically $ readTVar var
+  st <- liftIO $ readTVarIO var
   case M.lookup gameId (ssGames st) of
     Just game -> return game
     Nothing -> throwError $ NoSuchGame gameId
@@ -175,7 +176,7 @@ doMoveRq side move = do
                             in  [moveMsg, resultMsg First, resultMsg Second]
           modify $ \game -> game {gState = pushMove move board' (gState game)}
           case mbResult of
-            Just result -> 
+            Just result ->
               modify $ \game -> game {gStatus = Ended result}
             _ -> return ()
           return $ GMoveRs board' messages

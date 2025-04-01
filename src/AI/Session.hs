@@ -7,6 +7,7 @@
 module AI.Session where
 
 import Control.Monad
+import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Except
 import Control.Concurrent
 import Control.Concurrent.STM
